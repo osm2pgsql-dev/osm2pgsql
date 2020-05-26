@@ -72,9 +72,9 @@ void parse_stats_t::possibly_print_status()
     print_status(now);
 }
 
-parse_osmium_t::parse_osmium_t(osmium::Box const &bbox, bool do_append,
+parse_osmium_t::parse_osmium_t(osmium::Box const &bbox, bool append,
                                osmdata_t *osmdata)
-: m_data(osmdata), m_bbox(bbox), m_append(do_append)
+: m_data(osmdata), m_bbox(bbox), m_append(append)
 {}
 
 void parse_osmium_t::stream_file(std::string const &filename,

@@ -130,7 +130,7 @@ private:
 class parse_osmium_t : public osmium::handler::Handler
 {
 public:
-    parse_osmium_t(osmium::Box const &bbox, bool do_append, osmdata_t *osmdata);
+    parse_osmium_t(osmium::Box const &bbox, bool append, osmdata_t *osmdata);
 
     void stream_file(std::string const &filename, std::string const &fmt);
 
