@@ -143,8 +143,12 @@ The parameter table (`object`) has the following fields:
   tag from the list of tags. (Example: `local name = object:grab_tag('name')`)
   This is often used when you want to store some tags in special columns and
   the rest of the tags in an hstore column.
-* `get_bbox()`: Get the bounding box of the current node or way. (It doesn't
-  work for relations currently.)
+* `get_bbox()`: Get the bounding box of the current node or way.
+  This function returns four result values: the lot/lat values for the
+  bottom left corner of the bounding box, followed by the lon/lat values
+  of the top right corner. Both lon/lat values are identical in case of nodes.
+  Example: `lon, lat, dummy, dummy = object.get_bbox()`
+  (This function doesn't work for relations currently.)
 
 Ways have the following additional fields:
 * `is_closed`: A boolean telling you whether the way geometry is closed, ie
