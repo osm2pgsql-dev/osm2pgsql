@@ -22,10 +22,10 @@ struct db_target_descr_t
     std::string schema;
     /// Name of the target table for the copy operation.
     std::string name;
-    /// Comma-separated list of rows for copy operation (when empty: all rows)
-    std::string rows;
     /// Name of id column used when deleting objects.
     std::string id;
+    /// Comma-separated list of rows for copy operation (when empty: all rows)
+    std::string rows;
 
     /**
      * Check if the buffer would use exactly the same copy operation.
@@ -38,12 +38,8 @@ struct db_target_descr_t
 
     db_target_descr_t() = default;
 
-    db_target_descr_t(char const *n, char const *i, char const *r = "")
-    : name(n), rows(r), id(i)
-    {}
-
-    db_target_descr_t(std::string n, std::string i, std::string r)
-    : name(std::move(n)), rows(std::move(r)), id(std::move(i))
+    db_target_descr_t(std::string n, std::string i, std::string r = {})
+    : name(std::move(n)), id(std::move(i)), rows(std::move(r))
     {}
 };
 
