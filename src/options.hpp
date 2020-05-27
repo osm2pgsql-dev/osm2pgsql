@@ -45,7 +45,6 @@ public:
      * Parse the options from the command line
      */
     options_t(int argc, char *argv[]);
-    virtual ~options_t();
 
     std::string prefix{"planet_osm"};         ///< prefix for table names
     std::shared_ptr<reprojection> projection; ///< SRS of projection

@@ -295,8 +295,6 @@ options_t::options_t()
     }
 }
 
-options_t::~options_t() {}
-
 static osmium::Box parse_bbox(char const *bbox)
 {
     double minx, maxx, miny, maxy;
