@@ -8,7 +8,6 @@
 #include <cstring>
 #include <getopt.h>
 #include <osmium/version.hpp>
-#include <sstream>
 #include <stdexcept>
 #include <thread> // for number of threads
 
@@ -257,33 +256,27 @@ void long_usage(char const *arg0, bool verbose = false)
 
 } // anonymous namespace
 
-database_options_t::database_options_t()
-: db(boost::none), username(boost::none), host(boost::none),
-  password(boost::none), port(boost::none)
-{}
-
 std::string database_options_t::conninfo() const
 {
-    std::ostringstream out;
+    std::string out{"fallback_application_name='osm2pgsql'"};
 
-    out << "fallback_application_name='osm2pgsql'";
-    if (db) {
-        out << " dbname='" << *db << "'";
+    if (!db.empty()) {
+        out += " dbname='{}'"_format(db);
     }
-    if (username) {
-        out << " user='" << *username << "'";
+    if (!username.empty()) {
+        out += " user='{}'"_format(username);
     }
-    if (password) {
-        out << " password='" << *password << "'";
+    if (!password.empty()) {
+        out += " password='{}'"_format(password);
     }
-    if (host) {
-        out << " host='" << *host << "'";
+    if (!host.empty()) {
+        out += " host='{}'"_format(host);
     }
-    if (port) {
-        out << " port='" << *port << "'";
+    if (!port.empty()) {
+        out += " port='{}'"_format(port);
     }
 
-    return out.str();
+    return out;
 }
 
 options_t::options_t()
@@ -581,11 +574,9 @@ options_t::options_t(int argc, char *argv[]) : options_t()
     check_options();
 
     if (pass_prompt) {
-        char *prompt = simple_prompt("Password:", 100, 0);
-        if (prompt == nullptr) {
-            database_options.password = boost::none;
-        } else {
-            database_options.password = std::string(prompt);
+        char const *prompt = simple_prompt("Password:", 100, 0);
+        if (prompt != nullptr) {
+            database_options.password = prompt;
         }
     }
 }

@@ -22,15 +22,13 @@
 /**
  * Database options, not specific to a table
  */
-class database_options_t
+struct database_options_t
 {
-public:
-    database_options_t();
-    boost::optional<std::string> db;
-    boost::optional<std::string> username;
-    boost::optional<std::string> host;
-    boost::optional<std::string> password;
-    boost::optional<std::string> port;
+    std::string db;
+    std::string username;
+    std::string host;
+    std::string password;
+    std::string port;
 
     std::string conninfo() const;
 };
