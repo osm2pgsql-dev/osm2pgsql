@@ -20,7 +20,6 @@ public:
               std::vector<std::shared_ptr<output_t>> outs,
               options_t const &options);
 
-    void start() const;
     void flush() const;
     void stop() const;
 

@@ -27,6 +27,9 @@ osmdata_t::osmdata_t(std::unique_ptr<dependency_manager_t> dependency_manager,
     assert(m_dependency_manager);
     assert(m_mid);
     assert(!m_outs.empty());
+    for (auto &out : m_outs) {
+        out->start();
+    }
 }
 
 /**
@@ -144,13 +147,6 @@ void osmdata_t::relation_delete(osmid_t id) const
     slim_middle().relation_delete(id);
 
     m_dependency_manager->relation_deleted(id);
-}
-
-void osmdata_t::start() const
-{
-    for (auto &out : m_outs) {
-        out->start();
-    }
 }
 
 void osmdata_t::flush() const

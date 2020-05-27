@@ -57,6 +57,10 @@ int main(int argc, char *argv[])
             return 0;
         }
 
+        fmt::print(stderr, "Using projection SRS {} ({})\n",
+                   options.projection->target_srs(),
+                   options.projection->target_desc());
+
         auto middle = create_middle(options);
         middle->start();
 
@@ -73,15 +77,10 @@ int main(int argc, char *argv[])
             need_dependencies ? new full_dependency_manager_t{middle}
                               : new dependency_manager_t{});
 
+        util::timer_t timer_overall;
+
         osmdata_t osmdata{std::move(dependency_manager), middle, outputs,
                           options};
-
-        fmt::print(stderr, "Using projection SRS {} ({})\n",
-                   options.projection->target_srs(),
-                   options.projection->target_desc());
-
-        util::timer_t timer_overall;
-        osmdata.start();
 
         // Processing: In this phase the input file(s) are read and parsed,
         // populating some of the tables.

@@ -29,7 +29,6 @@ inline void parse_file(options_t const &options,
 {
     osmdata_t osmdata{std::move(dependency_manager), mid, outs, options};
 
-    osmdata.start();
     parse_osmium_t parser{options.bbox, options.append, &osmdata};
 
     std::string filep{TESTDATA_DIR};
@@ -93,8 +92,6 @@ public:
 
         osmdata_t osmdata{std::move(dependency_manager), middle, outputs,
                           options};
-
-        osmdata.start();
 
         test_parse_t parser(options.bbox, options.append, &osmdata);
 
