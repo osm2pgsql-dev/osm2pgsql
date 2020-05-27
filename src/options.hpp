@@ -124,7 +124,7 @@ public:
 
     database_options_t database_options;
     std::string output_backend{"pgsql"};
-    std::string input_reader{"auto"};
+    std::string input_format; ///< input file format (default: autodetect)
     osmium::Box bbox;
     bool extra_attributes = false;
 
