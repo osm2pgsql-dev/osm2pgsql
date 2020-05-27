@@ -39,6 +39,23 @@ public:
     void relation_delete(osmid_t id) const;
 
 private:
+    /**
+     * Run stage 1b processing: Process dependent objects.
+     * In append mode we need to process dependent objects that were marked
+     * earlier.
+     */
+    void process_stage1b() const;
+
+    /**
+     * Run stage 2 processing: Process objects marked in stage 1 (if any).
+     */
+    void process_stage2() const;
+
+    /**
+     * Run stage 3 processing: Clustering and index creation.
+     */
+    void process_stage3() const;
+
     slim_middle_t &slim_middle() const noexcept;
 
     std::unique_ptr<dependency_manager_t> m_dependency_manager;
