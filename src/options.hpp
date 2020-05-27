@@ -124,7 +124,6 @@ public:
     std::string input_reader{"auto"};
     osmium::Box bbox;
     bool extra_attributes = false;
-    bool verbose = false;
 
     std::vector<std::string> input_files;
 

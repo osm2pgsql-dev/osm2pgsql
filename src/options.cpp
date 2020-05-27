@@ -85,7 +85,7 @@ void short_usage(char *arg0)
                              "\t{} -h|--help\n"_format(program_name(arg0))};
 }
 
-void long_usage(char const *arg0, bool verbose = false)
+void long_usage(char const *arg0, bool verbose)
 {
     char const *const name = program_name(arg0);
 
@@ -322,6 +322,8 @@ static osmium::Box parse_bbox(char const *bbox)
 
 options_t::options_t(int argc, char *argv[]) : options_t()
 {
+    bool help_verbose = false; // Will be set when -v/--verbose is set
+
     int c;
 
     //keep going while there are args left to handle
@@ -344,7 +346,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             create = true;
             break;
         case 'v':
-            verbose = true;
+            help_verbose = true;
             break;
         case 's':
             slim = true;
@@ -550,7 +552,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
 
     //they were looking for usage info
     if (long_usage_bool) {
-        long_usage(argv[0], verbose);
+        long_usage(argv[0], help_verbose);
         return;
     }
 
