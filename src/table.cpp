@@ -15,7 +15,7 @@
 
 table_t::table_t(std::string const &name, std::string const &type,
                  columns_t const &columns, hstores_t const &hstore_columns,
-                 int const srid, bool const append, int const hstore_mode,
+                 int const srid, bool const append, hstore_column hstore_mode,
                  std::shared_ptr<db_copy_thread_t> const &copy_thread)
 : m_target(std::make_shared<db_target_descr_t>(name.c_str(), "osm_id")),
   m_type(type), m_srid(fmt::to_string(srid)), m_append(append),
@@ -23,7 +23,7 @@ table_t::table_t(std::string const &name, std::string const &type,
   m_hstore_columns(hstore_columns), m_copy(copy_thread)
 {
     // if we dont have any columns
-    if (m_columns.empty() && m_hstore_mode != HSTORE_ALL) {
+    if (m_columns.empty() && m_hstore_mode != hstore_column::all) {
         throw std::runtime_error{
             "No columns provided for table {}"_format(name)};
     }
@@ -99,7 +99,7 @@ void table_t::start(std::string const &conninfo, std::string const &table_space)
         }
 
         //add tags column
-        if (m_hstore_mode != HSTORE_NONE) {
+        if (m_hstore_mode != hstore_column::none) {
             sql += "\"tags\" hstore,";
         }
 
@@ -163,7 +163,7 @@ void table_t::generate_copy_column_list()
     }
 
     //add tags column and geom column
-    if (m_hstore_mode != HSTORE_NONE) {
+    if (m_hstore_mode != hstore_column::none) {
         m_target->rows += "tags,way";
         //or just the geom column
     } else {
@@ -264,7 +264,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
         if (enable_hstore_index) {
             fmt::print(stderr, "Creating hstore indexes on {}\n",
                        m_target->name);
-            if (m_hstore_mode != HSTORE_NONE) {
+            if (m_hstore_mode != hstore_column::none) {
                 m_sql_conn->exec(
                     "CREATE INDEX ON {} USING GIN (tags) {}"_format(
                         m_target->name, tablespace_clause(table_space_index)));
@@ -303,18 +303,18 @@ void table_t::write_row(osmid_t id, taglist_t const &tags,
     // used to remember which columns have been written out already.
     std::vector<bool> used;
 
-    if (m_hstore_mode != HSTORE_NONE) {
+    if (m_hstore_mode != hstore_column::none) {
         used.assign(tags.size(), false);
     }
 
     //get the regular columns' values
-    write_columns(tags, m_hstore_mode == HSTORE_NORM ? &used : nullptr);
+    write_columns(tags, m_hstore_mode == hstore_column::norm ? &used : nullptr);
 
     //get the hstore columns' values
     write_hstore_columns(tags);
 
     //get the key value pairs for the tags column
-    if (m_hstore_mode != HSTORE_NONE) {
+    if (m_hstore_mode != hstore_column::none) {
         write_tags_column(tags, used);
     }
 

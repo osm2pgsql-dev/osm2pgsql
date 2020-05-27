@@ -114,7 +114,7 @@ bool c_tagtransform_t::check_key(std::vector<taginfo> const &infos,
     // if we didn't find any tags that we wanted to export
     // and we aren't strictly adhering to the list
     if (!strict) {
-        if (m_options->hstore_mode != HSTORE_NONE) {
+        if (m_options->hstore_mode != hstore_column::none) {
             /* ... but if hstore_match_only is set then don't take this
                  as a reason for keeping the object */
             if (!m_options->hstore_match_only) {

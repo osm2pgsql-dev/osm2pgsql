@@ -465,21 +465,21 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             extra_attributes = true;
             break;
         case 'k':
-            if (hstore_mode != HSTORE_NONE) {
+            if (hstore_mode != hstore_column::none) {
                 throw std::runtime_error{"You can not specify both --hstore "
                                          "(-k) and --hstore-all (-j)\n"};
             }
-            hstore_mode = HSTORE_NORM;
+            hstore_mode = hstore_column::norm;
             break;
         case 208:
             hstore_match_only = true;
             break;
         case 'j':
-            if (hstore_mode != HSTORE_NONE) {
+            if (hstore_mode != hstore_column::none) {
                 throw std::runtime_error{"You can not specify both --hstore "
                                          "(-k) and --hstore-all (-j)\n"};
             }
-            hstore_mode = HSTORE_ALL;
+            hstore_mode = hstore_column::all;
             break;
         case 'z':
             hstore_columns.emplace_back(optarg);
@@ -596,7 +596,7 @@ void options_t::check_options()
         throw std::runtime_error{"--drop only makes sense with --slim.\n"};
     }
 
-    if (hstore_mode == HSTORE_NONE && hstore_columns.empty() &&
+    if (hstore_mode == hstore_column::none && hstore_columns.empty() &&
         hstore_match_only) {
         fprintf(stderr,
                 "Warning: --hstore-match-only only makes sense with --hstore, "
@@ -604,7 +604,7 @@ void options_t::check_options()
         hstore_match_only = false;
     }
 
-    if (enable_hstore_index && hstore_mode == HSTORE_NONE &&
+    if (enable_hstore_index && hstore_mode == hstore_column::none &&
         hstore_columns.empty()) {
         fprintf(stderr, "Warning: --hstore-add-index only makes sense with "
                         "hstore enabled.\n");

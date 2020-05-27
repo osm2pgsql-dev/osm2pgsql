@@ -11,13 +11,16 @@
 #include <string>
 #include <vector>
 
-/* Variants for generation of hstore column */
-/* No hstore column */
-#define HSTORE_NONE 0
-/* create a hstore column for all tags which do not have an exclusive column */
-#define HSTORE_NORM 1
-/* create a hstore column for all tags */
-#define HSTORE_ALL 2
+/// Variants for generation of hstore column
+enum class hstore_column : char
+{
+    /// no hstore column
+    none = 0,
+    /// create hstore column for all tags without exclusive column
+    norm = 1,
+    /// create hstore column for all tags
+    all = 2
+};
 
 /**
  * Database options, not specific to a table
@@ -80,7 +83,7 @@ public:
     std::string expire_tiles_filename{"dirty_tiles"};
 
     /// add an additional hstore column with objects key/value pairs, and what type of hstore column
-    int hstore_mode = HSTORE_NONE;
+    hstore_column hstore_mode = hstore_column::none;
 
     bool enable_hstore_index = false; ///< add an index on the hstore column
 
