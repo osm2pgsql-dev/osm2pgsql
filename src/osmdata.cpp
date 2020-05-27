@@ -174,16 +174,12 @@ class multithreaded_processor
 public:
     using output_vec_t = std::vector<std::shared_ptr<output_t>>;
 
-    multithreaded_processor(std::shared_ptr<middle_t> const &mid,
+    multithreaded_processor(std::string const &conninfo,
+                            std::shared_ptr<middle_t> const &mid,
                             output_vec_t outs, size_t thread_count)
     : m_outputs(std::move(outs))
     {
         assert(!m_outputs.empty());
-
-        // The database connection info should be the same for all outputs,
-        // we take it arbitrarily from the first.
-        std::string const &conninfo =
-            m_outputs[0]->get_options()->database_options.conninfo();
 
         // For each thread we create clones of all the outputs.
         m_clones.resize(thread_count);
@@ -387,11 +383,12 @@ void osmdata_t::stop() const
     // In append mode there might be dependent objects pending that we
     // need to process.
     if (opts->append && m_dependency_manager->has_pending()) {
-        multithreaded_processor proc{m_mid, m_outs,
-                                     (std::size_t)opts->num_procs};
+        multithreaded_processor proc{opts->database_options.conninfo(), m_mid,
+                                     m_outs, (std::size_t)opts->num_procs};
 
         proc.process_ways(m_dependency_manager->get_pending_way_ids());
-        proc.process_relations(m_dependency_manager->get_pending_relation_ids());
+        proc.process_relations(
+            m_dependency_manager->get_pending_relation_ids());
         proc.merge_expire_trees();
     }
 
