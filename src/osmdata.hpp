@@ -44,7 +44,6 @@ private:
     std::vector<std::shared_ptr<output_t>> m_outs;
 
     options_t const &m_options;
-    bool m_with_extra_attrs;
 };
 
 #endif // OSM2PGSQL_OSMDATA_HPP

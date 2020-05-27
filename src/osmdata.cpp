@@ -27,10 +27,6 @@ osmdata_t::osmdata_t(std::unique_ptr<dependency_manager_t> dependency_manager,
     assert(m_dependency_manager);
     assert(m_mid);
     assert(!m_outs.empty());
-
-    // Get the "extra_attributes" option from the first output. We expect
-    // all others to be the same.
-    m_with_extra_attrs = m_outs[0]->get_options()->extra_attributes;
 }
 
 /**
@@ -50,7 +46,7 @@ void osmdata_t::node_add(osmium::Node const &node) const
 {
     m_mid->node_set(node);
 
-    if (m_with_extra_attrs || !node.tags().empty()) {
+    if (m_options.extra_attributes || !node.tags().empty()) {
         for (auto &out : m_outs) {
             out->node_add(node);
         }
@@ -61,7 +57,7 @@ void osmdata_t::way_add(osmium::Way *way) const
 {
     m_mid->way_set(*way);
 
-    if (m_with_extra_attrs || !way->tags().empty()) {
+    if (m_options.extra_attributes || !way->tags().empty()) {
         for (auto &out : m_outs) {
             out->way_add(way);
         }
@@ -72,7 +68,7 @@ void osmdata_t::relation_add(osmium::Relation const &rel) const
 {
     m_mid->relation_set(rel);
 
-    if (m_with_extra_attrs || !rel.tags().empty()) {
+    if (m_options.extra_attributes || !rel.tags().empty()) {
         for (auto &out : m_outs) {
             out->relation_add(rel);
         }
