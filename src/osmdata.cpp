@@ -19,9 +19,10 @@
 
 osmdata_t::osmdata_t(std::unique_ptr<dependency_manager_t> dependency_manager,
                      std::shared_ptr<middle_t> mid,
-                     std::vector<std::shared_ptr<output_t>> outs)
+                     std::vector<std::shared_ptr<output_t>> outs,
+                     options_t const &options)
 : m_dependency_manager(std::move(dependency_manager)), m_mid(std::move(mid)),
-  m_outs(std::move(outs))
+  m_outs(std::move(outs)), m_options(options)
 {
     assert(m_dependency_manager);
     assert(m_mid);

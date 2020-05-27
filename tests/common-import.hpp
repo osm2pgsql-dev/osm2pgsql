@@ -27,7 +27,7 @@ inline void parse_file(options_t const &options,
                        std::vector<std::shared_ptr<output_t>> const &outs,
                        char const *filename = nullptr)
 {
-    osmdata_t osmdata{std::move(dependency_manager), mid, outs};
+    osmdata_t osmdata{std::move(dependency_manager), mid, outs, options};
 
     osmdata.start();
     parse_osmium_t parser{options.bbox, options.append, &osmdata};
@@ -91,7 +91,8 @@ public:
             need_dependencies ? new full_dependency_manager_t{middle}
                               : new dependency_manager_t{});
 
-        osmdata_t osmdata{std::move(dependency_manager), middle, outputs};
+        osmdata_t osmdata{std::move(dependency_manager), middle, outputs,
+                          options};
 
         osmdata.start();
 
