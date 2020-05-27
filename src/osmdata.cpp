@@ -8,7 +8,9 @@
 #include <utility>
 #include <vector>
 
+#include <osmium/io/any_input.hpp>
 #include <osmium/thread/pool.hpp>
+#include <osmium/visitor.hpp>
 
 #include "db-copy.hpp"
 #include "format.hpp"
@@ -366,6 +368,25 @@ private:
 };
 
 } // anonymous namespace
+
+parse_stats_t osmdata_t::process_file(osmium::io::File const &file,
+                                      osmium::Box const &bbox) const
+{
+    if (!m_append && file.has_multiple_object_versions()) {
+        throw std::runtime_error{
+            "Reading an OSM change file only works in append mode."};
+    }
+
+    fmt::print(stderr, "Using {} parser.\n",
+               osmium::io::as_string(file.format()));
+
+    parse_osmium_t handler{bbox, m_append, this};
+    osmium::io::Reader reader{file};
+    osmium::apply(reader, handler);
+    reader.close();
+
+    return handler.stats();
+}
 
 void osmdata_t::process_stage1b() const
 {

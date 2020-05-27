@@ -4,8 +4,12 @@
 #include <memory>
 #include <vector>
 
+#include <osmium/fwd.hpp>
+#include <osmium/io/file.hpp>
+
 #include "dependency-manager.hpp"
 #include "osmtypes.hpp"
+#include "parse-osmium.hpp"
 
 class options_t;
 class output_t;
@@ -22,6 +26,18 @@ public:
 
     void start() const;
     void flush() const;
+
+    /**
+     * Process the specified OSM file (stage 1a). This is called once for
+     * each input file.
+     */
+    parse_stats_t process_file(osmium::io::File const &file,
+                               osmium::Box const &bbox) const;
+
+    /**
+     * Rest of the processing (stages 1b, 2, and 3). This is called once
+     * after process_file() was called for each input file.
+     */
     void stop() const;
 
     void node_add(osmium::Node const &node) const;
@@ -37,6 +53,7 @@ public:
     void relation_delete(osmid_t id) const;
 
 private:
+
     /**
      * Run stage 1b processing: Process dependent objects.
      * In append mode we need to process dependent objects that were marked
