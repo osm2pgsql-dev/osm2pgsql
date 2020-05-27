@@ -36,7 +36,7 @@ inline void parse_file(options_t const &options,
 
     parser.stream_file(filep, "");
 
-    osmdata.stop();
+    osmdata.process();
 }
 
 class test_parse_t : public parse_osmium_t
@@ -97,7 +97,7 @@ public:
 
         parser.stream_buffer(data, fmt);
 
-        osmdata.stop();
+        osmdata.process();
     }
 
     void run_file(options_t options, char const *file = nullptr)

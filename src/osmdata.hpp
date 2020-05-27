@@ -21,7 +21,10 @@ public:
               options_t const &options);
 
     void flush() const;
-    void stop() const;
+
+    // Process pending ways and relations. Cluster database tables and
+    // create indexes.
+    void process() const;
 
     void node_add(osmium::Node const &node) const;
     void way_add(osmium::Way *way) const;

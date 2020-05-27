@@ -359,7 +359,7 @@ private:
 
 } // anonymous namespace
 
-void osmdata_t::stop() const
+void osmdata_t::process() const
 {
     /* Commit the transactions, so that multiple processes can
      * access the data simultaneously to process the rest in parallel

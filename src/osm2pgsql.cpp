@@ -100,9 +100,7 @@ int main(int argc, char *argv[])
 
         stats.print_summary();
 
-        // Process pending ways and relations. Cluster database tables and
-        // create indexes.
-        osmdata.stop();
+        osmdata.process();
 
         fmt::print(stderr, "\nOsm2pgsql took {}s overall\n",
                    timer_overall.stop());
