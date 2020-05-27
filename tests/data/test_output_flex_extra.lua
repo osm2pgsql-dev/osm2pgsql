@@ -7,10 +7,6 @@ tables.highways = osm2pgsql.define_table{
     columns = {
         { column = 'tags',  type = 'hstore' },
         { column = 'refs',  type = 'text' },
-        { column = 'min_x', type = 'real' },
-        { column = 'min_y', type = 'real' },
-        { column = 'max_x', type = 'real' },
-        { column = 'max_y', type = 'real' },
         { column = 'geom',  type = 'linestring' },
     }
 }
@@ -37,8 +33,6 @@ function osm2pgsql.process_way(object)
         tags = object.tags,
         geom = { create = 'line' }
     }
-
-    row.min_x, row.min_y, row.max_x, row.max_y = object:get_bbox()
 
     -- if there is any data from relations, add it in
     local d = by_way_id[object.id]

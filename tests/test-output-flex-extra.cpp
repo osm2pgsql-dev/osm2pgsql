@@ -117,11 +117,6 @@ TEST_CASE("relation data on ways")
     CHECK(2 == conn.get_count("osm2pgsql_test_highways", "refs = 'X11'"));
     CHECK(1 == conn.get_count("osm2pgsql_test_highways", "refs IS NULL"));
 
-    CHECK(1 == conn.get_count(
-                   "osm2pgsql_test_highways",
-                   "abs(min_x - 10.0) < 0.01 AND abs(min_y - 10.0) < 0.01 AND "
-                   "abs(max_x - 10.2) < 0.01 AND abs(max_y - 10.2) < 0.01"));
-
     CHECK(1 == conn.get_count("osm2pgsql_test_routes", "members = '20,21'"));
 
     // move node in way in the relation
@@ -137,11 +132,6 @@ TEST_CASE("relation data on ways")
 
     CHECK(2 == conn.get_count("osm2pgsql_test_highways", "refs = 'X11'"));
     CHECK(1 == conn.get_count("osm2pgsql_test_highways", "refs IS NULL"));
-
-    CHECK(1 == conn.get_count(
-                   "osm2pgsql_test_highways",
-                   "abs(min_x - 10.0) < 0.01 AND abs(min_y - 10.0) < 0.01 AND "
-                   "abs(max_x - 10.2) < 0.01 AND abs(max_y - 10.2) < 0.01"));
 
     CHECK(1 == conn.get_count("osm2pgsql_test_routes", "members = '20,21'"));
 
