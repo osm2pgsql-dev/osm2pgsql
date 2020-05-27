@@ -36,13 +36,16 @@ struct database_options_t
 /**
  * Structure for storing command-line and other options
  */
-struct options_t
+class options_t
 {
 public:
-    // fixme: bring back old comment
-    options_t();
     /**
-     * Parse the options from the command line
+     * Constructor setting default values for all options. Used for testing.
+     */
+    options_t();
+
+    /**
+     * Constructor parsing the options from the command line.
      */
     options_t(int argc, char *argv[]);
 

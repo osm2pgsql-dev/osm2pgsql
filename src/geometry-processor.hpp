@@ -13,7 +13,7 @@
 #include "tagtransform.hpp"
 
 struct middle_query_t;
-struct options_t;
+class options_t;
 class reprojection;
 
 struct geometry_processor

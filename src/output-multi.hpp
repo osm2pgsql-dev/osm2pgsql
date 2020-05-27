@@ -17,11 +17,11 @@
 #include <memory>
 #include <string>
 
+class options_t;
 class table_t;
 class tagtransform_t;
 struct export_list;
 struct middle_query_t;
-struct options_t;
 
 class output_multi_t : public output_t
 {
