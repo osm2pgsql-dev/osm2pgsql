@@ -16,7 +16,7 @@ enum class hstore_column : char
 {
     /// no hstore column
     none = 0,
-    /// create hstore column for all tags without exclusive column
+    /// create hstore column for all tags that don't have their own column
     norm = 1,
     /// create hstore column for all tags
     all = 2
