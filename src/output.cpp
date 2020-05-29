@@ -73,7 +73,9 @@ parse_multi_single(pt::ptree const &conf,
     new_opts.tblsmain_index = conf.get("tablespace-index", "");
     new_opts.tblsmain_data = conf.get("tablespace-data", "");
 
-    override_if<int>(new_opts.hstore_mode, "enable-hstore", conf);
+    if (conf.get<bool>("enable-hstore", false)) {
+        new_opts.hstore_mode = hstore_column::norm;
+    }
     override_if<bool>(new_opts.enable_hstore_index, "enable-hstore-index",
                       conf);
     override_if<bool>(new_opts.enable_multi, "enable-multi", conf);

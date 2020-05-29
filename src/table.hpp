@@ -19,7 +19,7 @@ class table_t
 public:
     table_t(std::string const &name, std::string const &type,
             columns_t const &columns, hstores_t const &hstore_columns,
-            int const srid, bool const append, int const hstore_mode,
+            int const srid, bool const append, hstore_column hstore_mode,
             std::shared_ptr<db_copy_thread_t> const &copy_thread);
     table_t(table_t const &other,
             std::shared_ptr<db_copy_thread_t> const &copy_thread);
@@ -81,7 +81,7 @@ protected:
     std::unique_ptr<pg_conn_t> m_sql_conn;
     std::string m_srid;
     bool m_append;
-    int m_hstore_mode;
+    hstore_column m_hstore_mode;
     columns_t m_columns;
     hstores_t m_hstore_columns;
     std::string m_table_space;

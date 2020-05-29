@@ -16,7 +16,7 @@
 #include "middle.hpp"
 
 class node_ram_cache;
-struct options_t;
+class options_t;
 
 template <typename T, size_t N>
 class cache_block_t

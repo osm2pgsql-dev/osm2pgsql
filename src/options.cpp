@@ -8,7 +8,6 @@
 #include <cstring>
 #include <getopt.h>
 #include <osmium/version.hpp>
-#include <sstream>
 #include <stdexcept>
 #include <thread> // for number of threads
 
@@ -86,7 +85,7 @@ void short_usage(char *arg0)
                              "\t{} -h|--help\n"_format(program_name(arg0))};
 }
 
-void long_usage(char const *arg0, bool verbose = false)
+void long_usage(char const *arg0, bool verbose)
 {
     char const *const name = program_name(arg0);
 
@@ -257,33 +256,27 @@ void long_usage(char const *arg0, bool verbose = false)
 
 } // anonymous namespace
 
-database_options_t::database_options_t()
-: db(boost::none), username(boost::none), host(boost::none),
-  password(boost::none), port(boost::none)
-{}
-
 std::string database_options_t::conninfo() const
 {
-    std::ostringstream out;
+    std::string out{"fallback_application_name='osm2pgsql'"};
 
-    out << "fallback_application_name='osm2pgsql'";
-    if (db) {
-        out << " dbname='" << *db << "'";
+    if (!db.empty()) {
+        out += " dbname='{}'"_format(db);
     }
-    if (username) {
-        out << " user='" << *username << "'";
+    if (!username.empty()) {
+        out += " user='{}'"_format(username);
     }
-    if (password) {
-        out << " password='" << *password << "'";
+    if (!password.empty()) {
+        out += " password='{}'"_format(password);
     }
-    if (host) {
-        out << " host='" << *host << "'";
+    if (!host.empty()) {
+        out += " host='{}'"_format(host);
     }
-    if (port) {
-        out << " port='" << *port << "'";
+    if (!port.empty()) {
+        out += " port='{}'"_format(port);
     }
 
-    return out.str();
+    return out;
 }
 
 options_t::options_t()
@@ -301,8 +294,6 @@ options_t::options_t()
         num_procs = 1;
     }
 }
-
-options_t::~options_t() {}
 
 static osmium::Box parse_bbox(char const *bbox)
 {
@@ -331,6 +322,8 @@ static osmium::Box parse_bbox(char const *bbox)
 
 options_t::options_t(int argc, char *argv[]) : options_t()
 {
+    bool help_verbose = false; // Will be set when -v/--verbose is set
+
     int c;
 
     //keep going while there are args left to handle
@@ -353,7 +346,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             create = true;
             break;
         case 'v':
-            verbose = true;
+            help_verbose = true;
             break;
         case 's':
             slim = true;
@@ -472,21 +465,21 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             extra_attributes = true;
             break;
         case 'k':
-            if (hstore_mode != HSTORE_NONE) {
+            if (hstore_mode != hstore_column::none) {
                 throw std::runtime_error{"You can not specify both --hstore "
                                          "(-k) and --hstore-all (-j)\n"};
             }
-            hstore_mode = HSTORE_NORM;
+            hstore_mode = hstore_column::norm;
             break;
         case 208:
             hstore_match_only = true;
             break;
         case 'j':
-            if (hstore_mode != HSTORE_NONE) {
+            if (hstore_mode != hstore_column::none) {
                 throw std::runtime_error{"You can not specify both --hstore "
                                          "(-k) and --hstore-all (-j)\n"};
             }
-            hstore_mode = HSTORE_ALL;
+            hstore_mode = hstore_column::all;
             break;
         case 'z':
             hstore_columns.emplace_back(optarg);
@@ -559,7 +552,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
 
     //they were looking for usage info
     if (long_usage_bool) {
-        long_usage(argv[0], verbose);
+        long_usage(argv[0], help_verbose);
         return;
     }
 
@@ -581,11 +574,9 @@ options_t::options_t(int argc, char *argv[]) : options_t()
     check_options();
 
     if (pass_prompt) {
-        char *prompt = simple_prompt("Password:", 100, 0);
-        if (prompt == nullptr) {
-            database_options.password = boost::none;
-        } else {
-            database_options.password = std::string(prompt);
+        char const *prompt = simple_prompt("Password:", 100, 0);
+        if (prompt != nullptr) {
+            database_options.password = prompt;
         }
     }
 }
@@ -605,7 +596,7 @@ void options_t::check_options()
         throw std::runtime_error{"--drop only makes sense with --slim.\n"};
     }
 
-    if (hstore_mode == HSTORE_NONE && hstore_columns.empty() &&
+    if (hstore_mode == hstore_column::none && hstore_columns.empty() &&
         hstore_match_only) {
         fprintf(stderr,
                 "Warning: --hstore-match-only only makes sense with --hstore, "
@@ -613,7 +604,7 @@ void options_t::check_options()
         hstore_match_only = false;
     }
 
-    if (enable_hstore_index && hstore_mode == HSTORE_NONE &&
+    if (enable_hstore_index && hstore_mode == hstore_column::none &&
         hstore_columns.empty()) {
         fprintf(stderr, "Warning: --hstore-add-index only makes sense with "
                         "hstore enabled.\n");

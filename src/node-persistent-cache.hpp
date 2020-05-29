@@ -9,7 +9,7 @@
 #include "node-ram-cache.hpp"
 #include "osmtypes.hpp"
 
-struct options_t;
+class options_t;
 
 class node_persistent_cache
 {

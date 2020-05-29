@@ -10,7 +10,7 @@ TEST_CASE("hstore match only import")
     options_t options =
         testing::opt_t().slim().style("hstore-match-only.style");
     options.hstore_match_only = true;
-    options.hstore_mode = HSTORE_NORM;
+    options.hstore_mode = hstore_column::norm;
 
     REQUIRE_NOTHROW(db.run_file(options, "hstore-match-only.osm"));
 

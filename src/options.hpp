@@ -11,26 +11,27 @@
 #include <string>
 #include <vector>
 
-/* Variants for generation of hstore column */
-/* No hstore column */
-#define HSTORE_NONE 0
-/* create a hstore column for all tags which do not have an exclusive column */
-#define HSTORE_NORM 1
-/* create a hstore column for all tags */
-#define HSTORE_ALL 2
+/// Variants for generation of hstore column
+enum class hstore_column : char
+{
+    /// no hstore column
+    none = 0,
+    /// create hstore column for all tags that don't have their own column
+    norm = 1,
+    /// create hstore column for all tags
+    all = 2
+};
 
 /**
  * Database options, not specific to a table
  */
-class database_options_t
+struct database_options_t
 {
-public:
-    database_options_t();
-    boost::optional<std::string> db;
-    boost::optional<std::string> username;
-    boost::optional<std::string> host;
-    boost::optional<std::string> password;
-    boost::optional<std::string> port;
+    std::string db;
+    std::string username;
+    std::string host;
+    std::string password;
+    std::string port;
 
     std::string conninfo() const;
 };
@@ -38,16 +39,18 @@ public:
 /**
  * Structure for storing command-line and other options
  */
-struct options_t
+class options_t
 {
 public:
-    // fixme: bring back old comment
-    options_t();
     /**
-     * Parse the options from the command line
+     * Constructor setting default values for all options. Used for testing.
+     */
+    options_t();
+
+    /**
+     * Constructor parsing the options from the command line.
      */
     options_t(int argc, char *argv[]);
-    virtual ~options_t();
 
     std::string prefix{"planet_osm"};         ///< prefix for table names
     std::shared_ptr<reprojection> projection; ///< SRS of projection
@@ -80,7 +83,7 @@ public:
     std::string expire_tiles_filename{"dirty_tiles"};
 
     /// add an additional hstore column with objects key/value pairs, and what type of hstore column
-    int hstore_mode = HSTORE_NONE;
+    hstore_column hstore_mode = hstore_column::none;
 
     bool enable_hstore_index = false; ///< add an index on the hstore column
 
@@ -124,7 +127,6 @@ public:
     std::string input_reader{"auto"};
     osmium::Box bbox;
     bool extra_attributes = false;
-    bool verbose = false;
 
     std::vector<std::string> input_files;
 
