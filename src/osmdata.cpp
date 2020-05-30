@@ -367,6 +367,55 @@ private:
 
 } // anonymous namespace
 
+void osmdata_t::process_stage1b() const
+{
+    if (m_dependency_manager->has_pending()) {
+        multithreaded_processor proc{m_conninfo, m_mid, m_outs,
+                                     (std::size_t)m_num_procs};
+
+        proc.process_ways(m_dependency_manager->get_pending_way_ids());
+        proc.process_relations(
+            m_dependency_manager->get_pending_relation_ids());
+        proc.merge_expire_trees();
+    }
+}
+
+void osmdata_t::process_stage2() const
+{
+    for (auto &out : m_outs) {
+        out->stage2_proc();
+    }
+}
+
+void osmdata_t::process_stage3() const
+{
+    // All the intensive parts of this are long-running PostgreSQL commands.
+    // They will be run in a thread pool.
+    osmium::thread::Pool pool{m_parallel_indexing ? m_num_procs : 1, 512};
+
+    if (m_droptemp) {
+        // When dropping middle tables, make sure they are gone before
+        // indexing starts.
+        m_mid->stop(pool);
+    }
+
+    for (auto &out : m_outs) {
+        out->stop(&pool);
+    }
+
+    if (!m_droptemp) {
+        // When keeping middle tables, there is quite a large index created
+        // which is better done after the output tables have been copied.
+        // Note that --disable-parallel-indexing needs to be used to really
+        // force the order.
+        m_mid->stop(pool);
+    }
+
+    // Waiting here for pool to execute all tasks.
+    // XXX If one of them has an error, all other will finish first,
+    //     which may take a long time.
+}
+
 void osmdata_t::stop() const
 {
     /* Commit the transactions, so that multiple processes can
@@ -378,47 +427,11 @@ void osmdata_t::stop() const
         out->sync();
     }
 
-    // In append mode there might be dependent objects pending that we
-    // need to process.
-    if (m_append && m_dependency_manager->has_pending()) {
-        multithreaded_processor proc{m_conninfo, m_mid, m_outs,
-                                     (std::size_t)m_num_procs};
-
-        proc.process_ways(m_dependency_manager->get_pending_way_ids());
-        proc.process_relations(
-            m_dependency_manager->get_pending_relation_ids());
-        proc.merge_expire_trees();
+    if (m_append) {
+        process_stage1b();
     }
 
-    for (auto &out : m_outs) {
-        out->stage2_proc();
-    }
+    process_stage2();
 
-    // Clustering, index creation, and cleanup.
-    // All the intensive parts of this are long-running PostgreSQL commands
-    {
-        osmium::thread::Pool pool{m_parallel_indexing ? m_num_procs : 1, 512};
-
-        if (m_droptemp) {
-            // When dropping middle tables, make sure they are gone before
-            // indexing starts.
-            m_mid->stop(pool);
-        }
-
-        for (auto &out : m_outs) {
-            out->stop(&pool);
-        }
-
-        if (!m_droptemp) {
-            // When keeping middle tables, there is quite a large index created
-            // which is better done after the output tables have been copied.
-            // Note that --disable-parallel-indexing needs to be used to really
-            // force the order.
-            m_mid->stop(pool);
-        }
-
-        // Waiting here for pool to execute all tasks.
-        // XXX If one of them has an error, all other will finish first,
-        //     which may take a long time.
-    }
+    process_stage3();
 }
