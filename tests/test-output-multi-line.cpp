@@ -4,7 +4,6 @@
 #include "middle-pgsql.hpp"
 #include "osmdata.hpp"
 #include "output-multi.hpp"
-#include "parse-osmium.hpp"
 #include "taginfo-impl.hpp"
 
 #include "common-import.hpp"
