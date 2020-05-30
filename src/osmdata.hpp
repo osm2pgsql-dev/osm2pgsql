@@ -7,6 +7,7 @@
 #include "dependency-manager.hpp"
 #include "osmtypes.hpp"
 
+class options_t;
 class output_t;
 struct middle_t;
 struct slim_middle_t;
@@ -16,7 +17,8 @@ class osmdata_t
 public:
     osmdata_t(std::unique_ptr<dependency_manager_t> dependency_manager,
               std::shared_ptr<middle_t> mid,
-              std::vector<std::shared_ptr<output_t>> outs);
+              std::vector<std::shared_ptr<output_t>> outs,
+              options_t const &options);
 
     void start() const;
     void flush() const;
@@ -40,6 +42,7 @@ private:
     std::unique_ptr<dependency_manager_t> m_dependency_manager;
     std::shared_ptr<middle_t> m_mid;
     std::vector<std::shared_ptr<output_t>> m_outs;
+
     bool m_with_extra_attrs;
 };
 

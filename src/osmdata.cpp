@@ -13,23 +13,21 @@
 #include "db-copy.hpp"
 #include "format.hpp"
 #include "middle.hpp"
+#include "options.hpp"
 #include "osmdata.hpp"
 #include "output.hpp"
 #include "util.hpp"
 
 osmdata_t::osmdata_t(std::unique_ptr<dependency_manager_t> dependency_manager,
                      std::shared_ptr<middle_t> mid,
-                     std::vector<std::shared_ptr<output_t>> outs)
+                     std::vector<std::shared_ptr<output_t>> outs,
+                     options_t const &options)
 : m_dependency_manager(std::move(dependency_manager)), m_mid(std::move(mid)),
-  m_outs(std::move(outs))
+  m_outs(std::move(outs)), m_with_extra_attrs(options.extra_attributes)
 {
     assert(m_dependency_manager);
     assert(m_mid);
     assert(!m_outs.empty());
-
-    // Get the "extra_attributes" option from the first output. We expect
-    // all others to be the same.
-    m_with_extra_attrs = m_outs[0]->get_options()->extra_attributes;
 }
 
 /**
