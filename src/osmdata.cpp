@@ -23,7 +23,10 @@ osmdata_t::osmdata_t(std::unique_ptr<dependency_manager_t> dependency_manager,
                      std::vector<std::shared_ptr<output_t>> outs,
                      options_t const &options)
 : m_dependency_manager(std::move(dependency_manager)), m_mid(std::move(mid)),
-  m_outs(std::move(outs)), m_with_extra_attrs(options.extra_attributes)
+  m_outs(std::move(outs)), m_conninfo(options.database_options.conninfo()),
+  m_num_procs(options.num_procs), m_append(options.append),
+  m_droptemp(options.droptemp), m_parallel_indexing(options.parallel_indexing),
+  m_with_extra_attrs(options.extra_attributes)
 {
     assert(m_dependency_manager);
     assert(m_mid);
@@ -375,14 +378,11 @@ void osmdata_t::stop() const
         out->sync();
     }
 
-    // should be the same for all outputs
-    auto const *opts = m_outs[0]->get_options();
-
     // In append mode there might be dependent objects pending that we
     // need to process.
-    if (opts->append && m_dependency_manager->has_pending()) {
-        multithreaded_processor proc{opts->database_options.conninfo(), m_mid,
-                                     m_outs, (std::size_t)opts->num_procs};
+    if (m_append && m_dependency_manager->has_pending()) {
+        multithreaded_processor proc{m_conninfo, m_mid, m_outs,
+                                     (std::size_t)m_num_procs};
 
         proc.process_ways(m_dependency_manager->get_pending_way_ids());
         proc.process_relations(
@@ -397,10 +397,9 @@ void osmdata_t::stop() const
     // Clustering, index creation, and cleanup.
     // All the intensive parts of this are long-running PostgreSQL commands
     {
-        osmium::thread::Pool pool{opts->parallel_indexing ? opts->num_procs : 1,
-                                  512};
+        osmium::thread::Pool pool{m_parallel_indexing ? m_num_procs : 1, 512};
 
-        if (opts->droptemp) {
+        if (m_droptemp) {
             // When dropping middle tables, make sure they are gone before
             // indexing starts.
             m_mid->stop(pool);
@@ -410,7 +409,7 @@ void osmdata_t::stop() const
             out->stop(&pool);
         }
 
-        if (!opts->droptemp) {
+        if (!m_droptemp) {
             // When keeping middle tables, there is quite a large index created
             // which is better done after the output tables have been copied.
             // Note that --disable-parallel-indexing needs to be used to really

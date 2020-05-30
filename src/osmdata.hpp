@@ -43,7 +43,13 @@ private:
     std::shared_ptr<middle_t> m_mid;
     std::vector<std::shared_ptr<output_t>> m_outs;
 
+    std::string m_conninfo;
+    int m_num_procs;
+    bool m_append;
+    bool m_droptemp;
+    bool m_parallel_indexing;
     bool m_with_extra_attrs;
+
 };
 
 #endif // OSM2PGSQL_OSMDATA_HPP
