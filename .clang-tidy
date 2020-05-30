@@ -1,4 +1,36 @@
 ---
-Checks: '*,-fuchsia-*'
+Checks: '*,-android-cloexec-*,-cppcoreguidelines-owning-memory,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-cppcoreguidelines-pro-type-cstyle-cast,-cppcoreguidelines-pro-type-reinterpret-cast,-cppcoreguidelines-pro-type-static-cast-downcast,-cppcoreguidelines-pro-type-vararg,-fuchsia-*,-google-readability-casting,-google-readability-todo,-hicpp-no-array-decay,-hicpp-vararg,-llvm-include-order,-modernize-make-unique,-readability-implicit-bool-conversion,-readability-named-parameter'
+#
+#  cppcoreguidelines-pro-type-cstyle-cast
+#  google-build-using-namespace
+#  google-readability-casting
+#  llvm-include-order
+#  readability-named-parameter
+#    Differ from our style guidelines
+#
+#  android-cloexec-*
+#    O_CLOEXEC isn't available on Windows
+#
+#  cppcoreguidelines-owning-memory
+#  cppcoreguidelines-pro-bounds-array-to-pointer-decay
+#  cppcoreguidelines-pro-bounds-pointer-arithmetic
+#  cppcoreguidelines-pro-type-static-cast-downcast
+#  cppcoreguidelines-pro-type-vararg
+#  hicpp-no-array-decay
+#  hicpp-vararg
+#    When you need them, you need them
+#
+#  fuchsia-*
+#    Very specific and way too strict
+#
+#  google-readability-todo
+#    We are not that organized
+#
+#  modernize-make-unique
+#    Not available in C++11
+#
+#  readability-implicit-bool-conversion
+#    Readability is a matter of opinion here
+#
 #WarningsAsErrors: '*'
 ...
