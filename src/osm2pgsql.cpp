@@ -73,7 +73,8 @@ int main(int argc, char *argv[])
             need_dependencies ? new full_dependency_manager_t{middle}
                               : new dependency_manager_t{});
 
-        osmdata_t osmdata{std::move(dependency_manager), middle, outputs};
+        osmdata_t osmdata{std::move(dependency_manager), middle, outputs,
+                          options};
 
         fmt::print(stderr, "Using projection SRS {} ({})\n",
                    options.projection->target_srs(),
