@@ -112,7 +112,7 @@ TEST_CASE("ways as linestrings and polygons")
                       "n11 v1 dV x10.0 y10.2\n"
                       "n12 v1 dV x10.2 y10.2\n"
                       "n13 v1 dV x10.2 y10.0\n"
-                      "w20 v1 dV Tbuilding=yes Nn10,n11,n12,n13,n14,n10\n"));
+                      "w20 v1 dV Tbuilding=yes Nn10,n11,n12,n13,n10\n"));
 
     auto conn = db.db().connect();
 
@@ -126,7 +126,7 @@ TEST_CASE("ways as linestrings and polygons")
     // now change the way tags...
     REQUIRE_NOTHROW(db.run_import(
         testing::opt_t().slim().append().flex("test_output_flex.lua"),
-        "w20 v2 dV Thighway=secondary Nn10,n11,n12,n13,n14,n10\n"));
+        "w20 v2 dV Thighway=secondary Nn10,n11,n12,n13,n10\n"));
 
     REQUIRE(0 == conn.get_count("osm2pgsql_test_point"));
     REQUIRE(1 == conn.get_count("osm2pgsql_test_line"));
@@ -139,7 +139,7 @@ TEST_CASE("ways as linestrings and polygons")
     // now remove a node from the way...
     REQUIRE_NOTHROW(db.run_import(
         testing::opt_t().slim().append().flex("test_output_flex.lua"),
-        "w20 v3 dV Thighway=secondary Nn10,n11,n12,n13,n14\n"));
+        "w20 v3 dV Thighway=secondary Nn10,n11,n12,n13\n"));
 
     REQUIRE(0 == conn.get_count("osm2pgsql_test_point"));
     REQUIRE(1 == conn.get_count("osm2pgsql_test_line"));
@@ -152,7 +152,7 @@ TEST_CASE("ways as linestrings and polygons")
     // now change the tag back to an area tag (but the way is not closed)...
     REQUIRE_NOTHROW(db.run_import(
         testing::opt_t().slim().append().flex("test_output_flex.lua"),
-        "w20 v4 dV Tbuilding=yes Nn10,n11,n12,n13,n14\n"));
+        "w20 v4 dV Tbuilding=yes Nn10,n11,n12,n13\n"));
 
     REQUIRE(0 == conn.get_count("osm2pgsql_test_point"));
     REQUIRE(0 == conn.get_count("osm2pgsql_test_line"));
@@ -161,7 +161,7 @@ TEST_CASE("ways as linestrings and polygons")
     // now close the way again
     REQUIRE_NOTHROW(db.run_import(
         testing::opt_t().slim().append().flex("test_output_flex.lua"),
-        "w20 v5 dV Tbuilding=yes Nn10,n11,n12,n13,n14,n10\n"));
+        "w20 v5 dV Tbuilding=yes Nn10,n11,n12,n13,n10\n"));
 
     REQUIRE(0 == conn.get_count("osm2pgsql_test_point"));
     REQUIRE(0 == conn.get_count("osm2pgsql_test_line"));
@@ -180,7 +180,7 @@ TEST_CASE("multipolygons")
                       "n11 v1 dV x10.0 y10.2\n"
                       "n12 v1 dV x10.2 y10.2\n"
                       "n13 v1 dV x10.2 y10.0\n"
-                      "w20 v1 dV Nn10,n11,n12,n13,n14,n10\n"
+                      "w20 v1 dV Nn10,n11,n12,n13,n10\n"
                       "r30 v1 dV Ttype=multipolygon,building=yes Mw20@\n"));
 
     auto conn = db.db().connect();
