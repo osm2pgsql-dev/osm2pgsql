@@ -488,7 +488,9 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             enable_multi = true;
             break;
         case 'r':
-            input_reader = optarg;
+            if (std::strcmp(optarg, "auto") != 0) {
+                input_format = optarg;
+            }
             break;
         case 'h':
             long_usage_bool = true;

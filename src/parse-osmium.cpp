@@ -78,10 +78,9 @@ parse_osmium_t::parse_osmium_t(osmium::Box const &bbox, bool append,
 {}
 
 void parse_osmium_t::stream_file(std::string const &filename,
-                                 std::string const &fmt)
+                                 std::string const &format)
 {
-    std::string const &osmium_format = (fmt == "auto" ? "" : fmt);
-    osmium::io::File infile{filename, osmium_format};
+    osmium::io::File infile{filename, format};
 
     if (!m_append && infile.has_multiple_object_versions()) {
         throw std::runtime_error{
@@ -90,9 +89,9 @@ void parse_osmium_t::stream_file(std::string const &filename,
 
     if (infile.format() == osmium::io::file_format::unknown) {
         throw std::runtime_error{
-            fmt == "auto"
+            format.empty()
                 ? std::string{"Cannot detect file format. Try using -r."}
-                : "Unknown file format '{}'."_format(fmt)};
+                : "Unknown file format '{}'."_format(format)};
     }
 
     fmt::print(stderr, "Using {} parser.\n",

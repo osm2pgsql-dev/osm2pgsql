@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
             util::timer_t timer_parse;
 
             parse_osmium_t parser{options.bbox, options.append, &osmdata};
-            parser.stream_file(filename, options.input_reader);
+            parser.stream_file(filename, options.input_format);
 
             stats.update(parser.stats());
 
