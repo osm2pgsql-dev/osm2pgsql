@@ -1,6 +1,10 @@
 
 # Lua Helper Library
 
+Note: All functions described in this section are available on the
+[`flex`](flex.md) backend only. They cannot be used in
+[Lua tag transformations](lua.md).
+
 ## `clamp`
 
 Synopsis: `osm2pgsql.clamp(VALUE, MIN, MAX)`
