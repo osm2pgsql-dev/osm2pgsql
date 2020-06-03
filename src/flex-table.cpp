@@ -77,8 +77,8 @@ std::string flex_table_t::build_sql_prepare_get_wkb() const
 {
     if (has_geom_column()) {
         if (has_multicolumn_id_index()) {
-            return "PREPARE get_wkb(text, bigint) AS"
-                   " SELECT \"{}\" FROM {} WHERE \"{}\" = '$1' AND \"{}\" = $2"_format(
+            return "PREPARE get_wkb(char(1), bigint) AS"
+                   " SELECT \"{}\" FROM {} WHERE \"{}\" = $1 AND \"{}\" = $2"_format(
                        geom_column().name(), full_name(), m_columns[0].name(),
                        m_columns[1].name());
         }

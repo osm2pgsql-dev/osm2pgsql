@@ -5,21 +5,40 @@
 
 static testing::db::import_t db;
 
-TEST_CASE("updating a node")
+struct options_slim_default
 {
+    static options_t options()
+    {
+        return testing::opt_t().slim().flex("test_output_flex.lua");
+    }
+};
+
+struct options_slim_expire
+{
+    static options_t options()
+    {
+        options_t o = options_slim_default::options();
+        o.expire_tiles_zoom = 10;
+        return o;
+    }
+};
+
+TEMPLATE_TEST_CASE("updating a node", "", options_slim_default,
+                   options_slim_expire)
+{
+    options_t options = TestType::options();
+
     // import a node...
-    REQUIRE_NOTHROW(
-        db.run_import(testing::opt_t().slim().flex("test_output_flex.lua"),
-                      "n10 v1 dV x10 y10\n"));
+    REQUIRE_NOTHROW(db.run_import(options, "n10 v1 dV x10 y10\n"));
 
     auto conn = db.db().connect();
 
     REQUIRE(0 == conn.get_count("osm2pgsql_test_point"));
 
     // give the node a tag...
-    REQUIRE_NOTHROW(db.run_import(
-        testing::opt_t().slim().append().flex("test_output_flex.lua"),
-        "n10 v2 dV x10 y10 Tamenity=restaurant\n"));
+    options.append = true;
+    REQUIRE_NOTHROW(
+        db.run_import(options, "n10 v2 dV x10 y10 Tamenity=restaurant\n"));
 
     REQUIRE(1 == conn.get_count("osm2pgsql_test_point"));
     REQUIRE(1 ==
@@ -28,29 +47,27 @@ TEST_CASE("updating a node")
 
     SECTION("remove the tag from node")
     {
-        REQUIRE_NOTHROW(db.run_import(
-            testing::opt_t().slim().append().flex("test_output_flex.lua"),
-            "n10 v3 dV x10 y10\n"));
+        REQUIRE_NOTHROW(db.run_import(options, "n10 v3 dV x10 y10\n"));
     }
 
     SECTION("delete the node")
     {
-        REQUIRE_NOTHROW(db.run_import(
-            testing::opt_t().slim().append().flex("test_output_flex.lua"),
-            "n10 v3 dD\n"));
+        REQUIRE_NOTHROW(db.run_import(options, "n10 v3 dD\n"));
     }
 
     REQUIRE(0 == conn.get_count("osm2pgsql_test_point"));
 }
 
-TEST_CASE("updating a way")
+TEMPLATE_TEST_CASE("updating a way", "", options_slim_default,
+                   options_slim_expire)
 {
+    options_t options = TestType::options();
+
     // import a simple way...
-    REQUIRE_NOTHROW(
-        db.run_import(testing::opt_t().slim().flex("test_output_flex.lua"),
-                      "n10 v1 dV x10.0 y10.1\n"
-                      "n11 v1 dV x10.1 y10.2\n"
-                      "w20 v1 dV Thighway=primary Nn10,n11\n"));
+    REQUIRE_NOTHROW(db.run_import(options,
+                                  "n10 v1 dV x10.0 y10.1\n"
+                                  "n11 v1 dV x10.1 y10.2\n"
+                                  "w20 v1 dV Thighway=primary Nn10,n11\n"));
 
     auto conn = db.db().connect();
 
@@ -61,9 +78,9 @@ TEST_CASE("updating a way")
                                 "AND ST_NumPoints(geom) = 2"));
 
     // now change the way itself...
-    REQUIRE_NOTHROW(db.run_import(
-        testing::opt_t().slim().append().flex("test_output_flex.lua"),
-        "w20 v2 dV Thighway=secondary Nn10,n11\n"));
+    options.append = true;
+    REQUIRE_NOTHROW(
+        db.run_import(options, "w20 v2 dV Thighway=secondary Nn10,n11\n"));
 
     REQUIRE(0 == conn.get_count("osm2pgsql_test_point"));
     REQUIRE(1 == conn.get_count("osm2pgsql_test_line"));
@@ -72,9 +89,7 @@ TEST_CASE("updating a way")
                                 "'secondary' AND ST_NumPoints(geom) = 2"));
 
     // now change a node in the way...
-    REQUIRE_NOTHROW(db.run_import(
-        testing::opt_t().slim().append().flex("test_output_flex.lua"),
-        "n10 v2 dV x10.0 y10.3\n"));
+    REQUIRE_NOTHROW(db.run_import(options, "n10 v2 dV x10.0 y10.3\n"));
 
     REQUIRE(0 == conn.get_count("osm2pgsql_test_point"));
     REQUIRE(1 == conn.get_count("osm2pgsql_test_line"));
@@ -84,9 +99,8 @@ TEST_CASE("updating a way")
 
     // now add a node to the way...
     REQUIRE_NOTHROW(db.run_import(
-        testing::opt_t().slim().append().flex("test_output_flex.lua"),
-        "n12 v1 dV x10.2 y10.1\n"
-        "w20 v3 dV Thighway=residential Nn10,n11,n12\n"));
+        options, "n12 v1 dV x10.2 y10.1\n"
+                 "w20 v3 dV Thighway=residential Nn10,n11,n12\n"));
 
     REQUIRE(0 == conn.get_count("osm2pgsql_test_point"));
     REQUIRE(1 == conn.get_count("osm2pgsql_test_line"));
@@ -95,24 +109,24 @@ TEST_CASE("updating a way")
                                 "'residential' AND ST_NumPoints(geom) = 3"));
 
     // now delete the way...
-    REQUIRE_NOTHROW(db.run_import(
-        testing::opt_t().slim().append().flex("test_output_flex.lua"),
-        "w20 v4 dD\n"));
+    REQUIRE_NOTHROW(db.run_import(options, "w20 v4 dD\n"));
 
     REQUIRE(0 == conn.get_count("osm2pgsql_test_point"));
     REQUIRE(0 == conn.get_count("osm2pgsql_test_line"));
 }
 
-TEST_CASE("ways as linestrings and polygons")
+TEMPLATE_TEST_CASE("ways as linestrings and polygons", "", options_slim_default,
+                   options_slim_expire)
 {
+    options_t options = TestType::options();
+
     // import a simple way...
-    REQUIRE_NOTHROW(
-        db.run_import(testing::opt_t().slim().flex("test_output_flex.lua"),
-                      "n10 v1 dV x10.0 y10.0\n"
-                      "n11 v1 dV x10.0 y10.2\n"
-                      "n12 v1 dV x10.2 y10.2\n"
-                      "n13 v1 dV x10.2 y10.0\n"
-                      "w20 v1 dV Tbuilding=yes Nn10,n11,n12,n13,n10\n"));
+    REQUIRE_NOTHROW(db.run_import(
+        options, "n10 v1 dV x10.0 y10.0\n"
+                 "n11 v1 dV x10.0 y10.2\n"
+                 "n12 v1 dV x10.2 y10.2\n"
+                 "n13 v1 dV x10.2 y10.0\n"
+                 "w20 v1 dV Tbuilding=yes Nn10,n11,n12,n13,n10\n"));
 
     auto conn = db.db().connect();
 
@@ -124,9 +138,9 @@ TEST_CASE("ways as linestrings and polygons")
                                 "ST_GeometryType(geom) = 'ST_Polygon'"));
 
     // now change the way tags...
+    options.append = true;
     REQUIRE_NOTHROW(db.run_import(
-        testing::opt_t().slim().append().flex("test_output_flex.lua"),
-        "w20 v2 dV Thighway=secondary Nn10,n11,n12,n13,n10\n"));
+        options, "w20 v2 dV Thighway=secondary Nn10,n11,n12,n13,n10\n"));
 
     REQUIRE(0 == conn.get_count("osm2pgsql_test_point"));
     REQUIRE(1 == conn.get_count("osm2pgsql_test_line"));
@@ -138,8 +152,7 @@ TEST_CASE("ways as linestrings and polygons")
 
     // now remove a node from the way...
     REQUIRE_NOTHROW(db.run_import(
-        testing::opt_t().slim().append().flex("test_output_flex.lua"),
-        "w20 v3 dV Thighway=secondary Nn10,n11,n12,n13\n"));
+        options, "w20 v3 dV Thighway=secondary Nn10,n11,n12,n13\n"));
 
     REQUIRE(0 == conn.get_count("osm2pgsql_test_point"));
     REQUIRE(1 == conn.get_count("osm2pgsql_test_line"));
@@ -150,9 +163,8 @@ TEST_CASE("ways as linestrings and polygons")
     REQUIRE(0 == conn.get_count("osm2pgsql_test_polygon"));
 
     // now change the tag back to an area tag (but the way is not closed)...
-    REQUIRE_NOTHROW(db.run_import(
-        testing::opt_t().slim().append().flex("test_output_flex.lua"),
-        "w20 v4 dV Tbuilding=yes Nn10,n11,n12,n13\n"));
+    REQUIRE_NOTHROW(
+        db.run_import(options, "w20 v4 dV Tbuilding=yes Nn10,n11,n12,n13\n"));
 
     REQUIRE(0 == conn.get_count("osm2pgsql_test_point"));
     REQUIRE(0 == conn.get_count("osm2pgsql_test_line"));
@@ -160,8 +172,7 @@ TEST_CASE("ways as linestrings and polygons")
 
     // now close the way again
     REQUIRE_NOTHROW(db.run_import(
-        testing::opt_t().slim().append().flex("test_output_flex.lua"),
-        "w20 v5 dV Tbuilding=yes Nn10,n11,n12,n13,n10\n"));
+        options, "w20 v5 dV Tbuilding=yes Nn10,n11,n12,n13,n10\n"));
 
     REQUIRE(0 == conn.get_count("osm2pgsql_test_point"));
     REQUIRE(0 == conn.get_count("osm2pgsql_test_line"));
@@ -171,17 +182,19 @@ TEST_CASE("ways as linestrings and polygons")
                                 "ST_GeometryType(geom) = 'ST_Polygon'"));
 }
 
-TEST_CASE("multipolygons")
+TEMPLATE_TEST_CASE("multipolygons", "", options_slim_default,
+                   options_slim_expire)
 {
+    options_t options = TestType::options();
+
     // import a simple multipolygon relation...
-    REQUIRE_NOTHROW(
-        db.run_import(testing::opt_t().slim().flex("test_output_flex.lua"),
-                      "n10 v1 dV x10.0 y10.0\n"
-                      "n11 v1 dV x10.0 y10.2\n"
-                      "n12 v1 dV x10.2 y10.2\n"
-                      "n13 v1 dV x10.2 y10.0\n"
-                      "w20 v1 dV Nn10,n11,n12,n13,n10\n"
-                      "r30 v1 dV Ttype=multipolygon,building=yes Mw20@\n"));
+    REQUIRE_NOTHROW(db.run_import(
+        options, "n10 v1 dV x10.0 y10.0\n"
+                 "n11 v1 dV x10.0 y10.2\n"
+                 "n12 v1 dV x10.2 y10.2\n"
+                 "n13 v1 dV x10.2 y10.0\n"
+                 "w20 v1 dV Nn10,n11,n12,n13,n10\n"
+                 "r30 v1 dV Ttype=multipolygon,building=yes Mw20@\n"));
 
     auto conn = db.db().connect();
 
@@ -193,8 +206,9 @@ TEST_CASE("multipolygons")
                                 "ST_GeometryType(geom) = 'ST_Polygon'"));
 
     // change tags on that relation...
+    options.append = true;
     REQUIRE_NOTHROW(db.run_import(
-        testing::opt_t().slim().append().flex("test_output_flex.lua"),
+        options,
         "r30 v2 dV Ttype=multipolygon,building=yes,name=Shed Mw20@\n"));
 
     REQUIRE(0 == conn.get_count("osm2pgsql_test_point"));
@@ -206,16 +220,13 @@ TEST_CASE("multipolygons")
 
     SECTION("remove relation")
     {
-        REQUIRE_NOTHROW(db.run_import(
-            testing::opt_t().slim().append().flex("test_output_flex.lua"),
-            "r30 v3 dD\n"));
+        REQUIRE_NOTHROW(db.run_import(options, "r30 v3 dD\n"));
     }
 
     SECTION("remove multipolygon tag")
     {
         REQUIRE_NOTHROW(db.run_import(
-            testing::opt_t().slim().append().flex("test_output_flex.lua"),
-            "r30 v3 dV Tbuilding=yes,name=Shed Mw20@\n"));
+            options, "r30 v3 dV Tbuilding=yes,name=Shed Mw20@\n"));
     }
 
     REQUIRE(0 == conn.get_count("osm2pgsql_test_point"));
