@@ -55,10 +55,7 @@ are both arrays (indexed tables) of hashes (tables).
 As usual, it should return a filter flag, and a transformed set of tags to be
 applied to the relation in later processing.
 
-The third return value, `member_superseded`, is a flag set to `1` if the way
-has now been dealt with (e.g. outer ways in multipolygon relations, which are
-superseded by the multipolygon geometry), `0` if it needs to have its own entry
-in the database (e.g. tagged inner ways).
+The third return value, `member_superseded`, is obsolete and will be ignored.
 
 The fourth and fifth return values, `boundary` and `polygon`, are flags that
 specify if the relation should be processed as a line, a polygon, or both (e.g.
