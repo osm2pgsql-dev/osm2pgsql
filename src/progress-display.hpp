@@ -1,17 +1,23 @@
-#ifndef OSM2PGSQL_PARSE_OSMIUM_HPP
-#define OSM2PGSQL_PARSE_OSMIUM_HPP
+#ifndef OSM2PGSQL_PROGRESS_DISPLAY_HPP
+#define OSM2PGSQL_PROGRESS_DISPLAY_HPP
+
+/**
+ * \file
+ *
+ * This file is part of osm2pgsql (https://github.com/openstreetmap/osm2pgsql).
+ *
+ * It contains the progress_display_t class.
+ */
 
 #include <ctime>
 
 #include "osmtypes.hpp"
 
-#include <osmium/fwd.hpp>
-#include <osmium/handler.hpp>
-#include <osmium/osm/box.hpp>
-
-class osmdata_t;
-
-class parse_stats_t
+/**
+ * The progress_display_t class is used to display how far the processing of
+ * the input data has progressed.
+ */
+class progress_display_t
 {
     struct Counter
     {
@@ -20,12 +26,9 @@ class parse_stats_t
         std::time_t start = 0;
         int m_frac;
 
-        Counter(int frac) noexcept : m_frac(frac) {
-        }
+        Counter(int frac) noexcept : m_frac(frac) {}
 
-        osmid_t count_k() const noexcept {
-            return count / 1000;
-        }
+        osmid_t count_k() const noexcept { return count / 1000; }
 
         bool add(osmid_t id) noexcept
         {
@@ -55,9 +58,9 @@ class parse_stats_t
     };
 
 public:
-    parse_stats_t() noexcept : m_last_print_time(std::time(nullptr)) {}
+    progress_display_t() noexcept : m_last_print_time(std::time(nullptr)) {}
 
-    void update(parse_stats_t const &other);
+    void update(progress_display_t const &other) noexcept;
     void print_summary() const;
     void print_status(std::time_t now) const;
     void possibly_print_status();
@@ -127,31 +130,4 @@ private:
     std::time_t m_last_print_time;
 };
 
-class parse_osmium_t : public osmium::handler::Handler
-{
-public:
-    parse_osmium_t(osmium::Box const &bbox, bool append,
-                   osmdata_t const *osmdata);
-
-    void node(osmium::Node const &node);
-    void way(osmium::Way &way);
-    void relation(osmium::Relation const &rel);
-
-    parse_stats_t const &stats() const noexcept { return m_stats; }
-
-private:
-    osmdata_t const *m_data;
-
-    // Bounding box for node import or invalid Box if everything is imported
-    osmium::Box m_bbox;
-
-    parse_stats_t m_stats;
-
-    // Current type being parsed.
-    osmium::item_type m_type = osmium::item_type::node;
-
-    // Are we running in append mode?
-    bool m_append;
-};
-
-#endif // OSM2PGSQL_PARSE_OSMIUM_HPP
+#endif // OSM2PGSQL_PROGRESS_DISPLAY_HPP

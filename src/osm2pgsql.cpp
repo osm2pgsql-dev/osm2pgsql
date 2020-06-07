@@ -29,6 +29,7 @@
 #include "options.hpp"
 #include "osmdata.hpp"
 #include "output.hpp"
+#include "progress-display.hpp"
 #include "reprojection.hpp"
 #include "util.hpp"
 #include "version.hpp"
@@ -84,7 +85,7 @@ int main(int argc, char *argv[])
 
         // Processing: In this phase the input file(s) are read and parsed,
         // populating some of the tables.
-        parse_stats_t stats;
+        progress_display_t progress;
         for (auto const &filename : options.input_files) {
             fmt::print(stderr, "\nReading in file: {}\n", filename);
             util::timer_t timer_parse;
@@ -99,13 +100,13 @@ int main(int argc, char *argv[])
                     "Unknown file format '{}'."_format(options.input_format)};
             }
 
-            stats.update(osmdata.process_file(file, options.bbox));
+            progress.update(osmdata.process_file(file, options.bbox));
 
-            stats.print_status(std::time(nullptr));
+            progress.print_status(std::time(nullptr));
             fmt::print(stderr, "  parse time: {}s\n", timer_parse.stop());
         }
 
-        stats.print_summary();
+        progress.print_summary();
 
         // Process pending ways and relations. Cluster database tables and
         // create indexes.

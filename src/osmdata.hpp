@@ -1,6 +1,14 @@
 #ifndef OSM2PGSQL_OSMDATA_HPP
 #define OSM2PGSQL_OSMDATA_HPP
 
+/**
+ * \file
+ *
+ * This file is part of osm2pgsql (https://github.com/openstreetmap/osm2pgsql).
+ *
+ * It contains the osmdata_t class.
+ */
+
 #include <memory>
 #include <vector>
 
@@ -9,13 +17,18 @@
 
 #include "dependency-manager.hpp"
 #include "osmtypes.hpp"
-#include "parse-osmium.hpp"
+#include "progress-display.hpp"
 
 class options_t;
 class output_t;
 struct middle_t;
 struct slim_middle_t;
 
+/**
+ * This class guides the processing of the OSM data through its multiple
+ * stages. It calls upon the major compontents of osm2pgsql, the dependency
+ * manager, the middle, and the outputs to do their work.
+ */
 class osmdata_t
 {
 public:
@@ -31,8 +44,8 @@ public:
      * Process the specified OSM file (stage 1a). This is called once for
      * each input file.
      */
-    parse_stats_t process_file(osmium::io::File const &file,
-                               osmium::Box const &bbox) const;
+    progress_display_t process_file(osmium::io::File const &file,
+                                    osmium::Box const &bbox) const;
 
     /**
      * Rest of the processing (stages 1b, 2, and 3). This is called once

@@ -14,6 +14,7 @@
 
 #include "db-copy.hpp"
 #include "format.hpp"
+#include "input-handler.hpp"
 #include "middle.hpp"
 #include "options.hpp"
 #include "osmdata.hpp"
@@ -369,8 +370,8 @@ private:
 
 } // anonymous namespace
 
-parse_stats_t osmdata_t::process_file(osmium::io::File const &file,
-                                      osmium::Box const &bbox) const
+progress_display_t osmdata_t::process_file(osmium::io::File const &file,
+                                           osmium::Box const &bbox) const
 {
     if (!m_append && file.has_multiple_object_versions()) {
         throw std::runtime_error{
@@ -380,12 +381,12 @@ parse_stats_t osmdata_t::process_file(osmium::io::File const &file,
     fmt::print(stderr, "Using {} parser.\n",
                osmium::io::as_string(file.format()));
 
-    parse_osmium_t handler{bbox, m_append, this};
+    input_handler_t handler{bbox, m_append, this};
     osmium::io::Reader reader{file};
     osmium::apply(reader, handler);
     reader.close();
 
-    return handler.stats();
+    return handler.progress();
 }
 
 void osmdata_t::process_stage1b() const

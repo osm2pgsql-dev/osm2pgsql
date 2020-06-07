@@ -7,6 +7,7 @@ set(osm2pgsql_lib_SOURCES
   geometry-processor.cpp
   geom-transform.cpp
   id-tracker.cpp
+  input-handler.cpp
   middle-pgsql.cpp
   middle-ram.cpp
   node-persistent-cache.cpp
@@ -19,11 +20,11 @@ set(osm2pgsql_lib_SOURCES
   output-null.cpp
   output-pgsql.cpp
   output.cpp
-  parse-osmium.cpp
   pgsql.cpp
   processor-line.cpp
   processor-point.cpp
   processor-polygon.cpp
+  progress-display.cpp
   reprojection.cpp
   sprompt.cpp
   table.cpp
@@ -39,6 +40,7 @@ set(osm2pgsql_lib_SOURCES
   geometry-processor.hpp
   geom-transform.hpp
   id-tracker.hpp
+  input-handler.hpp
   middle-pgsql.hpp
   middle-ram.hpp
   middle.hpp
@@ -53,11 +55,11 @@ set(osm2pgsql_lib_SOURCES
   output-null.hpp
   output-pgsql.hpp
   output.hpp
-  parse-osmium.hpp
   pgsql.hpp
   processor-line.hpp
   processor-point.hpp
   processor-polygon.hpp
+  progress-display.hpp
   reprojection.hpp
   sprompt.hpp
   table.hpp
