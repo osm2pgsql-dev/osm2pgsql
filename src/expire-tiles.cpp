@@ -122,6 +122,21 @@ int expire_tiles::normalise_tile_x_coord(int x)
     return x;
 }
 
+/**
+ * Converts from target coordinates to tile coordinates.
+ *
+ * The zoom level for the coordinates is explicitly given in the
+ * parameter map_width.
+ */
+static void coords_to_tile(reprojection const &projection, double *tilex,
+                           double *tiley, double lon, double lat, int map_width)
+{
+    auto const c = projection.target_to_tile(Coordinates{lon, lat});
+
+    *tilex = map_width * (0.5 + c.x / EARTH_CIRCUMFERENCE);
+    *tiley = map_width * (0.5 - c.y / EARTH_CIRCUMFERENCE);
+}
+
 /*
  * Expire tiles that a line crosses
  */
@@ -133,8 +148,8 @@ void expire_tiles::from_line(double lon_a, double lat_a, double lon_b,
     double tile_x_b;
     double tile_y_b;
 
-    projection->coords_to_tile(&tile_x_a, &tile_y_a, lon_a, lat_a, map_width);
-    projection->coords_to_tile(&tile_x_b, &tile_y_b, lon_b, lat_b, map_width);
+    coords_to_tile(*projection, &tile_x_a, &tile_y_a, lon_a, lat_a, map_width);
+    coords_to_tile(*projection, &tile_x_b, &tile_y_b, lon_b, lat_b, map_width);
 
     if (tile_x_a > tile_x_b) {
         /* We always want the line to go from left to right - swap the ends if it doesn't */
@@ -224,10 +239,10 @@ int expire_tiles::from_bbox(double min_lon, double min_lat, double max_lon,
     /* Convert the box's Mercator coordinates into tile coordinates */
     double tmp_x;
     double tmp_y;
-    projection->coords_to_tile(&tmp_x, &tmp_y, min_lon, max_lat, map_width);
+    coords_to_tile(*projection, &tmp_x, &tmp_y, min_lon, max_lat, map_width);
     int min_tile_x = tmp_x - TILE_EXPIRY_LEEWAY;
     int min_tile_y = tmp_y - TILE_EXPIRY_LEEWAY;
-    projection->coords_to_tile(&tmp_x, &tmp_y, max_lon, min_lat, map_width);
+    coords_to_tile(*projection, &tmp_x, &tmp_y, max_lon, min_lat, map_width);
     int max_tile_x = tmp_x + TILE_EXPIRY_LEEWAY;
     int max_tile_y = tmp_y + TILE_EXPIRY_LEEWAY;
     if (min_tile_x < 0) {
