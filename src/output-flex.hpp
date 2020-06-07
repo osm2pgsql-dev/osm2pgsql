@@ -26,16 +26,46 @@ extern "C"
 #include <utility>
 #include <vector>
 
+/**
+ * The flex output calls several user-defined Lua functions. They are
+ * "prepared" by putting the function pointers on the Lua stack. Objects
+ * of the class prepared_lua_function_t are used to hold the stack position
+ * of the function which allows them to be called later using a symbolic
+ * name.
+ */
+class prepared_lua_function_t
+{
+public:
+    prepared_lua_function_t() noexcept = default;
+
+    /**
+     * Get function with the name "osm2pgsql.name" from Lua and put pointer
+     * to it on the Lua stack.
+     */
+    prepared_lua_function_t(lua_State *lua_state, const char *name);
+
+    /// Return the index of the function on the Lua stack.
+    int index() const noexcept { return m_index; }
+
+    /// Is this function defined in the users Lua code?
+    operator bool() const noexcept { return m_index != 0; }
+
+private:
+    int m_index = 0;
+};
+
 class output_flex_t : public output_t
 {
+
 public:
     output_flex_t(std::shared_ptr<middle_query_t> const &mid,
                   options_t const &options,
                   std::shared_ptr<db_copy_thread_t> const &copy_thread,
                   bool is_clone = false,
                   std::shared_ptr<lua_State> lua_state = nullptr,
-                  bool has_process_node = false, bool has_process_way = false,
-                  bool has_process_relation = false,
+                  prepared_lua_function_t process_node = {},
+                  prepared_lua_function_t process_way = {},
+                  prepared_lua_function_t process_relation = {},
                   std::shared_ptr<std::vector<flex_table_t>> tables =
                       std::make_shared<std::vector<flex_table_t>>(),
                   std::shared_ptr<id_tracker> ways_tracker =
@@ -91,7 +121,12 @@ public:
 private:
     void init_clone();
 
-    void call_process_function(int index, osmium::OSMObject const &object);
+    /**
+     * Call a Lua function that was "prepared" earlier with the OSMObject
+     * as its only parameter.
+     */
+    void call_lua_function(prepared_lua_function_t func,
+                           osmium::OSMObject const &object);
 
     void init_lua(std::string const &filename);
 
@@ -151,9 +186,9 @@ private:
     std::size_t m_num_way_nodes = std::numeric_limits<std::size_t>::max();
 
     bool m_in_stage2 = false;
-    bool m_has_process_node = false;
-    bool m_has_process_way = false;
-    bool m_has_process_relation = false;
+    prepared_lua_function_t m_process_node;
+    prepared_lua_function_t m_process_way;
+    prepared_lua_function_t m_process_relation;
 };
 
 #endif // OSM2PGSQL_OUTPUT_FLEX_HPP

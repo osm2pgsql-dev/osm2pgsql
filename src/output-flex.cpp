@@ -68,6 +68,25 @@ TRAMPOLINE(table_tostring, __tostring)
 static char const osm2pgsql_table_name[] = "osm2pgsql.table";
 static char const osm2pgsql_object_metatable[] = "osm2pgsql.object_metatable";
 
+prepared_lua_function_t::prepared_lua_function_t(lua_State *lua_state,
+                                                 char const *name)
+{
+    int const index = lua_gettop(lua_state);
+
+    lua_getfield(lua_state, 1, name);
+
+    if (lua_type(lua_state, -1) == LUA_TFUNCTION) {
+        m_index = index;
+        return;
+    }
+
+    if (lua_type(lua_state, -1) == LUA_TNIL) {
+        return;
+    }
+
+    throw std::runtime_error{"osm2pgsql.{} must be a function"_format(name)};
+}
+
 static void push_osm_object_to_lua_stack(lua_State *lua_state,
                                          osmium::OSMObject const &object,
                                          bool with_attributes)
@@ -988,14 +1007,12 @@ void output_flex_t::add_row(table_connection_t *table_connection,
     }
 }
 
-void output_flex_t::call_process_function(int index,
-                                          osmium::OSMObject const &object)
+void output_flex_t::call_lua_function(prepared_lua_function_t func,
+                                      osmium::OSMObject const &object)
 {
     std::lock_guard<std::mutex> guard{lua_mutex};
 
-    assert(lua_gettop(lua_state()) == 3);
-
-    lua_pushvalue(lua_state(), index); // the function to call
+    lua_pushvalue(lua_state(), func.index()); // the function to call
     push_osm_object_to_lua_stack(
         lua_state(), object,
         get_options()->extra_attributes); // the single argument
@@ -1009,7 +1026,7 @@ void output_flex_t::call_process_function(int index,
 
 void output_flex_t::pending_way(osmid_t id)
 {
-    if (!m_has_process_way) {
+    if (!m_process_way) {
         return;
     }
 
@@ -1023,7 +1040,7 @@ void output_flex_t::pending_way(osmid_t id)
     auto &way = m_buffer.get<osmium::Way>(0);
 
     m_context_way = &way;
-    call_process_function(2, way);
+    call_lua_function(m_process_way, way);
     m_context_way = nullptr;
     m_num_way_nodes = std::numeric_limits<std::size_t>::max();
     m_buffer.clear();
@@ -1031,7 +1048,7 @@ void output_flex_t::pending_way(osmid_t id)
 
 void output_flex_t::pending_relation(osmid_t id)
 {
-    if (!m_has_process_relation) {
+    if (!m_process_relation) {
         return;
     }
 
@@ -1048,7 +1065,7 @@ void output_flex_t::pending_relation(osmid_t id)
     auto const &relation = m_rels_buffer.get<osmium::Relation>(0);
 
     m_context_relation = &relation;
-    call_process_function(3, relation);
+    call_lua_function(m_process_relation, relation);
     m_context_relation = nullptr;
     m_rels_buffer.clear();
 }
@@ -1076,12 +1093,12 @@ void output_flex_t::stop(osmium::thread::Pool *pool)
 
 void output_flex_t::node_add(osmium::Node const &node)
 {
-    if (!m_has_process_node) {
+    if (!m_process_node) {
         return;
     }
 
     m_context_node = &node;
-    call_process_function(1, node);
+    call_lua_function(m_process_node, node);
     m_context_node = nullptr;
 }
 
@@ -1089,24 +1106,24 @@ void output_flex_t::way_add(osmium::Way *way)
 {
     assert(way);
 
-    if (!m_has_process_way) {
+    if (!m_process_way) {
         return;
     }
 
     m_context_way = way;
-    call_process_function(2, *way);
+    call_lua_function(m_process_way, *way);
     m_context_way = nullptr;
     m_num_way_nodes = std::numeric_limits<std::size_t>::max();
 }
 
 void output_flex_t::relation_add(osmium::Relation const &relation)
 {
-    if (!m_has_process_relation) {
+    if (!m_process_relation) {
         return;
     }
 
     m_context_relation = &relation;
-    call_process_function(3, relation);
+    call_lua_function(m_process_relation, relation);
     m_context_relation = nullptr;
 }
 
@@ -1195,16 +1212,17 @@ output_flex_t::clone(std::shared_ptr<middle_query_t> const &mid,
                      std::shared_ptr<db_copy_thread_t> const &copy_thread) const
 {
     return std::make_shared<output_flex_t>(
-        mid, *get_options(), copy_thread, true, m_lua_state, m_has_process_node,
-        m_has_process_way, m_has_process_relation, m_tables,
+        mid, *get_options(), copy_thread, true, m_lua_state, m_process_node,
+        m_process_way, m_process_relation, m_tables,
         m_stage2_ways_tracker, m_stage2_rels_tracker);
 }
 
 output_flex_t::output_flex_t(
     std::shared_ptr<middle_query_t> const &mid, options_t const &o,
     std::shared_ptr<db_copy_thread_t> const &copy_thread, bool is_clone,
-    std::shared_ptr<lua_State> lua_state, bool has_process_node,
-    bool has_process_way, bool has_process_relation,
+    std::shared_ptr<lua_State> lua_state, prepared_lua_function_t process_node,
+    prepared_lua_function_t process_way,
+    prepared_lua_function_t process_relation,
     std::shared_ptr<std::vector<flex_table_t>> tables,
     std::shared_ptr<id_tracker> ways_tracker,
     std::shared_ptr<id_tracker> rels_tracker)
@@ -1215,8 +1233,8 @@ output_flex_t::output_flex_t(
   m_expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection),
   m_buffer(32768, osmium::memory::Buffer::auto_grow::yes),
   m_rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes),
-  m_has_process_node(has_process_node), m_has_process_way(has_process_way),
-  m_has_process_relation(has_process_relation)
+  m_process_node(process_node), m_process_way(process_way),
+  m_process_relation(process_relation)
 {
     assert(copy_thread);
 
@@ -1232,21 +1250,6 @@ output_flex_t::output_flex_t(
     if (is_clone) {
         init_clone();
     }
-}
-
-static bool prepare_process_function(lua_State *lua_state, char const *name)
-{
-    lua_getfield(lua_state, 1, name);
-
-    if (lua_type(lua_state, -1) == LUA_TFUNCTION) {
-        return true;
-    }
-
-    if (lua_type(lua_state, -1) == LUA_TNIL) {
-        return false;
-    }
-
-    throw std::runtime_error{"osm2pgsql.{} must be a function"_format(name)};
 }
 
 void output_flex_t::init_lua(std::string const &filename)
@@ -1320,10 +1323,10 @@ void output_flex_t::init_lua(std::string const &filename)
     // Check whether the process_* functions are available and store them on
     // the Lua stack for fast access later
     lua_getglobal(lua_state(), "osm2pgsql");
-    m_has_process_node = prepare_process_function(lua_state(), "process_node");
-    m_has_process_way = prepare_process_function(lua_state(), "process_way");
-    m_has_process_relation =
-        prepare_process_function(lua_state(), "process_relation");
+    m_process_node = prepared_lua_function_t{lua_state(), "process_node"};
+    m_process_way = prepared_lua_function_t{lua_state(), "process_way"};
+    m_process_relation =
+        prepared_lua_function_t{lua_state(), "process_relation"};
 
     lua_remove(lua_state(), 1); // global "osm2pgsql"
 }
