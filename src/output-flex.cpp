@@ -1115,10 +1115,18 @@ void output_flex_t::delete_from_table(table_connection_t *table_connection,
 {
     assert(table_connection);
     auto const id = table_connection->table().map_id(type, osm_id);
-    auto const result = table_connection->get_geom_by_id(type, id);
-    if (m_expire.from_result(result, id) != 0) {
-        table_connection->delete_rows_with(type, id);
+
+    if (table_connection->table().has_geom_column()) {
+        auto const result = table_connection->get_geom_by_id(type, id);
+
+        if (result.num_tuples() == 0) {
+            return;
+        }
+
+        m_expire.from_result(result, id);
     }
+
+    table_connection->delete_rows_with(type, id);
 }
 
 void output_flex_t::delete_from_tables(osmium::item_type type, osmid_t osm_id)
