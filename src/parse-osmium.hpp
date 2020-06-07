@@ -130,9 +130,8 @@ private:
 class parse_osmium_t : public osmium::handler::Handler
 {
 public:
-    parse_osmium_t(osmium::Box const &bbox, bool append, osmdata_t *osmdata);
-
-    void stream_file(std::string const &filename, std::string const &fmt);
+    parse_osmium_t(osmium::Box const &bbox, bool append,
+                   osmdata_t const *osmdata);
 
     void node(osmium::Node const &node);
     void way(osmium::Way &way);
@@ -141,7 +140,7 @@ public:
     parse_stats_t const &stats() const noexcept { return m_stats; }
 
 private:
-    osmdata_t *m_data;
+    osmdata_t const *m_data;
 
     // Bounding box for node import or invalid Box if everything is imported
     osmium::Box m_bbox;
@@ -149,7 +148,7 @@ private:
     parse_stats_t m_stats;
 
     // Current type being parsed.
-    osmium::item_type m_type = osmium::item_type::undefined;
+    osmium::item_type m_type = osmium::item_type::node;
 
     // Are we running in append mode?
     bool m_append;

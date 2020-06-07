@@ -14,7 +14,6 @@
 #include "osmdata.hpp"
 #include "output-multi.hpp"
 #include "output.hpp"
-#include "parse-osmium.hpp"
 #include "taginfo-impl.hpp"
 
 #include "common-pg.hpp"
@@ -30,30 +29,18 @@ inline void parse_file(options_t const &options,
     osmdata_t osmdata{std::move(dependency_manager), mid, outs, options};
 
     osmdata.start();
-    parse_osmium_t parser{options.bbox, options.append, &osmdata};
 
-    std::string filep{TESTDATA_DIR};
-    filep += filename ? filename : options.input_files[0];
-
-    parser.stream_file(filep, "");
+    std::string filepath{TESTDATA_DIR};
+    if (filename) {
+        filepath += filename;
+    } else {
+        filepath += options.input_files[0];
+    }
+    osmium::io::File file{filepath};
+    osmdata.process_file(file, options.bbox);
 
     osmdata.stop();
 }
-
-class test_parse_t : public parse_osmium_t
-{
-public:
-    using parse_osmium_t::parse_osmium_t;
-
-    void stream_buffer(char const *buf, std::string const &fmt)
-    {
-        osmium::io::File infile{buf, std::strlen(buf), fmt};
-
-        osmium::io::Reader reader{infile};
-        osmium::apply(reader, *this);
-        reader.close();
-    }
-};
 
 namespace db {
 
@@ -65,7 +52,7 @@ class import_t
 {
 public:
     void run_import(options_t options, char const *data,
-                    std::string const &fmt = "opl")
+                    std::string const &format = "opl")
     {
         options.database_options = m_db.db_options();
 
@@ -96,9 +83,8 @@ public:
 
         osmdata.start();
 
-        test_parse_t parser(options.bbox, options.append, &osmdata);
-
-        parser.stream_buffer(data, fmt);
+        osmium::io::File file{data, std::strlen(data), format};
+        osmdata.process_file(file, options.bbox);
 
         osmdata.stop();
     }

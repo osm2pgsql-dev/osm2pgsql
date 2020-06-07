@@ -23,12 +23,8 @@
 #include "parse-osmium.hpp"
 #include "format.hpp"
 #include "osmdata.hpp"
-#include "reprojection.hpp"
 
-#include <osmium/handler.hpp>
-#include <osmium/io/any_input.hpp>
 #include <osmium/osm.hpp>
-#include <osmium/visitor.hpp>
 
 void parse_stats_t::update(parse_stats_t const &other)
 {
@@ -73,35 +69,9 @@ void parse_stats_t::possibly_print_status()
 }
 
 parse_osmium_t::parse_osmium_t(osmium::Box const &bbox, bool append,
-                               osmdata_t *osmdata)
+                               osmdata_t const *osmdata)
 : m_data(osmdata), m_bbox(bbox), m_append(append)
 {}
-
-void parse_osmium_t::stream_file(std::string const &filename,
-                                 std::string const &format)
-{
-    osmium::io::File infile{filename, format};
-
-    if (!m_append && infile.has_multiple_object_versions()) {
-        throw std::runtime_error{
-            "Reading an OSM change file only works in append mode."};
-    }
-
-    if (infile.format() == osmium::io::file_format::unknown) {
-        throw std::runtime_error{
-            format.empty()
-                ? std::string{"Cannot detect file format. Try using -r."}
-                : "Unknown file format '{}'."_format(format)};
-    }
-
-    fmt::print(stderr, "Using {} parser.\n",
-               osmium::io::as_string(infile.format()));
-
-    m_type = osmium::item_type::node;
-    osmium::io::Reader reader{infile};
-    osmium::apply(reader, *this);
-    reader.close();
-}
 
 void parse_osmium_t::node(osmium::Node const &node)
 {

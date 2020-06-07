@@ -29,7 +29,6 @@
 #include "options.hpp"
 #include "osmdata.hpp"
 #include "output.hpp"
-#include "parse-osmium.hpp"
 #include "reprojection.hpp"
 #include "util.hpp"
 #include "version.hpp"
@@ -90,10 +89,17 @@ int main(int argc, char *argv[])
             fmt::print(stderr, "\nReading in file: {}\n", filename);
             util::timer_t timer_parse;
 
-            parse_osmium_t parser{options.bbox, options.append, &osmdata};
-            parser.stream_file(filename, options.input_format);
+            osmium::io::File file{filename, options.input_format};
+            if (file.format() == osmium::io::file_format::unknown) {
+                if (options.input_format.empty()) {
+                    throw std::runtime_error{
+                        "Cannot detect file format. Try using -r."};
+                }
+                throw std::runtime_error{
+                    "Unknown file format '{}'."_format(options.input_format)};
+            }
 
-            stats.update(parser.stats());
+            stats.update(osmdata.process_file(file, options.bbox));
 
             stats.print_status(std::time(nullptr));
             fmt::print(stderr, "  parse time: {}s\n", timer_parse.stop());
