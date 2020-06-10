@@ -174,8 +174,7 @@ void node_ram_cache::set_dense(osmid_t id, osmium::Location location)
             blocks[block].reset_used();
             blocks[block].block_offset = block;
             if (!blocks[block].nodes) {
-                fprintf(stderr, "Error allocating nodes\n");
-                util::exit_nicely();
+                throw std::runtime_error{"Error allocating nodes"};
             }
             queue[usedBlocks] = &blocks[block];
             ++usedBlocks;
@@ -189,10 +188,9 @@ void node_ram_cache::set_dense(osmid_t id, osmium::Location location)
             }
         } else {
             if ((allocStrategy & ALLOC_LOSSY) == 0) {
-                fprintf(stderr,
-                        "\nNode cache size is too small to fit all nodes. "
-                        "Please increase cache size\n");
-                util::exit_nicely();
+                throw std::runtime_error{
+                    "Node cache size is too small to fit all nodes. "
+                    "Please increase cache size"};
             }
             /* We've reached the maximum number of blocks, so now we push the
              * current head of the tree down to the right level to restore the
@@ -313,10 +311,9 @@ node_ram_cache::node_ram_cache(int strategy, int cacheSizeMB)
         fprintf(stderr, "Allocating memory for dense node cache\n");
         blocks = (ramNodeBlock *)calloc(num_blocks(), sizeof(ramNodeBlock));
         if (!blocks) {
-            fprintf(stderr,
-                    "Out of memory for node cache dense index, try using "
-                    "\"--cache-strategy sparse\" instead \n");
-            util::exit_nicely();
+            throw std::runtime_error{
+                "Out of memory for node cache dense index, try using "
+                "\"--cache-strategy sparse\" instead"};
         }
         queue = (ramNodeBlock **)calloc(maxBlocks, sizeof(ramNodeBlock *));
         /* Use this method of allocation if virtual memory is limited,
@@ -327,17 +324,15 @@ node_ram_cache::node_ram_cache(int strategy, int cacheSizeMB)
             fprintf(stderr,
                     "Allocating dense node cache in block sized chunks\n");
             if (!queue) {
-                fprintf(stderr, "Out of memory, reduce --cache size\n");
-                util::exit_nicely();
+                throw std::runtime_error{"Out of memory, reduce --cache size"};
             }
         } else {
             fprintf(stderr, "Allocating dense node cache in one big chunk\n");
             blockCache = (char *)malloc((maxBlocks + 1024) * per_block() *
                                         sizeof(osmium::Location));
             if (!queue || !blockCache) {
-                fprintf(stderr, "Out of memory for dense node cache, reduce "
-                                "--cache size\n");
-                util::exit_nicely();
+                throw std::runtime_error{
+                    "Out of memory for dense node cache, reduce --cache size"};
             }
         }
     }
@@ -360,10 +355,8 @@ node_ram_cache::node_ram_cache(int strategy, int cacheSizeMB)
             sparseBlock = (ramNodeID *)blockCache;
         }
         if (!sparseBlock) {
-            fprintf(
-                stderr,
-                "Out of memory for sparse node cache, reduce --cache size\n");
-            util::exit_nicely();
+            throw std::runtime_error{
+                "Out of memory for sparse node cache, reduce --cache size"};
         }
     }
 
@@ -420,11 +413,8 @@ void node_ram_cache::set(osmid_t id, osmium::Location location)
 
     if ((id > 0 && id >> BLOCK_SHIFT >> 32U) ||
         (id < 0 && ~id >> BLOCK_SHIFT >> 32U)) {
-        fmt::print(stderr,
-                   "\nAbsolute node IDs must not be larger than {}"
-                   " (got {})\n",
-                   (int64_t)1 << 42U, id);
-        util::exit_nicely();
+        throw std::runtime_error{"Absolute node IDs must not be larger than {}"
+                                 " (got {})"_format(1ULL << 42U, id)};
     }
     ++totalNodes;
     /* if ALLOC_DENSE and ALLOC_SPARSE are set, send it through

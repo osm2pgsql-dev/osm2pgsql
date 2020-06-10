@@ -10,7 +10,6 @@
 #include "osmium-builder.hpp"
 #include "osmtypes.hpp"
 #include "output.hpp"
-#include "util.hpp"
 
 class output_gazetteer_t : public output_t
 {

@@ -4,7 +4,6 @@
 #include "osmtypes.hpp"
 #include "output-gazetteer.hpp"
 #include "pgsql.hpp"
-#include "util.hpp"
 #include "wkb.hpp"
 
 #include <cstring>
