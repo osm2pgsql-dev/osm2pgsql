@@ -20,44 +20,20 @@ static std::map<std::string, unsigned> const tagtypes = {
     {"int4", FLAG_INT_TYPE},     {"int8", FLAG_INT_TYPE},
     {"real", FLAG_REAL_TYPE},    {"double precision", FLAG_REAL_TYPE}};
 
-void export_list::add(osmium::item_type id, taginfo const &info)
+void export_list::add(osmium::item_type type, taginfo const &info)
 {
-    std::vector<taginfo> &infos = get(id);
-    infos.push_back(info);
+    m_export_list(type).push_back(info);
 }
 
-std::vector<taginfo> &export_list::get(osmium::item_type id)
+std::vector<taginfo> const &export_list::get(osmium::item_type type) const
+    noexcept
 {
-    auto const idx = item_type_to_nwr_index(id);
-    if (idx >= exportList.size()) {
-        exportList.resize(idx + 1);
-    }
-    return exportList[idx];
+    return m_export_list(type);
 }
 
-std::vector<taginfo> const &export_list::get(osmium::item_type id) const
+bool export_list::has_column(osmium::item_type type, char const *name) const
 {
-    // this fakes as if we have infinite taginfo vectors, but
-    // means we don't actually have anything allocated unless
-    // the info object has been assigned.
-    static const std::vector<taginfo> empty;
-
-    auto const idx = item_type_to_nwr_index(id);
-    if (idx < exportList.size()) {
-        return exportList[idx];
-    }
-
-    return empty;
-}
-
-bool export_list::has_column(osmium::item_type id, char const *name) const
-{
-    auto const idx = item_type_to_nwr_index(id);
-    if (idx >= exportList.size()) {
-        return false;
-    }
-
-    for (auto const &info : exportList[idx]) {
+    for (auto const &info : m_export_list(type)) {
         if (info.name == name) {
             return true;
         }
@@ -66,11 +42,11 @@ bool export_list::has_column(osmium::item_type id, char const *name) const
     return false;
 }
 
-columns_t export_list::normal_columns(osmium::item_type id) const
+columns_t export_list::normal_columns(osmium::item_type type) const
 {
     columns_t columns;
 
-    for (auto const &info : get(id)) {
+    for (auto const &info : m_export_list(type)) {
         if (!(info.flags & (FLAG_DELETE | FLAG_NOCOLUMN))) {
             columns.emplace_back(info.name, info.type, info.column_type());
         }

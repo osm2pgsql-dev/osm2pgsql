@@ -3,6 +3,9 @@
 
 #include "osmtypes.hpp"
 #include "taginfo.hpp"
+
+#include <osmium/index/nwr_array.hpp>
+
 #include <string>
 #include <utility>
 #include <vector>
@@ -41,16 +44,17 @@ struct taginfo
 };
 
 /* list of exported tags */
-struct export_list
+class export_list
 {
-    void add(osmium::item_type id, taginfo const &info);
-    std::vector<taginfo> &get(osmium::item_type id);
-    std::vector<taginfo> const &get(osmium::item_type id) const;
+public:
+    void add(osmium::item_type type, taginfo const &info);
+    std::vector<taginfo> const &get(osmium::item_type type) const noexcept;
 
-    columns_t normal_columns(osmium::item_type id) const;
-    bool has_column(osmium::item_type id, char const *name) const;
+    columns_t normal_columns(osmium::item_type type) const;
+    bool has_column(osmium::item_type type, char const *name) const;
 
-    std::vector<std::vector<taginfo>> exportList; /* Indexed osmium nwr index */
+private:
+    osmium::nwr_array<std::vector<taginfo>> m_export_list;
 };
 
 /* Parse a comma or whitespace delimited list of tags to apply to
