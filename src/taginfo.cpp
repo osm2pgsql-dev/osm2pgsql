@@ -9,17 +9,6 @@
 
 #include <osmium/util/string.hpp>
 
-static std::map<std::string, unsigned> const tagflags = {
-    {"polygon", FLAG_POLYGON}, {"linear", FLAG_LINEAR},
-    {"nocache", FLAG_NOCACHE}, {"delete", FLAG_DELETE},
-    {"phstore", FLAG_PHSTORE}, {"nocolumn", FLAG_NOCOLUMN}};
-
-static std::map<std::string, unsigned> const tagtypes = {
-    {"smallint", FLAG_INT_TYPE}, {"integer", FLAG_INT_TYPE},
-    {"bigint", FLAG_INT_TYPE},   {"int2", FLAG_INT_TYPE},
-    {"int4", FLAG_INT_TYPE},     {"int8", FLAG_INT_TYPE},
-    {"real", FLAG_REAL_TYPE},    {"double precision", FLAG_REAL_TYPE}};
-
 void export_list::add(osmium::item_type type, taginfo const &info)
 {
     m_export_list(type).push_back(info);
@@ -57,6 +46,11 @@ columns_t export_list::normal_columns(osmium::item_type type) const
 
 unsigned parse_tag_flags(std::string const &flags, int lineno)
 {
+    static std::map<std::string, unsigned> const tagflags = {
+        {"polygon", FLAG_POLYGON}, {"linear", FLAG_LINEAR},
+        {"nocache", FLAG_NOCACHE}, {"delete", FLAG_DELETE},
+        {"phstore", FLAG_PHSTORE}, {"nocolumn", FLAG_NOCOLUMN}};
+
     unsigned temp_flags = 0;
 
     for (auto const &flag_name : osmium::split_string(flags, ",\r\n")) {
@@ -70,6 +64,25 @@ unsigned parse_tag_flags(std::string const &flags, int lineno)
     }
 
     return temp_flags;
+}
+
+/**
+ * Get the tag type. For unknown types, 0 will be returned.
+ */
+static unsigned get_tag_type(std::string const &tag)
+{
+    static std::map<std::string, unsigned> const tagtypes = {
+        {"smallint", FLAG_INT_TYPE}, {"integer", FLAG_INT_TYPE},
+        {"bigint", FLAG_INT_TYPE},   {"int2", FLAG_INT_TYPE},
+        {"int4", FLAG_INT_TYPE},     {"int8", FLAG_INT_TYPE},
+        {"real", FLAG_REAL_TYPE},    {"double precision", FLAG_REAL_TYPE}};
+
+    auto const typ = tagtypes.find(tag);
+    if (typ != tagtypes.end()) {
+        return typ->second;
+    }
+
+    return 0;
 }
 
 bool read_style_file(std::string const &filename, export_list *exlist)
@@ -124,10 +137,7 @@ bool read_style_file(std::string const &filename, export_list *exlist)
         // want to convert it back and forth between string and real later. The code
         // will provide a string suitable for the database already.
         if (temp.name != "way_area") {
-            auto const typ = tagtypes.find(temp.type);
-            if (typ != tagtypes.end()) {
-                temp.flags |= typ->second;
-            }
+            temp.flags |= get_tag_type(temp.type);
         }
 
         if ((temp.flags != FLAG_DELETE) &&
