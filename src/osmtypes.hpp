@@ -19,7 +19,6 @@
 #include <osmium/osm.hpp>
 
 using osmid_t = std::int64_t;
-#define strtoosmid strtoll
 
 struct member
 {

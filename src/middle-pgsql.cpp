@@ -169,7 +169,7 @@ void pgsql_parse_members(char const *string, osmium::memory::Buffer &buffer,
     while (*string != '}') {
         char type = string[0];
         char *endp;
-        osmid_t id = strtoosmid(string + 1, &endp, 10);
+        osmid_t id = std::strtoll(string + 1, &endp, 10);
         // String points to the comma */
         string = decode_upto(endp + 1, role);
         builder.add_member(osmium::char_to_item_type(type), id, role);
@@ -187,7 +187,7 @@ void pgsql_parse_nodes(char const *string, osmium::memory::Buffer &buffer,
         osmium::builder::WayNodeListBuilder wnl_builder{buffer, &builder};
         while (*string != '}') {
             char *ptr;
-            wnl_builder.add_node_ref(strtoosmid(string, &ptr, 10));
+            wnl_builder.add_node_ref(std::strtoll(string, &ptr, 10));
             string = ptr;
             if (*string == ',') {
                 ++string;
