@@ -96,13 +96,13 @@ unsigned parse_tag_flags(std::string const &flags, int lineno)
     return temp_flags;
 }
 
-int read_style_file(std::string const &filename, export_list *exlist)
+bool read_style_file(std::string const &filename, export_list *exlist)
 {
     char osmtype[24];
     char tag[64];
     char datatype[24];
     char flags[128];
-    int enable_way_area = 1;
+    bool enable_way_area = true;
 
     FILE *const in = std::fopen(filename.c_str(), "rt");
     if (!in) {
@@ -164,7 +164,7 @@ int read_style_file(std::string const &filename, export_list *exlist)
         }
 
         if ((temp.name == "way_area") && (temp.flags == FLAG_DELETE)) {
-            enable_way_area = 0;
+            enable_way_area = false;
         }
 
         bool kept = false;

@@ -61,9 +61,9 @@ unsigned parse_tag_flags(std::string const &flags, int lineno);
 /* Parse an osm2pgsql "pgsql" backend format style file, putting
  * the results in the `exlist` argument.
  *
- * Returns 1 if the 'way_area' column should (implicitly) exist, or
- * 0 if it should be suppressed.
+ * Returns `true` if the 'way_area' column should (implicitly) exist, or
+ * `false` if it should be suppressed.
  */
-int read_style_file(std::string const &filename, export_list *exlist);
+bool read_style_file(std::string const &filename, export_list *exlist);
 
 #endif // OSM2PGSQL_TAGINFO_IMPL_HPP
