@@ -4,11 +4,11 @@
 #include <string>
 #include <vector>
 
-enum ColumnType
+enum class ColumnType
 {
-    COLUMN_TYPE_INT,
-    COLUMN_TYPE_REAL,
-    COLUMN_TYPE_TEXT
+    INT,
+    REAL,
+    TEXT
 };
 
 struct Column

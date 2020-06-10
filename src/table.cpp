@@ -389,7 +389,7 @@ void table_t::write_hstore_columns(taglist_t const &tags)
 void table_t::escape_type(std::string const &value, ColumnType flags)
 {
     switch (flags) {
-    case COLUMN_TYPE_INT: {
+    case ColumnType::INT: {
         // For integers we take the first number, or the average if it's a-b
         long long from, to;
         // limit number of digits parsed to avoid undefined behaviour in sscanf
@@ -413,7 +413,7 @@ void table_t::escape_type(std::string const &value, ColumnType flags)
         }
         break;
     }
-    case COLUMN_TYPE_REAL:
+    case ColumnType::REAL:
         /* try to "repair" real values as follows:
          * assume "," to be a decimal mark which need to be replaced by "."
          * like int4 take the first number, or the average if it's a-b
@@ -446,7 +446,7 @@ void table_t::escape_type(std::string const &value, ColumnType flags)
             }
             break;
         }
-    case COLUMN_TYPE_TEXT:
+    case ColumnType::TEXT:
         m_copy.add_column(value);
         break;
     }

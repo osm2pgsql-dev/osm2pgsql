@@ -27,12 +27,12 @@ struct taginfo
     ColumnType column_type() const
     {
         if (flags & FLAG_INT_TYPE) {
-            return COLUMN_TYPE_INT;
+            return ColumnType::INT;
         }
         if (flags & FLAG_REAL_TYPE) {
-            return COLUMN_TYPE_REAL;
+            return ColumnType::REAL;
         }
-        return COLUMN_TYPE_TEXT;
+        return ColumnType::TEXT;
     }
 
     std::string name;
