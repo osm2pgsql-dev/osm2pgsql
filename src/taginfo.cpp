@@ -1,6 +1,5 @@
 #include "format.hpp"
 #include "taginfo-impl.hpp"
-#include "util.hpp"
 
 #include <cerrno>
 #include <cstring>
@@ -118,11 +117,12 @@ bool read_style_file(std::string const &filename, export_list *exlist)
         if (fields <= 0) { /* Blank line */
             continue;
         }
+
         if (fields < 3) {
-            fmt::print(stderr, "Error reading style file line {} (fields={})\n",
-                       lineno, fields);
             std::fclose(in);
-            util::exit_nicely();
+            throw std::runtime_error{
+                "Error reading style file line {} (fields={})"_format(lineno,
+                                                                      fields)};
         }
 
         //place to keep info about this tag
@@ -143,10 +143,9 @@ bool read_style_file(std::string const &filename, export_list *exlist)
         if ((temp.flags != FLAG_DELETE) &&
             ((temp.name.find('?') != std::string::npos) ||
              (temp.name.find('*') != std::string::npos))) {
-            fmt::print(stderr, "wildcard '{}' in non-delete style entry\n",
-                       temp.name);
             std::fclose(in);
-            util::exit_nicely();
+            throw std::runtime_error{
+                "wildcard '{}' in non-delete style entry"_format(temp.name)};
         }
 
         if ((temp.name == "way_area") && (temp.flags == FLAG_DELETE)) {
@@ -182,6 +181,7 @@ bool read_style_file(std::string const &filename, export_list *exlist)
         std::fclose(in);
         throw std::runtime_error{"{}: {}"_format(filename, std::strerror(err))};
     }
+
     std::fclose(in);
 
     if (!read_valid_column) {
