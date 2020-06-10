@@ -2,7 +2,6 @@
 #include "taginfo-impl.hpp"
 #include "util.hpp"
 
-#include <cassert>
 #include <cerrno>
 #include <cstring>
 #include <map>
@@ -20,12 +19,6 @@ static std::map<std::string, unsigned> const tagtypes = {
     {"bigint", FLAG_INT_TYPE},   {"int2", FLAG_INT_TYPE},
     {"int4", FLAG_INT_TYPE},     {"int8", FLAG_INT_TYPE},
     {"real", FLAG_REAL_TYPE},    {"double precision", FLAG_REAL_TYPE}};
-
-taginfo::taginfo() : name(), type(), flags(0) {}
-
-taginfo::taginfo(taginfo const &other)
-: name(other.name), type(other.type), flags(other.flags)
-{}
 
 void export_list::add(osmium::item_type id, taginfo const &info)
 {
@@ -105,51 +98,48 @@ unsigned parse_tag_flags(std::string const &flags, int lineno)
 
 int read_style_file(std::string const &filename, export_list *exlist)
 {
-    FILE *in;
-    int lineno = 0;
-    int num_read = 0;
     char osmtype[24];
     char tag[64];
     char datatype[24];
     char flags[128];
-    char *str;
-    int fields;
-    struct taginfo temp;
-    char buffer[1024];
     int enable_way_area = 1;
 
-    in = fopen(filename.c_str(), "rt");
+    FILE *const in = std::fopen(filename.c_str(), "rt");
     if (!in) {
         throw std::runtime_error{"Couldn't open style file '{}': {}"_format(
             filename, std::strerror(errno))};
     }
 
+    char buffer[1024];
+    int lineno = 0;
+    bool read_valid_column = false;
     //for each line of the style file
-    while (fgets(buffer, sizeof(buffer), in) != nullptr) {
+    while (std::fgets(buffer, sizeof(buffer), in) != nullptr) {
         ++lineno;
 
         //find where a comment starts and terminate the string there
-        str = std::strchr(buffer, '#');
+        char *const str = std::strchr(buffer, '#');
         if (str) {
             *str = '\0';
         }
 
         //grab the expected fields for this row
-        fields = sscanf(buffer, "%23s %63s %23s %127s", osmtype, tag, datatype,
-                        flags);
+        int const fields = std::sscanf(buffer, "%23s %63s %23s %127s", osmtype,
+                                       tag, datatype, flags);
         if (fields <= 0) { /* Blank line */
             continue;
         }
         if (fields < 3) {
             fmt::print(stderr, "Error reading style file line {} (fields={})\n",
                        lineno, fields);
-            fclose(in);
+            std::fclose(in);
             util::exit_nicely();
         }
 
         //place to keep info about this tag
-        temp.name.assign(tag);
-        temp.type.assign(datatype);
+        taginfo temp;
+        temp.name = tag;
+        temp.type = datatype;
         temp.flags = parse_tag_flags(flags, lineno);
 
         // check for special data types, by default everything is handled as text
@@ -169,7 +159,7 @@ int read_style_file(std::string const &filename, export_list *exlist)
              (temp.name.find('*') != std::string::npos))) {
             fmt::print(stderr, "wildcard '{}' in non-delete style entry\n",
                        temp.name);
-            fclose(in);
+            std::fclose(in);
             util::exit_nicely();
         }
 
@@ -193,22 +183,25 @@ int read_style_file(std::string const &filename, export_list *exlist)
 
         //do we really want to completely quit on an unusable line?
         if (!kept) {
-            fclose(in);
+            std::fclose(in);
             throw std::runtime_error{
                 "Weird style line {}:{}"_format(filename, lineno)};
         }
-        ++num_read;
+
+        read_valid_column = true;
     }
 
-    if (ferror(in)) {
-        int err = errno;
-        fclose(in);
+    if (std::ferror(in)) {
+        int const err = errno;
+        std::fclose(in);
         throw std::runtime_error{"{}: {}"_format(filename, std::strerror(err))};
     }
-    fclose(in);
-    if (num_read == 0) {
+    std::fclose(in);
+
+    if (!read_valid_column) {
         throw std::runtime_error{"Unable to parse any valid columns from "
                                  "the style file. Aborting."};
     }
+
     return enable_way_area;
 }

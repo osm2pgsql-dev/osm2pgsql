@@ -24,10 +24,4 @@ struct Column
 
 using columns_t = std::vector<Column>;
 
-/* Table columns, representing key= tags */
-struct taginfo;
-
-/* list of exported tags */
-struct export_list;
-
 #endif // OSM2PGSQL_TAGINFO_HPP

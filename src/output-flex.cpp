@@ -11,7 +11,6 @@
 #include "output-flex.hpp"
 #include "pgsql.hpp"
 #include "reprojection.hpp"
-#include "taginfo-impl.hpp"
 #include "util.hpp"
 #include "version.hpp"
 #include "wkb.hpp"

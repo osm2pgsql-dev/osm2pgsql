@@ -7,7 +7,7 @@
 #include <utility>
 #include <vector>
 
-enum column_flags
+enum column_flags : unsigned int
 {
     FLAG_POLYGON = 1, /* For polygon table */
     FLAG_LINEAR = 2,  /* For lines table */
@@ -21,11 +21,9 @@ enum column_flags
     FLAG_REAL_TYPE = 64 /* column value should be converted to double */
 };
 
+/* Table columns, representing key= tags */
 struct taginfo
 {
-    taginfo();
-    taginfo(taginfo const &);
-
     ColumnType column_type() const
     {
         if (flags & FLAG_INT_TYPE) {
@@ -37,10 +35,12 @@ struct taginfo
         return COLUMN_TYPE_TEXT;
     }
 
-    std::string name, type;
-    unsigned flags;
+    std::string name;
+    std::string type;
+    unsigned int flags = 0;
 };
 
+/* list of exported tags */
 struct export_list
 {
     void add(osmium::item_type id, taginfo const &info);
