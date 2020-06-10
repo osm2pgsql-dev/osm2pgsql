@@ -68,11 +68,11 @@ public:
 private:
 
     /**
-     * Run stage 1b processing: Process dependent objects.
+     * Run stage 1b and stage 1c processing: Process dependent objects.
      * In append mode we need to process dependent objects that were marked
      * earlier.
      */
-    void process_stage1b() const;
+    void process_stage1bc() const;
 
     /**
      * Run stage 2 processing: Process objects marked in stage 1 (if any).

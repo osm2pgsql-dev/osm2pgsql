@@ -36,12 +36,16 @@ public:
     virtual void stop(osmium::thread::Pool *pool) = 0;
     virtual void sync() = 0;
 
+    virtual bool has_stage2_processing() const noexcept { return false; }
+    virtual idlist_t get_stage1c_way_ids() { return {}; }
     virtual void stage2_proc() {}
 
     virtual bool need_forward_dependencies() const noexcept { return true; }
 
     virtual void pending_way(osmid_t id) = 0;
     virtual void pending_relation(osmid_t id) = 0;
+
+    virtual void check_relation(osmid_t) {}
 
     virtual void node_add(osmium::Node const &node) = 0;
     virtual void way_add(osmium::Way *way) = 0;
@@ -54,6 +58,8 @@ public:
     virtual void node_delete(osmid_t id) = 0;
     virtual void way_delete(osmid_t id) = 0;
     virtual void relation_delete(osmid_t id) = 0;
+
+    virtual bool has_stage1c_pending() const { return false; }
 
     const options_t *get_options() const;
 

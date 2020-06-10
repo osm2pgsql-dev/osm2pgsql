@@ -57,7 +57,7 @@ static std::mutex lua_mutex;
     }
 
 TRAMPOLINE(app_define_table, define_table)
-TRAMPOLINE(app_mark, mark)
+TRAMPOLINE(app_mark_way, mark_way)
 TRAMPOLINE(app_get_bbox, get_bbox)
 TRAMPOLINE(table_name, name)
 TRAMPOLINE(table_schema, schema)
@@ -508,20 +508,17 @@ void output_flex_t::write_row(table_connection_t *table_connection,
     copy_mgr->finish_line();
 }
 
-int output_flex_t::app_mark()
+int output_flex_t::app_mark_way()
 {
-    char const *type_name = luaL_checkstring(lua_state(), 1);
-    if (!type_name) {
-        return 0;
+    if (!in_context_check_relation()) {
+        throw std::runtime_error{
+            "You can only call mark_way() from check_relation()"};
     }
 
-    osmium::object_id_type const id = luaL_checkinteger(lua_state(), 2);
+    osmium::object_id_type const id = luaL_checkinteger(lua_state(), 1);
 
-    if (type_name[0] == 'w') {
-        m_stage2_ways_tracker->mark(id);
-    } else if (type_name[0] == 'r') {
-        m_stage2_rels_tracker->mark(id);
-    }
+    m_stage1c_ways_tracker->mark(id);
+    m_stage2_ways_tracker->mark(id);
 
     return 0;
 }
@@ -539,9 +536,9 @@ std::size_t output_flex_t::get_way_nodes()
 
 int output_flex_t::app_get_bbox()
 {
-    if (m_context != m_process_node && m_context != m_process_way) {
+    if (!in_context_process_node_or_way()) {
         throw std::runtime_error{"You can only call get_bbox() from "
-                                 "process_node() or process_relation()"};
+                                 "process_node() or process_way()"};
     }
 
     if (lua_gettop(lua_state()) > 1) {
@@ -730,7 +727,7 @@ void output_flex_t::setup_flex_table_columns(flex_table_t *table)
 
 int output_flex_t::app_define_table()
 {
-    if (m_context) {
+    if (!in_context_main()) {
         throw std::runtime_error{"Tables have to be defined at the start, not"
                                  " in any of the callbacks"};
     }
@@ -795,6 +792,11 @@ int output_flex_t::table_tostring()
 
 int output_flex_t::table_add_row()
 {
+    if (!in_context_process()) {
+        throw std::runtime_error{"You can only call add_row() from the "
+                                 "osm2pgsql.process_*() functions."};
+    }
+
     if (lua_gettop(lua_state()) != 2) {
         throw std::runtime_error{
             "Need two parameters: The osm2pgsql.table and the row data"};
@@ -827,14 +829,7 @@ int output_flex_t::table_add_row()
             throw std::runtime_error{
                 "Trying to add relation to table '{}'"_format(table.name())};
         }
-        if (m_in_stage2) {
-            delete_from_table(&table_connection, osmium::item_type::relation,
-                              m_context_relation->id());
-        }
         add_row(&table_connection, *m_context_relation);
-    } else {
-        throw std::runtime_error{"The add_row() function can only be called "
-                                 "from inside a process function"};
     }
 
     return 0;
@@ -1053,9 +1048,20 @@ void output_flex_t::pending_way(osmid_t id)
     m_buffer.clear();
 }
 
-void output_flex_t::pending_relation(osmid_t id)
+void output_flex_t::check_relation(osmium::Relation const &relation)
 {
-    if (!m_process_relation) {
+    if (!m_check_relation) {
+        return;
+    }
+
+    m_context_relation = &relation;
+    call_lua_function(m_check_relation, relation);
+    m_context_relation = nullptr;
+}
+
+void output_flex_t::check_relation(osmid_t id)
+{
+    if (!m_check_relation) {
         return;
     }
 
@@ -1067,13 +1073,35 @@ void output_flex_t::pending_relation(osmid_t id)
         return;
     }
 
-    delete_from_tables(osmium::item_type::relation, id);
+    check_relation(m_rels_buffer.get<osmium::Relation>(0));
 
+    m_rels_buffer.clear();
+}
+
+void output_flex_t::pending_relation(osmid_t id)
+{
+    if (!m_process_relation && !m_check_relation) {
+        return;
+    }
+
+    // Try to fetch the relation from the DB
+    // Note that we cannot use the global buffer here because
+    // we cannot keep a reference to the relation and an autogrow buffer
+    // might be relocated when more data is added.
+    if (!m_mid->relation_get(id, m_rels_buffer)) {
+        return;
+    }
     auto const &relation = m_rels_buffer.get<osmium::Relation>(0);
 
-    m_context_relation = &relation;
-    call_lua_function(m_process_relation, relation);
-    m_context_relation = nullptr;
+    check_relation(relation);
+
+    delete_from_tables(osmium::item_type::relation, id);
+
+    if (m_process_relation) {
+        m_context_relation = &relation;
+        call_lua_function(m_process_relation, relation);
+        m_context_relation = nullptr;
+    }
     m_rels_buffer.clear();
 }
 
@@ -1129,6 +1157,8 @@ void output_flex_t::relation_add(osmium::Relation const &relation)
         return;
     }
 
+    check_relation(relation);
+
     m_context_relation = &relation;
     call_lua_function(m_process_relation, relation);
     m_context_relation = nullptr;
@@ -1177,6 +1207,7 @@ void output_flex_t::way_delete(osmid_t osm_id)
 
 void output_flex_t::relation_delete(osmid_t osm_id)
 {
+    check_relation(osm_id);
     delete_from_tables(osmium::item_type::relation, osm_id);
 }
 
@@ -1194,6 +1225,7 @@ void output_flex_t::way_modify(osmium::Way *way)
 
 void output_flex_t::relation_modify(osmium::Relation const &rel)
 {
+    check_relation(rel);
     relation_delete(rel.id());
     relation_add(rel);
 }
@@ -1220,8 +1252,8 @@ output_flex_t::clone(std::shared_ptr<middle_query_t> const &mid,
 {
     return std::make_shared<output_flex_t>(
         mid, *get_options(), copy_thread, true, m_lua_state, m_process_node,
-        m_process_way, m_process_relation, m_tables,
-        m_stage2_ways_tracker, m_stage2_rels_tracker);
+        m_process_way, m_process_relation, m_check_relation, m_tables,
+        m_stage1c_ways_tracker, m_stage2_ways_tracker);
 }
 
 output_flex_t::output_flex_t(
@@ -1230,18 +1262,20 @@ output_flex_t::output_flex_t(
     std::shared_ptr<lua_State> lua_state, prepared_lua_function_t process_node,
     prepared_lua_function_t process_way,
     prepared_lua_function_t process_relation,
+    prepared_lua_function_t check_relation,
     std::shared_ptr<std::vector<flex_table_t>> tables,
-    std::shared_ptr<id_tracker> ways_tracker,
-    std::shared_ptr<id_tracker> rels_tracker)
+    std::shared_ptr<id_tracker> ways_tracker_1c,
+    std::shared_ptr<id_tracker> ways_tracker_2)
 : output_t(mid, o), m_tables(std::move(tables)),
-  m_stage2_ways_tracker(std::move(ways_tracker)),
-  m_stage2_rels_tracker(std::move(rels_tracker)), m_copy_thread(copy_thread),
+  m_stage1c_ways_tracker(std::move(ways_tracker_1c)),
+  m_stage2_ways_tracker(std::move(ways_tracker_2)),
+  m_copy_thread(copy_thread),
   m_lua_state(std::move(lua_state)), m_builder(o.projection),
   m_expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection),
   m_buffer(32768, osmium::memory::Buffer::auto_grow::yes),
   m_rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes),
   m_process_node(process_node), m_process_way(process_way),
-  m_process_relation(process_relation)
+  m_process_relation(process_relation), m_check_relation(check_relation)
 {
     assert(copy_thread);
 
@@ -1279,7 +1313,7 @@ void output_flex_t::init_lua(std::string const &filename)
 
     luaX_add_table_func(lua_state(), "define_table",
                         lua_trampoline_app_define_table);
-    luaX_add_table_func(lua_state(), "mark", lua_trampoline_app_mark);
+    luaX_add_table_func(lua_state(), "mark_way", lua_trampoline_app_mark_way);
 
     lua_setglobal(lua_state(), "osm2pgsql");
 
@@ -1334,16 +1368,44 @@ void output_flex_t::init_lua(std::string const &filename)
     m_process_way = prepared_lua_function_t{lua_state(), "process_way"};
     m_process_relation =
         prepared_lua_function_t{lua_state(), "process_relation"};
+    m_check_relation = prepared_lua_function_t{lua_state(), "check_relation"};
 
     lua_remove(lua_state(), 1); // global "osm2pgsql"
 }
 
+bool output_flex_t::has_stage1c_pending() const
+{
+    return !m_stage1c_ways_tracker->empty();
+}
+
+bool output_flex_t::has_stage2_processing() const noexcept
+{
+    return m_check_relation;
+}
+
+idlist_t output_flex_t::get_stage1c_way_ids()
+{
+    idlist_t idlist;
+
+    if (m_stage1c_ways_tracker->empty()) {
+        fmt::print(stderr, "Skipping stage 1c (no marked objects).\n");
+        return idlist;
+    }
+
+    fmt::print(stderr, "Entering stage 1c processing of {} ways...\n"_format(
+                           m_stage1c_ways_tracker->size()));
+
+    osmid_t id;
+    while (id_tracker::is_valid((id = m_stage1c_ways_tracker->pop_mark()))) {
+        idlist.push_back(id);
+    }
+
+    return idlist;
+}
+
 void output_flex_t::stage2_proc()
 {
-    bool const has_marked_ways = !m_stage2_ways_tracker->empty();
-    bool const has_marked_rels = !m_stage2_rels_tracker->empty();
-
-    if (!has_marked_ways && !has_marked_rels) {
+    if (m_stage2_ways_tracker->empty()) {
         fmt::print(stderr, "Skipping stage 2 (no marked objects).\n");
         return;
     }
@@ -1356,10 +1418,7 @@ void output_flex_t::stage2_proc()
         util::timer_t timer;
 
         for (auto &table : m_table_connections) {
-            if ((has_marked_ways &&
-                 table.table().matches_type(osmium::item_type::way)) ||
-                (has_marked_rels &&
-                 table.table().matches_type(osmium::item_type::relation))) {
+            if (table.table().matches_type(osmium::item_type::way)) {
                 fmt::print(stderr, "  Creating id index on table '{}'...\n",
                            table.table().name());
                 table.create_id_index();
@@ -1390,20 +1449,7 @@ void output_flex_t::stage2_proc()
             continue;
         }
         auto &way = m_buffer.get<osmium::Way>(0);
-        way_add(&way);
-    }
-
-    fmt::print(stderr,
-               "Entering stage 2 processing of {} relations...\n"_format(
-                   m_stage2_rels_tracker->size()));
-
-    while (id_tracker::is_valid((id = m_stage2_rels_tracker->pop_mark()))) {
-        m_rels_buffer.clear();
-        if (!m_mid->relation_get(id, m_rels_buffer)) {
-            continue;
-        }
-        auto const &relation = m_rels_buffer.get<osmium::Relation>(0);
-        relation_add(relation);
+        way_modify(&way);
     }
 }
 

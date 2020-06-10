@@ -21,32 +21,32 @@ tables.routes = osm2pgsql.define_table{
     }
 }
 
-local by_way_id = {}
+local w2r = {}
 
 function osm2pgsql.process_way(object)
-    if osm2pgsql.stage == 1 then
-        osm2pgsql.mark_way(object.id)
-        return
-    end
-
     local row = {
         tags = object.tags,
         geom = { create = 'line' }
     }
 
-    -- if there is any data from relations, add it in
-    local d = by_way_id[object.id]
+    local d = w2r[object.id]
     if d then
-        local keys = {}
-        for k,v in pairs(d.refs) do
-            keys[#keys + 1] = k
+        local refs = {}
+        for rel_id, rel_ref in pairs(d) do
+            refs[#refs + 1] = rel_ref
         end
+        table.sort(refs)
 
-        row.refs = table.concat(keys, ',')
-    --    row.rel_ids = '{' .. table.concat(d.ids, ',') .. '}'
+        row.refs = table.concat(refs, ',')
     end
 
     tables.highways:add_row(row)
+end
+
+function osm2pgsql.check_relation(object)
+    if object.tags.type == 'route' then
+        osm2pgsql.mark_member_ways(object)
+    end
 end
 
 function osm2pgsql.process_relation(object)
@@ -55,18 +55,12 @@ function osm2pgsql.process_relation(object)
     end
 
     local mlist = {}
-    for i, member in ipairs(object.members) do
+    for _, member in ipairs(object.members) do
         if member.type == 'w' then
-            osm2pgsql.mark_way(member.ref)
-            if not by_way_id[member.ref] then
-                by_way_id[member.ref] = {
-                    ids = {},
-                    refs = {}
-                }
+            if not w2r[member.ref] then
+                w2r[member.ref] = {}
             end
-            local d = by_way_id[member.ref]
-            table.insert(d.ids, object.id)
-            d.refs[object.tags.ref] = 1
+            w2r[member.ref][object.id] = object.tags.ref
             mlist[#mlist + 1] = member.ref
         end
     end

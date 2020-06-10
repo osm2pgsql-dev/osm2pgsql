@@ -114,6 +114,10 @@ void osmdata_t::relation_modify(osmium::Relation const &rel) const
 {
     auto &slim = slim_middle();
 
+    for (auto &out : m_outs) {
+        out->check_relation(rel.id());
+    }
+
     slim.relation_delete(rel.id());
     slim.relation_set(rel);
 
@@ -389,16 +393,41 @@ progress_display_t osmdata_t::process_file(osmium::io::File const &file,
     return handler.progress();
 }
 
-void osmdata_t::process_stage1b() const
+void osmdata_t::process_stage1bc() const
 {
-    if (m_dependency_manager->has_pending()) {
-        multithreaded_processor proc{m_conninfo, m_mid, m_outs,
-                                     (std::size_t)m_num_procs};
+    if (!m_dependency_manager->has_pending()) {
+        return;
+    }
 
-        proc.process_ways(m_dependency_manager->get_pending_way_ids());
+    multithreaded_processor proc{m_conninfo, m_mid, m_outs,
+                                 (std::size_t)m_num_procs};
+
+    // stage 1b processing
+    proc.process_ways(m_dependency_manager->get_pending_way_ids());
+    proc.process_relations(m_dependency_manager->get_pending_relation_ids());
+    proc.merge_expire_trees();
+
+    // If none of the outputs has a check_relation defined, we can skip the
+    // stage 1c processing.
+    if (std::none_of(m_outs.cbegin(), m_outs.cend(),
+                     [](std::shared_ptr<output_t> const &out) {
+                         return out->has_stage2_processing();
+                     })) {
+        return;
+    }
+
+    // stage 1c processing
+    for (auto &out : m_outs) {
+        if (out->has_stage1c_pending()) {
+            for (auto const id : out->get_stage1c_way_ids()) {
+                m_dependency_manager->way_changed(id);
+            }
+        }
+    }
+
+    if (m_dependency_manager->has_pending()) {
         proc.process_relations(
             m_dependency_manager->get_pending_relation_ids());
-        proc.merge_expire_trees();
     }
 }
 
@@ -450,7 +479,7 @@ void osmdata_t::stop() const
     }
 
     if (m_append) {
-        process_stage1b();
+        process_stage1bc();
     }
 
     process_stage2();

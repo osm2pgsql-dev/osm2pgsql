@@ -36,6 +36,23 @@ if object.tags.highway then
 end
 ```
 
+## `mark_member_ways`
+
+Synopsis: `osm2pgsql.mark_member_ways(RELATION)`
+
+Description: Mark all way members of the specified RELATION (for stage 2
+processing).
+
+Example:
+
+```
+function osm2pgsql.check_relation(object)
+    if object.tags.type == 'route' then
+        osm2pgsql.mark_member_ways(object)
+    end
+end
+```
+
 ## `make_clean_tags_func`
 
 Synopsis: `osm2pgsql.make_clean_tags_func(KEYS)`

@@ -29,12 +29,12 @@ function osm2pgsql.define_area_table(_name, _columns)
     return _define_table_impl('area', _name, _columns)
 end
 
-function osm2pgsql.mark_way(id)
-    return osm2pgsql.mark('w', id)
-end
-
-function osm2pgsql.mark_relation(id)
-    return osm2pgsql.mark('r', id)
+function osm2pgsql.mark_member_ways(relation)
+    for _, member in ipairs(relation.members) do
+        if member.type == 'w' then
+            osm2pgsql.mark_way(member.ref)
+        end
+    end
 end
 
 function osm2pgsql.clamp(value, low, high)

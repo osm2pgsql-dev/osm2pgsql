@@ -78,11 +78,12 @@ public:
                   prepared_lua_function_t process_node = {},
                   prepared_lua_function_t process_way = {},
                   prepared_lua_function_t process_relation = {},
+                  prepared_lua_function_t check_relation = {},
                   std::shared_ptr<std::vector<flex_table_t>> tables =
                       std::make_shared<std::vector<flex_table_t>>(),
-                  std::shared_ptr<id_tracker> ways_tracker =
+                  std::shared_ptr<id_tracker> ways_tracker_1c =
                       std::make_shared<id_tracker>(),
-                  std::shared_ptr<id_tracker> rels_tracker =
+                  std::shared_ptr<id_tracker> ways_tracker_2 =
                       std::make_shared<id_tracker>());
 
     output_flex_t(output_flex_t const &) = delete;
@@ -101,10 +102,14 @@ public:
     void stop(osmium::thread::Pool *pool) override;
     void sync() override;
 
+    bool has_stage2_processing() const noexcept override;
+    idlist_t get_stage1c_way_ids() override;
     void stage2_proc() override;
 
     void pending_way(osmid_t id) override;
     void pending_relation(osmid_t id) override;
+
+    void check_relation(osmid_t id) override;
 
     void node_add(osmium::Node const &node) override;
     void way_add(osmium::Way *way) override;
@@ -118,10 +123,12 @@ public:
     void way_delete(osmid_t id) override;
     void relation_delete(osmid_t id) override;
 
+    bool has_stage1c_pending() const override;
+
     void merge_expire_trees(output_t *other) override;
 
     int app_define_table();
-    int app_mark();
+    int app_mark_way();
     int app_get_bbox();
 
     int table_tostring();
@@ -132,6 +139,7 @@ public:
 
 private:
     void init_clone();
+    void check_relation(osmium::Relation const &relation);
 
     /**
      * Call a Lua function that was "prepared" earlier with the OSMObject
@@ -175,11 +183,33 @@ private:
 
     lua_State *lua_state() noexcept { return m_lua_state.get(); }
 
+    /// Are we in the main Lua program, i.e. not in any callbacks?
+    bool in_context_main() const noexcept { return !m_context; }
+
+    /// Are we in one of the process_node/way/relation() Lua callbacks?
+    bool in_context_process() const noexcept
+    {
+        return m_context && m_context != m_check_relation;
+    }
+
+    /// Are we in the process_node() or process_way() Lua callbacks?
+    bool in_context_process_node_or_way() const noexcept
+    {
+        return m_context &&
+               (m_context == m_process_node || m_context == m_process_way);
+    }
+
+    /// Are we in the check_relation() Lua callback?
+    bool in_context_check_relation() const noexcept
+    {
+        return m_context && m_context == m_check_relation;
+    }
+
     std::shared_ptr<std::vector<flex_table_t>> m_tables;
     std::vector<table_connection_t> m_table_connections;
 
+    std::shared_ptr<id_tracker> m_stage1c_ways_tracker;
     std::shared_ptr<id_tracker> m_stage2_ways_tracker;
-    std::shared_ptr<id_tracker> m_stage2_rels_tracker;
 
     std::shared_ptr<db_copy_thread_t> m_copy_thread;
 
@@ -200,6 +230,8 @@ private:
     prepared_lua_function_t m_process_node;
     prepared_lua_function_t m_process_way;
     prepared_lua_function_t m_process_relation;
+
+    prepared_lua_function_t m_check_relation;
 
     /**
      * Before a Lua function is called from C++, we store it in here. When

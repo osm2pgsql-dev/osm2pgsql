@@ -37,8 +37,6 @@ The following functions are defined:
   more control than the more convenient other functions.
 * `osm2pgsql.mark_way(id)`: Mark the OSM way with the specified id. This way
   will be processed (again) in stage 2.
-* `osm2pgsql.mark_relation(id)`: Mark the OSM relation with the specified id.
-  This relation will be processed (again) in stage 2.
 
 You are expected to define one or more of the following functions:
 
@@ -66,7 +64,7 @@ stored as is, relation ids will be stored as negative numbers.
 With the `osm2pgsql.define_table()` function you can also define tables that
 * don't have any ids, but those tables will never be updated by osm2pgsql
 * take *any OSM object*, in this case the type of object is stored in an
-  additional column.
+  additional `char(1)` column.
 * are in a specific PostgresSQL tablespace (set `data_tablespace`) or that
   get their indexes created in a specific tablespace (set `index_tablespace`).
 * are in a specific schema (set `schema`). Note that the schema has to be
@@ -226,16 +224,17 @@ a default transformation. These are the defaults:
 
 ## Stages
 
-Osm2pgsql processes the data in up to two stages. You can mark ways or
-relations in stage 1 for processing in stage 2 by calling
-`osm2pgsql.mark_way(id)` or `osm2pgsql.mark_relation(id)`, respectively. If you
-don't mark any objects, nothing will be done in stage 2.
+Osm2pgsql processes the data in up to two stages. You can mark ways in stage 1
+for processing in stage 2 by calling `osm2pgsql.mark_way(id)`. If you don't
+mark any ways, nothing will be done in stage 2. (It is currently not possible
+to mark nodes or relations. This might or might not be added in future
+versions of osm2pgsql.)
 
 You can look at `osm2pgsql.stage` to see in which stage you are.
 
 In stage 1 you can only look at each OSM object on its own. You can see
 its id and tags (and possibly timestamp, changeset, user, etc.), but you don't
-know how this OSM objects relates to other OSM objects (for instance whether a
+know how this OSM object relates to other OSM objects (for instance whether a
 way you are looking at is a member in a relation). If this is enough to decide
 in which database table(s) and with what data an OSM object should end up in,
 then you can process the OSM object in stage 1. If, on the other hand, you
@@ -246,6 +245,19 @@ and there is less memory overhead. For most use cases, stage 1 is enough. If
 it is not, use stage 1 to store information about OSM objects you will need
 in stage 2 in some global variable. In stage 2 you can read this information
 again and use it to decide where and how to store the data in the database.
+
+Processing in two stages can add quite a bit of overhead. Because this feature
+is new, there isn't much operational experience with it. So be a bit careful
+when you are experimenting and watch memory and disk space consumption and
+any extra time you are using. Keep in mind that:
+
+* All data stored in stage 1 for use in stage 2 in your Lua script will use
+  main memory.
+* Keeping track of way ids marked in stage 1 needs some memory.
+* To do the extra processing in stage 2, time is needed to get objects out
+  of the object store and re-process them.
+* Osm2pgsql will create an id index on all way tables to look up ways that are
+  re-processed.
 
 ## Command line options
 
