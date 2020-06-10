@@ -54,6 +54,18 @@ private:
     int m_index = 0;
 };
 
+inline bool operator==(prepared_lua_function_t a,
+                       prepared_lua_function_t b) noexcept
+{
+    return a.index() == b.index();
+}
+
+inline bool operator!=(prepared_lua_function_t a,
+                       prepared_lua_function_t b) noexcept
+{
+    return !(a == b);
+}
+
 class output_flex_t : public output_t
 {
 
@@ -185,10 +197,18 @@ private:
 
     std::size_t m_num_way_nodes = std::numeric_limits<std::size_t>::max();
 
-    bool m_in_stage2 = false;
     prepared_lua_function_t m_process_node;
     prepared_lua_function_t m_process_way;
     prepared_lua_function_t m_process_relation;
+
+    /**
+     * Before a Lua function is called from C++, we store it in here. When
+     * C++ code is called back from the Lua code we can check whether the
+     * C++ function called is allowed in this context.
+     */
+    prepared_lua_function_t m_context;
+
+    bool m_in_stage2 = false;
 };
 
 #endif // OSM2PGSQL_OUTPUT_FLEX_HPP

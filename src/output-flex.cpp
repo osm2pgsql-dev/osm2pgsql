@@ -539,6 +539,11 @@ std::size_t output_flex_t::get_way_nodes()
 
 int output_flex_t::app_get_bbox()
 {
+    if (m_context != m_process_node && m_context != m_process_way) {
+        throw std::runtime_error{"You can only call get_bbox() from "
+                                 "process_node() or process_relation()"};
+    }
+
     if (lua_gettop(lua_state()) > 1) {
         throw std::runtime_error{"No parameter(s) needed for get_box()"};
     }
@@ -725,9 +730,9 @@ void output_flex_t::setup_flex_table_columns(flex_table_t *table)
 
 int output_flex_t::app_define_table()
 {
-    if (m_context_node || m_context_way || m_context_relation) {
-        throw std::runtime_error{"Tables have to be defined before calling any "
-                                 "of the process callbacks"};
+    if (m_context) {
+        throw std::runtime_error{"Tables have to be defined at the start, not"
+                                 " in any of the callbacks"};
     }
 
     luaL_checktype(lua_state(), 1, LUA_TTABLE);
@@ -791,7 +796,8 @@ int output_flex_t::table_tostring()
 int output_flex_t::table_add_row()
 {
     if (lua_gettop(lua_state()) != 2) {
-        throw std::runtime_error{"Need two parameters: The osm2pgsql.table and the row data"};
+        throw std::runtime_error{
+            "Need two parameters: The osm2pgsql.table and the row data"};
     }
 
     auto &table_connection =
@@ -1012,6 +1018,7 @@ void output_flex_t::call_lua_function(prepared_lua_function_t func,
 {
     std::lock_guard<std::mutex> guard{lua_mutex};
 
+    m_context = func;
     lua_pushvalue(lua_state(), func.index()); // the function to call
     push_osm_object_to_lua_stack(
         lua_state(), object,
