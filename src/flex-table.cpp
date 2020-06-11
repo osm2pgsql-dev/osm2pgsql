@@ -223,14 +223,10 @@ void table_connection_t::stop(bool updateable, bool append)
                 table().geom_column().name());
         }
 
-        auto const res = m_db_connection->query(
-            PGRES_TUPLES_OK,
-            "SELECT regexp_split_to_table(postgis_lib_version(), '\\.')");
-        auto const postgis_major = std::stoi(res.get_value_as_string(0, 0));
-        auto const postgis_minor = std::stoi(res.get_value_as_string(1, 0));
+        auto const postgis_version = get_postgis_version(*m_db_connection);
 
         sql += " ORDER BY ";
-        if (postgis_major == 2 && postgis_minor < 4) {
+        if (postgis_version.major == 2 && postgis_version.minor < 4) {
             fmt::print(stderr, "Using GeoHash for clustering\n");
             if (table().srid() == 4326) {
                 sql += "ST_GeoHash({},10)"_format(table().geom_column().name());
