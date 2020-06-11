@@ -213,13 +213,7 @@ public:
 
     void teardown() { m_db_connection.reset(); }
 
-    void prepare()
-    {
-        assert(m_db_connection);
-        if (table().has_id_column()) {
-            m_db_connection->exec(table().build_sql_prepare_get_wkb());
-        }
-    }
+    void prepare();
 
     void create_id_index()
     {

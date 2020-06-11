@@ -75,18 +75,16 @@ flex_table_column_t &flex_table_t::add_column(std::string const &name,
 
 std::string flex_table_t::build_sql_prepare_get_wkb() const
 {
-    if (has_geom_column()) {
-        if (has_multicolumn_id_index()) {
-            return "PREPARE get_wkb(char(1), bigint) AS"
-                   " SELECT \"{}\" FROM {} WHERE \"{}\" = $1 AND \"{}\" = $2"_format(
-                       geom_column().name(), full_name(), m_columns[0].name(),
-                       m_columns[1].name());
-        }
-        return "PREPARE get_wkb(bigint) AS"
-               " SELECT \"{}\" FROM {} WHERE \"{}\" = $1"_format(
-                   geom_column().name(), full_name(), id_column_names());
+    if (has_multicolumn_id_index()) {
+        return "PREPARE get_wkb(char(1), bigint) AS"
+               " SELECT \"{}\" FROM {} WHERE \"{}\" = $1 AND \"{}\" = $2"_format(
+                   geom_column().name(), full_name(), m_columns[0].name(),
+                   m_columns[1].name());
     }
-    return "PREPARE get_wkb(bigint) AS SELECT ''";
+
+    return "PREPARE get_wkb(bigint) AS"
+           " SELECT \"{}\" FROM {} WHERE \"{}\" = $1"_format(
+               geom_column().name(), full_name(), id_column_names());
 }
 
 std::string flex_table_t::build_sql_create_table(table_type ttype,
@@ -300,6 +298,14 @@ void table_connection_t::stop(bool updateable, bool append)
                table().name(), timer.stop());
 
     teardown();
+}
+
+void table_connection_t::prepare()
+{
+    assert(m_db_connection);
+    if (table().has_id_column() && table().has_geom_column()) {
+        m_db_connection->exec(table().build_sql_prepare_get_wkb());
+    }
 }
 
 pg_result_t table_connection_t::get_geom_by_id(osmium::item_type type,
