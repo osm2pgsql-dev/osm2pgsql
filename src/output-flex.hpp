@@ -159,6 +159,7 @@ public:
     int table_add_row();
     int table_name();
     int table_schema();
+    int table_cluster();
     int table_columns();
 
 private:
