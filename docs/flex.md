@@ -82,6 +82,8 @@ With the `osm2pgsql.define_table()` function you can also define tables that
   `index_tablespace`).
 * are in a specific schema (set option `schema`). Note that the schema has to
   be created before you start osm2pgsql.
+* will or will not be clustered based on the geometry. The default is to
+  do the clustering, set `cluster` to `false` to disable it.
 
 If you are using the `osm2pgsql.define_(node|way|relation|area)_table()`
 convenience functions, osm2pgsql will automatically create an id column named

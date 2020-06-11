@@ -38,6 +38,8 @@ public:
 
     std::string const &schema() const noexcept { return m_schema; }
 
+    bool cluster_by_geom() const noexcept { return m_cluster_by_geom; }
+
     std::string const &data_tablespace() const noexcept
     {
         return m_data_tablespace;
@@ -49,6 +51,11 @@ public:
     }
 
     void set_schema(std::string const &schema) noexcept { m_schema = schema; }
+
+    void set_cluster_by_geom(bool cluster) noexcept
+    {
+        m_cluster_by_geom = cluster;
+    }
 
     void set_data_tablespace(std::string const &tablespace) noexcept
     {
@@ -187,6 +194,9 @@ private:
 
     /// The SRID all geometries in this table use.
     int m_srid;
+
+    /// Cluster the table by geometry.
+    bool m_cluster_by_geom = true;
 
 }; // class flex_table_t
 

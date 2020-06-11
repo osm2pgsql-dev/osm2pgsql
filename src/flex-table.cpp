@@ -160,10 +160,16 @@ void table_connection_t::start(bool append)
     m_db_connection->exec("RESET client_min_messages");
 
     if (!append) {
-        m_db_connection->exec(table().build_sql_create_table(
-            table().has_geom_column() ? flex_table_t::table_type::interim
-                                      : flex_table_t::table_type::permanent,
-            table().full_name()));
+        auto const ttype = table().cluster_by_geom()
+                               ? flex_table_t::table_type::interim
+                               : flex_table_t::table_type::permanent;
+
+        m_db_connection->exec(
+            table().build_sql_create_table(ttype, table().full_name()));
+
+        if (ttype == flex_table_t::table_type::permanent) {
+            create_trigger_for_geom_check();
+        }
     } else {
         //check the columns against those in the existing table
         auto const res = m_db_connection->query(
@@ -225,7 +231,7 @@ void table_connection_t::stop(bool updateable, bool append)
 
     util::timer_t timer;
 
-    if (table().has_geom_column()) {
+    if (table().cluster_by_geom()) {
         fmt::print(stderr, "Clustering table '{}' by geometry...\n",
                    table().name());
 
@@ -273,6 +279,12 @@ void table_connection_t::stop(bool updateable, bool append)
         m_db_connection->exec("ALTER TABLE {} RENAME TO \"{}\""_format(
             table().full_tmp_name(), table().name()));
 
+        if (updateable) {
+            create_trigger_for_geom_check();
+        }
+    }
+
+    if (table().has_geom_column()) {
         fmt::print(stderr, "Creating geometry index on table '{}'...\n",
                    table().name());
 
@@ -288,8 +300,6 @@ void table_connection_t::stop(bool updateable, bool append)
         fmt::print(stderr, "Creating id index on table '{}'...\n",
                    table().name());
         m_db_connection->exec(table().build_sql_create_id_index());
-
-        create_trigger_for_geom_check();
     }
 
     fmt::print(stderr, "Analyzing table '{}'...\n", table().name());

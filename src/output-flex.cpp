@@ -60,6 +60,7 @@ TRAMPOLINE(app_define_table, define_table)
 TRAMPOLINE(app_get_bbox, get_bbox)
 TRAMPOLINE(table_name, name)
 TRAMPOLINE(table_schema, schema)
+TRAMPOLINE(table_cluster, cluster)
 TRAMPOLINE(table_add_row, add_row)
 TRAMPOLINE(table_columns, columns)
 TRAMPOLINE(table_tostring, __tostring)
@@ -600,6 +601,19 @@ flex_table_t &output_flex_t::create_flex_table()
     }
     lua_pop(lua_state(), 1);
 
+    // optional "cluster" field
+    lua_getfield(lua_state(), -1, "cluster");
+    int const cluster_type = lua_type(lua_state(), -1);
+    if (cluster_type == LUA_TBOOLEAN) {
+        new_table.set_cluster_by_geom(lua_toboolean(lua_state(), -1) != 0);
+    } else if (cluster_type == LUA_TNIL) {
+        // ignore
+    } else {
+        throw std::runtime_error{
+            "Unknown value for 'cluster' table option: Must be boolean."};
+    }
+    lua_pop(lua_state(), 1);
+
     // optional "data_tablespace" field
     lua_getfield(lua_state(), -1, "data_tablespace");
     if (lua_isstring(lua_state(), -1)) {
@@ -726,6 +740,10 @@ int output_flex_t::app_define_table()
     auto &new_table = create_flex_table();
     setup_id_columns(&new_table);
     setup_flex_table_columns(&new_table);
+
+    if (!new_table.has_geom_column()) {
+        new_table.set_cluster_by_geom(false);
+    }
 
     lua_pushlightuserdata(lua_state(), (void *)(m_tables->size()));
     luaL_getmetatable(lua_state(), osm2pgsql_table_name);
@@ -863,6 +881,13 @@ int output_flex_t::table_schema()
 {
     auto const &table = get_table_from_param();
     lua_pushstring(lua_state(), table.schema().c_str());
+    return 1;
+}
+
+int output_flex_t::table_cluster()
+{
+    auto const &table = get_table_from_param();
+    lua_pushboolean(lua_state(), table.cluster_by_geom());
     return 1;
 }
 
@@ -1389,6 +1414,7 @@ void output_flex_t::init_lua(std::string const &filename)
     luaX_add_table_func(lua_state(), "add_row", lua_trampoline_table_add_row);
     luaX_add_table_func(lua_state(), "name", lua_trampoline_table_name);
     luaX_add_table_func(lua_state(), "schema", lua_trampoline_table_schema);
+    luaX_add_table_func(lua_state(), "cluster", lua_trampoline_table_cluster);
     luaX_add_table_func(lua_state(), "columns", lua_trampoline_table_columns);
 
     // Clean up stack
