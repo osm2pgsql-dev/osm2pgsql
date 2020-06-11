@@ -188,6 +188,30 @@ void table_connection_t::start(bool append)
     prepare();
 }
 
+void table_connection_t::create_trigger_for_geom_check() {
+    if (table().srid() == 4326 || !table().has_geom_column()) {
+        return;
+    }
+
+    m_db_connection->exec("CREATE OR REPLACE FUNCTION {}_osm2pgsql_valid()\n"
+                          "RETURNS TRIGGER AS $$\n"
+                          "BEGIN\n"
+                          "  IF ST_IsValid(NEW.{}) THEN \n"
+                          "    RETURN NEW;\n"
+                          "  END IF;\n"
+                          "  RETURN NULL;\n"
+                          "END;"
+                          "$$ LANGUAGE plpgsql;"_format(
+                              table().name(), table().geom_column().name()));
+
+    m_db_connection->exec(
+        "CREATE TRIGGER \"{0}_osm2pgsql_valid\""
+        " BEFORE INSERT OR UPDATE"
+        " ON {1}"
+        " FOR EACH ROW EXECUTE PROCEDURE"
+        " {0}_osm2pgsql_valid();"_format(table().name(), table().full_name()));
+}
+
 void table_connection_t::stop(bool updateable, bool append)
 {
     assert(m_db_connection);
@@ -265,26 +289,7 @@ void table_connection_t::stop(bool updateable, bool append)
                    table().name());
         m_db_connection->exec(table().build_sql_create_id_index());
 
-        if (table().srid() != 4326 && table().has_geom_column()) {
-            m_db_connection->exec(
-                "CREATE OR REPLACE FUNCTION {}_osm2pgsql_valid()\n"
-                "RETURNS TRIGGER AS $$\n"
-                "BEGIN\n"
-                "  IF ST_IsValid(NEW.{}) THEN \n"
-                "    RETURN NEW;\n"
-                "  END IF;\n"
-                "  RETURN NULL;\n"
-                "END;"
-                "$$ LANGUAGE plpgsql;"_format(table().name(),
-                                              table().geom_column().name()));
-
-            m_db_connection->exec("CREATE TRIGGER \"{0}_osm2pgsql_valid\""
-                                  " BEFORE INSERT OR UPDATE"
-                                  " ON {1}"
-                                  " FOR EACH ROW EXECUTE PROCEDURE"
-                                  " {0}_osm2pgsql_valid();"_format(
-                                      table().name(), table().full_name()));
-        }
+        create_trigger_for_geom_check();
     }
 
     fmt::print(stderr, "Analyzing table '{}'...\n", table().name());

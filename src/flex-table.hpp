@@ -234,6 +234,13 @@ public:
     void delete_rows_with(osmium::item_type type, osmid_t id);
 
 private:
+    /**
+     * Create a trigger on INSERT/UPDATE that checks the validity of the
+     * geometry using ST_IsValid(). If the geometry is not valid the row
+     * will not be inserted or changed.
+     */
+    void create_trigger_for_geom_check();
+
     flex_table_t *m_table;
 
     std::shared_ptr<db_target_descr_t> m_target;
