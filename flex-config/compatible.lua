@@ -1,8 +1,51 @@
 
 -- This configuration for the flex backend tries to be compatible with the
--- original pgsql backend.
+-- original pgsql c-transform backend. There might be some corner cases but
+-- it should mostly do exactly the same.
 
--- Objects with any of the following keys will be treated as polygon
+-- Set this to true if you were using option -K|--keep-coastlines.
+local keep_coastlines = false
+
+-- Set this to the table name prefix (what used to be option -p|--prefix).
+local prefix = 'planet_osm'
+
+-- Set this to true if multipolygons should be written as polygons into db
+-- (what used to be option -G|--multi-geometry).
+local multi_geometry = false
+
+-- Set this to true if you want an hstore column (what used to be option
+-- -k|--hstore). Can not be true if "hstore_all" is true.
+local hstore = false
+
+-- Set this to true if you want all tags in an hstore column (what used to
+-- be option -j|--hstore-all). Can not be true if "hstore" is true.
+local hstore_all = false
+
+-- Only keep objects that have a value in one of the non-hstore columns
+-- (normal action with --hstore is to keep all objects). Equivalent to
+-- what used to be set through option --hstore-match-only.
+local hstore_match_only = true
+
+-- Set this to add an additional hstore (key/value) column containing all tags
+-- that start with the specified string, eg "name:". Will produce an extra
+-- hstore column that contains all "name:xx" tags. Equivalent to what used to
+-- be set through option -z|--hstore-column.
+local hstore_column = nil
+
+-- ---------------------------------------------------------------------------
+
+if hstore and hstore_all then
+    error("hstore and hstore_all can't be both true")
+end
+
+-- Used for splitting up long linestrings
+if osm2pgsql.srid == 4326 then
+    max_length = 1
+else
+    max_length = 100000
+end
+
+-- Ways with any of the following keys will be treated as polygon
 local polygon_keys = {
     'aeroway',
     'amenity',
@@ -23,7 +66,13 @@ local polygon_keys = {
     'tourism',
     'water',
     'waterway',
-    'wetland'
+    'wetland',
+    'abandoned:aeroway',
+    'abandoned:amenity',
+    'abandoned:building',
+    'abandoned:landuse',
+    'abandoned:power',
+    'area:highway'
 }
 
 -- Objects without any of the following keys will be deleted
@@ -51,7 +100,7 @@ local generic_keys = {
     'denomination',
     'disused',
     'ele',
-    'embarkment',
+    'embankment',
     'foot',
     'generation:source',
     'harbour',
@@ -66,7 +115,7 @@ local generic_keys = {
     'lock',
     'man_made',
     'military',
-    'motor_car',
+    'motorcar',
     'name',
     'natural',
     'office',
@@ -90,449 +139,483 @@ local generic_keys = {
     'tower:type',
     'tracktype',
     'tunnel',
-    'type',
     'water',
     'waterway',
     'wetland',
     'width',
-    'wood'
+    'wood',
+    'abandoned:aeroway',
+    'abandoned:amenity',
+    'abandoned:building',
+    'abandoned:landuse',
+    'abandoned:power',
+    'area:highway'
 }
 
 -- The following keys will be deleted
-local delete_tags = {
-    'FIXME',
+local delete_keys = {
+    'attribution',
+    'comment',
+    'created_by',
+    'fixme',
     'note',
+    'note:*',
+    'odbl',
+    'odbl:note',
     'source',
+    'source:*',
+    'source_ref',
     'way',
     'way_area',
     'z_order',
 }
 
--- Array used to specify z_order per key/value combination.
--- Each element has the form {key, value, z_order, is_road}.
--- If is_road=1, the object will be added to planet_osm_roads.
-local zordering_tags = {{ 'railway', nil, 5, 1}, { 'boundary', 'administrative', 0, 1},
-    { 'bridge', 'yes', 10, 0 }, { 'bridge', 'true', 10, 0 }, { 'bridge', 1, 10, 0 },
-    { 'tunnel', 'yes', -10, 0}, { 'tunnel', 'true', -10, 0}, { 'tunnel', 1, -10, 0},
-    { 'highway', 'minor', 3, 0}, { 'highway', 'road', 3, 0 }, { 'highway', 'unclassified', 3, 0 },
-    { 'highway', 'residential', 3, 0 }, { 'highway', 'tertiary_link', 4, 0}, { 'highway', 'tertiary', 4, 0},
-    { 'highway', 'secondary_link', 6, 1}, { 'highway', 'secondary', 6, 1},
-    { 'highway', 'primary_link', 7, 1}, { 'highway', 'primary', 7, 1},
-    { 'highway', 'trunk_link', 8, 1}, { 'highway', 'trunk', 8, 1},
-    { 'highway', 'motorway_link', 9, 1}, { 'highway', 'motorway', 9, 1},
+local point_columns = {
+    'access',
+    'addr:housename',
+    'addr:housenumber',
+    'addr:interpolation',
+    'admin_level',
+    'aerialway',
+    'aeroway',
+    'amenity',
+    'area',
+    'barrier',
+    'bicycle',
+    'brand',
+    'bridge',
+    'boundary',
+    'building',
+    'capital',
+    'construction',
+    'covered',
+    'culvert',
+    'cutting',
+    'denomination',
+    'disused',
+    'ele',
+    'embankment',
+    'foot',
+    'generator:source',
+    'harbour',
+    'highway',
+    'historic',
+    'horse',
+    'intermittent',
+    'junction',
+    'landuse',
+    'layer',
+    'leisure',
+    'lock',
+    'man_made',
+    'military',
+    'motorcar',
+    'name',
+    'natural',
+    'office',
+    'oneway',
+    'operator',
+    'place',
+    'population',
+    'power',
+    'power_source',
+    'public_transport',
+    'railway',
+    'ref',
+    'religion',
+    'route',
+    'service',
+    'shop',
+    'sport',
+    'surface',
+    'toll',
+    'tourism',
+    'tower:type',
+    'tunnel',
+    'water',
+    'waterway',
+    'wetland',
+    'width',
+    'wood',
 }
+
+local non_point_columns = {
+    'access',
+    'addr:housename',
+    'addr:housenumber',
+    'addr:interpolation',
+    'admin_level',
+    'aerialway',
+    'aeroway',
+    'amenity',
+    'area',
+    'barrier',
+    'bicycle',
+    'brand',
+    'bridge',
+    'boundary',
+    'building',
+    'construction',
+    'covered',
+    'culvert',
+    'cutting',
+    'denomination',
+    'disused',
+    'embankment',
+    'foot',
+    'generator:source',
+    'harbour',
+    'highway',
+    'historic',
+    'horse',
+    'intermittent',
+    'junction',
+    'landuse',
+    'layer',
+    'leisure',
+    'lock',
+    'man_made',
+    'military',
+    'motorcar',
+    'name',
+    'natural',
+    'office',
+    'oneway',
+    'operator',
+    'place',
+    'population',
+    'power',
+    'power_source',
+    'public_transport',
+    'railway',
+    'ref',
+    'religion',
+    'route',
+    'service',
+    'shop',
+    'sport',
+    'surface',
+    'toll',
+    'tourism',
+    'tower:type',
+    'tracktype',
+    'tunnel',
+    'water',
+    'waterway',
+    'wetland',
+    'width',
+    'wood',
+}
+
+function gen_columns(text_columns, with_hstore, area, geometry_type)
+    columns = {}
+
+    local add_column = function (name, type)
+        columns[#columns + 1] = { column = name, type = type }
+    end
+
+    for _, c in ipairs(text_columns) do
+        add_column(c, 'text')
+    end
+
+    add_column('z_order', 'int')
+
+    if area ~= nil then
+        if area then
+            add_column('way_area', 'area')
+        else
+            add_column('way_area', 'real')
+        end
+    end
+
+    if hstore_column then
+        add_column(hstore_column, 'hstore')
+    end
+
+    if with_hstore then
+        add_column('tags', 'hstore')
+    end
+
+    add_column('way', geometry_type)
+
+    return columns
+end
 
 local tables = {}
 
 tables.point = osm2pgsql.define_table{
-    name = 'planet_osm_point',
+    name = prefix .. '_point',
     ids = { type = 'node', id_column = 'osm_id' },
-    columns = {
-        { column = 'access', type = 'text' },
-        { column = 'addr:housename', type = 'text' },
-        { column = 'addr:housenumber', type = 'text' },
-        { column = 'addr:interpolation', type = 'text' },
-        { column = 'admin_level', type = 'text' },
-        { column = 'aerialway', type = 'text' },
-        { column = 'aeroway', type = 'text' },
-        { column = 'amenity', type = 'text' },
-        { column = 'area', type = 'text' },
-        { column = 'barrier', type = 'text' },
-        { column = 'bicycle', type = 'text' },
-        { column = 'brand', type = 'text' },
-        { column = 'bridge', type = 'text' },
-        { column = 'boundary', type = 'text' },
-        { column = 'building', type = 'text' },
-        { column = 'capital', type = 'text' },
-        { column = 'construction', type = 'text' },
-        { column = 'covered', type = 'text' },
-        { column = 'culvert', type = 'text' },
-        { column = 'cutting', type = 'text' },
-        { column = 'denomination', type = 'text' },
-        { column = 'disused', type = 'text' },
-        { column = 'ele', type = 'text' },
-        { column = 'embankment', type = 'text' },
-        { column = 'foot', type = 'text' },
-        { column = 'generator:source', type = 'text' },
-        { column = 'harbour', type = 'text' },
-        { column = 'highway', type = 'text' },
-        { column = 'historic', type = 'text' },
-        { column = 'horse', type = 'text' },
-        { column = 'intermittent', type = 'text' },
-        { column = 'junction', type = 'text' },
-        { column = 'landuse', type = 'text' },
-        { column = 'layer', type = 'text' },
-        { column = 'leisure', type = 'text' },
-        { column = 'lock', type = 'text' },
-        { column = 'man_made', type = 'text' },
-        { column = 'military', type = 'text' },
-        { column = 'motorcar', type = 'text' },
-        { column = 'name', type = 'text' },
-        { column = 'natural', type = 'text' },
-        { column = 'office', type = 'text' },
-        { column = 'oneway', type = 'text' },
-        { column = 'operator', type = 'text' },
-        { column = 'place', type = 'text' },
-        { column = 'population', type = 'text' },
-        { column = 'power', type = 'text' },
-        { column = 'power_source', type = 'text' },
-        { column = 'public_transport', type = 'text' },
-        { column = 'railway', type = 'text' },
-        { column = 'ref', type = 'text' },
-        { column = 'religion', type = 'text' },
-        { column = 'route', type = 'text' },
-        { column = 'service', type = 'text' },
-        { column = 'shop', type = 'text' },
-        { column = 'sport', type = 'text' },
-        { column = 'surface', type = 'text' },
-        { column = 'toll', type = 'text' },
-        { column = 'tourism', type = 'text' },
-        { column = 'tower:type', type = 'text' },
-        { column = 'tunnel', type = 'text' },
-        { column = 'water', type = 'text' },
-        { column = 'waterway', type = 'text' },
-        { column = 'wetland', type = 'text' },
-        { column = 'width', type = 'text' },
-        { column = 'wood', type = 'text' },
-        { column = 'z_order', type = 'int' },
-        { column = 'way', type = 'point' },
-    }
+    columns = gen_columns(point_columns, hstore or hstore_all, nil, 'point')
 }
 
 tables.line = osm2pgsql.define_table{
-    name = 'planet_osm_line',
+    name = prefix .. '_line',
     ids = { type = 'way', id_column = 'osm_id' },
-    columns = {
-        { column = 'access', type = 'text' },
-        { column = 'addr:housename', type = 'text' },
-        { column = 'addr:housenumber', type = 'text' },
-        { column = 'addr:interpolation', type = 'text' },
-        { column = 'admin_level', type = 'text' },
-        { column = 'aerialway', type = 'text' },
-        { column = 'aeroway', type = 'text' },
-        { column = 'amenity', type = 'text' },
-        { column = 'area', type = 'text' },
-        { column = 'barrier', type = 'text' },
-        { column = 'bicycle', type = 'text' },
-        { column = 'brand', type = 'text' },
-        { column = 'bridge', type = 'text' },
-        { column = 'boundary', type = 'text' },
-        { column = 'building', type = 'text' },
-        { column = 'construction', type = 'text' },
-        { column = 'covered', type = 'text' },
-        { column = 'culvert', type = 'text' },
-        { column = 'cutting', type = 'text' },
-        { column = 'denomination', type = 'text' },
-        { column = 'disused', type = 'text' },
-        { column = 'embankment', type = 'text' },
-        { column = 'foot', type = 'text' },
-        { column = 'generator:source', type = 'text' },
-        { column = 'harbour', type = 'text' },
-        { column = 'highway', type = 'text' },
-        { column = 'historic', type = 'text' },
-        { column = 'horse', type = 'text' },
-        { column = 'intermittent', type = 'text' },
-        { column = 'junction', type = 'text' },
-        { column = 'landuse', type = 'text' },
-        { column = 'layer', type = 'text' },
-        { column = 'leisure', type = 'text' },
-        { column = 'lock', type = 'text' },
-        { column = 'man_made', type = 'text' },
-        { column = 'military', type = 'text' },
-        { column = 'motorcar', type = 'text' },
-        { column = 'name', type = 'text' },
-        { column = 'natural', type = 'text' },
-        { column = 'office', type = 'text' },
-        { column = 'oneway', type = 'text' },
-        { column = 'operator', type = 'text' },
-        { column = 'place', type = 'text' },
-        { column = 'population', type = 'text' },
-        { column = 'power', type = 'text' },
-        { column = 'power_source', type = 'text' },
-        { column = 'public_transport', type = 'text' },
-        { column = 'railway', type = 'text' },
-        { column = 'ref', type = 'text' },
-        { column = 'religion', type = 'text' },
-        { column = 'route', type = 'text' },
-        { column = 'service', type = 'text' },
-        { column = 'shop', type = 'text' },
-        { column = 'sport', type = 'text' },
-        { column = 'surface', type = 'text' },
-        { column = 'toll', type = 'text' },
-        { column = 'tourism', type = 'text' },
-        { column = 'tower:type', type = 'text' },
-        { column = 'tracktype', type = 'text' },
-        { column = 'tunnel', type = 'text' },
-        { column = 'water', type = 'text' },
-        { column = 'waterway', type = 'text' },
-        { column = 'wetland', type = 'text' },
-        { column = 'width', type = 'text' },
-        { column = 'wood', type = 'text' },
-        { column = 'z_order', type = 'int' },
-        { column = 'way_area', type = 'area' },
-        { column = 'way', type = 'linestring' },
-    }
+    columns = gen_columns(non_point_columns, hstore or hstore_all, false, 'linestring')
 }
 
 tables.polygon = osm2pgsql.define_table{
-    name = 'planet_osm_polygon',
+    name = prefix .. '_polygon',
     ids = { type = 'area', id_column = 'osm_id' },
-    columns = {
-        { column = 'access', type = 'text' },
-        { column = 'addr:housename', type = 'text' },
-        { column = 'addr:housenumber', type = 'text' },
-        { column = 'addr:interpolation', type = 'text' },
-        { column = 'admin_level', type = 'text' },
-        { column = 'aerialway', type = 'text' },
-        { column = 'aeroway', type = 'text' },
-        { column = 'amenity', type = 'text' },
-        { column = 'area', type = 'text' },
-        { column = 'barrier', type = 'text' },
-        { column = 'bicycle', type = 'text' },
-        { column = 'brand', type = 'text' },
-        { column = 'bridge', type = 'text' },
-        { column = 'boundary', type = 'text' },
-        { column = 'building', type = 'text' },
-        { column = 'construction', type = 'text' },
-        { column = 'covered', type = 'text' },
-        { column = 'culvert', type = 'text' },
-        { column = 'cutting', type = 'text' },
-        { column = 'denomination', type = 'text' },
-        { column = 'disused', type = 'text' },
-        { column = 'embankment', type = 'text' },
-        { column = 'foot', type = 'text' },
-        { column = 'generator:source', type = 'text' },
-        { column = 'harbour', type = 'text' },
-        { column = 'highway', type = 'text' },
-        { column = 'historic', type = 'text' },
-        { column = 'horse', type = 'text' },
-        { column = 'intermittent', type = 'text' },
-        { column = 'junction', type = 'text' },
-        { column = 'landuse', type = 'text' },
-        { column = 'layer', type = 'text' },
-        { column = 'leisure', type = 'text' },
-        { column = 'lock', type = 'text' },
-        { column = 'man_made', type = 'text' },
-        { column = 'military', type = 'text' },
-        { column = 'motorcar', type = 'text' },
-        { column = 'name', type = 'text' },
-        { column = 'natural', type = 'text' },
-        { column = 'office', type = 'text' },
-        { column = 'oneway', type = 'text' },
-        { column = 'operator', type = 'text' },
-        { column = 'place', type = 'text' },
-        { column = 'population', type = 'text' },
-        { column = 'power', type = 'text' },
-        { column = 'power_source', type = 'text' },
-        { column = 'public_transport', type = 'text' },
-        { column = 'railway', type = 'text' },
-        { column = 'ref', type = 'text' },
-        { column = 'religion', type = 'text' },
-        { column = 'route', type = 'text' },
-        { column = 'service', type = 'text' },
-        { column = 'shop', type = 'text' },
-        { column = 'sport', type = 'text' },
-        { column = 'surface', type = 'text' },
-        { column = 'toll', type = 'text' },
-        { column = 'tourism', type = 'text' },
-        { column = 'tower:type', type = 'text' },
-        { column = 'tracktype', type = 'text' },
-        { column = 'tunnel', type = 'text' },
-        { column = 'water', type = 'text' },
-        { column = 'waterway', type = 'text' },
-        { column = 'wetland', type = 'text' },
-        { column = 'width', type = 'text' },
-        { column = 'wood', type = 'text' },
-        { column = 'z_order', type = 'int' },
-        { column = 'way_area', type = 'area' },
-        { column = 'way', type = 'geometry' },
-    }
+    columns = gen_columns(non_point_columns, hstore or hstore_all, true, 'geometry')
 }
 
 tables.roads = osm2pgsql.define_table{
-    name = 'planet_osm_roads',
+    name = prefix .. '_roads',
     ids = { type = 'way', id_column = 'osm_id' },
-    columns = {
-        { column = 'access', type = 'text' },
-        { column = 'addr:housename', type = 'text' },
-        { column = 'addr:housenumber', type = 'text' },
-        { column = 'addr:interpolation', type = 'text' },
-        { column = 'admin_level', type = 'text' },
-        { column = 'aerialway', type = 'text' },
-        { column = 'aeroway', type = 'text' },
-        { column = 'amenity', type = 'text' },
-        { column = 'area', type = 'text' },
-        { column = 'barrier', type = 'text' },
-        { column = 'bicycle', type = 'text' },
-        { column = 'brand', type = 'text' },
-        { column = 'bridge', type = 'text' },
-        { column = 'boundary', type = 'text' },
-        { column = 'building', type = 'text' },
-        { column = 'construction', type = 'text' },
-        { column = 'covered', type = 'text' },
-        { column = 'culvert', type = 'text' },
-        { column = 'cutting', type = 'text' },
-        { column = 'denomination', type = 'text' },
-        { column = 'disused', type = 'text' },
-        { column = 'embankment', type = 'text' },
-        { column = 'foot', type = 'text' },
-        { column = 'generator:source', type = 'text' },
-        { column = 'harbour', type = 'text' },
-        { column = 'highway', type = 'text' },
-        { column = 'historic', type = 'text' },
-        { column = 'horse', type = 'text' },
-        { column = 'intermittent', type = 'text' },
-        { column = 'junction', type = 'text' },
-        { column = 'landuse', type = 'text' },
-        { column = 'layer', type = 'text' },
-        { column = 'leisure', type = 'text' },
-        { column = 'lock', type = 'text' },
-        { column = 'man_made', type = 'text' },
-        { column = 'military', type = 'text' },
-        { column = 'motorcar', type = 'text' },
-        { column = 'name', type = 'text' },
-        { column = 'natural', type = 'text' },
-        { column = 'office', type = 'text' },
-        { column = 'oneway', type = 'text' },
-        { column = 'operator', type = 'text' },
-        { column = 'place', type = 'text' },
-        { column = 'population', type = 'text' },
-        { column = 'power', type = 'text' },
-        { column = 'power_source', type = 'text' },
-        { column = 'public_transport', type = 'text' },
-        { column = 'railway', type = 'text' },
-        { column = 'ref', type = 'text' },
-        { column = 'religion', type = 'text' },
-        { column = 'route', type = 'text' },
-        { column = 'service', type = 'text' },
-        { column = 'shop', type = 'text' },
-        { column = 'sport', type = 'text' },
-        { column = 'surface', type = 'text' },
-        { column = 'toll', type = 'text' },
-        { column = 'tourism', type = 'text' },
-        { column = 'tower:type', type = 'text' },
-        { column = 'tracktype', type = 'text' },
-        { column = 'tunnel', type = 'text' },
-        { column = 'water', type = 'text' },
-        { column = 'waterway', type = 'text' },
-        { column = 'wetland', type = 'text' },
-        { column = 'width', type = 'text' },
-        { column = 'wood', type = 'text' },
-        { column = 'z_order', type = 'int' },
-        { column = 'way_area', type = 'area' },
-        { column = 'way', type = 'linestring' },
-    }
+    columns = gen_columns(non_point_columns, hstore or hstore_all, false, 'linestring')
 }
 
-function get_z_order(keyvalues)
-    -- The default z_order is 0
-    local z_order = 0
+local z_order_lookup = {
+    proposed = {1, false},
+    construction = {2, false},
+    steps = {10, false},
+    cycleway = {10, false},
+    bridleway = {10, false},
+    footway = {10, false},
+    path = {10, false},
+    track = {11, false},
+    service = {15, false},
+
+    tertiary_link = {24, false},
+    secondary_link = {25, true},
+    primary_link = {27, true},
+    trunk_link = {28, true},
+    motorway_link = {29, true},
+
+    raceway = {30, false},
+    pedestrian = {31, false},
+    living_street = {32, false},
+    road = {33, false},
+    unclassified = {33, false},
+    residential = {33, false},
+    tertiary = {34, false},
+    secondary = {36, true},
+    primary = {37, true},
+    trunk = {38, true},
+    motorway = {39, true}
+}
+
+function as_bool(value)
+    return value == 'yes' or value == 'true' or value == '1'
+end
+
+function get_z_order(tags)
+    local z_order = 100 * math.floor(tonumber(tags.layer or '0'))
     local roads = false
 
-    -- Add the value of the layer key times 10 to z_order
-    if (keyvalues.layer ~= nil and tonumber(keyvalues.layer)) then
-        z_order = 10*keyvalues.layer
+    local highway = tags['highway']
+    if highway then
+        local r = z_order_lookup[highway] or {0, false}
+        z_order = z_order + r[1]
+        roads = r[2]
     end
 
-   -- Increase or decrease z_order based on the specific key/value combination as specified in zordering_tags
-    for i,k in ipairs(zordering_tags) do
-        -- If the value in zordering_tags is specified, match key and value. Otherwise, match key only.
-        if ((k[2]  and keyvalues[k[1]] == k[2]) or (k[2] == nil and keyvalues[k[1]] ~= nil)) then
-            -- If the fourth component of the element of zordering_tags is 1, add the object to planet_osm_roads
-            if (k[4] == 1) then
-                roads = true
-            end
-            z_order = z_order + k[3]
-        end
+    if tags.railway then
+        z_order = z_order + 35
+        roads = true
+    end
+
+    if tags.boundary and tags.boundary == 'administrative' then
+        roads = true
+    end
+
+    if as_bool(tags.bridge) then
+        z_order = z_order + 100
+    end
+
+    if as_bool(tags.tunnel) then
+        z_order = z_order - 100
     end
 
     return z_order, roads
 end
 
--- Helper function to check whether a table is empty
-function is_empty(some_table)
-    return next(some_table) == nil
-end
-
-function has_generic_tag(tags)
-    for k, v in pairs(tags) do
-        for j, k2 in ipairs(generic_keys) do
-            if k == k2 then
+function make_check_in_list_func(list)
+    local h = {}
+    for _, k in ipairs(list) do
+        h[k] = true
+    end
+    return function(tags)
+        for k, _ in pairs(tags) do
+            if h[k] then
                 return true
             end
         end
+        return false
     end
-    return false
+end
+
+local is_polygon = make_check_in_list_func(polygon_keys)
+local clean_tags = osm2pgsql.make_clean_tags_func(delete_keys)
+
+function make_column_hash(columns)
+    local h = {}
+
+    for _, k in ipairs(columns) do
+        h[k] = true
+    end
+
+    return h
+end
+
+function make_get_output(columns, hstore_all)
+    local h = make_column_hash(columns)
+    if hstore_all then
+        return function(tags)
+            local output = {}
+            local hstore_entries = {}
+
+            for k, _ in pairs(tags) do
+                if h[k] then
+                    output[k] = tags[k]
+                end
+                hstore_entries[k] = tags[k]
+            end
+
+            return output, hstore_entries
+        end
+    else
+        return function(tags)
+            local output = {}
+            local hstore_entries = {}
+
+            for k, _ in pairs(tags) do
+                if h[k] then
+                    output[k] = tags[k]
+                else
+                    hstore_entries[k] = tags[k]
+                end
+            end
+
+            return output, hstore_entries
+        end
+    end
+end
+
+local has_generic_tag = make_check_in_list_func(generic_keys)
+
+local get_point_output = make_get_output(point_columns, hstore_all)
+local get_non_point_output = make_get_output(non_point_columns, hstore_all)
+
+function get_hstore_column(tags)
+    local len = #hstore_column
+    local h = {}
+    for k, v in pairs(tags) do
+        if k:sub(1, len) == hstore_column then
+            h[k:sub(len + 1)] = v
+        end
+    end
+
+    if next(h) then
+        return h
+    end
+    return nil
 end
 
 function osm2pgsql.process_node(object)
-    if is_empty(object.tags) then
+    if clean_tags(object.tags) then
         return
     end
 
-    for i,k in ipairs(delete_tags) do
-        object.tags[k] = nil
-    end
-
-    if not has_generic_tag(object.tags) then
-        return
-    end
-
-    tables.point:add_row(object.tags)
-end
-
--- Treat objects with a key in polygon_keys as polygon
-function is_polygon(tags)
-    for i,k in ipairs(polygon_keys) do
-        if tags[k] then
-            return true
+    local output
+    local output_hstore = {}
+    if hstore or hstore_all then
+        output, output_hstore = get_point_output(object.tags)
+        if not next(output) and not next(output_hstore) then
+            return
+        end
+        if hstore_match_only and not has_generic_tag(object.tags) then
+            return
+        end
+    else
+        output = object.tags
+        if not has_generic_tag(object.tags) then
+            return
         end
     end
-    return false
+
+    output.tags = output_hstore
+
+    if hstore_column then
+        output[hstore_column] = get_hstore_column(object.tags)
+    end
+
+    tables.point:add_row(output)
 end
 
 function osm2pgsql.process_way(object)
-    if is_empty(object.tags) then
+    if clean_tags(object.tags) then
         return
     end
 
-    for i,k in ipairs(delete_tags) do
-        object.tags[k] = nil
+    local add_area = false
+    if object.tags.natural == 'coastline' then
+        add_area = true
+        if not keep_coastlines then
+            object.tags.natural = nil
+        end
     end
 
-    if not has_generic_tag(object.tags) then
-        return
+    local output
+    local output_hstore = {}
+    if hstore or hstore_all then
+        output, output_hstore = get_non_point_output(object.tags)
+        if not next(output) and not next(output_hstore) then
+            return
+        end
+        if hstore_match_only and not has_generic_tag(object.tags) then
+            return
+        end
+        if add_area and hstore_all then
+            output_hstore.area = 'yes'
+        end
+    else
+        output = object.tags
+        if not has_generic_tag(object.tags) then
+            return
+        end
     end
 
-    local polygon = is_polygon(object.tags)
-    -- Treat objects tagged as area=yes, area=1, or area=true as polygon,
-    -- and treat objects tagged as area=no, area=0, or area=false not as polygon
+    local polygon
     local area_tag = object.tags.area
     if area_tag == 'yes' or area_tag == '1' or area_tag == 'true' then
         polygon = true
     elseif area_tag == 'no' or area_tag == '0' or area_tag == 'false' then
         polygon = false
+    else
+        polygon = is_polygon(object.tags)
+    end
+
+    if add_area then
+        output.area = 'yes'
+        polygon = true
     end
 
     local z_order, roads = get_z_order(object.tags)
-    object.tags.z_order = z_order
+    output.z_order = z_order
 
-    if polygon then
-        object.tags.way = { create = 'area' }
-        tables.polygon:add_row(object.tags)
-    else
-        object.tags.way = { create = 'line', split_at = 100000 }
-        tables.line:add_row(object.tags)
+    output.tags = output_hstore
+
+    if hstore_column then
+        output[hstore_column] = get_hstore_column(object.tags)
     end
 
-    if roads then
-        object.tags.way = { create = 'line', split_at = 100000 }
-        tables.roads:add_row(object.tags)
+    if polygon and object.is_closed then
+        output.way = { create = 'area' }
+        tables.polygon:add_row(output)
+    else
+        output.way = { create = 'line', split_at = max_length }
+        tables.line:add_row(output)
+        if roads then
+            tables.roads:add_row(output)
+        end
     end
 end
 
 function osm2pgsql.process_relation(object)
-    if is_empty(object.tags) then
+    if clean_tags(object.tags) then
         return
     end
 
@@ -540,38 +623,98 @@ function osm2pgsql.process_relation(object)
     if (type ~= 'route') and (type ~= 'multipolygon') and (type ~= 'boundary') then
         return
     end
+    object.tags.type = nil
 
-    for i,k in ipairs(delete_tags) do
-        object.tags[k] = nil
-    end
-
-    if not has_generic_tag(object.tags) then
-        return
-    end
-
-    local z_order, roads = get_z_order(object.tags)
-    object.tags.z_order = z_order
-
-    local linestring = false
-    if type == 'boundary' then
-        linestring = true
-    elseif type == 'multipolygon' then
-        if object.tags.boundary then
-            linestring = true
-        else
-            object.tags.way = { create = 'area' }
-            tables.polygon:add_row(object.tags)
+    local output
+    local output_hstore = {}
+    if hstore or hstore_all then
+        output, output_hstore = get_non_point_output(object.tags)
+        if not next(output) and not next(output_hstore) then
+            return
+        end
+        if hstore_match_only and not has_generic_tag(object.tags) then
+            return
+        end
+    else
+        output = object.tags
+        if not has_generic_tag(object.tags) then
+            return
         end
     end
 
-    if linestring then
-        object.tags.way = { create = 'line', split_at = 100000 }
-        tables.line:add_row(object.tags)
+    if not next(output) and not next(output_hstore) then
+        return
     end
 
-    if roads then
-        object.tags.way = { create = 'line', split_at = 100000 }
-        tables.roads:add_row(object.tags)
+    if (hstore or hstore_all) and type == 'route' then
+        if not object.tags.route_name then
+            output_hstore.route_name = object.tags.name
+        end
+
+        local state = object.tags.state
+        if state ~= 'alternate' and state ~= 'connection' then
+            state = 'yes'
+        end
+
+        local network = object.tags.network
+        if network == 'lcn' then
+            output_hstore.lcn = output_hstore.lcn or state
+            output_hstore.lcn_ref = output_hstore.lcn_ref or object.tags.ref
+        elseif network == 'rcn' then
+            output_hstore.rcn = output_hstore.rcn or state
+            output_hstore.rcn_ref = output_hstore.rcn_ref or object.tags.ref
+        elseif network == 'ncn' then
+            output_hstore.ncn = output_hstore.ncn or state
+            output_hstore.ncn_ref = output_hstore.ncn_ref or object.tags.ref
+        elseif network == 'lwn' then
+            output_hstore.lwn = output_hstore.lwn or state
+            output_hstore.lwn_ref = output_hstore.lwn_ref or object.tags.ref
+        elseif network == 'rwn' then
+            output_hstore.rwn = output_hstore.rwn or state
+            output_hstore.rwn_ref = output_hstore.rwn_ref or object.tags.ref
+        elseif network == 'nwn' then
+            output_hstore.nwn = output_hstore.nwn or state
+            output_hstore.nwn_ref = output_hstore.nwn_ref or object.tags.ref
+        end
+
+        local pc = object.tags.preferred_color
+        if pc == '0' or pc == '1' or pc == '2' or pc == '3' or pc == '4' then
+            output_hstore.route_pref_color = pc
+        else
+            output_hstore.route_pref_color = '0'
+        end
+    end
+
+    local make_boundary = false
+    local make_polygon = false
+    if type == 'boundary' then
+        make_boundary = true
+    elseif type == 'multipolygon' and object.tags.boundary then
+        make_boundary = true
+    elseif type == 'multipolygon' then
+        make_polygon = true
+    end
+
+    local z_order, roads = get_z_order(object.tags)
+    output.z_order = z_order
+
+    output.tags = output_hstore
+
+    if hstore_column then
+        output[hstore_column] = get_hstore_column(object.tags)
+    end
+
+    if not make_polygon then
+        output.way = { create = 'line', split_at = max_length }
+        tables.line:add_row(output)
+        if roads then
+            tables.roads:add_row(output)
+        end
+    end
+
+    if make_boundary or make_polygon then
+        output.way = { create = 'area', multi = multi_geometry }
+        tables.polygon:add_row(output)
     end
 end
 
