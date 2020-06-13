@@ -37,8 +37,6 @@ The following functions are defined:
   more control than the more convenient other functions.
 * `osm2pgsql.mark_way(id)`: Mark the OSM way with the specified id. This way
   will be processed (again) in stage 2.
-* `osm2pgsql.mark_relation(id)`: Mark the OSM relation with the specified id.
-  This relation will be processed (again) in stage 2.
 
 You are expected to define one or more of the following functions:
 
@@ -226,10 +224,9 @@ a default transformation. These are the defaults:
 
 ## Stages
 
-Osm2pgsql processes the data in up to two stages. You can mark ways or
-relations in stage 1 for processing in stage 2 by calling
-`osm2pgsql.mark_way(id)` or `osm2pgsql.mark_relation(id)`, respectively. If you
-don't mark any objects, nothing will be done in stage 2.
+Osm2pgsql processes the data in up to two stages. You can mark ways in stage 1
+for processing in stage 2 by calling `osm2pgsql.mark_way(id)`. If you don't
+mark any ways, nothing will be done in stage 2.
 
 You can look at `osm2pgsql.stage` to see in which stage you are.
 

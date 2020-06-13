@@ -69,8 +69,6 @@ public:
                   std::shared_ptr<std::vector<flex_table_t>> tables =
                       std::make_shared<std::vector<flex_table_t>>(),
                   std::shared_ptr<id_tracker> ways_tracker =
-                      std::make_shared<id_tracker>(),
-                  std::shared_ptr<id_tracker> rels_tracker =
                       std::make_shared<id_tracker>());
 
     output_flex_t(output_flex_t const &) = delete;
@@ -167,7 +165,6 @@ private:
     std::vector<table_connection_t> m_table_connections;
 
     std::shared_ptr<id_tracker> m_stage2_ways_tracker;
-    std::shared_ptr<id_tracker> m_stage2_rels_tracker;
 
     std::shared_ptr<db_copy_thread_t> m_copy_thread;
 

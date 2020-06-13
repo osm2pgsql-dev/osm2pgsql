@@ -519,8 +519,6 @@ int output_flex_t::app_mark()
 
     if (type_name[0] == 'w') {
         m_stage2_ways_tracker->mark(id);
-    } else if (type_name[0] == 'r') {
-        m_stage2_rels_tracker->mark(id);
     }
 
     return 0;
@@ -820,10 +818,6 @@ int output_flex_t::table_add_row()
         if (!table.matches_type(osmium::item_type::relation)) {
             throw std::runtime_error{
                 "Trying to add relation to table '{}'"_format(table.name())};
-        }
-        if (m_in_stage2) {
-            delete_from_table(&table_connection, osmium::item_type::relation,
-                              m_context_relation->id());
         }
         add_row(&table_connection, *m_context_relation);
     } else {
@@ -1214,7 +1208,7 @@ output_flex_t::clone(std::shared_ptr<middle_query_t> const &mid,
     return std::make_shared<output_flex_t>(
         mid, *get_options(), copy_thread, true, m_lua_state, m_process_node,
         m_process_way, m_process_relation, m_tables,
-        m_stage2_ways_tracker, m_stage2_rels_tracker);
+        m_stage2_ways_tracker);
 }
 
 output_flex_t::output_flex_t(
@@ -1224,11 +1218,9 @@ output_flex_t::output_flex_t(
     prepared_lua_function_t process_way,
     prepared_lua_function_t process_relation,
     std::shared_ptr<std::vector<flex_table_t>> tables,
-    std::shared_ptr<id_tracker> ways_tracker,
-    std::shared_ptr<id_tracker> rels_tracker)
+    std::shared_ptr<id_tracker> ways_tracker)
 : output_t(mid, o), m_tables(std::move(tables)),
-  m_stage2_ways_tracker(std::move(ways_tracker)),
-  m_stage2_rels_tracker(std::move(rels_tracker)), m_copy_thread(copy_thread),
+  m_stage2_ways_tracker(std::move(ways_tracker)), m_copy_thread(copy_thread),
   m_lua_state(std::move(lua_state)), m_builder(o.projection),
   m_expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection),
   m_buffer(32768, osmium::memory::Buffer::auto_grow::yes),
@@ -1333,11 +1325,8 @@ void output_flex_t::init_lua(std::string const &filename)
 
 void output_flex_t::stage2_proc()
 {
-    bool const has_marked_ways = !m_stage2_ways_tracker->empty();
-    bool const has_marked_rels = !m_stage2_rels_tracker->empty();
-
-    if (!has_marked_ways && !has_marked_rels) {
-        fmt::print(stderr, "Skipping stage 2 (no marked objects).\n");
+    if (m_stage2_ways_tracker->empty()) {
+        fmt::print(stderr, "Skipping stage 2 (no marked ways).\n");
         return;
     }
 
@@ -1349,10 +1338,7 @@ void output_flex_t::stage2_proc()
         util::timer_t timer;
 
         for (auto &table : m_table_connections) {
-            if ((has_marked_ways &&
-                 table.table().matches_type(osmium::item_type::way)) ||
-                (has_marked_rels &&
-                 table.table().matches_type(osmium::item_type::relation))) {
+            if (table.table().matches_type(osmium::item_type::way)) {
                 fmt::print(stderr, "  Creating id index on table '{}'...\n",
                            table.table().name());
                 table.create_id_index();
@@ -1384,19 +1370,6 @@ void output_flex_t::stage2_proc()
         }
         auto &way = m_buffer.get<osmium::Way>(0);
         way_add(&way);
-    }
-
-    fmt::print(stderr,
-               "Entering stage 2 processing of {} relations...\n"_format(
-                   m_stage2_rels_tracker->size()));
-
-    while (id_tracker::is_valid((id = m_stage2_rels_tracker->pop_mark()))) {
-        m_rels_buffer.clear();
-        if (!m_mid->relation_get(id, m_rels_buffer)) {
-            continue;
-        }
-        auto const &relation = m_rels_buffer.get<osmium::Relation>(0);
-        relation_add(relation);
     }
 }
 
