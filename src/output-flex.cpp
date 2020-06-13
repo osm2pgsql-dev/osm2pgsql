@@ -69,8 +69,8 @@ static char const osm2pgsql_table_name[] = "osm2pgsql.table";
 static char const osm2pgsql_object_metatable[] = "osm2pgsql.object_metatable";
 
 prepared_lua_function_t::prepared_lua_function_t(lua_State *lua_state,
-                                                 char const *name,
-                                                 int nresults)
+                                                 calling_context context,
+                                                 char const *name, int nresults)
 {
     int const index = lua_gettop(lua_state);
 
@@ -80,6 +80,7 @@ prepared_lua_function_t::prepared_lua_function_t(lua_State *lua_state,
         m_index = index;
         m_name = name;
         m_nresults = nresults;
+        m_calling_context = context;
         return;
     }
 
@@ -540,6 +541,12 @@ std::size_t output_flex_t::get_way_nodes()
 
 int output_flex_t::app_get_bbox()
 {
+    if (m_calling_context != calling_context::process_node &&
+        m_calling_context != calling_context::process_way) {
+        throw std::runtime_error{"The function get_bbox() can only be called"
+                                 " from process_node() or process_way()"};
+    }
+
     if (lua_gettop(lua_state()) > 1) {
         throw std::runtime_error{"No parameter(s) needed for get_box()"};
     }
@@ -726,9 +733,9 @@ void output_flex_t::setup_flex_table_columns(flex_table_t *table)
 
 int output_flex_t::app_define_table()
 {
-    if (m_context_node || m_context_way || m_context_relation) {
-        throw std::runtime_error{"Tables have to be defined before calling any "
-                                 "of the process callbacks"};
+    if (m_calling_context != calling_context::main) {
+        throw std::runtime_error{"Database tables have to be defined in the"
+                                 " main Lua code, not in any of the callbacks"};
     }
 
     luaL_checktype(lua_state(), 1, LUA_TTABLE);
@@ -791,8 +798,17 @@ int output_flex_t::table_tostring()
 
 int output_flex_t::table_add_row()
 {
+    if (m_calling_context != calling_context::process_node &&
+        m_calling_context != calling_context::process_way &&
+        m_calling_context != calling_context::process_relation) {
+        throw std::runtime_error{
+            "The function add_row() can only be called from the "
+            "process_node/way/relation() functions"};
+    }
+
     if (lua_gettop(lua_state()) != 2) {
-        throw std::runtime_error{"Need two parameters: The osm2pgsql.table and the row data"};
+        throw std::runtime_error{
+            "Need two parameters: The osm2pgsql.table and the row data"};
     }
 
     auto &table_connection =
@@ -823,9 +839,6 @@ int output_flex_t::table_add_row()
                 "Trying to add relation to table '{}'"_format(table.name())};
         }
         add_row(&table_connection, *m_context_relation);
-    } else {
-        throw std::runtime_error{"The add_row() function can only be called "
-                                 "from inside a process function"};
     }
 
     return 0;
@@ -1009,6 +1022,8 @@ void output_flex_t::call_lua_function(prepared_lua_function_t func,
 {
     std::lock_guard<std::mutex> guard{lua_mutex};
 
+    m_calling_context = func.context();
+
     lua_pushvalue(lua_state(), func.index()); // the function to call
     push_osm_object_to_lua_stack(
         lua_state(), object,
@@ -1020,6 +1035,8 @@ void output_flex_t::call_lua_function(prepared_lua_function_t func,
             "Failed to execute Lua function 'osm2pgsql.{}':"
             " {}"_format(func.name(), lua_tostring(lua_state(), -1))};
     }
+
+    m_calling_context = calling_context::main;
 }
 
 void output_flex_t::pending_way(osmid_t id)
@@ -1318,10 +1335,12 @@ void output_flex_t::init_lua(std::string const &filename)
     // Check whether the process_* functions are available and store them on
     // the Lua stack for fast access later
     lua_getglobal(lua_state(), "osm2pgsql");
-    m_process_node = prepared_lua_function_t{lua_state(), "process_node"};
-    m_process_way = prepared_lua_function_t{lua_state(), "process_way"};
-    m_process_relation =
-        prepared_lua_function_t{lua_state(), "process_relation"};
+    m_process_node = prepared_lua_function_t{
+        lua_state(), calling_context::process_node, "process_node"};
+    m_process_way = prepared_lua_function_t{
+        lua_state(), calling_context::process_way, "process_way"};
+    m_process_relation = prepared_lua_function_t{
+        lua_state(), calling_context::process_relation, "process_relation"};
 
     lua_remove(lua_state(), 1); // global "osm2pgsql"
 }

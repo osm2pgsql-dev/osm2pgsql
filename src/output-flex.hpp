@@ -29,6 +29,18 @@ extern "C"
 using idset_t = osmium::index::IdSetSmall<osmid_t>;
 
 /**
+ * When C++ code is called from the Lua code we sometimes need to know
+ * in what context this happens. These are the possible contexts.
+ */
+enum class calling_context
+{
+    main = 0, ///< In main context, i.e. the Lua script outside any callbacks
+    process_node = 1, ///< In the process_node() callback
+    process_way = 2, ///< In the process_way() callback
+    process_relation = 3 ///< In the process_relation() callback
+};
+
+/**
  * The flex output calls several user-defined Lua functions. They are
  * "prepared" by putting the function pointers on the Lua stack. Objects
  * of the class prepared_lua_function_t are used to hold the stack position
@@ -48,8 +60,8 @@ public:
      * \param name Name of the function.
      * \param nresults The number of results this function is supposed to have.
      */
-    prepared_lua_function_t(lua_State *lua_state, const char *name,
-                            int nresults = 0);
+    prepared_lua_function_t(lua_State *lua_state, calling_context context,
+                            const char *name, int nresults = 0);
 
     /// Return the index of the function on the Lua stack.
     int index() const noexcept { return m_index; }
@@ -60,6 +72,8 @@ public:
     /// The number of results this function is expected to have.
     int nresults() const noexcept { return m_nresults; }
 
+    calling_context context() const noexcept { return m_calling_context; }
+
     /// Is this function defined in the users Lua code?
     operator bool() const noexcept { return m_index != 0; }
 
@@ -67,6 +81,7 @@ private:
     char const *m_name = nullptr;
     int m_index = 0;
     int m_nresults = 0;
+    calling_context m_calling_context = calling_context::main;
 };
 
 class output_flex_t : public output_t
@@ -195,10 +210,13 @@ private:
 
     std::size_t m_num_way_nodes = std::numeric_limits<std::size_t>::max();
 
-    bool m_in_stage2 = false;
     prepared_lua_function_t m_process_node;
     prepared_lua_function_t m_process_way;
     prepared_lua_function_t m_process_relation;
+
+    calling_context m_calling_context = calling_context::main;
+
+    bool m_in_stage2 = false;
 };
 
 #endif // OSM2PGSQL_OUTPUT_FLEX_HPP
