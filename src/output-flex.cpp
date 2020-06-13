@@ -69,7 +69,8 @@ static char const osm2pgsql_table_name[] = "osm2pgsql.table";
 static char const osm2pgsql_object_metatable[] = "osm2pgsql.object_metatable";
 
 prepared_lua_function_t::prepared_lua_function_t(lua_State *lua_state,
-                                                 char const *name)
+                                                 char const *name,
+                                                 int nresults)
 {
     int const index = lua_gettop(lua_state);
 
@@ -77,6 +78,8 @@ prepared_lua_function_t::prepared_lua_function_t(lua_State *lua_state,
 
     if (lua_type(lua_state, -1) == LUA_TFUNCTION) {
         m_index = index;
+        m_name = name;
+        m_nresults = nresults;
         return;
     }
 
@@ -1012,9 +1015,10 @@ void output_flex_t::call_lua_function(prepared_lua_function_t func,
         get_options()->extra_attributes); // the single argument
 
     luaX_set_context(lua_state(), this);
-    if (luaX_pcall(lua_state(), 1, 0)) {
-        throw std::runtime_error{"Failed to execute lua processing function:"
-                                 " {}"_format(lua_tostring(lua_state(), -1))};
+    if (luaX_pcall(lua_state(), 1, func.nresults())) {
+        throw std::runtime_error{
+            "Failed to execute Lua function 'osm2pgsql.{}':"
+            " {}"_format(func.name(), lua_tostring(lua_state(), -1))};
     }
 }
 

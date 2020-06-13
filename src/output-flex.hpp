@@ -43,17 +43,30 @@ public:
     /**
      * Get function with the name "osm2pgsql.name" from Lua and put pointer
      * to it on the Lua stack.
+     *
+     * \param lua_state Current Lua state.
+     * \param name Name of the function.
+     * \param nresults The number of results this function is supposed to have.
      */
-    prepared_lua_function_t(lua_State *lua_state, const char *name);
+    prepared_lua_function_t(lua_State *lua_state, const char *name,
+                            int nresults = 0);
 
     /// Return the index of the function on the Lua stack.
     int index() const noexcept { return m_index; }
+
+    /// The name of the function.
+    char const* name() const noexcept { return m_name; }
+
+    /// The number of results this function is expected to have.
+    int nresults() const noexcept { return m_nresults; }
 
     /// Is this function defined in the users Lua code?
     operator bool() const noexcept { return m_index != 0; }
 
 private:
+    char const *m_name = nullptr;
     int m_index = 0;
+    int m_nresults = 0;
 };
 
 class output_flex_t : public output_t
