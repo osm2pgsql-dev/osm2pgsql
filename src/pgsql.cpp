@@ -174,3 +174,12 @@ std::string qualified_name(std::string const &schema, std::string const &name)
 
     return result;
 }
+
+postgis_version get_postgis_version(pg_conn_t const &db_connection) {
+    auto const res = db_connection.query(
+            PGRES_TUPLES_OK,
+            "SELECT regexp_split_to_table(postgis_lib_version(), '\\.')");
+
+    return {std::stoi(res.get_value_as_string(0, 0)),
+            std::stoi(res.get_value_as_string(1, 0))};
+}

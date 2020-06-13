@@ -1,7 +1,13 @@
 #ifndef OSM2PGSQL_PGSQL_HPP
 #define OSM2PGSQL_PGSQL_HPP
 
-/* Helper functions for PostgreSQL access */
+/**
+ * \file
+ *
+ * This file is part of osm2pgsql (https://github.com/openstreetmap/osm2pgsql).
+ *
+ * Helper classes and functions for PostgreSQL access.
+ */
 
 #include "osmtypes.hpp"
 
@@ -153,5 +159,14 @@ std::string tablespace_clause(std::string const &name);
  * in double quotes.
  */
 std::string qualified_name(std::string const &schema, std::string const &name);
+
+struct postgis_version
+{
+    int major;
+    int minor;
+};
+
+/// Get PostGIS major and minor version.
+postgis_version get_postgis_version(pg_conn_t const &db_connection);
 
 #endif // OSM2PGSQL_PGSQL_HPP
