@@ -580,8 +580,6 @@ void middle_pgsql_t::commit()
     m_db_copy.sync();
     // release the copy thread and its query connection
     m_copy_thread->finish();
-
-    m_db_connection.close();
 }
 
 void middle_pgsql_t::flush() { m_db_copy.sync(); }

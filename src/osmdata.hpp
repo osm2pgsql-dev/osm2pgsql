@@ -48,8 +48,8 @@ public:
                                     osmium::Box const &bbox) const;
 
     /**
-     * Rest of the processing (stages 1b, 2, and 3). This is called once
-     * after process_file() was called for each input file.
+     * Rest of the processing (stages 1b, 1c, 2, and database postprocessing).
+     * This is called once after process_file() was called for each input file.
      */
     void stop() const;
 
@@ -68,21 +68,20 @@ public:
 private:
 
     /**
-     * Run stage 1b processing: Process dependent objects.
-     * In append mode we need to process dependent objects that were marked
-     * earlier.
+     * Run stage 1b and stage 1c processing: Process dependent objects in
+     * append mode.
      */
-    void process_stage1b() const;
+    void process_dependents() const;
 
     /**
-     * Run stage 2 processing: Process objects marked in stage 1 (if any).
+     * Run stage 2 processing: Reprocess objects marked in stage 1 (if any).
      */
-    void process_stage2() const;
+    void reprocess_marked() const;
 
     /**
-     * Run stage 3 processing: Clustering and index creation.
+     * Run postprocessing on database: Clustering and index creation.
      */
-    void process_stage3() const;
+    void postprocess_database() const;
 
     slim_middle_t &slim_middle() const noexcept;
 

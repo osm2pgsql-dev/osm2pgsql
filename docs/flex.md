@@ -36,14 +36,14 @@ The following functions are defined:
 * `osm2pgsql.define_table(options)`: Define a table. This is the more flexible
   function behind all the other `define_*_table()` functions. It gives you
   more control than the more convenient other functions.
-* `osm2pgsql.mark_way(id)`: Mark the OSM way with the specified id. This way
-  will be processed (again) in stage 2.
 
 You are expected to define one or more of the following functions:
 
-* `osm2pgsql.process_node()`: Called for each node.
-* `osm2pgsql.process_way()`: Called for each way.
-* `osm2pgsql.process_relation()`: Called for each relation.
+* `osm2pgsql.process_node()`: Called for each new or changed node.
+* `osm2pgsql.process_way()`: Called for each new or changed way.
+* `osm2pgsql.process_relation()`: Called for each new or changed relation.
+* `osm2pgsql.select_relation_members()`: Called for each deleted or added
+  relation. See below for more details.
 
 Osm2pgsql also provides some additional functions in the
 [lua-lib.md](Lua helper library).
@@ -76,7 +76,7 @@ stored as is, relation ids will be stored as negative numbers.
 With the `osm2pgsql.define_table()` function you can also define tables that
 * don't have any ids, but those tables will never be updated by osm2pgsql
 * take *any OSM object*, in this case the type of object is stored in an
-  additional column.
+  additional `char(1)` column.
 * are in a specific PostgresSQL tablespace (set option `data_tablespace`) or
   that get their indexes created in a specific tablespace (set option
   `index_tablespace`).
@@ -242,25 +242,72 @@ a default transformation. These are the defaults:
 
 ## Stages
 
-Osm2pgsql processes the data in up to two stages. You can mark ways in stage 1
-for processing in stage 2 by calling `osm2pgsql.mark_way(id)`. If you don't
-mark any ways, nothing will be done in stage 2.
+When processing OSM data, osm2pgsql reads the input file(s) in order, nodes
+first, then ways, then relations. This means that when the ways are read and
+processed, osm2pgsql can't know yet whether a way is in a relation (or in
+several). But for some use cases we need to know in which relations a way is
+and what the tags of these relations are or the roles of those member ways.
+The typical case are relations of type `route` (bus routes etc.) where we
+might want to render the `name` or `ref` from the route relation onto the
+way geometry.
+
+The osm2pgsql flex backend supports this use case by adding an additional
+"reprocessing" step. Osm2pgsql will call the Lua function
+`osm2pgsql.select_relation_members()` for each added, modified, or deleted
+relation. Your job is to figure out which way members in that relation might
+need the information from the relation to be rendered correctly and return
+those ids in a Lua table with the only field 'ways'. This is usually done with
+a function like this:
+
+```
+function osm2pgsql.select_relation_members(relation)
+    if relation.tags.type == 'route' then
+        return { ways = osm2pgsql.way_member_ids(relation) }
+    end
+end
+```
+
+Instead of using the helper function `osm2pgsql.way_member_ids()` which
+returns the ids of all way members, you can write your own code, for instance
+if you want to check the roles.
+
+Note that `select_relation_members()` is called for deleted relations and for
+the old version of a modified relation as well as for new relations and the
+new version of a modified relation. This is needed, for instance, to correctly
+mark member ways of deleted relations, because they need to be updated, too.
+The decision whether a way is to be marked or not can only be based on the
+tags of the relation and/or the roles of the members. If you take other
+information into account, updates might not work correctly.
+
+In addition you have to store whatever information you need about the relation
+in your `process_relation()` function in a global variable.
+
+After all relations are processed, osm2pgsql will reprocess all marked ways by
+calling the `process_way()` function for them again. This time around you have
+the information from the relation in the global variable and can use it.
+
+If you don't mark any ways, nothing will be done in this reprocessing stage.
+
+(It is currently not possible to mark nodes or relations. This might or might
+not be added in future versions of osm2pgsql.)
 
 You can look at `osm2pgsql.stage` to see in which stage you are.
 
-In stage 1 you can only look at each OSM object on its own. You can see
-its id and tags (and possibly timestamp, changeset, user, etc.), but you don't
-know how this OSM objects relates to other OSM objects (for instance whether a
-way you are looking at is a member in a relation). If this is enough to decide
-in which database table(s) and with what data an OSM object should end up in,
-then you can process the OSM object in stage 1. If, on the other hand, you
-need some extra information, you have to defer processing to the second stage.
-
 You want to do all the processing you can in stage 1, because it is faster
-and there is less memory overhead. For most use cases, stage 1 is enough. If
-it is not, use stage 1 to store information about OSM objects you will need
-in stage 2 in some global variable. In stage 2 you can read this information
-again and use it to decide where and how to store the data in the database.
+and there is less memory overhead. For most use cases, stage 1 is enough.
+
+Processing in two stages can add quite a bit of overhead. Because this feature
+is new, there isn't much operational experience with it. So be a bit careful
+when you are experimenting and watch memory and disk space consumption and
+any extra time you are using. Keep in mind that:
+
+* All data stored in stage 1 for use in stage 2 in your Lua script will use
+  main memory.
+* Keeping track of way ids marked in stage 1 needs some memory.
+* To do the extra processing in stage 2, time is needed to get objects out
+  of the object store and reprocess them.
+* Osm2pgsql will create an id index on all way tables to look up ways that
+  need to be deleted and re-created in stage 2.
 
 ## Command line options
 

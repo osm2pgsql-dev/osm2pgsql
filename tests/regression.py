@@ -601,7 +601,7 @@ class TestPgsqlUpdate(BaseUpdateRunner, unittest.TestCase,
 
 class TestPgsqlUpdateParallel(BaseUpdateRunner, unittest.TestCase,
                               PgsqlBaseTests):
-    extra_params = ['--slim', '--number-processes', '16']
+    extra_params = ['--slim', '--number-processes', '15']
 
 class TestPgsqlUpdateSmallCache(BaseUpdateRunner, unittest.TestCase,
                                 PgsqlBaseTests):
