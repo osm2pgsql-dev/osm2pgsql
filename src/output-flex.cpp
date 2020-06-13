@@ -518,7 +518,7 @@ int output_flex_t::app_mark()
     osmium::object_id_type const id = luaL_checkinteger(lua_state(), 2);
 
     if (type_name[0] == 'w') {
-        m_stage2_ways_tracker->mark(id);
+        m_stage2_way_ids->set(id);
     }
 
     return 0;
@@ -1207,8 +1207,7 @@ output_flex_t::clone(std::shared_ptr<middle_query_t> const &mid,
 {
     return std::make_shared<output_flex_t>(
         mid, *get_options(), copy_thread, true, m_lua_state, m_process_node,
-        m_process_way, m_process_relation, m_tables,
-        m_stage2_ways_tracker);
+        m_process_way, m_process_relation, m_tables, m_stage2_way_ids);
 }
 
 output_flex_t::output_flex_t(
@@ -1218,9 +1217,9 @@ output_flex_t::output_flex_t(
     prepared_lua_function_t process_way,
     prepared_lua_function_t process_relation,
     std::shared_ptr<std::vector<flex_table_t>> tables,
-    std::shared_ptr<id_tracker> ways_tracker)
+    std::shared_ptr<idset_t> stage2_way_ids)
 : output_t(mid, o), m_tables(std::move(tables)),
-  m_stage2_ways_tracker(std::move(ways_tracker)), m_copy_thread(copy_thread),
+  m_stage2_way_ids(std::move(stage2_way_ids)), m_copy_thread(copy_thread),
   m_lua_state(std::move(lua_state)), m_builder(o.projection),
   m_expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection),
   m_buffer(32768, osmium::memory::Buffer::auto_grow::yes),
@@ -1325,7 +1324,7 @@ void output_flex_t::init_lua(std::string const &filename)
 
 void output_flex_t::stage2_proc()
 {
-    if (m_stage2_ways_tracker->empty()) {
+    if (m_stage2_way_ids->empty()) {
         fmt::print(stderr, "Skipping stage 2 (no marked ways).\n");
         return;
     }
@@ -1358,12 +1357,11 @@ void output_flex_t::stage2_proc()
     lua_setfield(lua_state(), -2, "stage");
     lua_pop(lua_state(), 1); // osm2pgsql
 
-    osmid_t id;
-
     fmt::print(stderr, "Entering stage 2 processing of {} ways...\n"_format(
-                           m_stage2_ways_tracker->size()));
+                           m_stage2_way_ids->size()));
 
-    while (id_tracker::is_valid((id = m_stage2_ways_tracker->pop_mark()))) {
+    m_stage2_way_ids->sort_unique();
+    for (osmid_t const id : *m_stage2_way_ids) {
         m_buffer.clear();
         if (!m_mid->way_get(id, m_buffer)) {
             continue;
@@ -1371,6 +1369,7 @@ void output_flex_t::stage2_proc()
         auto &way = m_buffer.get<osmium::Way>(0);
         way_add(&way);
     }
+    m_stage2_way_ids->clear();
 }
 
 void output_flex_t::merge_expire_trees(output_t *other)

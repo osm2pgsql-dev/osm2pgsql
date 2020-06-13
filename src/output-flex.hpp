@@ -7,12 +7,12 @@
 #include "flex-table.hpp"
 #include "format.hpp"
 #include "geom-transform.hpp"
-#include "id-tracker.hpp"
 #include "osmium-builder.hpp"
 #include "output.hpp"
 #include "table.hpp"
 #include "tagtransform.hpp"
 
+#include <osmium/index/id_set.hpp>
 #include <osmium/osm/item_type.hpp>
 
 extern "C"
@@ -25,6 +25,8 @@ extern "C"
 #include <string>
 #include <utility>
 #include <vector>
+
+using idset_t = osmium::index::IdSetSmall<osmid_t>;
 
 /**
  * The flex output calls several user-defined Lua functions. They are
@@ -58,18 +60,16 @@ class output_flex_t : public output_t
 {
 
 public:
-    output_flex_t(std::shared_ptr<middle_query_t> const &mid,
-                  options_t const &options,
-                  std::shared_ptr<db_copy_thread_t> const &copy_thread,
-                  bool is_clone = false,
-                  std::shared_ptr<lua_State> lua_state = nullptr,
-                  prepared_lua_function_t process_node = {},
-                  prepared_lua_function_t process_way = {},
-                  prepared_lua_function_t process_relation = {},
-                  std::shared_ptr<std::vector<flex_table_t>> tables =
-                      std::make_shared<std::vector<flex_table_t>>(),
-                  std::shared_ptr<id_tracker> ways_tracker =
-                      std::make_shared<id_tracker>());
+    output_flex_t(
+        std::shared_ptr<middle_query_t> const &mid, options_t const &options,
+        std::shared_ptr<db_copy_thread_t> const &copy_thread,
+        bool is_clone = false, std::shared_ptr<lua_State> lua_state = nullptr,
+        prepared_lua_function_t process_node = {},
+        prepared_lua_function_t process_way = {},
+        prepared_lua_function_t process_relation = {},
+        std::shared_ptr<std::vector<flex_table_t>> tables =
+            std::make_shared<std::vector<flex_table_t>>(),
+        std::shared_ptr<idset_t> stage2_way_ids = std::make_shared<idset_t>());
 
     output_flex_t(output_flex_t const &) = delete;
     output_flex_t &operator=(output_flex_t const &) = delete;
@@ -164,7 +164,7 @@ private:
     std::shared_ptr<std::vector<flex_table_t>> m_tables;
     std::vector<table_connection_t> m_table_connections;
 
-    std::shared_ptr<id_tracker> m_stage2_ways_tracker;
+    std::shared_ptr<idset_t> m_stage2_way_ids;
 
     std::shared_ptr<db_copy_thread_t> m_copy_thread;
 
