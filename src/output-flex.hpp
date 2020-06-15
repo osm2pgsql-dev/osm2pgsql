@@ -7,12 +7,12 @@
 #include "flex-table.hpp"
 #include "format.hpp"
 #include "geom-transform.hpp"
-#include "id-tracker.hpp"
 #include "osmium-builder.hpp"
 #include "output.hpp"
 #include "table.hpp"
 #include "tagtransform.hpp"
 
+#include <osmium/index/id_set.hpp>
 #include <osmium/osm/item_type.hpp>
 
 extern "C"
@@ -25,6 +25,20 @@ extern "C"
 #include <string>
 #include <utility>
 #include <vector>
+
+using idset_t = osmium::index::IdSetSmall<osmid_t>;
+
+/**
+ * When C++ code is called from the Lua code we sometimes need to know
+ * in what context this happens. These are the possible contexts.
+ */
+enum class calling_context
+{
+    main = 0, ///< In main context, i.e. the Lua script outside any callbacks
+    process_node = 1, ///< In the process_node() callback
+    process_way = 2, ///< In the process_way() callback
+    process_relation = 3 ///< In the process_relation() callback
+};
 
 /**
  * The flex output calls several user-defined Lua functions. They are
@@ -41,37 +55,49 @@ public:
     /**
      * Get function with the name "osm2pgsql.name" from Lua and put pointer
      * to it on the Lua stack.
+     *
+     * \param lua_state Current Lua state.
+     * \param name Name of the function.
+     * \param nresults The number of results this function is supposed to have.
      */
-    prepared_lua_function_t(lua_State *lua_state, const char *name);
+    prepared_lua_function_t(lua_State *lua_state, calling_context context,
+                            const char *name, int nresults = 0);
 
     /// Return the index of the function on the Lua stack.
     int index() const noexcept { return m_index; }
+
+    /// The name of the function.
+    char const* name() const noexcept { return m_name; }
+
+    /// The number of results this function is expected to have.
+    int nresults() const noexcept { return m_nresults; }
+
+    calling_context context() const noexcept { return m_calling_context; }
 
     /// Is this function defined in the users Lua code?
     operator bool() const noexcept { return m_index != 0; }
 
 private:
+    char const *m_name = nullptr;
     int m_index = 0;
+    int m_nresults = 0;
+    calling_context m_calling_context = calling_context::main;
 };
 
 class output_flex_t : public output_t
 {
 
 public:
-    output_flex_t(std::shared_ptr<middle_query_t> const &mid,
-                  options_t const &options,
-                  std::shared_ptr<db_copy_thread_t> const &copy_thread,
-                  bool is_clone = false,
-                  std::shared_ptr<lua_State> lua_state = nullptr,
-                  prepared_lua_function_t process_node = {},
-                  prepared_lua_function_t process_way = {},
-                  prepared_lua_function_t process_relation = {},
-                  std::shared_ptr<std::vector<flex_table_t>> tables =
-                      std::make_shared<std::vector<flex_table_t>>(),
-                  std::shared_ptr<id_tracker> ways_tracker =
-                      std::make_shared<id_tracker>(),
-                  std::shared_ptr<id_tracker> rels_tracker =
-                      std::make_shared<id_tracker>());
+    output_flex_t(
+        std::shared_ptr<middle_query_t> const &mid, options_t const &options,
+        std::shared_ptr<db_copy_thread_t> const &copy_thread,
+        bool is_clone = false, std::shared_ptr<lua_State> lua_state = nullptr,
+        prepared_lua_function_t process_node = {},
+        prepared_lua_function_t process_way = {},
+        prepared_lua_function_t process_relation = {},
+        std::shared_ptr<std::vector<flex_table_t>> tables =
+            std::make_shared<std::vector<flex_table_t>>(),
+        std::shared_ptr<idset_t> stage2_way_ids = std::make_shared<idset_t>());
 
     output_flex_t(output_flex_t const &) = delete;
     output_flex_t &operator=(output_flex_t const &) = delete;
@@ -166,8 +192,7 @@ private:
     std::shared_ptr<std::vector<flex_table_t>> m_tables;
     std::vector<table_connection_t> m_table_connections;
 
-    std::shared_ptr<id_tracker> m_stage2_ways_tracker;
-    std::shared_ptr<id_tracker> m_stage2_rels_tracker;
+    std::shared_ptr<idset_t> m_stage2_way_ids;
 
     std::shared_ptr<db_copy_thread_t> m_copy_thread;
 
@@ -185,10 +210,13 @@ private:
 
     std::size_t m_num_way_nodes = std::numeric_limits<std::size_t>::max();
 
-    bool m_in_stage2 = false;
     prepared_lua_function_t m_process_node;
     prepared_lua_function_t m_process_way;
     prepared_lua_function_t m_process_relation;
+
+    calling_context m_calling_context = calling_context::main;
+
+    bool m_in_stage2 = false;
 };
 
 #endif // OSM2PGSQL_OUTPUT_FLEX_HPP

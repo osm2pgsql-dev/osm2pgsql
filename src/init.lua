@@ -33,10 +33,6 @@ function osm2pgsql.mark_way(id)
     return osm2pgsql.mark('w', id)
 end
 
-function osm2pgsql.mark_relation(id)
-    return osm2pgsql.mark('r', id)
-end
-
 function osm2pgsql.clamp(value, low, high)
     return math.min(math.max(value, low), high)
 end
