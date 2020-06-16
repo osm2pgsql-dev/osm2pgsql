@@ -28,11 +28,12 @@ following fields:
 
 The following functions are defined:
 
-* `osm2pgsql.define_node_table(name, columns)`: Define a node table.
-* `osm2pgsql.define_way_table(name, columns)`: Define a way table.
-* `osm2pgsql.define_relation_table(name, columns)`: Define a relation table.
-* `osm2pgsql.define_area_table(name, columns)`: Define an area table.
-* `osm2pgsql.define_table()`: Define a table. This is the more flexible
+* `osm2pgsql.define_node_table(name, columns[, options])`: Define a node table.
+* `osm2pgsql.define_way_table(name, columns[, options])`: Define a way table.
+* `osm2pgsql.define_relation_table(name, columns[, options])`: Define a relation
+  table.
+* `osm2pgsql.define_area_table(name, columns[, options])`: Define an area table.
+* `osm2pgsql.define_table(options)`: Define a table. This is the more flexible
   function behind all the other `define_*_table()` functions. It gives you
   more control than the more convenient other functions.
 * `osm2pgsql.mark_way(id)`: Mark the OSM way with the specified id. This way
