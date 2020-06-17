@@ -5,28 +5,28 @@
 
 local math = require('math')
 
-local _define_table_impl = function (_type, _name, _columns)
-    return osm2pgsql.define_table{
-        name = _name,
-        ids = { type = _type, id_column = _type .. '_id' },
-        columns = _columns,
-    }
+local _define_table_impl = function(_type, _name, _columns, _options)
+    _options = _options or {}
+    _options.name = _name
+    _options.ids = { type = _type, id_column = _type .. '_id' }
+    _options.columns = _columns
+    return osm2pgsql.define_table(_options)
 end
 
-function osm2pgsql.define_node_table(_name, _columns)
-    return _define_table_impl('node', _name, _columns)
+function osm2pgsql.define_node_table(_name, _columns, _options)
+    return _define_table_impl('node', _name, _columns, _options)
 end
 
-function osm2pgsql.define_way_table(_name, _columns)
-    return _define_table_impl('way', _name, _columns)
+function osm2pgsql.define_way_table(_name, _columns, _options)
+    return _define_table_impl('way', _name, _columns, _options)
 end
 
-function osm2pgsql.define_relation_table(_name, _columns)
-    return _define_table_impl('relation', _name, _columns)
+function osm2pgsql.define_relation_table(_name, _columns, _options)
+    return _define_table_impl('relation', _name, _columns, _options)
 end
 
-function osm2pgsql.define_area_table(_name, _columns)
-    return _define_table_impl('area', _name, _columns)
+function osm2pgsql.define_area_table(_name, _columns, _options)
+    return _define_table_impl('area', _name, _columns, _options)
 end
 
 function osm2pgsql.mark_way(id)
