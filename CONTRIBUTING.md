@@ -12,14 +12,13 @@ Your pull requests will then be reviewed and discussed.
 
 ## History
 
-To understand the osm2pgsql code, it helps to know some history on it. Osm2pgsql
-was written in C in 2007 as a port of an older Python utility. In 2014 it was
-ported to C++ by MapQuest and the last C version was released as 0.86.0. In it's
-time, it has had varying contribution activity, including times with no
-maintainer or active developers.
+Osm2pgsql was originally written in C in 2007 as a port of an older Python utility.
+In 2014 it was ported to C++ by MapQuest and the last C version was released as
+0.86.0. In it's time, it has had varying contribution activity, including times
+with no maintainer or active developers.
 
-Parts of the codebase still clearly show their C origin and could use rewriting
-in modern C++, making use of data structures in the standard library.
+In the meantime, it has been rewritten in modern C++, making use of C++11 language
+features.
 
 ## Versioning
 
@@ -42,7 +41,7 @@ Template parameters must use all upper case.
 Headers should be included in the order `config.h`, C++ standard library headers,
 C library headers, Boost headers, and last osm2pgsql files.
 
-There is a .clang-format configuration avialable and all code must be run through
+There is a .clang-format configuration available and all code must be run through
 clang-format before submitting. You can use git-clang-format after staging all
 your changes:
 
@@ -133,4 +132,4 @@ the report.
 
 The current maintainers of osm2pgsql are [Sarah Hoffmann](https://github.com/lonvia/)
 and [Paul Norman](https://github.com/pnorman/). Sarah has more experience with
-the gazetteer backend and Paul with the pgsql and multi backends.
+the gazetteer backend and Paul with the pgsql and (now deprecated) multi backends.
