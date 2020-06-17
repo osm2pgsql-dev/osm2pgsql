@@ -172,9 +172,7 @@ among others. It can also be used for [spatial analysis](docs/analysis.md) or
 In addition to the standard [pgsql](docs/pgsql.md) backend designed for
 rendering there is also the [gazetteer](docs/gazetteer.md) database for
 geocoding, principally with [Nominatim](https://www.nominatim.org/), and the
-null backend for testing. For flexibility a new [multi](docs/multi.md)
-backend is also available which allows the configuration of custom
-PostgreSQL tables instead of those provided in the pgsql backend.
+null backend for testing.
 
 Also available is the new [flex](docs/flex.md) backend. It is much more
 flexible than the other backends. IT IS CURRENTLY EXPERIMENTAL AND SUBJECT
