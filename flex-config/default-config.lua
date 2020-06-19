@@ -1,6 +1,7 @@
 
--- This is a default configuration that is a good starting point for
--- real-world projects.
+-- This is a generic configuration that is a good starting point for
+-- real-world projects. Data is split into tables according to geometry type
+-- and most tags are stored in hstore columns.
 
 local tables = {}
 
@@ -38,6 +39,7 @@ tables.boundaries = osm2pgsql.define_relation_table('boundaries', {
 -- If you want some of these keys, perhaps for a debugging layer, just
 -- delete the corresponding lines.
 local delete_keys = {
+    -- "mapper" keys
     'attribution',
     'comment',
     'created_by',
@@ -50,8 +52,9 @@ local delete_keys = {
     'source:*',
     'source_ref',
 
-    -- Lots of import tags
-    -- Corine (CLC) (Europe)
+    -- "import" keys
+
+    -- Corine Land Cover (CLC) (Europe)
     'CLC:*',
 
     -- Geobase (CA)
@@ -81,6 +84,7 @@ local delete_keys = {
     'LINZ2OSM:*',
     'linz2osm:*',
     'LINZ:*',
+    'ref:linz:*',
 
     -- WroclawGIS (PL)
     'WroclawGIS:*',
@@ -154,12 +158,17 @@ local delete_keys = {
     'lojic:bgnum',
     -- MassGIS (Massachusetts, US)
     'massgis:way_id',
+    -- Los Angeles County building ID (US)
+    'lacounty:*',
+    -- Address import from Bundesamt für Eich- und Vermessungswesen (AT)
+    'at_bev:addr_date',
 
     -- misc
     'import',
     'import_uuid',
     'OBJTYPE',
-    'SK53_bulk:load'
+    'SK53_bulk:load',
+    'mml:class'
 }
 
 -- The osm2pgsql.make_clean_tags_func() function takes the list of keys
@@ -223,12 +232,12 @@ function osm2pgsql.process_way(object)
     end
 
     if object.is_closed and has_area_tags(object.tags) then
-         tables.polygons:add_row({
+        tables.polygons:add_row({
             tags = object.tags,
             geom = { create = 'area' }
         })
     else
-         tables.lines:add_row({
+        tables.lines:add_row({
             tags = object.tags
         })
     end
