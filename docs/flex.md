@@ -54,6 +54,17 @@ You have to define one or more tables where your data should end up. This
 is done with the `osm2pgsql.define_table()` function or one of the slightly
 more convenient functions `osm2pgsql.define_(node|way|relation|area)_table()`.
 
+```
+osm2pgsql.define_table(OPTIONS)
+
+osm2pgsql.define_(node|way|relation|area)_table(NAME, COLUMNS[, OPTIONS])
+```
+
+Here NAME is the name of the table, COLUMNS is a list of Lua tables describing
+the columns as documented below. OPTIONS is a Lua table with options for
+the table as a whole. When using the `define_table()` command, the NAME and
+COLUMNS are specified as options "name" and "columns", respectively.
+
 Each table is either a *node table*, *way table*, *relation table*, or *area
 table*. This means that the data for that table comes primarily from a node,
 way, relation, or area, respectively. Osm2pgsql makes sure that the OSM object
@@ -66,10 +77,11 @@ With the `osm2pgsql.define_table()` function you can also define tables that
 * don't have any ids, but those tables will never be updated by osm2pgsql
 * take *any OSM object*, in this case the type of object is stored in an
   additional column.
-* are in a specific PostgresSQL tablespace (set `data_tablespace`) or that
-  get their indexes created in a specific tablespace (set `index_tablespace`).
-* are in a specific schema (set `schema`). Note that the schema has to be
-  created before you start osm2pgsql.
+* are in a specific PostgresSQL tablespace (set option `data_tablespace`) or
+  that get their indexes created in a specific tablespace (set option
+  `index_tablespace`).
+* are in a specific schema (set option `schema`). Note that the schema has to
+  be created before you start osm2pgsql.
 
 If you are using the `osm2pgsql.define_(node|way|relation|area)_table()`
 convenience functions, osm2pgsql will automatically create an id column named
@@ -105,11 +117,16 @@ Instead of the above types you can use any SQL type you want. If you do that
 you have to supply the PostgreSQL string representation for that type when
 adding data to such columns (or Lua nil to set the column to `NULL`).
 
-When defining a column you can add the following options:
-* `not_null = true`: Make this a `NOT NULL` column.
+In the table definitions the columns are specified as a list of Lua tables
+with the following keys:
+
+* `column`: The name of the PostgreSQL column (required).
+* `type`: The type of the column as described above (required).
+* `not_null = true`: Make this a `NOT NULL` column. (Optional, default `false`.)
 * `create_only = true`: Add the column to the `CREATE TABLE` command, but
   do not try to fill this column when adding data. This can be useful for
   `SERIAL` columns or when you want to fill in the column later yourself.
+  (Optional, default `false`.)
 
 ### Processing callbacks
 
