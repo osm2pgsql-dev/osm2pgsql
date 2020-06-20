@@ -275,8 +275,6 @@ using the flex backend:
   yourself.
 * `-S|--style`: Use this to specify the Lua config file. Without it, osm2pgsql
   will not work, because it will try to read the default style file.
-* `-G|--multi-geometry` is not used. Instead, set the type of the geometry
-  column to the type you want, ie `polygon` vs. `multipolygon`.
 
 The following command line options are ignored by `osm2pgsl` when using the
 flex backend, because they don't make sense in that context:
@@ -291,7 +289,7 @@ flex backend, because they don't make sense in that context:
 * `--tag-transform-script` (Set the Lua config file with the `-S|--style`
   option.)
 * `-G|--multi-geometry` (Use the `multi` option on the geometry transformation
-  instead.)
+  instead, see the "Geometry transformation" section above for details.)
 * The command line options to set the tablespace (`-i|--tablespace-index`,
   `--tablespace-main-data`, `--tablespace-main-index`) are ignored by the flex
   backend, instead use the `data_tablespace` or `index_tablespace` options when
