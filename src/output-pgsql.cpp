@@ -109,7 +109,7 @@ void output_pgsql_t::sync()
     }
 }
 
-void output_pgsql_t::stop(osmium::thread::Pool *pool)
+void output_pgsql_t::stop(thread_pool_t *pool)
 {
     // attempt to stop tables in parallel
     for (auto &t : m_tables) {

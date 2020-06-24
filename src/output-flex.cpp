@@ -1092,7 +1092,7 @@ void output_flex_t::sync()
     }
 }
 
-void output_flex_t::stop(osmium::thread::Pool *pool)
+void output_flex_t::stop(thread_pool_t *pool)
 {
     for (auto &table : m_table_connections) {
         pool->submit([&]() {

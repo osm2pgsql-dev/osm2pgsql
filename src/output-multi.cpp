@@ -85,7 +85,7 @@ void output_multi_t::pending_relation(osmid_t id)
     }
 }
 
-void output_multi_t::stop(osmium::thread::Pool *pool)
+void output_multi_t::stop(thread_pool_t *pool)
 {
     pool->submit([this]() {
         m_table->stop(m_options.slim & !m_options.droptemp,

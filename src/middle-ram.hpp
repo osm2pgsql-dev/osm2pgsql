@@ -95,7 +95,7 @@ struct middle_ram_t : public middle_t, public middle_query_t
     virtual ~middle_ram_t() noexcept = default;
 
     void start() override {}
-    void stop(osmium::thread::Pool &pool) override;
+    void stop(thread_pool_t &pool) override;
     void analyze() override {}
     void commit() override {}
 

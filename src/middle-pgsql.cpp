@@ -586,7 +586,7 @@ void middle_pgsql_t::commit()
 
 void middle_pgsql_t::flush() { m_db_copy.sync(); }
 
-void middle_pgsql_t::stop(osmium::thread::Pool &pool)
+void middle_pgsql_t::stop(thread_pool_t &pool)
 {
     m_cache.reset();
     if (m_out_options->flat_node_cache_enabled) {

@@ -110,7 +110,7 @@ bool middle_ram_t::relation_get(osmid_t id,
     return true;
 }
 
-void middle_ram_t::stop(osmium::thread::Pool &)
+void middle_ram_t::stop(thread_pool_t &)
 {
     m_cache.reset();
     m_ways.clear();

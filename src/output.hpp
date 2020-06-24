@@ -10,9 +10,8 @@
  * Associated tags: name, type etc.
 */
 
-#include <osmium/thread/pool.hpp>
-
 #include "options.hpp"
+#include "thread-pool.hpp"
 
 struct middle_query_t;
 class db_copy_thread_t;
@@ -33,7 +32,7 @@ public:
           std::shared_ptr<db_copy_thread_t> const &copy_thread) const = 0;
 
     virtual void start() = 0;
-    virtual void stop(osmium::thread::Pool *pool) = 0;
+    virtual void stop(thread_pool_t *pool) = 0;
     virtual void sync() = 0;
 
     virtual void stage2_proc() {}
