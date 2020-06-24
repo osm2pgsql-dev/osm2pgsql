@@ -58,7 +58,7 @@ struct middle_pgsql_t : public slim_middle_t
     middle_pgsql_t(options_t const *options);
 
     void start() override;
-    void stop(osmium::thread::Pool &pool) override;
+    void stop(thread_pool_t &pool) override;
     void analyze() override;
     void commit() override;
 

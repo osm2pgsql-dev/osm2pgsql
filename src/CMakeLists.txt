@@ -66,6 +66,7 @@ set(osm2pgsql_lib_SOURCES
   taginfo-impl.hpp
   taginfo.hpp
   tagtransform.hpp
+  thread-pool.hpp
   util.hpp
   wildcmp.hpp
   wkb.hpp

@@ -18,7 +18,7 @@ public:
           std::shared_ptr<db_copy_thread_t> const &copy_thread) const override;
 
     void start() override {}
-    void stop(osmium::thread::Pool * /*pool*/) override {}
+    void stop(thread_pool_t * /*pool*/) override {}
     void sync() override {}
     void cleanup() {}
 

@@ -12,10 +12,9 @@
 #include <cstddef>
 #include <memory>
 
-#include <osmium/thread/pool.hpp>
-
 #include "osmtypes.hpp"
 #include "reprojection.hpp"
+#include "thread-pool.hpp"
 
 /**
  * Interface for returning information about raw OSM input data from a cache.
@@ -88,7 +87,7 @@ struct middle_t
     virtual ~middle_t() = 0;
 
     virtual void start() = 0;
-    virtual void stop(osmium::thread::Pool &pool) = 0;
+    virtual void stop(thread_pool_t &pool) = 0;
     virtual void analyze(void) = 0;
     virtual void commit(void) = 0;
 

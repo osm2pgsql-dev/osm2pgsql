@@ -9,7 +9,6 @@
 #include <vector>
 
 #include <osmium/io/any_input.hpp>
-#include <osmium/thread/pool.hpp>
 #include <osmium/visitor.hpp>
 
 #include "db-copy.hpp"
@@ -19,6 +18,7 @@
 #include "options.hpp"
 #include "osmdata.hpp"
 #include "output.hpp"
+#include "thread-pool.hpp"
 #include "util.hpp"
 
 osmdata_t::osmdata_t(std::unique_ptr<dependency_manager_t> dependency_manager,
@@ -395,7 +395,7 @@ void osmdata_t::process_stage3() const
 {
     // All the intensive parts of this are long-running PostgreSQL commands.
     // They will be run in a thread pool.
-    osmium::thread::Pool pool{m_parallel_indexing ? m_num_procs : 1, 512};
+    thread_pool_t pool{m_parallel_indexing ? m_num_procs : 1};
 
     if (m_droptemp) {
         // When dropping middle tables, make sure they are gone before
@@ -415,9 +415,9 @@ void osmdata_t::process_stage3() const
         m_mid->stop(pool);
     }
 
-    // Waiting here for pool to execute all tasks.
-    // XXX If one of them has an error, all other will finish first,
-    //     which may take a long time.
+    // Waiting here for pool to execute all tasks. If one of them throws an
+    // exception, this will throw.
+    pool.check_for_exceptions();
 }
 
 void osmdata_t::stop() const
