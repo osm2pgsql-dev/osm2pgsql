@@ -207,7 +207,7 @@ void table_connection_t::create_trigger_for_geom_check() {
                           "  END IF;\n"
                           "  RETURN NULL;\n"
                           "END;"
-                          "$$ LANGUAGE plpgsql;"_format(
+                          "$$ LANGUAGE plpgsql IMMUTABLE;"_format(
                               table().name(), table().geom_column().name()));
 
     m_db_connection->exec(
