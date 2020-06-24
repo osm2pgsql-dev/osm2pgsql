@@ -17,7 +17,7 @@
 
 /**
  * This is a simple thread pool class. You can submit tasks using the submit()
- * function. Tasks can only return void. Use the check_results() function
+ * function. Tasks can only return void. Use the check_for_exceptions() function
  * before destructing the pool to make sure all functions finished without
  * throwing an exception.
  */
