@@ -209,7 +209,7 @@ public:
      */
     void process_ways(idlist_t &&list)
     {
-        process_queue("way", std::move(list), do_ways);
+        process_queue("way", std::move(list), &output_t::pending_way);
     }
 
     /**
@@ -220,7 +220,7 @@ public:
      */
     void process_relations(idlist_t &&list)
     {
-        process_queue("relation", std::move(list), do_rels);
+        process_queue("relation", std::move(list), &output_t::pending_relation);
     }
 
     /**
@@ -256,38 +256,20 @@ private:
         return id;
     }
 
-    /**
-     * Runs in the worker threads: As long as there are any, get ids from
-     * the queue and let the outputs process the ways.
-     */
-    static void do_ways(output_vec_t const &outputs, idlist_t *queue,
-                        std::mutex *mutex)
-    {
-        while (osmid_t const id = pop_id(queue, mutex)) {
-            for (auto const &output : outputs) {
-                if (output) {
-                    output->pending_way(id);
-                }
-            }
-        }
-        for (auto const &output : outputs) {
-            if (output) {
-                output->sync();
-            }
-        }
-    }
+    // Pointer to a member function of output_t taking an osm_id
+    using output_member_fn_ptr = void (output_t::*)(osmid_t);
 
     /**
      * Runs in the worker threads: As long as there are any, get ids from
-     * the queue and let the outputs process the relations.
+     * the queue and let the outputs process it by calling "func".
      */
-    static void do_rels(output_vec_t const &outputs, idlist_t *queue,
-                        std::mutex *mutex)
+    static void run(output_vec_t const &outputs, idlist_t *queue,
+                    std::mutex *mutex, output_member_fn_ptr func)
     {
         while (osmid_t const id = pop_id(queue, mutex)) {
             for (auto const &output : outputs) {
                 if (output) {
-                    output->pending_relation(id);
+                    (output.get()->*func)(id);
                 }
             }
         }
@@ -313,8 +295,8 @@ private:
         } while (queue_size > 0);
     }
 
-    template <typename FUNCTION>
-    void process_queue(char const *type, idlist_t list, FUNCTION &&function)
+    void process_queue(char const *type, idlist_t list,
+                       output_member_fn_ptr function)
     {
         auto const ids_queued = list.size();
 
@@ -326,12 +308,12 @@ private:
         std::vector<std::future<void>> workers;
 
         for (auto const &clone : m_clones) {
-            workers.push_back(std::async(
-                std::launch::async, std::forward<FUNCTION>(function),
-                std::cref(clone), &list, &m_mutex));
+            workers.push_back(std::async(std::launch::async, run,
+                                         std::cref(clone), &list, &m_mutex,
+                                         function));
         }
-        workers.push_back(std::async(std::launch::async, print_stats,
-                                     &list, &m_mutex));
+        workers.push_back(
+            std::async(std::launch::async, print_stats, &list, &m_mutex));
 
         for (auto &worker : workers) {
             try {
