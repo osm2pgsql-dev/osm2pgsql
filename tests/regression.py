@@ -506,6 +506,9 @@ class MultipolygonTests(object):
     def test_different_tags_on_relation_and_way_way_presence(self):
         self.assert_count(1, 'planet_osm_polygon', where='osm_id = 140')
 
+    def test_planet_osm_nodes(self):
+        self.assert_count(1, 'pg_tables',
+                          where="tablename = 'planet_osm_nodes'")
 
 
 ########################################################################
@@ -748,6 +751,14 @@ class TestMPUpdateSlimLuaHstore(MultipolygonUpdateRunner, unittest.TestCase,
                                 MultipolygonTests):
     extra_params = ['--slim', '-k']
     use_lua_tagtransform = True
+
+class TestMPUpdateSlimWithFlatNodes(MultipolygonUpdateRunner, unittest.TestCase,
+                                    MultipolygonTests):
+    extra_params = ['--slim', '-F', 'flat.nodes']
+
+    def test_planet_osm_nodes(self):
+        self.assert_count(0, 'pg_tables',
+                          where="tablename = 'planet_osm_nodes'")
 
 # Database access tests
 

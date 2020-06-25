@@ -577,13 +577,15 @@ void middle_pgsql_t::start()
     } else {
         // (Re)create tables.
         m_db_connection.exec("SET client_min_messages = WARNING");
-        for (auto &table : m_tables) {
-            fmt::print(stderr, "Setting up table: {}\n", table.name());
-            auto const qual_name = qualified_name(
-                table.m_copy_target->schema, table.m_copy_target->name);
-            m_db_connection.exec(
-                "DROP TABLE IF EXISTS {} CASCADE"_format(qual_name));
-            m_db_connection.exec(table.m_create);
+        for (auto const &table : m_tables) {
+            if (!table.m_create.empty()) {
+                fmt::print(stderr, "Setting up table: {}\n", table.name());
+                auto const qual_name = qualified_name(
+                    table.m_copy_target->schema, table.m_copy_target->name);
+                m_db_connection.exec(
+                    "DROP TABLE IF EXISTS {} CASCADE"_format(qual_name));
+                m_db_connection.exec(table.m_create);
+            }
         }
 
         // The extra query connection is only needed in append mode, so close.
@@ -623,21 +625,23 @@ void middle_pgsql_t::stop(thread_pool_t &pool)
     }
 }
 
-static table_sql sql_for_nodes() noexcept
+static table_sql sql_for_nodes(bool create_table) noexcept
 {
     table_sql sql{};
 
     sql.name = "{prefix}_nodes";
 
-    sql.create_table = "CREATE {unlogged} TABLE {schema}{prefix}_nodes ("
-                       "  id int8 PRIMARY KEY {using_tablespace},"
-                       "  lat int4 NOT NULL,"
-                       "  lon int4 NOT NULL"
-                       ") {data_tablespace};\n";
+    if (create_table) {
+        sql.create_table = "CREATE {unlogged} TABLE {schema}{prefix}_nodes ("
+                           "  id int8 PRIMARY KEY {using_tablespace},"
+                           "  lat int4 NOT NULL,"
+                           "  lon int4 NOT NULL"
+                           ") {data_tablespace};\n";
 
-    sql.prepare_query = "PREPARE get_node_list(int8[]) AS"
-                        "  SELECT id, lon, lat FROM {schema}{prefix}_nodes"
-                        "  WHERE id = ANY($1::int8[]);\n";
+        sql.prepare_query = "PREPARE get_node_list(int8[]) AS"
+                            "  SELECT id, lon, lat FROM {schema}{prefix}_nodes"
+                            "  WHERE id = ANY($1::int8[]);\n";
+    }
 
     return sql;
 }
@@ -763,7 +767,8 @@ middle_pgsql_t::middle_pgsql_t(options_t const *options)
                            " docs/bucket-index.md for details.\n");
     }
 
-    m_tables[NODE_TABLE] = table_desc{*options, sql_for_nodes()};
+    m_tables[NODE_TABLE] =
+        table_desc{*options, sql_for_nodes(!options->flat_node_cache_enabled)};
     m_tables[WAY_TABLE] =
         table_desc{*options, sql_for_ways(has_bucket_index,
                                           options->way_node_index_id_shift)};
