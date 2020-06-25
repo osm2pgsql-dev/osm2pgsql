@@ -428,14 +428,14 @@ void output_flex_t::write_column(
                     int const ltype_key = lua_type(lua_state(), -2);
                     throw std::runtime_error{
                         "NULL key for hstore. Possibly this is due to"
-                        "an incorrect data type '{}' as key."_format(
+                        " an incorrect data type '{}' as key."_format(
                             lua_typename(lua_state(), ltype_key))};
                 }
                 if (val == nullptr) {
                     int const ltype_value = lua_type(lua_state(), -1);
                     throw std::runtime_error{
                         "NULL value for hstore. Possibly this is due to"
-                        "an incorrect data type '{}' for key '{}'."_format(
+                        " an incorrect data type '{}' for key '{}'."_format(
                             lua_typename(lua_state(), ltype_value), key)};
                 }
                 copy_mgr->add_hash_elem(key, val);
