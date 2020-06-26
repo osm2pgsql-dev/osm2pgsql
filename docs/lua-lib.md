@@ -36,6 +36,22 @@ if object.tags.highway then
 end
 ```
 
+## `way_member_ids`
+
+Synopsis: `osm2pgsql.way_member_ids(RELATION)`
+
+Description: Return an array table with the ids of all way members of RELATION.
+
+Example:
+
+```
+function osm2pgsql.select_relation_members(relation)
+    if relation.tags.type == 'route' then
+        return { ways = osm2pgsql.way_member_ids(relation) }
+    end
+end
+```
+
 ## `make_clean_tags_func`
 
 Synopsis: `osm2pgsql.make_clean_tags_func(KEYS)`

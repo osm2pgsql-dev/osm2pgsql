@@ -22,8 +22,13 @@ tables.routes = osm2pgsql.define_relation_table('routes', {
     { column = 'tags', type = 'hstore' },
 })
 
--- This will be used to store lists of relation ids queryable by way id
-by_way_id = {}
+-- This will be used to store information about relations queryable by member
+-- way id. It is a table of tables. The outer table is indexed by the way id,
+-- the inner table indexed by the relation id. This way even if the information
+-- about a relation is added twice, it will be in there only once. It is
+-- always good to write your osm2pgsql Lua code in an idempotent way, i.e.
+-- it can be called any number of times and will lead to the same result.
+local w2r = {}
 
 function clean_tags(tags)
     tags.odbl = nil
@@ -40,54 +45,59 @@ function osm2pgsql.process_way(object)
         return
     end
 
-    -- In stage 1: Mark all remaining ways so we will see them again in stage 2
-    if osm2pgsql.stage == 1 then
-        osm2pgsql.mark_way(object.id)
-        return
-    end
-
-    -- We are now in stage 2
-
     clean_tags(object.tags)
 
-    -- Data we will store in the "highways" table always has the way tags
+    -- Data we will store in the "highways" table always has the tags from
+    -- the way
     local row = {
         tags = object.tags
     }
 
-    -- If there is any data from relations, add it in
-    local d = by_way_id[object.id]
+    -- If there is any data from parent relations, add it in
+    local d = w2r[object.id]
     if d then
-        table.sort(d.refs)
-        table.sort(d.ids)
-        row.rel_refs = table.concat(d.refs, ',')
-        row.rel_ids = '{' .. table.concat(d.ids, ',') .. '}'
+        local refs = {}
+        local ids = {}
+        for rel_id, rel_ref in pairs(d) do
+            refs[#refs + 1] = rel_ref
+            ids[#ids + 1] = rel_id
+        end
+        table.sort(refs)
+        table.sort(ids)
+        row.rel_refs = table.concat(refs, ',')
+        row.rel_ids = '{' .. table.concat(ids, ',') .. '}'
     end
 
     tables.highways:add_row(row)
 end
 
-function osm2pgsql.process_relation(object)
+-- This function is called for every added, modified, or deleted relation.
+-- Its only job is to return the ids of all member ways of the specified
+-- relation we want to see in stage 2 again. It MUST NOT store any information
+-- about the relation!
+function osm2pgsql.select_relation_members(relation)
     -- Only interested in relations with type=route, route=road and a ref
+    if relation.tags.type == 'route' and relation.tags.route == 'road' and relation.tags.ref then
+        return { ways = osm2pgsql.way_member_ids(relation) }
+    end
+end
+
+-- The process_relation() function should store all information about way
+-- members that might be needed in stage 2.
+function osm2pgsql.process_relation(object)
     if object.tags.type == 'route' and object.tags.route == 'road' and object.tags.ref then
         tables.routes:add_row({
-            tags = object.tags,
-            geom = { create = 'line' }
+            tags = object.tags
         })
 
-        -- Go through all the members and store relation ids and refs so it
+        -- Go through all the members and store relation ids and refs so they
         -- can be found by the way id.
         for _, member in ipairs(object.members) do
             if member.type == 'w' then
-                if not by_way_id[member.ref] then
-                    by_way_id[member.ref] = {
-                        ids = {},
-                        refs = {}
-                    }
+                if not w2r[member.ref] then
+                    w2r[member.ref] = {}
                 end
-                local d = by_way_id[member.ref]
-                table.insert(d.ids, object.id)
-                table.insert(d.refs, object.tags.ref)
+                w2r[member.ref][object.id] = object.tags.ref
             end
         end
     end

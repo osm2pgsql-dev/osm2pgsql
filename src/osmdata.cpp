@@ -114,6 +114,10 @@ void osmdata_t::relation_modify(osmium::Relation const &rel) const
 {
     auto &slim = slim_middle();
 
+    for (auto &out : m_outs) {
+        out->select_relation_members(rel.id());
+    }
+
     slim.relation_delete(rel.id());
     slim.relation_set(rel);
 
@@ -221,6 +225,18 @@ public:
     void process_relations(idlist_t &&list)
     {
         process_queue("relation", std::move(list), &output_t::pending_relation);
+    }
+
+    /**
+     * Process all relations in the list in stage1c.
+     *
+     * \param list List of relation ids to work on. The list is moved into the
+     *             function.
+     */
+    void process_relations_stage1c(idlist_t &&list)
+    {
+        process_queue("relation", std::move(list),
+                      &output_t::pending_relation_stage1c);
     }
 
     /**
@@ -371,27 +387,41 @@ progress_display_t osmdata_t::process_file(osmium::io::File const &file,
     return handler.progress();
 }
 
-void osmdata_t::process_stage1b() const
+void osmdata_t::process_dependents() const
 {
-    if (m_dependency_manager->has_pending()) {
-        multithreaded_processor proc{m_conninfo, m_mid, m_outs,
-                                     (std::size_t)m_num_procs};
+    multithreaded_processor proc{m_conninfo, m_mid, m_outs,
+                                 (std::size_t)m_num_procs};
 
+    // stage 1b processing: process parents of changed objects
+    if (m_dependency_manager->has_pending()) {
         proc.process_ways(m_dependency_manager->get_pending_way_ids());
         proc.process_relations(
             m_dependency_manager->get_pending_relation_ids());
         proc.merge_expire_trees();
     }
-}
 
-void osmdata_t::process_stage2() const
-{
+    // stage 1c processing: mark parent relations of marked objects as changed
     for (auto &out : m_outs) {
-        out->stage2_proc();
+        for (auto const id : out->get_marked_way_ids()) {
+            m_dependency_manager->way_changed(id);
+        }
+    }
+
+    // process parent relations of marked ways
+    if (m_dependency_manager->has_pending()) {
+        proc.process_relations_stage1c(
+            m_dependency_manager->get_pending_relation_ids());
     }
 }
 
-void osmdata_t::process_stage3() const
+void osmdata_t::reprocess_marked() const
+{
+    for (auto &out : m_outs) {
+        out->reprocess_marked();
+    }
+}
+
+void osmdata_t::postprocess_database() const
 {
     // All the intensive parts of this are long-running PostgreSQL commands.
     // They will be run in a thread pool.
@@ -432,10 +462,10 @@ void osmdata_t::stop() const
     }
 
     if (m_append) {
-        process_stage1b();
+        process_dependents();
     }
 
-    process_stage2();
+    reprocess_marked();
 
-    process_stage3();
+    postprocess_database();
 }

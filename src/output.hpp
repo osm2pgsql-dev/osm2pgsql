@@ -10,6 +10,8 @@
  * Associated tags: name, type etc.
 */
 
+#include <osmium/index/id_set.hpp>
+
 #include "options.hpp"
 #include "thread-pool.hpp"
 
@@ -35,12 +37,21 @@ public:
     virtual void stop(thread_pool_t *pool) = 0;
     virtual void sync() = 0;
 
-    virtual void stage2_proc() {}
+    virtual osmium::index::IdSetSmall<osmid_t> const &get_marked_way_ids()
+    {
+        static osmium::index::IdSetSmall<osmid_t> const ids{};
+        return ids;
+    }
+
+    virtual void reprocess_marked() {}
 
     virtual bool need_forward_dependencies() const noexcept { return true; }
 
     virtual void pending_way(osmid_t id) = 0;
     virtual void pending_relation(osmid_t id) = 0;
+    virtual void pending_relation_stage1c(osmid_t) {}
+
+    virtual void select_relation_members(osmid_t) {}
 
     virtual void node_add(osmium::Node const &node) = 0;
     virtual void way_add(osmium::Way *way) = 0;
