@@ -62,7 +62,7 @@ namespace osmium {
 
         namespace detail {
 
-            class PBFParser : public Parser {
+            class PBFParser final : public Parser {
 
                 std::string m_input_buffer{};
 
@@ -203,9 +203,9 @@ namespace osmium {
                 PBFParser(PBFParser&&) = delete;
                 PBFParser& operator=(PBFParser&&) = delete;
 
-                ~PBFParser() noexcept final = default;
+                ~PBFParser() noexcept = default;
 
-                void run() final {
+                void run() override {
                     osmium::thread::set_thread_name("_osmium_pbf_in");
 
                     parse_header_blob();
