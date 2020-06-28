@@ -170,7 +170,7 @@ endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR})
 
-find_package(Osmium 2.15.4 REQUIRED COMPONENTS io)
+find_package(Osmium 2.15.6 REQUIRED COMPONENTS io)
 include_directories(SYSTEM ${OSMIUM_INCLUDE_DIRS} ${PROTOZERO_INCLUDE_DIR} ${FMT_INCLUDE_DIR})
 
 if (WITH_LUA)

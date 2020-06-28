@@ -102,7 +102,7 @@ namespace osmium {
 
         } // namespace detail
 
-        class GzipCompressor : public Compressor {
+        class GzipCompressor final : public Compressor {
 
             int m_fd;
             gzFile m_gzfile;
@@ -127,7 +127,7 @@ namespace osmium {
             GzipCompressor(GzipCompressor&&) = delete;
             GzipCompressor& operator=(GzipCompressor&&) = delete;
 
-            ~GzipCompressor() noexcept final {
+            ~GzipCompressor() noexcept {
                 try {
                     close();
                 } catch (...) {
@@ -135,7 +135,7 @@ namespace osmium {
                 }
             }
 
-            void write(const std::string& data) final {
+            void write(const std::string& data) override {
 #ifdef _MSC_VER
                 osmium::detail::disable_invalid_parameter_handler diph;
 #endif
@@ -149,7 +149,7 @@ namespace osmium {
                 }
             }
 
-            void close() final {
+            void close() override {
                 if (m_gzfile) {
 #ifdef _MSC_VER
                     osmium::detail::disable_invalid_parameter_handler diph;
@@ -174,7 +174,7 @@ namespace osmium {
 
         }; // class GzipCompressor
 
-        class GzipDecompressor : public Decompressor {
+        class GzipDecompressor final : public Decompressor {
 
             gzFile m_gzfile = nullptr;
 
@@ -200,7 +200,7 @@ namespace osmium {
             GzipDecompressor(GzipDecompressor&&) = delete;
             GzipDecompressor& operator=(GzipDecompressor&&) = delete;
 
-            ~GzipDecompressor() noexcept final {
+            ~GzipDecompressor() noexcept {
                 try {
                     close();
                 } catch (...) {
@@ -208,7 +208,7 @@ namespace osmium {
                 }
             }
 
-            std::string read() final {
+            std::string read() override {
 #ifdef _MSC_VER
                 osmium::detail::disable_invalid_parameter_handler diph;
 #endif
@@ -226,7 +226,7 @@ namespace osmium {
                 return buffer;
             }
 
-            void close() final {
+            void close() override {
                 if (m_gzfile) {
 #ifdef _MSC_VER
                     osmium::detail::disable_invalid_parameter_handler diph;
@@ -241,7 +241,7 @@ namespace osmium {
 
         }; // class GzipDecompressor
 
-        class GzipBufferDecompressor : public Decompressor {
+        class GzipBufferDecompressor final : public Decompressor {
 
             const char* m_buffer;
             std::size_t m_buffer_size;
@@ -272,7 +272,7 @@ namespace osmium {
             GzipBufferDecompressor(GzipBufferDecompressor&&) = delete;
             GzipBufferDecompressor& operator=(GzipBufferDecompressor&&) = delete;
 
-            ~GzipBufferDecompressor() noexcept final {
+            ~GzipBufferDecompressor() noexcept {
                 try {
                     close();
                 } catch (...) {
@@ -280,7 +280,7 @@ namespace osmium {
                 }
             }
 
-            std::string read() final {
+            std::string read() override {
                 std::string output;
 
                 if (m_buffer) {
@@ -309,7 +309,7 @@ namespace osmium {
                 return output;
             }
 
-            void close() final {
+            void close() override {
                 inflateEnd(&m_zstream);
             }
 

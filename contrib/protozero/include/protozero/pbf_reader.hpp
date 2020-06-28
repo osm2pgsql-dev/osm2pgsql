@@ -16,12 +16,12 @@ documentation.
  * @brief Contains the pbf_reader class.
  */
 
-#include <protozero/config.hpp>
-#include <protozero/data_view.hpp>
-#include <protozero/exception.hpp>
-#include <protozero/iterators.hpp>
-#include <protozero/types.hpp>
-#include <protozero/varint.hpp>
+#include "config.hpp"
+#include "data_view.hpp"
+#include "exception.hpp"
+#include "iterators.hpp"
+#include "types.hpp"
+#include "varint.hpp"
 
 #if PROTOZERO_BYTE_ORDER != PROTOZERO_LITTLE_ENDIAN
 # include <protozero/byteswap.hpp>
@@ -494,9 +494,9 @@ public:
     bool get_bool() {
         protozero_assert(tag() != 0 && "call next() before accessing field value");
         protozero_assert(has_wire_type(pbf_wire_type::varint) && "not a varint");
-        const auto data = m_data;
+        const bool result = m_data[0] != 0;
         skip_varint(&m_data, m_end);
-        return data[0] != 0;
+        return result;
     }
 
     /**

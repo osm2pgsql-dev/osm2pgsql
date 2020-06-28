@@ -16,7 +16,7 @@ documentation.
  * @brief Contains the implementation of the data_view class.
  */
 
-#include <protozero/config.hpp>
+#include "config.hpp"
 
 #include <algorithm>
 #include <cstddef>

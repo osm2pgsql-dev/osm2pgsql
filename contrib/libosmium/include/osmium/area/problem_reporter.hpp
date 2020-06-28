@@ -93,6 +93,10 @@ namespace osmium {
                 m_object_id = object_id;
             }
 
+            osmium::object_id_type object_id() const noexcept {
+                return m_object_id;
+            }
+
             void set_nodes(size_t nodes) noexcept {
                 m_nodes = nodes;
             }

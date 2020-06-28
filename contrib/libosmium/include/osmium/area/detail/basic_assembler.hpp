@@ -105,6 +105,12 @@ namespace osmium {
 
                 static constexpr const std::size_t max_split_locations = 100ULL;
 
+                // Maximum recursion depth, stops complex multipolygons from
+                // breaking everything.
+                enum : unsigned {
+                    max_depth = 20U
+                };
+
                 struct slocation {
 
                     enum {
@@ -713,7 +719,13 @@ namespace osmium {
 
                 };
 
+                struct exceeded_max_depth {};
+
                 void find_candidates(std::vector<candidate>& candidates, std::unordered_set<osmium::Location>& loc_done, const std::vector<location_to_ring_map>& xrings, const candidate& cand, unsigned depth = 0) {
+                    if (depth > max_depth) {
+                        throw exceeded_max_depth{};
+                    }
+
                     if (debug()) {
                         std::cerr << "      find_candidates sum=" << cand.sum << " start=" << cand.start_location << " stop=" << cand.stop_location << "\n";
                         for (const auto& ring : cand.rings) {
@@ -826,7 +838,14 @@ namespace osmium {
                     loc_done.insert(cand.stop_location);
 
                     std::vector<candidate> candidates;
-                    find_candidates(candidates, loc_done, xrings, cand);
+                    try {
+                        find_candidates(candidates, loc_done, xrings, cand);
+                    } catch (const exceeded_max_depth&) {
+                        if (m_config.debug_level > 0) {
+                            std::cerr << "    Exceeded max depth (" << static_cast<unsigned>(max_depth) << ")\n";
+                        }
+                        return false;
+                    }
 
                     if (candidates.empty()) {
                         if (debug()) {

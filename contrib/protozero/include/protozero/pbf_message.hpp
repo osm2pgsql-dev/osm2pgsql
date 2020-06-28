@@ -16,8 +16,8 @@ documentation.
  * @brief Contains the pbf_message template class.
  */
 
-#include <protozero/pbf_reader.hpp>
-#include <protozero/types.hpp>
+#include "pbf_reader.hpp"
+#include "types.hpp"
 
 #include <type_traits>
 

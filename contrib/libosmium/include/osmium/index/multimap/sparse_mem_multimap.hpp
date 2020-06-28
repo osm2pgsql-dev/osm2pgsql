@@ -53,7 +53,7 @@ namespace osmium {
              * lot of memory, but might make sense for small maps.
              */
             template <typename TId, typename TValue>
-            class SparseMemMultimap : public osmium::index::multimap::Multimap<TId, TValue> {
+            class SparseMemMultimap final : public osmium::index::multimap::Multimap<TId, TValue> {
 
                 // This is a rough estimate for the memory needed for each
                 // element in the map (id + value + pointers to left, right,
@@ -79,13 +79,13 @@ namespace osmium {
 
                 SparseMemMultimap() = default;
 
-                ~SparseMemMultimap() noexcept final = default;
+                ~SparseMemMultimap() noexcept = default;
 
                 void unsorted_set(const TId id, const TValue value) {
                     m_elements.emplace(id, value);
                 }
 
-                void set(const TId id, const TValue value) final {
+                void set(const TId id, const TValue value) override {
                     m_elements.emplace(id, value);
                 }
 
@@ -115,15 +115,15 @@ namespace osmium {
                     return m_elements.end();
                 }
 
-                size_t size() const final {
+                size_t size() const override {
                     return m_elements.size();
                 }
 
-                size_t used_memory() const final {
+                size_t used_memory() const override {
                     return element_size * m_elements.size();
                 }
 
-                void clear() final {
+                void clear() override {
                     m_elements.clear();
                 }
 
@@ -131,7 +131,7 @@ namespace osmium {
                     // intentionally left blank
                 }
 
-                void dump_as_list(const int fd) final {
+                void dump_as_list(const int fd) override {
                     std::vector<element_type> v;
                     v.reserve(m_elements.size());
                     for (const auto& element : m_elements) {
