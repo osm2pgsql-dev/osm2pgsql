@@ -70,17 +70,6 @@ matrix:
            CC=clang-7 CXX=clang++-7
       addons: *clang7_pg96
 
-  # ---- OSX + CLANG ---------------------------
-    - os: osx
-      compiler: clang
-      env: T="osx_clang_NoDB" LUAJIT_OPTION="OFF" TEST_NODB=1
-           CXXFLAGS="-pedantic -Wextra -Werror -Wno-deprecated-declarations"
-      before_install:
-        - brew install lua; brew install lua
-      before_script:
-        - xml2-config --version
-        - proj | head -n1
-        - lua -v
 
   # ---- Linux + GCC ---------------------------
     - os: linux
