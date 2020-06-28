@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2020 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -125,7 +125,7 @@ namespace osmium {
 
         namespace detail {
 
-            class XMLParser : public Parser {
+            class XMLParser final : public Parser {
 
                 enum {
                     initial_buffer_size = 1024UL * 1024UL
@@ -768,9 +768,9 @@ namespace osmium {
                 XMLParser(XMLParser&&) = delete;
                 XMLParser& operator=(XMLParser&&) = delete;
 
-                ~XMLParser() noexcept final = default;
+                ~XMLParser() noexcept = default;
 
-                void run() final {
+                void run() override {
                     osmium::thread::set_thread_name("_osmium_xml_in");
 
                     ExpatXMLParser parser{this};

@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2020 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -150,7 +150,7 @@ namespace osmium {
 
             }; // class ReferenceTable
 
-            class O5mParser : public Parser {
+            class O5mParser final : public Parser {
 
                 enum {
                     initial_buffer_size = 1024UL * 1024UL
@@ -617,9 +617,9 @@ namespace osmium {
                 O5mParser(O5mParser&&) = delete;
                 O5mParser& operator=(O5mParser&&) = delete;
 
-                ~O5mParser() noexcept final = default;
+                ~O5mParser() noexcept = default;
 
-                void run() final {
+                void run() override {
                     osmium::thread::set_thread_name("_osmium_o5m_in");
 
                     decode_header();

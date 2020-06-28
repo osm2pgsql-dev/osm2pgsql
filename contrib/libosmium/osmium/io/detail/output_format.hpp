@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2020 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -199,7 +199,7 @@ namespace osmium {
 
             }; // class OutputFormatFactory
 
-            class BlackholeOutputFormat : public osmium::io::detail::OutputFormat {
+            class BlackholeOutputFormat final : public osmium::io::detail::OutputFormat {
 
             public:
 
@@ -213,9 +213,9 @@ namespace osmium {
                 BlackholeOutputFormat(BlackholeOutputFormat&&) = delete;
                 BlackholeOutputFormat& operator=(BlackholeOutputFormat&&) = delete;
 
-                ~BlackholeOutputFormat() noexcept final = default;
+                ~BlackholeOutputFormat() noexcept = default;
 
-                void write_buffer(osmium::memory::Buffer&& /*buffer*/) final {
+                void write_buffer(osmium::memory::Buffer&& /*buffer*/) override {
                 }
 
             }; // class BlackholeOutputFormat

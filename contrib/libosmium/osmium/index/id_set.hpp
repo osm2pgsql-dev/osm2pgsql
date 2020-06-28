@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2020 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -274,6 +274,7 @@ namespace osmium {
             IdSetDense(IdSetDense&&) noexcept = default;
 
             // This should really be noexcept, but GCC 4.8 doesn't like it.
+            // NOLINTNEXTLINE(hicpp-noexcept-move, performance-noexcept-move-constructor)
             IdSetDense& operator=(IdSetDense&&) = default;
 
             ~IdSetDense() noexcept override = default;
@@ -386,7 +387,9 @@ namespace osmium {
              * Add the given Id to the set.
              */
             void set(T id) final {
-                m_data.push_back(id);
+                if (m_data.empty() || m_data.back() != id) {
+                    m_data.push_back(id);
+                }
             }
 
             /**
@@ -429,7 +432,8 @@ namespace osmium {
 
             /**
              * Sort the internal vector and remove any duplicates. Call this
-             * before using size(), get_binary_search() or using an iterator.
+             * before using size(), get_binary_search(), merge_sorted() or
+             * using an iterator.
              */
             void sort_unique() {
                 std::sort(m_data.begin(), m_data.end());
@@ -450,6 +454,22 @@ namespace osmium {
 
             std::size_t used_memory() const noexcept final {
                 return m_data.capacity() * sizeof(T);
+            }
+
+            /**
+             * Merge the other set into this one. The result is sorted.
+             *
+             * @pre Both sets must be sorted and must not contain any
+             *      duplicates. Call sort_unique() if you are not sure.
+             */
+            void merge_sorted(const IdSetSmall<T>& other) {
+                std::vector<T> new_data;
+                new_data.reserve(m_data.size() + other.m_data.size());
+                std::set_union(m_data.cbegin(), m_data.cend(),
+                               other.m_data.cbegin(), other.m_data.cend(),
+                               std::back_inserter(new_data));
+                using std::swap;
+                swap(new_data, m_data);
             }
 
             /// Iterator type. There is no non-const iterator.

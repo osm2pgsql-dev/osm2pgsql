@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2020 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -320,7 +320,8 @@ namespace osmium {
         }
 
         /**
-         * Create Location with given longitude and latitude.
+         * Create Location with given longitude and latitude in WGS84
+         * coordinates.
          */
         Location(const double lon, const double lat) :
             m_x(double_to_fix(lon)),

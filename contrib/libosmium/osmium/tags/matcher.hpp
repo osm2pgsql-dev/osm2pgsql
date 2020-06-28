@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2020 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -48,6 +48,7 @@ namespace osmium {
 
         osmium::StringMatcher m_key_matcher;
         osmium::StringMatcher m_value_matcher;
+        bool m_has_value_matcher = false;
         bool m_result = true;
 
     public:
@@ -58,6 +59,10 @@ namespace osmium {
         TagMatcher() :
             m_key_matcher(osmium::StringMatcher::always_false{}),
             m_value_matcher(osmium::StringMatcher::always_false{}) {
+        }
+
+        bool has_value_matcher() const noexcept {
+            return m_has_value_matcher;
         }
 
         /**
@@ -87,6 +92,7 @@ namespace osmium {
         TagMatcher(TKey&& key_matcher, TValue&& value_matcher, bool invert = false) :
             m_key_matcher(std::forward<TKey>(key_matcher)),
             m_value_matcher(std::forward<TValue>(value_matcher)),
+            m_has_value_matcher(true),
             m_result(!invert) {
         }
 
