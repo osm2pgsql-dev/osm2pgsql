@@ -203,10 +203,10 @@ Use `osm2pgsql --version` to verify that the build includes LuaJIT support:
 
 ```sh
 ./osm2pgsql --version
-osm2pgsql version 0.96.0 (64 bit id space)
+osm2pgsql version 1.2.0
 
 Compiled using the following library versions:
-Libosmium 2.15.0
+Libosmium 2.15.6
 Lua 5.1.4 (LuaJIT 2.1.0-beta3)
 ```
 
