@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2020 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -60,7 +60,7 @@ namespace osmium {
         constexpr Box() noexcept = default;
 
         /**
-         * Create box from minimum and maximum coordinates.
+         * Create box from minimum and maximum coordinates in WGS84.
          *
          * @pre @code minx <= maxx && miny <= maxy @endcode
          */

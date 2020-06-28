@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2020 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -260,8 +260,12 @@ namespace osmium {
                     }
                 }
 
-                int32_t convert_pbf_coordinate(const int64_t c) const noexcept {
+                int32_t convert_pbf_lon(const int64_t c) const noexcept {
                     return int32_t((c * m_granularity + m_lon_offset) / resolution_convert);
+                }
+
+                int32_t convert_pbf_lat(const int64_t c) const noexcept {
+                    return int32_t((c * m_granularity + m_lat_offset) / resolution_convert);
                 }
 
                 void decode_node(const data_view& data) {
@@ -311,8 +315,8 @@ namespace osmium {
                             throw osmium::pbf_error{"illegal coordinate format"};
                         }
                         node.set_location(osmium::Location{
-                                convert_pbf_coordinate(lon),
-                                convert_pbf_coordinate(lat)
+                                convert_pbf_lon(lon),
+                                convert_pbf_lat(lat)
                         });
                     }
 
@@ -380,8 +384,8 @@ namespace osmium {
                             while (!refs.empty() && !lons.empty() && !lats.empty()) {
                                 wnl_builder.add_node_ref(
                                     ref.update(refs.front()),
-                                    osmium::Location{convert_pbf_coordinate(lon.update(lons.front())),
-                                                     convert_pbf_coordinate(lat.update(lats.front()))}
+                                    osmium::Location{convert_pbf_lon(lon.update(lons.front())),
+                                                     convert_pbf_lat(lat.update(lats.front()))}
                                 );
                                 refs.drop_front();
                                 lons.drop_front();
@@ -531,8 +535,8 @@ namespace osmium {
                             const auto lat = dense_latitude.update(lats.front());
                             lats.drop_front();
                             builder.object().set_location(osmium::Location{
-                                    convert_pbf_coordinate(lon),
-                                    convert_pbf_coordinate(lat)
+                                    convert_pbf_lon(lon),
+                                    convert_pbf_lat(lat)
                             });
 
                             if (tag_it != tags.end()) {
@@ -696,8 +700,8 @@ namespace osmium {
                             lats.drop_front();
                             if (visible) {
                                 builder.object().set_location(osmium::Location{
-                                        convert_pbf_coordinate(lon),
-                                        convert_pbf_coordinate(lat)
+                                        convert_pbf_lon(lon),
+                                        convert_pbf_lat(lat)
                                 });
                             }
 

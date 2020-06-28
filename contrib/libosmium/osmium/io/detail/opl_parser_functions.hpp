@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2020 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -372,6 +372,16 @@ namespace osmium {
 
                 const char* tags_begin = nullptr;
 
+                bool has_version = false;
+                bool has_visible = false;
+                bool has_changeset_id = false;
+                bool has_timestamp = false;
+                bool has_uid = false;
+                bool has_user = false;
+                bool has_tags = false;
+                bool has_lon = false;
+                bool has_lat = false;
+
                 std::string user;
                 osmium::Location location;
                 while (**data) {
@@ -383,35 +393,71 @@ namespace osmium {
                     ++(*data);
                     switch (c) {
                         case 'v':
+                            if (has_version) {
+                                throw opl_error{"Duplicate attribute: version (v)"};
+                            }
+                            has_version = true;
                             builder.set_version(opl_parse_version(data));
                             break;
                         case 'd':
+                            if (has_visible) {
+                                throw opl_error{"Duplicate attribute: visible (d)"};
+                            }
+                            has_visible = true;
                             builder.set_visible(opl_parse_visible(data));
                             break;
                         case 'c':
+                            if (has_changeset_id) {
+                                throw opl_error{"Duplicate attribute: changeset_id (c)"};
+                            }
+                            has_changeset_id = true;
                             builder.set_changeset(opl_parse_changeset_id(data));
                             break;
                         case 't':
+                            if (has_timestamp) {
+                                throw opl_error{"Duplicate attribute: timestamp (t)"};
+                            }
+                            has_timestamp = true;
                             builder.set_timestamp(opl_parse_timestamp(data));
                             break;
                         case 'i':
+                            if (has_uid) {
+                                throw opl_error{"Duplicate attribute: uid (i)"};
+                            }
+                            has_uid = true;
                             builder.set_uid(opl_parse_uid(data));
                             break;
                         case 'u':
+                            if (has_user) {
+                                throw opl_error{"Duplicate attribute: user (u)"};
+                            }
+                            has_user = true;
                             opl_parse_string(data, user);
                             break;
                         case 'T':
+                            if (has_tags) {
+                                throw opl_error{"Duplicate attribute: tags (T)"};
+                            }
+                            has_tags = true;
                             if (opl_non_empty(*data)) {
                                 tags_begin = *data;
                                 opl_skip_section(data);
                             }
                             break;
                         case 'x':
+                            if (has_lon) {
+                                throw opl_error{"Duplicate attribute: lon (x)"};
+                            }
+                            has_lon = true;
                             if (opl_non_empty(*data)) {
                                 location.set_lon_partial(data);
                             }
                             break;
                         case 'y':
+                            if (has_lat) {
+                                throw opl_error{"Duplicate attribute: lat (y)"};
+                            }
+                            has_lat = true;
                             if (opl_non_empty(*data)) {
                                 location.set_lat_partial(data);
                             }
@@ -443,6 +489,15 @@ namespace osmium {
                 const char* nodes_begin = nullptr;
                 const char* nodes_end = nullptr;
 
+                bool has_version = false;
+                bool has_visible = false;
+                bool has_changeset_id = false;
+                bool has_timestamp = false;
+                bool has_uid = false;
+                bool has_user = false;
+                bool has_tags = false;
+                bool has_nodes = false;
+
                 std::string user;
                 while (**data) {
                     opl_parse_space(data);
@@ -453,30 +508,62 @@ namespace osmium {
                     ++(*data);
                     switch (c) {
                         case 'v':
+                            if (has_version) {
+                                throw opl_error{"Duplicate attribute: version (v)"};
+                            }
+                            has_version = true;
                             builder.set_version(opl_parse_version(data));
                             break;
                         case 'd':
+                            if (has_visible) {
+                                throw opl_error{"Duplicate attribute: visible (d)"};
+                            }
+                            has_visible = true;
                             builder.set_visible(opl_parse_visible(data));
                             break;
                         case 'c':
+                            if (has_changeset_id) {
+                                throw opl_error{"Duplicate attribute: changeset_id (c)"};
+                            }
+                            has_changeset_id = true;
                             builder.set_changeset(opl_parse_changeset_id(data));
                             break;
                         case 't':
+                            if (has_timestamp) {
+                                throw opl_error{"Duplicate attribute: timestamp (t)"};
+                            }
+                            has_timestamp = true;
                             builder.set_timestamp(opl_parse_timestamp(data));
                             break;
                         case 'i':
+                            if (has_uid) {
+                                throw opl_error{"Duplicate attribute: uid (i)"};
+                            }
+                            has_uid = true;
                             builder.set_uid(opl_parse_uid(data));
                             break;
                         case 'u':
+                            if (has_user) {
+                                throw opl_error{"Duplicate attribute: user (u)"};
+                            }
+                            has_user = true;
                             opl_parse_string(data, user);
                             break;
                         case 'T':
+                            if (has_tags) {
+                                throw opl_error{"Duplicate attribute: tags (T)"};
+                            }
+                            has_tags = true;
                             if (opl_non_empty(*data)) {
                                 tags_begin = *data;
                                 opl_skip_section(data);
                             }
                             break;
                         case 'N':
+                            if (has_nodes) {
+                                throw opl_error{"Duplicate attribute: nodes (N)"};
+                            }
+                            has_nodes = true;
                             nodes_begin = *data;
                             nodes_end = opl_skip_section(data);
                             break;
@@ -540,6 +627,15 @@ namespace osmium {
                 const char* members_begin = nullptr;
                 const char* members_end = nullptr;
 
+                bool has_version = false;
+                bool has_visible = false;
+                bool has_changeset_id = false;
+                bool has_timestamp = false;
+                bool has_uid = false;
+                bool has_user = false;
+                bool has_tags = false;
+                bool has_members = false;
+
                 std::string user;
                 while (**data) {
                     opl_parse_space(data);
@@ -550,30 +646,62 @@ namespace osmium {
                     ++(*data);
                     switch (c) {
                         case 'v':
+                            if (has_version) {
+                                throw opl_error{"Duplicate attribute: version (v)"};
+                            }
+                            has_version = true;
                             builder.set_version(opl_parse_version(data));
                             break;
                         case 'd':
+                            if (has_visible) {
+                                throw opl_error{"Duplicate attribute: visible (d)"};
+                            }
+                            has_visible = true;
                             builder.set_visible(opl_parse_visible(data));
                             break;
                         case 'c':
+                            if (has_changeset_id) {
+                                throw opl_error{"Duplicate attribute: changeset_id (c)"};
+                            }
+                            has_changeset_id = true;
                             builder.set_changeset(opl_parse_changeset_id(data));
                             break;
                         case 't':
+                            if (has_timestamp) {
+                                throw opl_error{"Duplicate attribute: timestamp (t)"};
+                            }
+                            has_timestamp = true;
                             builder.set_timestamp(opl_parse_timestamp(data));
                             break;
                         case 'i':
+                            if (has_uid) {
+                                throw opl_error{"Duplicate attribute: uid (i)"};
+                            }
+                            has_uid = true;
                             builder.set_uid(opl_parse_uid(data));
                             break;
                         case 'u':
+                            if (has_user) {
+                                throw opl_error{"Duplicate attribute: user (u)"};
+                            }
+                            has_user = true;
                             opl_parse_string(data, user);
                             break;
                         case 'T':
+                            if (has_tags) {
+                                throw opl_error{"Duplicate attribute: tags (T)"};
+                            }
+                            has_tags = true;
                             if (opl_non_empty(*data)) {
                                 tags_begin = *data;
                                 opl_skip_section(data);
                             }
                             break;
                         case 'M':
+                            if (has_members) {
+                                throw opl_error{"Duplicate attribute: members (M)"};
+                            }
+                            has_members = true;
                             members_begin = *data;
                             members_end = opl_skip_section(data);
                             break;
@@ -601,6 +729,18 @@ namespace osmium {
 
                 const char* tags_begin = nullptr;
 
+                bool has_num_changes = false;
+                bool has_created_at = false;
+                bool has_closed_at = false;
+                bool has_num_comments = false;
+                bool has_uid = false;
+                bool has_user = false;
+                bool has_tags = false;
+                bool has_min_x = false;
+                bool has_min_y = false;
+                bool has_max_x = false;
+                bool has_max_y = false;
+
                 osmium::Box box;
                 std::string user;
                 while (**data) {
@@ -612,44 +752,88 @@ namespace osmium {
                     ++(*data);
                     switch (c) {
                         case 'k':
+                            if (has_num_changes) {
+                                throw opl_error{"Duplicate attribute: num_changes (k)"};
+                            }
+                            has_num_changes = true;
                             builder.set_num_changes(opl_parse_int<osmium::num_changes_type>(data));
                             break;
                         case 's':
+                            if (has_created_at) {
+                                throw opl_error{"Duplicate attribute: created_at (s)"};
+                            }
+                            has_created_at = true;
                             builder.set_created_at(opl_parse_timestamp(data));
                             break;
                         case 'e':
+                            if (has_closed_at) {
+                                throw opl_error{"Duplicate attribute: closed_at (e)"};
+                            }
+                            has_closed_at = true;
                             builder.set_closed_at(opl_parse_timestamp(data));
                             break;
                         case 'd':
+                            if (has_num_comments) {
+                                throw opl_error{"Duplicate attribute: num_comments (d)"};
+                            }
+                            has_num_comments = true;
                             builder.set_num_comments(opl_parse_int<osmium::num_comments_type>(data));
                             break;
                         case 'i':
+                            if (has_uid) {
+                                throw opl_error{"Duplicate attribute: uid (i)"};
+                            }
+                            has_uid = true;
                             builder.set_uid(opl_parse_uid(data));
                             break;
                         case 'u':
+                            if (has_user) {
+                                throw opl_error{"Duplicate attribute: user (u)"};
+                            }
+                            has_user = true;
                             opl_parse_string(data, user);
                             break;
                         case 'x':
+                            if (has_min_x) {
+                                throw opl_error{"Duplicate attribute: min_x (x)"};
+                            }
+                            has_min_x = true;
                             if (opl_non_empty(*data)) {
                                 box.bottom_left().set_lon_partial(data);
                             }
                             break;
                         case 'y':
+                            if (has_min_y) {
+                                throw opl_error{"Duplicate attribute: min_y (y)"};
+                            }
+                            has_min_y = true;
                             if (opl_non_empty(*data)) {
                                 box.bottom_left().set_lat_partial(data);
                             }
                             break;
                         case 'X':
+                            if (has_max_x) {
+                                throw opl_error{"Duplicate attribute: max_x (X)"};
+                            }
+                            has_max_x = true;
                             if (opl_non_empty(*data)) {
                                 box.top_right().set_lon_partial(data);
                             }
                             break;
                         case 'Y':
+                            if (has_max_y) {
+                                throw opl_error{"Duplicate attribute: max_y (Y)"};
+                            }
+                            has_max_y = true;
                             if (opl_non_empty(*data)) {
                                 box.top_right().set_lat_partial(data);
                             }
                             break;
                         case 'T':
+                            if (has_tags) {
+                                throw opl_error{"Duplicate attribute: tags (T)"};
+                            }
+                            has_tags = true;
                             if (opl_non_empty(*data)) {
                                 tags_begin = *data;
                                 opl_skip_section(data);

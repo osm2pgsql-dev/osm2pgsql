@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2020 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -98,7 +98,7 @@ namespace osmium {
                 }
             }
 
-            class OPLParser : public Parser {
+            class OPLParser final : public Parser {
 
                 enum {
                     initial_buffer_size = 1024UL * 1024UL
@@ -122,7 +122,7 @@ namespace osmium {
                 OPLParser(OPLParser&&) = delete;
                 OPLParser& operator=(OPLParser&&) = delete;
 
-                ~OPLParser() noexcept final = default;
+                ~OPLParser() noexcept = default;
 
                 void parse_line(const char* data) {
                     if (opl_parse_line(m_line_count, data, m_buffer, read_types())) {
@@ -134,7 +134,7 @@ namespace osmium {
                     ++m_line_count;
                 }
 
-                void run() final {
+                void run() override {
                     osmium::thread::set_thread_name("_osmium_opl_in");
 
                     line_by_line(*this);
