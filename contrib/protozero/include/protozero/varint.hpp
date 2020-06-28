@@ -16,7 +16,8 @@ documentation.
  * @brief Contains low-level varint and zigzag encoding and decoding functions.
  */
 
-#include <protozero/exception.hpp>
+#include "buffer_tmpl.hpp"
+#include "exception.hpp"
 
 #include <cstdint>
 
@@ -31,15 +32,15 @@ namespace detail {
 
     // from https://github.com/facebook/folly/blob/master/folly/Varint.h
     inline uint64_t decode_varint_impl(const char** data, const char* end) {
-        const auto begin = reinterpret_cast<const int8_t*>(*data);
-        const auto iend = reinterpret_cast<const int8_t*>(end);
+        const auto* begin = reinterpret_cast<const int8_t*>(*data);
+        const auto* iend = reinterpret_cast<const int8_t*>(end);
         const int8_t* p = begin;
         uint64_t val = 0;
 
         if (iend - begin >= max_varint_length) {  // fast path
             do {
-                int64_t b;
-                b = *p++; val  = ((uint64_t(b) & 0x7fU)       ); if (b >= 0) { break; }
+                int64_t b = *p++;
+                          val  = ((uint64_t(b) & 0x7fU)       ); if (b >= 0) { break; }
                 b = *p++; val |= ((uint64_t(b) & 0x7fU) <<  7U); if (b >= 0) { break; }
                 b = *p++; val |= ((uint64_t(b) & 0x7fU) << 14U); if (b >= 0) { break; }
                 b = *p++; val |= ((uint64_t(b) & 0x7fU) << 21U); if (b >= 0) { break; }
@@ -110,8 +111,8 @@ inline uint64_t decode_varint(const char** data, const char* end) {
  *         before the end of the varint.
  */
 inline void skip_varint(const char** data, const char* end) {
-    const auto begin = reinterpret_cast<const int8_t*>(*data);
-    const auto iend = reinterpret_cast<const int8_t*>(end);
+    const auto* begin = reinterpret_cast<const int8_t*>(*data);
+    const auto* iend = reinterpret_cast<const int8_t*>(end);
     const int8_t* p = begin;
 
     while (p != iend && *p < 0) {
@@ -140,6 +141,7 @@ inline void skip_varint(const char** data, const char* end) {
  * @param value The integer that will be encoded.
  * @returns the number of bytes written
  * @throws Any exception thrown by increment or dereference operator on data.
+ * @deprecated Use add_varint_to_buffer() instead.
  */
 template <typename T>
 inline int write_varint(T data, uint64_t value) {
@@ -150,7 +152,45 @@ inline int write_varint(T data, uint64_t value) {
         value >>= 7U;
         ++n;
     }
-    *data++ = char(value);
+    *data = char(value);
+
+    return n;
+}
+
+/**
+ * Varint encode a 64 bit integer.
+ *
+ * @tparam TBuffer A buffer type.
+ * @param buffer Output buffer the varint will be written to.
+ * @param value The integer that will be encoded.
+ * @returns the number of bytes written
+ * @throws Any exception thrown by calling the buffer_push_back() function.
+ */
+template <typename TBuffer>
+inline void add_varint_to_buffer(TBuffer* buffer, uint64_t value) {
+    while (value >= 0x80U) {
+        buffer_customization<TBuffer>::push_back(buffer, char((value & 0x7fU) | 0x80U));
+        value >>= 7U;
+    }
+    buffer_customization<TBuffer>::push_back(buffer, char(value));
+}
+
+/**
+ * Varint encode a 64 bit integer.
+ *
+ * @param data Where to add the varint. There must be enough space available!
+ * @param value The integer that will be encoded.
+ * @returns the number of bytes written
+ */
+inline int add_varint_to_buffer(char* data, uint64_t value) noexcept {
+    int n = 1;
+
+    while (value >= 0x80U) {
+        *data++ = char((value & 0x7fU) | 0x80U);
+        value >>= 7U;
+        ++n;
+    }
+    *data = char(value);
 
     return n;
 }

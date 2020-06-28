@@ -16,7 +16,7 @@ documentation.
  * @brief Contains functions to swap bytes in values (for different endianness).
  */
 
-#include <protozero/config.hpp>
+#include "config.hpp"
 
 #include <cstdint>
 
@@ -63,25 +63,25 @@ inline void byteswap_inplace(uint64_t* ptr) noexcept {
 
 /// byteswap the data pointed to by ptr in-place.
 inline void byteswap_inplace(int32_t* ptr) noexcept {
-    auto bptr = reinterpret_cast<uint32_t*>(ptr);
+    auto* bptr = reinterpret_cast<uint32_t*>(ptr);
     *bptr = detail::byteswap_impl(*bptr);
 }
 
 /// byteswap the data pointed to by ptr in-place.
 inline void byteswap_inplace(int64_t* ptr) noexcept {
-    auto bptr = reinterpret_cast<uint64_t*>(ptr);
+    auto* bptr = reinterpret_cast<uint64_t*>(ptr);
     *bptr = detail::byteswap_impl(*bptr);
 }
 
 /// byteswap the data pointed to by ptr in-place.
 inline void byteswap_inplace(float* ptr) noexcept {
-    auto bptr = reinterpret_cast<uint32_t*>(ptr);
+    auto* bptr = reinterpret_cast<uint32_t*>(ptr);
     *bptr = detail::byteswap_impl(*bptr);
 }
 
 /// byteswap the data pointed to by ptr in-place.
 inline void byteswap_inplace(double* ptr) noexcept {
-    auto bptr = reinterpret_cast<uint64_t*>(ptr);
+    auto* bptr = reinterpret_cast<uint64_t*>(ptr);
     *bptr = detail::byteswap_impl(*bptr);
 }
 
