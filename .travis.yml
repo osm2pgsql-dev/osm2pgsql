@@ -97,6 +97,17 @@ matrix:
 
 
     - os: linux
+      dist: bionic
+      compiler: gcc-8
+      env: T="bionic_gcc8_pg10_no_lua"
+           PG_VERSIONS=10
+           POSTGIS_VERSION=2.4
+           BUILD_TYPE="Debug"
+           CXXFLAGS="-pedantic -Wextra -Werror"
+           CC=gcc-8 CXX=g++-8 CPPVERSION=11
+
+
+    - os: linux
       dist: focal
       compiler: gcc-9
       env: T="focal_gcc9_pg12_luajit"
@@ -121,7 +132,8 @@ before_install:
       export POSTGIS_PKG="$POSTGIS_PKG $PPG $PPG-scripts";
     done
   - echo $POSTGIS_PKG
-  - sudo -E apt-get install -yq --no-install-suggests --no-install-recommends $CC $POSTGIS_PKG liblua$LUA_VERSION-dev lua$LUA_VERSION
+  - sudo -E apt-get install -yq --no-install-suggests --no-install-recommends $CC $POSTGIS_PKG
+  - if [ -n "${LUA_VERSION}" ]; then sudo -E apt-get install -yq --no-install-suggests --no-install-recommends liblua$LUA_VERSION-dev lua$LUA_VERSION; fi
   # g++ needs extra install, clang doesn't, so ignore errors here
   - sudo -E apt-get install -yq --no-install-suggests --no-install-recommends $CXX || true
 
@@ -132,7 +144,8 @@ before_script:
 
 script:
   - mkdir build && cd build
-  - cmake .. -LA -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_CXX_STANDARD=${CPPVERSION} -DWITH_LUAJIT=${LUAJIT_OPTION}
+  - if [ -z "${LUA_VERSION}" ]; then LUA_OPTIONS="-DWITH_LUA=OFF"; else LUA_OPTIONS="-DWITH_LUA=ON -DWITH_LUAJIT=${LUAJIT_OPTION}"; fi
+  - cmake .. -LA -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_CXX_STANDARD=${CPPVERSION} ${LUA_OPTIONS}
   - make -j2
   - echo "Running tests ... "
   - if [[ $TEST_NODB ]]; then

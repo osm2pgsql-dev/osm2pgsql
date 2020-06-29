@@ -5,7 +5,6 @@ set(osm2pgsql_lib_SOURCES
   expire-tiles.cpp
   gazetteer-style.cpp
   geometry-processor.cpp
-  geom-transform.cpp
   id-tracker.cpp
   input-handler.cpp
   middle-pgsql.cpp
@@ -38,7 +37,6 @@ set(osm2pgsql_lib_SOURCES
   expire-tiles.hpp
   gazetteer-style.hpp
   geometry-processor.hpp
-  geom-transform.hpp
   id-tracker.hpp
   input-handler.hpp
   middle-pgsql.hpp
@@ -80,6 +78,7 @@ if (LUA_FOUND OR LUAJIT_FOUND)
     list(APPEND osm2pgsql_lib_SOURCES
         flex-table.cpp
         flex-table-column.cpp
+        geom-transform.cpp
         lua-utils.cpp
         output-flex.cpp
         tagtransform-lua.cpp
