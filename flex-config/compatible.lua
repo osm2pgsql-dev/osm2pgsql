@@ -32,6 +32,11 @@ local hstore_match_only = true
 -- be set through option -z|--hstore-column.
 local hstore_column = nil
 
+-- There is some very old specialized handling of route relations in osm2pgsql,
+-- which you probably don't need. This is disabled here, but you can enable
+-- it by setting this to true. If you don't understand this, leave it alone.
+local enable_legacy_route_processing = false
+
 -- ---------------------------------------------------------------------------
 
 if hstore and hstore_all then
@@ -646,7 +651,7 @@ function osm2pgsql.process_relation(object)
         return
     end
 
-    if (hstore or hstore_all) and type == 'route' then
+    if enable_legacy_route_processing and (hstore or hstore_all) and type == 'route' then
         if not object.tags.route_name then
             output_hstore.route_name = object.tags.name
         end
