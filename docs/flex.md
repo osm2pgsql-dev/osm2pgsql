@@ -128,6 +128,14 @@ with the following keys:
   `SERIAL` columns or when you want to fill in the column later yourself.
   (Optional, default `false`.)
 
+All the `osm2pgsql.define*table()` functions return a database table object.
+You can call the following functions on it:
+
+* `name()`: The name of the table as specified in the define function.
+* `schema()`: The schema of the table as specified in the define function.
+* `columns()`: The columns of the table as specified in the define function.
+* `add_row()`: Add a row to the database table. See below for details.
+
 ### Processing callbacks
 
 You are expected to define one or more of the following functions:
