@@ -2,10 +2,14 @@
 #define OSM2PGSQL_GEOM_TRANSFORM_HPP
 
 #include "flex-table-column.hpp"
-#include "lua.hpp"
 #include "osmium-builder.hpp"
 
 #include <osmium/fwd.hpp>
+
+extern "C"
+{
+#include <lua.h>
+}
 
 #include <memory>
 
