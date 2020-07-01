@@ -95,7 +95,6 @@ struct counting_output_t : public output_null_t
 struct counts_t {
     std::size_t nodes_changed = 0;
     std::size_t ways_changed = 0;
-    std::size_t relations_changed = 0;
 };
 
 /**
@@ -111,7 +110,6 @@ public:
 
     void node_changed(osmid_t) override { ++m_counts->nodes_changed; }
     void way_changed(osmid_t) override { ++m_counts->ways_changed; }
-    void relation_changed(osmid_t) override { ++m_counts->relations_changed; }
 
 private:
     std::shared_ptr<counts_t> m_counts;
@@ -155,7 +153,6 @@ TEST_CASE("parse xml file")
 
     REQUIRE(counts->nodes_changed == 0);
     REQUIRE(counts->ways_changed == 0);
-    REQUIRE(counts->relations_changed == 0);
 }
 
 TEST_CASE("parse diff file")
@@ -193,7 +190,6 @@ TEST_CASE("parse diff file")
 
     REQUIRE(counts->nodes_changed == 1176);
     REQUIRE(counts->ways_changed == 161);
-    REQUIRE(counts->relations_changed == 11);
 }
 
 TEST_CASE("parse xml file with extra args")
@@ -235,5 +231,4 @@ TEST_CASE("parse xml file with extra args")
 
     REQUIRE(counts->nodes_changed == 0);
     REQUIRE(counts->ways_changed == 0);
-    REQUIRE(counts->relations_changed == 0);
 }
