@@ -5,11 +5,13 @@
 
 static testing::db::import_t db;
 
+static char const *const conf_file = "test_output_flex.lua";
+
 struct options_slim_default
 {
     static options_t options()
     {
-        return testing::opt_t().slim().flex("test_output_flex.lua");
+        return testing::opt_t().slim().flex(conf_file);
     }
 };
 
