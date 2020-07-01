@@ -5,78 +5,74 @@
 
 static testing::db::import_t db;
 
-TEST_CASE("no extra_attributes")
+static char const *const conf_file = "test_output_flex_attr.lua";
+static char const *const table = "osm2pgsql_test_attr";
+
+TEST_CASE("without extra_attributes")
 {
+    options_t options = testing::opt_t().slim().flex(conf_file);
+
     REQUIRE_NOTHROW(
-        db.run_import(testing::opt_t().slim().flex("test_output_flex_attr.lua"),
-                      "n10 v1 dV x10.0 y10.0\n"
-                      "n11 v1 dV x10.0 y10.2\n"
-                      "n12 v1 dV x10.2 y10.2\n"
-                      "w20 v1 dV c31 t2020-01-12T12:34:56Z i17 utest "
-                      "Thighway=primary Nn10,n11,n12\n"));
+        db.run_import(options, "n10 v1 dV x10.0 y10.0\n"
+                               "n11 v1 dV x10.0 y10.2\n"
+                               "n12 v1 dV x10.2 y10.2\n"
+                               "w20 v1 dV c31 t2020-01-12T12:34:56Z i17 utest "
+                               "Thighway=primary Nn10,n11,n12\n"));
 
     auto conn = db.db().connect();
 
-    CHECK(1 == conn.get_count("osm2pgsql_test_ways_attr"));
-    CHECK(1 == conn.get_count("osm2pgsql_test_ways_attr",
-                              "tags->'highway' = 'primary'"));
-    CHECK(0 == conn.get_count("osm2pgsql_test_ways_attr", "version = 1"));
-    CHECK(0 == conn.get_count("osm2pgsql_test_ways_attr", "changeset = 31"));
-    CHECK(0 ==
-          conn.get_count("osm2pgsql_test_ways_attr", "timestamp = 1578832496"));
-    CHECK(0 == conn.get_count("osm2pgsql_test_ways_attr", "uid = 17"));
-    CHECK(0 == conn.get_count("osm2pgsql_test_ways_attr", "\"user\" = 'test'"));
+    CHECK(1 == conn.get_count(table));
+    CHECK(1 == conn.get_count(table, "tags->'highway' = 'primary'"));
+    CHECK(0 == conn.get_count(table, "version = 1"));
+    CHECK(0 == conn.get_count(table, "changeset = 31"));
+    CHECK(0 == conn.get_count(table, "timestamp = 1578832496"));
+    CHECK(0 == conn.get_count(table, "uid = 17"));
+    CHECK(0 == conn.get_count(table, "\"user\" = 'test'"));
 
-    REQUIRE_NOTHROW(db.run_import(
-        testing::opt_t().slim().append().flex("test_output_flex_attr.lua"),
-        "n10 v2 dV x11.0 y11.0\n"));
+    options.append = true;
 
-    CHECK(1 == conn.get_count("osm2pgsql_test_ways_attr"));
-    CHECK(1 == conn.get_count("osm2pgsql_test_ways_attr",
-                              "tags->'highway' = 'primary'"));
-    CHECK(0 == conn.get_count("osm2pgsql_test_ways_attr", "version = 1"));
-    CHECK(0 == conn.get_count("osm2pgsql_test_ways_attr", "changeset = 31"));
-    CHECK(0 ==
-          conn.get_count("osm2pgsql_test_ways_attr", "timestamp = 1578832496"));
-    CHECK(0 == conn.get_count("osm2pgsql_test_ways_attr", "uid = 17"));
-    CHECK(0 == conn.get_count("osm2pgsql_test_ways_attr", "\"user\" = 'test'"));
+    REQUIRE_NOTHROW(db.run_import(options, "n10 v2 dV x11.0 y11.0\n"));
+
+    CHECK(1 == conn.get_count(table));
+    CHECK(1 == conn.get_count(table, "tags->'highway' = 'primary'"));
+    CHECK(0 == conn.get_count(table, "version = 1"));
+    CHECK(0 == conn.get_count(table, "changeset = 31"));
+    CHECK(0 == conn.get_count(table, "timestamp = 1578832496"));
+    CHECK(0 == conn.get_count(table, "uid = 17"));
+    CHECK(0 == conn.get_count(table, "\"user\" = 'test'"));
 }
 
 TEST_CASE("with extra_attributes")
 {
+    options_t options =
+        testing::opt_t().extra_attributes().slim().flex(conf_file);
+
     REQUIRE_NOTHROW(
-        db.run_import(testing::opt_t().extra_attributes().slim().flex(
-                          "test_output_flex_attr.lua"),
-                      "n10 v1 dV x10.0 y10.0\n"
-                      "n11 v1 dV x10.0 y10.2\n"
-                      "n12 v1 dV x10.2 y10.2\n"
-                      "w20 v1 dV c31 t2020-01-12T12:34:56Z i17 utest "
-                      "Thighway=primary Nn10,n11,n12\n"));
+        db.run_import(options, "n10 v1 dV x10.0 y10.0\n"
+                               "n11 v1 dV x10.0 y10.2\n"
+                               "n12 v1 dV x10.2 y10.2\n"
+                               "w20 v1 dV c31 t2020-01-12T12:34:56Z i17 utest "
+                               "Thighway=primary Nn10,n11,n12\n"));
 
     auto conn = db.db().connect();
 
-    CHECK(1 == conn.get_count("osm2pgsql_test_ways_attr"));
-    CHECK(1 == conn.get_count("osm2pgsql_test_ways_attr",
-                              "tags->'highway' = 'primary'"));
-    CHECK(1 == conn.get_count("osm2pgsql_test_ways_attr", "version = 1"));
-    CHECK(1 == conn.get_count("osm2pgsql_test_ways_attr", "changeset = 31"));
-    CHECK(1 ==
-          conn.get_count("osm2pgsql_test_ways_attr", "timestamp = 1578832496"));
-    CHECK(1 == conn.get_count("osm2pgsql_test_ways_attr", "uid = 17"));
-    CHECK(1 == conn.get_count("osm2pgsql_test_ways_attr", "\"user\" = 'test'"));
+    CHECK(1 == conn.get_count(table));
+    CHECK(1 == conn.get_count(table, "tags->'highway' = 'primary'"));
+    CHECK(1 == conn.get_count(table, "version = 1"));
+    CHECK(1 == conn.get_count(table, "changeset = 31"));
+    CHECK(1 == conn.get_count(table, "timestamp = 1578832496"));
+    CHECK(1 == conn.get_count(table, "uid = 17"));
+    CHECK(1 == conn.get_count(table, "\"user\" = 'test'"));
 
-    REQUIRE_NOTHROW(
-        db.run_import(testing::opt_t().extra_attributes().slim().append().flex(
-                          "test_output_flex_attr.lua"),
-                      "n10 v2 dV x11.0 y11.0\n"));
+    options.append = true;
 
-    CHECK(1 == conn.get_count("osm2pgsql_test_ways_attr"));
-    CHECK(1 == conn.get_count("osm2pgsql_test_ways_attr",
-                              "tags->'highway' = 'primary'"));
-    CHECK(1 == conn.get_count("osm2pgsql_test_ways_attr", "version = 1"));
-    CHECK(1 == conn.get_count("osm2pgsql_test_ways_attr", "changeset = 31"));
-    CHECK(1 ==
-          conn.get_count("osm2pgsql_test_ways_attr", "timestamp = 1578832496"));
-    CHECK(1 == conn.get_count("osm2pgsql_test_ways_attr", "uid = 17"));
-    CHECK(1 == conn.get_count("osm2pgsql_test_ways_attr", "\"user\" = 'test'"));
+    REQUIRE_NOTHROW(db.run_import(options, "n10 v2 dV x11.0 y11.0\n"));
+
+    CHECK(1 == conn.get_count(table));
+    CHECK(1 == conn.get_count(table, "tags->'highway' = 'primary'"));
+    CHECK(1 == conn.get_count(table, "version = 1"));
+    CHECK(1 == conn.get_count(table, "changeset = 31"));
+    CHECK(1 == conn.get_count(table, "timestamp = 1578832496"));
+    CHECK(1 == conn.get_count(table, "uid = 17"));
+    CHECK(1 == conn.get_count(table, "\"user\" = 'test'"));
 }
