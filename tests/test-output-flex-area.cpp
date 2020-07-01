@@ -21,8 +21,18 @@ TEST_CASE("area calculation in default projection")
         1.23927e+10,
         "SELECT area FROM osm2pgsql_test_polygon WHERE name='poly'");
     conn.assert_double(
+        1.23927e+10,
+        "SELECT ST_Area(geom) FROM osm2pgsql_test_polygon WHERE name='poly'");
+    conn.assert_double(1.0, "SELECT ST_Area(ST_Transform(geom, 4326)) "
+                            "FROM osm2pgsql_test_polygon WHERE name='poly'");
+    conn.assert_double(
         9.91828e+10,
         "SELECT area FROM osm2pgsql_test_polygon WHERE name='multi'");
+    conn.assert_double(
+        9.91828e+10,
+        "SELECT ST_Area(geom) FROM osm2pgsql_test_polygon WHERE name='multi'");
+    conn.assert_double(8.0, "SELECT ST_Area(ST_Transform(geom, 4326)) "
+                            "FROM osm2pgsql_test_polygon WHERE name='multi'");
 }
 
 TEST_CASE("area calculation in latlon projection")
@@ -38,7 +48,13 @@ TEST_CASE("area calculation in latlon projection")
     conn.assert_double(
         1.0, "SELECT area FROM osm2pgsql_test_polygon WHERE name='poly'");
     conn.assert_double(
+        1.0,
+        "SELECT ST_Area(geom) FROM osm2pgsql_test_polygon WHERE name='poly'");
+    conn.assert_double(
         8.0, "SELECT area FROM osm2pgsql_test_polygon WHERE name='multi'");
+    conn.assert_double(
+        8.0,
+        "SELECT ST_Area(geom) FROM osm2pgsql_test_polygon WHERE name='multi'");
 }
 
 TEST_CASE("area calculation in latlon projection with way area reprojection")
@@ -55,6 +71,12 @@ TEST_CASE("area calculation in latlon projection with way area reprojection")
         1.23927e+10,
         "SELECT area FROM osm2pgsql_test_polygon WHERE name='poly'");
     conn.assert_double(
+        1.0,
+        "SELECT ST_Area(geom) FROM osm2pgsql_test_polygon WHERE name='poly'");
+    conn.assert_double(
         9.91828e+10,
         "SELECT area FROM osm2pgsql_test_polygon WHERE name='multi'");
+    conn.assert_double(
+        8.0,
+        "SELECT ST_Area(geom) FROM osm2pgsql_test_polygon WHERE name='multi'");
 }

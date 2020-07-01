@@ -37,15 +37,6 @@ TEST_CASE("liechtenstein slim regression simple")
                        "SELECT ST_Length(ST_Transform(geom,4326)::geography) "
                        "FROM osm2pgsql_test_line WHERE osm_id = 1101");
 
-    conn.assert_double(
-        311.289, "SELECT area FROM osm2pgsql_test_polygon WHERE osm_id = 3265");
-    conn.assert_double(
-        311.289,
-        "SELECT ST_Area(geom) FROM osm2pgsql_test_polygon WHERE osm_id = 3265");
-    conn.assert_double(
-        143.845, "SELECT ST_Area(ST_Transform(geom,4326)::geography) FROM "
-                 "osm2pgsql_test_polygon WHERE osm_id = 3265");
-
     // Check a point's location
     REQUIRE(1 == conn.get_count("osm2pgsql_test_point",
                                 "ST_DWithin(geom, 'SRID=3857;POINT(1062645.12 "
@@ -73,16 +64,6 @@ TEST_CASE("liechtenstein slim latlon")
     conn.assert_double(1151.26,
                        "SELECT ST_Length(ST_Transform(geom,4326)::geography) "
                        "FROM osm2pgsql_test_line WHERE osm_id = 1101");
-
-    conn.assert_double(
-        1.70718e-08,
-        "SELECT area FROM osm2pgsql_test_polygon WHERE osm_id = 3265");
-    conn.assert_double(
-        1.70718e-08,
-        "SELECT ST_Area(geom) FROM osm2pgsql_test_polygon WHERE osm_id = 3265");
-    conn.assert_double(
-        143.845, "SELECT ST_Area(ST_Transform(geom,4326)::geography) FROM "
-                 "osm2pgsql_test_polygon WHERE osm_id = 3265");
 
     // Check a point's location
     REQUIRE(1 == conn.get_count("osm2pgsql_test_point",
