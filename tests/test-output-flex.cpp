@@ -7,86 +7,38 @@ static testing::db::import_t db;
 
 static char const *const conf_file = "test_output_flex.lua";
 
-static void require_tables(pg::conn_t const &conn)
+struct options_slim_default
 {
-    conn.require_has_table("osm2pgsql_test_point");
-    conn.require_has_table("osm2pgsql_test_line");
-    conn.require_has_table("osm2pgsql_test_polygon");
-    conn.require_has_table("osm2pgsql_test_route");
-}
+    static options_t options()
+    {
+        return testing::opt_t().slim().flex(conf_file);
+    }
+};
 
-TEST_CASE("liechtenstein slim regression simple")
+struct options_slim_latlon
 {
-    options_t const options = testing::opt_t().slim().flex(conf_file);
+    static options_t options()
+    {
+        return testing::opt_t().slim().flex(conf_file).srs(PROJ_LATLONG);
+    }
+};
+
+TEMPLATE_TEST_CASE("liechtenstein regression", "", options_slim_default,
+                   options_slim_latlon)
+{
+    options_t options = TestType::options();
 
     REQUIRE_NOTHROW(db.run_file(options, "liechtenstein-2013-08-03.osm.pbf"));
 
     auto conn = db.db().connect();
-    require_tables(conn);
+
+    conn.require_has_table("osm2pgsql_test_point");
+    conn.require_has_table("osm2pgsql_test_line");
+    conn.require_has_table("osm2pgsql_test_polygon");
+    conn.require_has_table("osm2pgsql_test_route");
 
     CHECK(1362 == conn.get_count("osm2pgsql_test_point"));
     CHECK(2932 == conn.get_count("osm2pgsql_test_line"));
     CHECK(4136 == conn.get_count("osm2pgsql_test_polygon"));
     CHECK(35 == conn.get_count("osm2pgsql_test_route"));
-}
-
-TEST_CASE("liechtenstein slim latlon")
-{
-    options_t const options =
-        testing::opt_t().slim().flex(conf_file).srs(PROJ_LATLONG);
-
-    REQUIRE_NOTHROW(db.run_file(options, "liechtenstein-2013-08-03.osm.pbf"));
-
-    auto conn = db.db().connect();
-    require_tables(conn);
-
-    REQUIRE(1362 == conn.get_count("osm2pgsql_test_point"));
-    REQUIRE(2932 == conn.get_count("osm2pgsql_test_line"));
-    REQUIRE(4136 == conn.get_count("osm2pgsql_test_polygon"));
-}
-
-TEST_CASE("way area slim flatnode")
-{
-    options_t const options =
-        testing::opt_t().slim().flex(conf_file).flatnodes();
-
-    REQUIRE_NOTHROW(db.run_file(options, "test_output_pgsql_way_area.osm"));
-
-    auto conn = db.db().connect();
-    require_tables(conn);
-
-    REQUIRE(0 == conn.get_count("osm2pgsql_test_point"));
-    REQUIRE(0 == conn.get_count("osm2pgsql_test_line"));
-    REQUIRE(1 == conn.get_count("osm2pgsql_test_polygon"));
-}
-
-TEST_CASE("route relation slim flatnode")
-{
-    options_t const options =
-        testing::opt_t().slim().flex(conf_file).flatnodes();
-
-    REQUIRE_NOTHROW(db.run_file(options, "test_output_pgsql_route_rel.osm"));
-
-    auto conn = db.db().connect();
-    require_tables(conn);
-
-    REQUIRE(0 == conn.get_count("osm2pgsql_test_point"));
-    REQUIRE(1 == conn.get_count("osm2pgsql_test_line"));
-    REQUIRE(0 == conn.get_count("osm2pgsql_test_polygon"));
-    REQUIRE(1 == conn.get_count("osm2pgsql_test_route"));
-}
-
-TEST_CASE("liechtenstein slim bz2 parsing regression")
-{
-    options_t const options = testing::opt_t().slim().flex(conf_file);
-
-    REQUIRE_NOTHROW(db.run_file(options, "liechtenstein-2013-08-03.osm.bz2"));
-
-    auto conn = db.db().connect();
-    require_tables(conn);
-
-    REQUIRE(1362 == conn.get_count("osm2pgsql_test_point"));
-    REQUIRE(2932 == conn.get_count("osm2pgsql_test_line"));
-    REQUIRE(4136 == conn.get_count("osm2pgsql_test_polygon"));
-    REQUIRE(35 == conn.get_count("osm2pgsql_test_route"));
 }
