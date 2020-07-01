@@ -5,7 +5,7 @@
 -- "geometries.lua".
 
 -- For debugging
-inspect = require('inspect')
+-- inspect = require('inspect')
 
 -- The global variable "osm2pgsql" is used to talk to the main osm2pgsql code.
 -- You can, for instance, get the version of osm2pgsql:
@@ -59,7 +59,7 @@ tables.polygons = osm2pgsql.define_area_table('polygons', {
 for name, dtable in pairs(tables) do
     print("\ntable '" .. name .. "':")
     print("  name='" .. dtable:name() .. "'")
-    print("  columns=" .. inspect(dtable:columns()))
+--    print("  columns=" .. inspect(dtable:columns()))
 end
 
 -- Helper function to remove some of the tags we usually are not interested in.
