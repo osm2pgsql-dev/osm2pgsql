@@ -5,12 +5,12 @@
 
 static testing::db::import_t db;
 
+static char const *const conf_file = "test_output_flex_nogeom.lua";
+
 TEST_CASE("updating table without geometry should work")
 {
-    testing::opt_t options = testing::opt_t()
-                                 .slim()
-                                 .flex("test_output_flex_nogeom.lua")
-                                 .srs(PROJ_LATLONG);
+    options_t options =
+        testing::opt_t().slim().flex(conf_file).srs(PROJ_LATLONG);
 
     REQUIRE_NOTHROW(db.run_import(options,
                                   "n10 v1 dV Tamenity=restaurant x10.0 y10.0\n"
@@ -20,10 +20,10 @@ TEST_CASE("updating table without geometry should work")
 
     CHECK(2 == conn.get_count("osm2pgsql_test_pois"));
 
+    options.append = true;
+
     REQUIRE_NOTHROW(db.run_import(
-        options.append(),
-        "n10 v2 dV Tamenity=restaurant,name=Schwanen x10.0 y10.0\n"));
+        options, "n10 v2 dV Tamenity=restaurant,name=Schwanen x10.0 y10.0\n"));
 
     CHECK(2 == conn.get_count("osm2pgsql_test_pois"));
 }
-
