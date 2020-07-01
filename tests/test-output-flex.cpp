@@ -5,6 +5,8 @@
 
 static testing::db::import_t db;
 
+static char const *const conf_file = "test_output_flex.lua";
+
 static void require_tables(pg::conn_t const &conn)
 {
     conn.require_has_table("osm2pgsql_test_point");
@@ -15,9 +17,9 @@ static void require_tables(pg::conn_t const &conn)
 
 TEST_CASE("liechtenstein slim regression simple")
 {
-    REQUIRE_NOTHROW(
-        db.run_file(testing::opt_t().slim().flex("test_output_flex.lua"),
-                    "liechtenstein-2013-08-03.osm.pbf"));
+    options_t const options = testing::opt_t().slim().flex(conf_file);
+
+    REQUIRE_NOTHROW(db.run_file(options, "liechtenstein-2013-08-03.osm.pbf"));
 
     auto conn = db.db().connect();
     require_tables(conn);
@@ -52,9 +54,10 @@ TEST_CASE("liechtenstein slim regression simple")
 
 TEST_CASE("liechtenstein slim latlon")
 {
-    REQUIRE_NOTHROW(db.run_file(
-        testing::opt_t().slim().flex("test_output_flex.lua").srs(PROJ_LATLONG),
-        "liechtenstein-2013-08-03.osm.pbf"));
+    options_t const options =
+        testing::opt_t().slim().flex(conf_file).srs(PROJ_LATLONG);
+
+    REQUIRE_NOTHROW(db.run_file(options, "liechtenstein-2013-08-03.osm.pbf"));
 
     auto conn = db.db().connect();
     require_tables(conn);
@@ -89,9 +92,10 @@ TEST_CASE("liechtenstein slim latlon")
 
 TEST_CASE("way area slim flatnode")
 {
-    REQUIRE_NOTHROW(db.run_file(
-        testing::opt_t().slim().flex("test_output_flex.lua").flatnodes(),
-        "test_output_pgsql_way_area.osm"));
+    options_t const options =
+        testing::opt_t().slim().flex(conf_file).flatnodes();
+
+    REQUIRE_NOTHROW(db.run_file(options, "test_output_pgsql_way_area.osm"));
 
     auto conn = db.db().connect();
     require_tables(conn);
@@ -103,9 +107,10 @@ TEST_CASE("way area slim flatnode")
 
 TEST_CASE("route relation slim flatnode")
 {
-    REQUIRE_NOTHROW(db.run_file(
-        testing::opt_t().slim().flex("test_output_flex.lua").flatnodes(),
-        "test_output_pgsql_route_rel.osm"));
+    options_t const options =
+        testing::opt_t().slim().flex(conf_file).flatnodes();
+
+    REQUIRE_NOTHROW(db.run_file(options, "test_output_pgsql_route_rel.osm"));
 
     auto conn = db.db().connect();
     require_tables(conn);
@@ -118,9 +123,9 @@ TEST_CASE("route relation slim flatnode")
 
 TEST_CASE("liechtenstein slim bz2 parsing regression")
 {
-    REQUIRE_NOTHROW(
-        db.run_file(testing::opt_t().slim().flex("test_output_flex.lua"),
-                    "liechtenstein-2013-08-03.osm.bz2"));
+    options_t const options = testing::opt_t().slim().flex(conf_file);
+
+    REQUIRE_NOTHROW(db.run_file(options, "liechtenstein-2013-08-03.osm.bz2"));
 
     auto conn = db.db().connect();
     require_tables(conn);
