@@ -1,7 +1,7 @@
 
 set(osm2pgsql_lib_SOURCES
-  dependency-manager.cpp
   db-copy.cpp
+  dependency-manager.cpp
   expire-tiles.cpp
   gazetteer-style.cpp
   geometry-processor.cpp
@@ -32,42 +32,6 @@ set(osm2pgsql_lib_SOURCES
   tagtransform.cpp
   util.cpp
   wildcmp.cpp
-  dependency-manager.hpp
-  db-copy.hpp
-  expire-tiles.hpp
-  gazetteer-style.hpp
-  geometry-processor.hpp
-  id-tracker.hpp
-  input-handler.hpp
-  middle-pgsql.hpp
-  middle-ram.hpp
-  middle.hpp
-  node-persistent-cache.hpp
-  node-ram-cache.hpp
-  options.hpp
-  osmdata.hpp
-  osmium-builder.hpp
-  osmtypes.hpp
-  output-gazetteer.hpp
-  output-multi.hpp
-  output-null.hpp
-  output-pgsql.hpp
-  output.hpp
-  pgsql.hpp
-  processor-line.hpp
-  processor-point.hpp
-  processor-polygon.hpp
-  progress-display.hpp
-  reprojection.hpp
-  sprompt.hpp
-  table.hpp
-  taginfo-impl.hpp
-  taginfo.hpp
-  tagtransform.hpp
-  thread-pool.hpp
-  util.hpp
-  wildcmp.hpp
-  wkb.hpp
 )
 
 if (LUA_FOUND OR LUAJIT_FOUND)
