@@ -28,19 +28,6 @@ TEST_CASE("liechtenstein slim regression simple")
     CHECK(2932 == conn.get_count("osm2pgsql_test_line"));
     CHECK(4136 == conn.get_count("osm2pgsql_test_polygon"));
     CHECK(35 == conn.get_count("osm2pgsql_test_route"));
-
-    // Check size of lines
-    conn.assert_double(
-        1696.04,
-        "SELECT ST_Length(geom) FROM osm2pgsql_test_line WHERE osm_id = 1101");
-    conn.assert_double(1151.26,
-                       "SELECT ST_Length(ST_Transform(geom,4326)::geography) "
-                       "FROM osm2pgsql_test_line WHERE osm_id = 1101");
-
-    // Check a point's location
-    REQUIRE(1 == conn.get_count("osm2pgsql_test_point",
-                                "ST_DWithin(geom, 'SRID=3857;POINT(1062645.12 "
-                                "5972593.4)'::geometry, 0.1)"));
 }
 
 TEST_CASE("liechtenstein slim latlon")
@@ -56,19 +43,6 @@ TEST_CASE("liechtenstein slim latlon")
     REQUIRE(1362 == conn.get_count("osm2pgsql_test_point"));
     REQUIRE(2932 == conn.get_count("osm2pgsql_test_line"));
     REQUIRE(4136 == conn.get_count("osm2pgsql_test_polygon"));
-
-    // Check size of lines
-    conn.assert_double(
-        0.0105343,
-        "SELECT ST_Length(geom) FROM osm2pgsql_test_line WHERE osm_id = 1101");
-    conn.assert_double(1151.26,
-                       "SELECT ST_Length(ST_Transform(geom,4326)::geography) "
-                       "FROM osm2pgsql_test_line WHERE osm_id = 1101");
-
-    // Check a point's location
-    REQUIRE(1 == conn.get_count("osm2pgsql_test_point",
-                                "ST_DWithin(geom, 'SRID=4326;POINT(9.5459035 "
-                                "47.1866494)'::geometry, 0.00001)"));
 }
 
 TEST_CASE("way area slim flatnode")
