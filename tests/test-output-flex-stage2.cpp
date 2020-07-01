@@ -5,7 +5,7 @@
 
 static testing::db::import_t db;
 
-static char const *const conf_file = "test_output_flex_extra.lua";
+static char const *const conf_file = "test_output_flex_stage2.lua";
 
 TEST_CASE("nodes and ways")
 {
