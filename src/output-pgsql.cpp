@@ -385,7 +385,8 @@ output_pgsql_t::output_pgsql_t(
         m_tables[i].reset(
             new table_t{name, type, columns, m_options.hstore_columns,
                         m_options.projection->target_srs(), m_options.append,
-                        m_options.hstore_mode, copy_thread});
+                        m_options.hstore_mode, copy_thread,
+                        m_options.dbschema});
     }
 }
 

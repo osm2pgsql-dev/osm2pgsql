@@ -20,7 +20,8 @@ public:
     table_t(std::string const &name, std::string const &type,
             columns_t const &columns, hstores_t const &hstore_columns,
             int const srid, bool const append, hstore_column hstore_mode,
-            std::shared_ptr<db_copy_thread_t> const &copy_thread);
+            std::shared_ptr<db_copy_thread_t> const &copy_thread,
+            std::string const &schema);
     table_t(table_t const &other,
             std::shared_ptr<db_copy_thread_t> const &copy_thread);
 

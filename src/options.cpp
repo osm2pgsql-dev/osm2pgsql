@@ -66,6 +66,7 @@ const struct option long_options[] = {
     {"prefix", required_argument, nullptr, 'p'},
     {"proj", required_argument, nullptr, 'E'},
     {"reproject-area", no_argument, nullptr, 213},
+    {"schema", required_argument, nullptr, 215},
     {"slim", no_argument, nullptr, 's'},
     {"style", required_argument, nullptr, 'S'},
     {"tablespace-index", required_argument, nullptr, 'i'},
@@ -194,6 +195,7 @@ void long_usage(char const *arg0, bool verbose)
                         Must be specified as: minlon,minlat,maxlon,maxlat\n\
                         e.g. --bbox -0.5,51.25,0.5,51.75\n\
        -p|--prefix      Prefix for table names (default planet_osm)\n\
+          --schema      Schema to use for tables (default none)\n\
        -r|--input-reader    Input format.\n\
                         auto      - Detect file format. (default)\n\
                         o5m       - Parse as o5m format.\n\
@@ -544,6 +546,9 @@ options_t::options_t(int argc, char *argv[]) : options_t()
 #endif
             fprintf(stderr, "\n");
             exit(EXIT_SUCCESS);
+            break;
+        case 215:
+            dbschema = optarg;
             break;
         case '?':
         default:

@@ -16,12 +16,17 @@
 table_t::table_t(std::string const &name, std::string const &type,
                  columns_t const &columns, hstores_t const &hstore_columns,
                  int const srid, bool const append, hstore_column hstore_mode,
-                 std::shared_ptr<db_copy_thread_t> const &copy_thread)
+                 std::shared_ptr<db_copy_thread_t> const &copy_thread,
+                 std::string const &schema)
 : m_target(std::make_shared<db_target_descr_t>(name.c_str(), "osm_id")),
   m_type(type), m_srid(fmt::to_string(srid)), m_append(append),
   m_hstore_mode(hstore_mode), m_columns(columns),
   m_hstore_columns(hstore_columns), m_copy(copy_thread)
 {
+    if (!schema.empty()) {
+        m_target->schema = schema;
+    }
+
     // if we dont have any columns
     if (m_columns.empty() && m_hstore_mode != hstore_column::all) {
         throw std::runtime_error{
@@ -72,21 +77,25 @@ void table_t::start(std::string const &conninfo, std::string const &table_space)
     connect();
     fmt::print(stderr, "Setting up table: {}\n", m_target->name);
     m_sql_conn->exec("SET client_min_messages = WARNING");
+    auto const qual_name = qualified_name(m_target->schema, m_target->name);
+    auto const qual_tmp_name = qualified_name(
+        m_target->schema, m_target->name + "_tmp");
+
     // we are making a new table
     if (!m_append) {
         m_sql_conn->exec(
-            "DROP TABLE IF EXISTS {} CASCADE"_format(m_target->name));
+            "DROP TABLE IF EXISTS {} CASCADE"_format(qual_name));
     }
 
     // These _tmp tables can be left behind if we run out of disk space.
-    m_sql_conn->exec("DROP TABLE IF EXISTS {}_tmp"_format(m_target->name));
+    m_sql_conn->exec("DROP TABLE IF EXISTS {}"_format(qual_tmp_name));
     m_sql_conn->exec("RESET client_min_messages");
 
     //making a new table
     if (!m_append) {
         //define the new table
         auto sql =
-            "CREATE UNLOGGED TABLE {} (osm_id int8,"_format(m_target->name);
+            "CREATE UNLOGGED TABLE {} (osm_id int8,"_format(qual_name);
 
         //first with the regular columns
         for (auto const &column : m_columns) {
@@ -118,7 +127,7 @@ void table_t::start(std::string const &conninfo, std::string const &table_space)
     else {
         //check the columns against those in the existing table
         auto const res = m_sql_conn->query(
-            PGRES_TUPLES_OK, "SELECT * FROM {} LIMIT 0"_format(m_target->name));
+            PGRES_TUPLES_OK, "SELECT * FROM {} LIMIT 0"_format(qual_name));
         for (auto const &column : m_columns) {
             if (res.get_column_number(column.name) < 0) {
                 fmt::print(stderr, "Adding new column \"{}\" to \"{}\"\n",
@@ -140,9 +149,10 @@ void table_t::start(std::string const &conninfo, std::string const &table_space)
 void table_t::prepare()
 {
     //let postgres cache this query as it will presumably happen a lot
+    auto const qual_name = qualified_name(m_target->schema, m_target->name);
     m_sql_conn->exec(
         "PREPARE get_wkb(int8) AS SELECT way FROM {} WHERE osm_id = $1"_format(
-            m_target->name));
+            qual_name));
 }
 
 void table_t::generate_copy_column_list()
@@ -177,6 +187,10 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
     // make sure that all data is written to the DB before continuing
     m_copy.sync();
 
+    auto const qual_name = qualified_name(m_target->schema, m_target->name);
+    auto const qual_tmp_name = qualified_name(
+        m_target->schema, m_target->name + "_tmp");
+
     if (!m_append) {
         util::timer_t timer;
 
@@ -188,8 +202,8 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
         m_sql_conn->exec("SET client_min_messages = WARNING");
 
         std::string sql =
-            "CREATE TABLE {0}_tmp {1} AS SELECT * FROM {0}"_format(
-                m_target->name, m_table_space);
+            "CREATE TABLE {} {} AS SELECT * FROM {}"_format(
+                qual_tmp_name, m_table_space, qual_name);
 
         if (m_srid != "4326") {
             // libosmium assures validity of geometries in 4326.
@@ -218,16 +232,16 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
 
         m_sql_conn->exec(sql);
 
-        m_sql_conn->exec("DROP TABLE {}"_format(m_target->name));
+        m_sql_conn->exec("DROP TABLE {}"_format(qual_name));
         m_sql_conn->exec(
-            "ALTER TABLE {0}_tmp RENAME TO {0}"_format(m_target->name));
+            "ALTER TABLE {} RENAME TO {}"_format(qual_tmp_name, m_target->name));
         fmt::print(stderr, "Copying {} to cluster by geometry finished\n",
                    m_target->name);
         fmt::print(stderr, "Creating geometry index on {}\n", m_target->name);
 
         // Use fillfactor 100 for un-updatable imports
         m_sql_conn->exec("CREATE INDEX ON {} USING GIST (way) {} {}"_format(
-            m_target->name, (updateable ? "" : "WITH (fillfactor = 100)"),
+            qual_name, (updateable ? "" : "WITH (fillfactor = 100)"),
             tablespace_clause(table_space_index)));
 
         /* slim mode needs this to be able to apply diffs */
@@ -235,7 +249,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
             fmt::print(stderr, "Creating osm_id index on {}\n", m_target->name);
             m_sql_conn->exec(
                 "CREATE INDEX ON {} USING BTREE (osm_id) {}"_format(
-                    m_target->name, tablespace_clause(table_space_index)));
+                    qual_name, tablespace_clause(table_space_index)));
             if (m_srid != "4326") {
                 m_sql_conn->exec(
                     "CREATE OR REPLACE FUNCTION {}_osm2pgsql_valid()\n"
@@ -263,17 +277,17 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
             if (m_hstore_mode != hstore_column::none) {
                 m_sql_conn->exec(
                     "CREATE INDEX ON {} USING GIN (tags) {}"_format(
-                        m_target->name, tablespace_clause(table_space_index)));
+                        qual_name, tablespace_clause(table_space_index)));
             }
             for (auto const &hcolumn : m_hstore_columns) {
                 m_sql_conn->exec(
                     "CREATE INDEX ON {} USING GIN (\"{}\") {}"_format(
-                        m_target->name, hcolumn,
+                        qual_name, hcolumn,
                         tablespace_clause(table_space_index)));
             }
         }
         fmt::print(stderr, "Creating indexes on {} finished\n", m_target->name);
-        m_sql_conn->exec("ANALYZE {}"_format(m_target->name));
+        m_sql_conn->exec("ANALYZE {}"_format(qual_name));
         fmt::print(stderr, "All indexes on {} created in {}s\n", m_target->name,
                    timer.stop());
     }
