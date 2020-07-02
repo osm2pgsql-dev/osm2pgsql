@@ -9,7 +9,7 @@ TEST_CASE("schema separation")
 {
     {
         auto conn = db.db().connect();
-        conn.exec("CREATE SCHEMA myschema;"
+        conn.exec("CREATE SCHEMA IF NOT EXISTS myschema;"
                   "CREATE TABLE myschema.osm2pgsql_test_point (id bigint);"
                   "CREATE TABLE myschema.osm2pgsql_test_line (id bigint);"
                   "CREATE TABLE myschema.osm2pgsql_test_polygon (id bigint);"
@@ -38,4 +38,20 @@ TEST_CASE("schema separation")
     REQUIRE(0 == conn.get_count("myschema.osm2pgsql_test_line"));
     REQUIRE(0 == conn.get_count("myschema.osm2pgsql_test_polygon"));
     REQUIRE(0 == conn.get_count("myschema.osm2pgsql_test_roads"));
+}
+
+TEST_CASE("liechtenstein slim with schema")
+{
+    options_t options = testing::opt_t().slim();
+    options.output_dbschema = "myschema";
+
+    auto conn = db.db().connect();
+    conn.exec("CREATE SCHEMA IF NOT EXISTS myschema;");
+
+    REQUIRE_NOTHROW(db.run_file(options, "liechtenstein-2013-08-03.osm.pbf"));
+
+    REQUIRE(1342 == conn.get_count("myschema.osm2pgsql_test_point"));
+    REQUIRE(3231 == conn.get_count("myschema.osm2pgsql_test_line"));
+    REQUIRE(375 == conn.get_count("myschema.osm2pgsql_test_roads"));
+    REQUIRE(4130 == conn.get_count("myschema.osm2pgsql_test_polygon"));
 }

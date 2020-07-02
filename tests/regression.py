@@ -98,6 +98,7 @@ class BaseRunner(object):
     use_lua_tagtransform = False
     import_file = None
     update_file = None
+    schema = None
 
     @classmethod
     def setUpClass(cls):
@@ -109,6 +110,8 @@ class BaseRunner(object):
             with conn.cursor() as cur:
                 for t in ('nodes', 'ways', 'rels'):
                     cur.execute("DROP TABLE IF EXISTS planet_osm_" + t)
+                if cls.schema:
+                    cur.execute("CREATE SCHEMA " + cls.schema)
 
         if cls.import_file:
             cls.run_import(cls.get_def_params() + cls.extra_params,
@@ -121,6 +124,10 @@ class BaseRunner(object):
 
     @classmethod
     def tearDownClass(cls):
+        with psycopg2.connect("dbname='{}'".format(CONFIG['test_database'])) as conn:
+            with conn.cursor() as cur:
+                if cls.schema:
+                    cur.execute("DROP SCHEMA IF EXISTS {} CASCADE".format(cls.schema))
         if BaseRunner.conn:
             BaseRunner.conn.close()
             BaseRunner.conn = None
@@ -194,6 +201,10 @@ class MultipolygonUpdateRunner(BaseRunner):
     import_file = 'test_multipolygon.osm'
     update_file = 'test_multipolygon_diff.osc'
     update = True
+
+
+class BaseUpdateRunnerWithOutputSchema(BaseUpdateRunner):
+    schema = 'osm'
 
 
 ########################################################################
@@ -751,14 +762,20 @@ class TestDBAccessConninfo(BaseUpdateRunner, unittest.TestCase,
     extra_params = ['--slim', '-d', 'dbname=' + CONFIG['test_database']]
 
 class TestDBAccessConninfoLong(BaseUpdateRunner, unittest.TestCase,
-                           PgsqlBaseTests):
+                               PgsqlBaseTests):
     extra_params = ['--slim', '--database', 'dbname=' + CONFIG['test_database']]
 
 class TestDBAccessURIPostgresql(BaseUpdateRunner, unittest.TestCase,
-                           PgsqlBaseTests):
+                                PgsqlBaseTests):
     extra_params = ['--slim', '-d', 'postgresql:///' + CONFIG['test_database']]
 
 class TestDBAccessURIPostgres(BaseUpdateRunner, unittest.TestCase,
-                           PgsqlBaseTests):
+                              PgsqlBaseTests):
     extra_params = ['--slim', '-d', 'postgres:///' + CONFIG['test_database']]
+
+# Schema tests
+
+class TestDBOutputSchema(BaseUpdateRunnerWithOutputSchema, unittest.TestCase,
+                         PgsqlBaseTests):
+    extra_params = ['--slim', '--output-pgsql-schema=osm']
 

@@ -362,6 +362,8 @@ flex backend, because they don't make sense in that context:
   `--tablespace-main-data`, `--tablespace-main-index`) are ignored by the flex
   backend, instead use the `data_tablespace` or `index_tablespace` options when
   defining your table.
+* `--output-pgsql-schema` (Use the `schema` option on the table definitions
+  instead.)
 
 ## Type conversions
 

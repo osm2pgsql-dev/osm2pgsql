@@ -52,6 +52,9 @@ static std::string build_sql(options_t const &options, char const *templ)
                                                  options.tblsslim_index};
     return fmt::format(
         templ, fmt::arg("prefix", options.prefix),
+        fmt::arg("schema", options.middle_dbschema.empty()
+                               ? ""
+                               : (options.middle_dbschema + ".")),
         fmt::arg("unlogged", options.droptemp ? "UNLOGGED" : ""),
         fmt::arg("using_tablespace", using_tablespace),
         fmt::arg("data_tablespace", tablespace_clause(options.tblsslim_data)),
@@ -66,6 +69,7 @@ middle_pgsql_t::table_desc::table_desc(options_t const &options,
   m_copy_target(std::make_shared<db_target_descr_t>())
 {
     m_copy_target->name = build_sql(options, ts.name);
+    m_copy_target->schema = options.middle_dbschema;
     m_copy_target->id = "id"; // XXX hardcoded column name
 
     // Gazetteer doesn't use mark-pending processing and consequently
@@ -96,7 +100,9 @@ void middle_pgsql_t::table_desc::stop(std::string const &conninfo,
     pg_conn_t sql_conn{conninfo};
 
     if (droptemp) {
-        sql_conn.exec("DROP TABLE {}"_format(name()));
+        auto const qual_name = qualified_name(
+            m_copy_target->schema, m_copy_target->name);
+        sql_conn.exec("DROP TABLE {}"_format(qual_name));
     } else if (build_indexes && !m_array_indexes.empty()) {
         fmt::print(stderr, "Building index on table: {}\n", name());
         sql_conn.exec(m_array_indexes);
@@ -573,8 +579,10 @@ void middle_pgsql_t::start()
         m_db_connection.exec("SET client_min_messages = WARNING");
         for (auto &table : m_tables) {
             fmt::print(stderr, "Setting up table: {}\n", table.name());
+            auto const qual_name = qualified_name(
+                table.m_copy_target->schema, table.m_copy_target->name);
             m_db_connection.exec(
-                "DROP TABLE IF EXISTS {} CASCADE"_format(table.name()));
+                "DROP TABLE IF EXISTS {} CASCADE"_format(qual_name));
             m_db_connection.exec(table.m_create);
         }
 
@@ -621,14 +629,14 @@ static table_sql sql_for_nodes() noexcept
 
     sql.name = "{prefix}_nodes";
 
-    sql.create_table = "CREATE {unlogged} TABLE {prefix}_nodes ("
+    sql.create_table = "CREATE {unlogged} TABLE {schema}{prefix}_nodes ("
                        "  id int8 PRIMARY KEY {using_tablespace},"
                        "  lat int4 NOT NULL,"
                        "  lon int4 NOT NULL"
                        ") {data_tablespace};\n";
 
     sql.prepare_query = "PREPARE get_node_list(int8[]) AS"
-                        "  SELECT id, lon, lat FROM {prefix}_nodes"
+                        "  SELECT id, lon, lat FROM {schema}{prefix}_nodes"
                         "  WHERE id = ANY($1::int8[]);\n";
 
     return sql;
@@ -641,7 +649,7 @@ static table_sql sql_for_ways(bool has_bucket_index,
 
     sql.name = "{prefix}_ways";
 
-    sql.create_table = "CREATE {unlogged} TABLE {prefix}_ways ("
+    sql.create_table = "CREATE {unlogged} TABLE {schema}{prefix}_ways ("
                        "  id int8 PRIMARY KEY {using_tablespace},"
                        "  nodes int8[] NOT NULL,"
                        "  tags text[]"
@@ -649,36 +657,39 @@ static table_sql sql_for_ways(bool has_bucket_index,
 
     sql.prepare_query = "PREPARE get_way(int8) AS"
                         "  SELECT nodes, tags"
-                        "    FROM {prefix}_ways WHERE id = $1;\n"
+                        "    FROM {schema}{prefix}_ways WHERE id = $1;\n"
                         "PREPARE get_way_list(int8[]) AS"
                         "  SELECT id, nodes, tags"
-                        "    FROM {prefix}_ways WHERE id = ANY($1::int8[]);\n";
+                        "    FROM {schema}{prefix}_ways"
+                        "      WHERE id = ANY($1::int8[]);\n";
 
     if (has_bucket_index) {
-        sql.prepare_mark = "PREPARE mark_ways_by_node(int8) AS"
-                           "  SELECT id FROM {prefix}_ways w"
-                           "    WHERE $1 = ANY(nodes)"
-                           "      AND {prefix}_index_bucket(w.nodes)"
-                           "       && {prefix}_index_bucket(ARRAY[$1]);\n";
+        sql.prepare_mark =
+            "PREPARE mark_ways_by_node(int8) AS"
+            "  SELECT id FROM {schema}{prefix}_ways w"
+            "    WHERE $1 = ANY(nodes)"
+            "      AND {schema}{prefix}_index_bucket(w.nodes)"
+            "       && {schema}{prefix}_index_bucket(ARRAY[$1]);\n";
     } else {
         sql.prepare_mark = "PREPARE mark_ways_by_node(int8) AS"
-                           "  SELECT id FROM {prefix}_ways"
+                           "  SELECT id FROM {schema}{prefix}_ways"
                            "    WHERE nodes && ARRAY[$1];\n";
     }
 
     if (way_node_index_id_shift == 0) {
-        sql.create_index = "CREATE INDEX ON {prefix}_ways USING GIN (nodes)"
-                           "  WITH (fastupdate = off) {index_tablespace};\n";
+        sql.create_index =
+            "CREATE INDEX ON {schema}{prefix}_ways USING GIN (nodes)"
+            "  WITH (fastupdate = off) {index_tablespace};\n";
     } else {
         sql.create_index = "CREATE OR REPLACE FUNCTION"
-                           "    {prefix}_index_bucket(int8[])"
+                           "    {schema}{prefix}_index_bucket(int8[])"
                            "  RETURNS int8[] AS $$\n"
                            "  SELECT ARRAY(SELECT DISTINCT"
                            "    unnest($1) >> {way_node_index_id_shift})\n"
                            "$$ LANGUAGE SQL IMMUTABLE;\n"
-                           "CREATE INDEX {prefix}_ways_nodes_bucket_idx"
-                           "  ON {prefix}_ways"
-                           "  USING GIN ({prefix}_index_bucket(nodes))"
+                           "CREATE INDEX {schema}{prefix}_ways_nodes_bucket_idx"
+                           "  ON {schema}{prefix}_ways"
+                           "  USING GIN ({schema}{prefix}_index_bucket(nodes))"
                            "  WITH (fastupdate = off) {index_tablespace};\n";
     }
 
@@ -691,7 +702,7 @@ static table_sql sql_for_relations() noexcept
 
     sql.name = "{prefix}_rels";
 
-    sql.create_table = "CREATE {unlogged} TABLE {prefix}_rels ("
+    sql.create_table = "CREATE {unlogged} TABLE {schema}{prefix}_rels ("
                        "  id int8 PRIMARY KEY {using_tablespace},"
                        "  way_off int2,"
                        "  rel_off int2,"
@@ -702,18 +713,18 @@ static table_sql sql_for_relations() noexcept
 
     sql.prepare_query = "PREPARE get_rel(int8) AS"
                         "  SELECT members, tags"
-                        "    FROM {prefix}_rels WHERE id = $1;\n";
+                        "    FROM {schema}{prefix}_rels WHERE id = $1;\n";
 
     sql.prepare_mark = "PREPARE mark_rels_by_node(int8) AS"
-                       "  SELECT id FROM {prefix}_rels"
+                       "  SELECT id FROM {schema}{prefix}_rels"
                        "    WHERE parts && ARRAY[$1]"
                        "      AND parts[1:way_off] && ARRAY[$1];\n"
                        "PREPARE mark_rels_by_way(int8) AS"
-                       "  SELECT id FROM {prefix}_rels"
+                       "  SELECT id FROM {schema}{prefix}_rels"
                        "    WHERE parts && ARRAY[$1]"
                        "      AND parts[way_off+1:rel_off] && ARRAY[$1];\n";
 
-    sql.create_index = "CREATE INDEX ON {prefix}_rels USING GIN (parts)"
+    sql.create_index = "CREATE INDEX ON {schema}{prefix}_rels USING GIN (parts)"
                        "  WITH (fastupdate = off) {index_tablespace};\n";
 
     return sql;
