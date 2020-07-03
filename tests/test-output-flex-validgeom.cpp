@@ -5,18 +5,16 @@
 
 static testing::db::import_t db;
 
-TEST_CASE("no invalid geometries")
+static char const *const conf_file = "test_output_flex_area.lua";
+static char const *const data_file = "test_output_pgsql_validgeom.osm";
+
+TEST_CASE("no invalid geometries should end up in the database")
 {
-    REQUIRE_NOTHROW(
-        db.run_file(testing::opt_t().slim().flex("test_output_flex.lua"),
-                    "test_output_pgsql_validgeom.osm"));
+    options_t const options = testing::opt_t().flex(conf_file);
+
+    REQUIRE_NOTHROW(db.run_file(options, data_file));
 
     auto conn = db.db().connect();
-
-    conn.require_has_table("osm2pgsql_test_point");
-    conn.require_has_table("osm2pgsql_test_line");
-    conn.require_has_table("osm2pgsql_test_polygon");
-    conn.require_has_table("osm2pgsql_test_route");
 
     REQUIRE(12 == conn.get_count("osm2pgsql_test_polygon"));
     REQUIRE(0 ==

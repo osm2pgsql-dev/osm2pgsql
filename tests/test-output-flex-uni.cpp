@@ -5,11 +5,13 @@
 
 static testing::db::import_t db;
 
+static char const *const conf_file = "test_output_flex_uni.lua";
+
 struct options_slim_default
 {
     static options_t options()
     {
-        return testing::opt_t().slim().flex("test_output_flex_uni.lua");
+        return testing::opt_t().slim().flex(conf_file);
     }
 };
 
@@ -137,8 +139,6 @@ TEMPLATE_TEST_CASE("ways as linestrings and polygons", "", options_slim_default,
     auto conn = db.db().connect();
 
     REQUIRE(0 == conn.get_count("osm2pgsql_test_data", "osm_type != 'W'"));
-    //    REQUIRE(0 == conn.get_count("osm2pgsql_test_line"));
-    //    REQUIRE(1 == conn.get_count("osm2pgsql_test_polygon"));
     REQUIRE(
         1 ==
         conn.get_count(

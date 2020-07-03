@@ -36,18 +36,6 @@ tables.route = osm2pgsql.define_table{
     }
 }
 
-function is_empty(some_table)
-    return next(some_table) == nil
-end
-
-function clean_tags(tags)
-    tags.odbl = nil
-    tags.created_by = nil
-    tags.source = nil
-    tags['source:ref'] = nil
-    tags['source:name'] = nil
-end
-
 function is_polygon(tags)
     if tags.aeroway
         or tags.amenity
@@ -83,55 +71,60 @@ function is_polygon(tags)
     end
 end
 
-function osm2pgsql.process_node(data)
-    clean_tags(data.tags)
-    if is_empty(data.tags) then
+local delete_keys = {
+    'odbl',
+    'created_by',
+    'source'
+}
+
+local clean_tags = osm2pgsql.make_clean_tags_func(delete_keys)
+
+function osm2pgsql.process_node(object)
+    if clean_tags(object.tags) then
         return
     end
 
     tables.point:add_row({
-        tags = data.tags
+        tags = object.tags
     })
 end
 
-function osm2pgsql.process_way(data)
-    clean_tags(data.tags)
-    if is_empty(data.tags) then
+function osm2pgsql.process_way(object)
+    if clean_tags(object.tags) then
         return
     end
 
-    if is_polygon(data.tags) then
+    if is_polygon(object.tags) then
         tables.polygon:add_row({
-            tags = data.tags,
-            name = data.tags.name,
+            tags = object.tags,
+            name = object.tags.name,
             geom = { create = 'area' }
         })
     else
         tables.line:add_row({
-            tags = data.tags,
-            name = data.tags.name
+            tags = object.tags,
+            name = object.tags.name
         })
     end
 end
 
-function osm2pgsql.process_relation(data)
-    clean_tags(data.tags)
-    if is_empty(data.tags) then
+function osm2pgsql.process_relation(object)
+    if clean_tags(object.tags) then
         return
     end
 
-    if data.tags.type == 'multipolygon' or data.tags.type == 'boundary' then
+    if object.tags.type == 'multipolygon' or object.tags.type == 'boundary' then
         tables.polygon:add_row({
-            tags = data.tags,
-            name = data.tags.name,
+            tags = object.tags,
+            name = object.tags.name,
             geom = { create = 'area', multi = false }
         })
         return
     end
 
-    if data.tags.type == 'route' then
+    if object.tags.type == 'route' then
         tables.route:add_row({
-            tags = data.tags,
+            tags = object.tags,
             geom = { create = 'line' }
         })
     end

@@ -5,14 +5,9 @@
 
 static testing::db::import_t db;
 
-static void require_tables(pg::conn_t const &conn)
-{
-    conn.require_has_table("osm2pgsql_test_point");
-    conn.require_has_table("osm2pgsql_test_line");
-    conn.require_has_table("osm2pgsql_test_polygon");
-}
+static char const *const conf_file = "test_output_flex.lua";
 
-TEST_CASE("simple import with tables spaces")
+TEST_CASE("simple import with tablespaces for middle")
 {
     {
         auto conn = db.db().connect();
@@ -20,14 +15,17 @@ TEST_CASE("simple import with tables spaces")
                 conn.get_count("pg_tablespace", "spcname = 'tablespacetest'"));
     }
 
-    options_t options = testing::opt_t().slim().flex("test_output_flex.lua");
+    options_t options = testing::opt_t().slim().flex(conf_file);
     options.tblsslim_index = "tablespacetest";
     options.tblsslim_data = "tablespacetest";
 
     REQUIRE_NOTHROW(db.run_file(options, "liechtenstein-2013-08-03.osm.pbf"));
 
     auto conn = db.db().connect();
-    require_tables(conn);
+
+    conn.require_has_table("osm2pgsql_test_point");
+    conn.require_has_table("osm2pgsql_test_line");
+    conn.require_has_table("osm2pgsql_test_polygon");
 
     REQUIRE(1362 == conn.get_count("osm2pgsql_test_point"));
     REQUIRE(2932 == conn.get_count("osm2pgsql_test_line"));
