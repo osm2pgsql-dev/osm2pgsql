@@ -124,8 +124,6 @@ void osmdata_t::relation_modify(osmium::Relation const &rel) const
     for (auto &out : m_outs) {
         out->relation_modify(rel);
     }
-
-    m_dependency_manager->relation_changed(rel.id());
 }
 
 void osmdata_t::node_delete(osmid_t id) const
@@ -153,8 +151,6 @@ void osmdata_t::relation_delete(osmid_t id) const
     }
 
     slim_middle().relation_delete(id);
-
-    m_dependency_manager->relation_deleted(id);
 }
 
 void osmdata_t::start() const

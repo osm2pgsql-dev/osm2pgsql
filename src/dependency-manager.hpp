@@ -41,20 +41,6 @@ public:
      */
     virtual void way_changed(osmid_t) {}
 
-    /**
-     * Mark a relation as changed to trigger the propagation of this change to
-     * other relations.
-     *
-     * This has to be called *after* the object was stored in the object store.
-     */
-    virtual void relation_changed(osmid_t) {}
-
-    /**
-     * Mark a relation as deleted to trigger the propagation of this change to
-     * the way members.
-     */
-    virtual void relation_deleted(osmid_t) {}
-
     /// Are there pending objects that need to be processed?
     virtual bool has_pending() const noexcept { return false; }
 
@@ -97,8 +83,6 @@ public:
 
     void node_changed(osmid_t id) override;
     void way_changed(osmid_t id) override;
-    void relation_changed(osmid_t id) override;
-    void relation_deleted(osmid_t id) override;
 
     bool has_pending() const noexcept override;
 

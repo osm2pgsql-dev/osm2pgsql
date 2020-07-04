@@ -523,3 +523,35 @@ TEST_CASE("relation data on ways: change relation (three rels)")
     CHECK(1 == conn.get_count("osm2pgsql_test_routes", "members = '21,22'"));
     CHECK(1 == conn.get_count("osm2pgsql_test_routes", "members = '22'"));
 }
+
+TEST_CASE("relation data on ways: delete relation")
+{
+    options_t options = testing::opt_t()
+                            .slim()
+                            .flex("test_output_flex_stage2_alt.lua")
+                            .srs(PROJ_LATLONG);
+
+    // create database with a way and two relations on it
+    REQUIRE_NOTHROW(db.run_import(options,
+                                  "n10 v1 dV x10.0 y10.0\n"
+                                  "n11 v1 dV x10.0 y10.2\n"
+                                  "n12 v1 dV x10.2 y10.2\n"
+                                  "w20 v1 dV Thighway=primary Nn10,n11,n12\n"
+                                  "r30 v1 dV Ttype=route,ref=Y11 Mw20@\n"
+                                  "r31 v1 dV Ttype=something Mw20@\n"));
+
+    auto conn = db.db().connect();
+
+    CHECK(1 == conn.get_count("osm2pgsql_test_highways"));
+    CHECK(1 == conn.get_count("osm2pgsql_test_routes"));
+    CHECK(1 == conn.get_count("osm2pgsql_test_highways", "refs = 'Y11'"));
+
+    options.append = true;
+
+    // delete the non-route relation
+    REQUIRE_NOTHROW(db.run_import(options, "r31 v2 dD\n"));
+
+    CHECK(1 == conn.get_count("osm2pgsql_test_highways"));
+    CHECK(1 == conn.get_count("osm2pgsql_test_routes"));
+    CHECK(1 == conn.get_count("osm2pgsql_test_highways", "refs = 'Y11'"));
+}
