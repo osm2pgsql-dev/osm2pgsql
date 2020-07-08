@@ -407,7 +407,7 @@ function as_bool(value)
 end
 
 function get_z_order(tags)
-    local z_order = 100 * math.floor(tonumber(tags.layer or '0'))
+    local z_order = 100 * math.floor(tonumber(tags.layer or '0') or 0)
     local roads = false
 
     local highway = tags['highway']
