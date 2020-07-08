@@ -1,7 +1,7 @@
 
 -- Put all OSM data into a single table
 
-inspect = require('inspect')
+-- inspect = require('inspect')
 
 -- We define a single table that can take any OSM object and any geometry.
 -- XXX expire will currently not work on these tables.
@@ -17,7 +17,7 @@ local dtable = osm2pgsql.define_table{
     }
 }
 
-print("columns=" .. inspect(dtable:columns()))
+-- print("columns=" .. inspect(dtable:columns()))
 
 -- Helper function to remove some of the tags we usually are not interested in.
 -- Returns true if there are no tags left.
