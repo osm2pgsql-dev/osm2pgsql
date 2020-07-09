@@ -25,7 +25,8 @@ static const char *const tdata[] = {
     "w15 v1 dV Tt=ag Nn17,n19",
     "r30 v1 dV Tt=ag Mw10@,w11@,w12@mark,w13@,w14@mark"};
 
-// adding relation (marked)
+// adding relation (marked), also check case where relation changed to contain
+// the way under test
 
 TEST_CASE("test way: add relation with way in t1 (marked)")
 {
@@ -130,14 +131,20 @@ TEST_CASE("test way: add relation with way in t1 and t2 (marked)")
     CHECK(0 == conn.get_count("osm2pgsql_test_tboth", "way_id = 10"));
 }
 
-TEST_CASE("test way: add relation with way in tboth stage 1 (marked)")
+TEST_CASE("test way: add (to) relation with way in tboth stage 1 (marked)")
 {
     options_t options = testing::opt_t().slim().flex(conf_file);
 
     testing::data_t data{tdata};
 
     data.add("w10 v1 dV Ttboth=yes Nn10,n11");
-    data.add("r31 v1 dV Tt=ag Mw10@");
+
+    SECTION("adding relation") {
+        data.add("r31 v1 dV Tt=ag Mw10@");
+    }
+    SECTION("changing relation") {
+        data.add("r32 v1 dV Tt=ag Mw10@,w15@");
+    }
 
     REQUIRE_NOTHROW(db.run_import(options, data()));
 
@@ -202,7 +209,8 @@ TEST_CASE("test way: add relation with way in tboth stage 2 (marked)")
                               "way_id = 10 AND rel_ids = '{31,32}'"));
 }
 
-// adding relation (not marked)
+// adding relation (not marked), also check case where relation changed to
+// contain the way under test
 
 TEST_CASE("test way: add relation with way in t1 (not marked)")
 {

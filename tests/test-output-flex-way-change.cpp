@@ -145,66 +145,6 @@ TEST_CASE("change way from t1 and t2")
     CHECK(2 == conn.get_count("osm2pgsql_test_tboth"));
 }
 
-TEST_CASE("change tboth with stage2 to tboth without stage2")
-{
-    options_t options = testing::opt_t().slim().flex(conf_file);
-
-    testing::data_t data{tdata};
-    data.add({"w10 v1 dV Ttboth=yes Nn10,n11",
-              "r30 v1 dV Tt=ag Mw10@mark,w11@,w12@mark,w13@,w14@mark"});
-
-    REQUIRE_NOTHROW(db.run_import(options, data()));
-
-    auto conn = db.db().connect();
-
-    CHECK(1 == conn.get_count("osm2pgsql_test_t1"));
-    CHECK(1 == conn.get_count("osm2pgsql_test_t2"));
-    CHECK(3 == conn.get_count("osm2pgsql_test_tboth"));
-    CHECK(1 == conn.get_count("osm2pgsql_test_tboth",
-                              "way_id = 10 AND rel_ids = '{30}'"));
-
-    options.append = true;
-
-    REQUIRE_NOTHROW(db.run_import(
-        options, "r30 v2 dV Tt=ag Mw10@,w11@,w12@mark,w13@,w14@mark"));
-
-    CHECK(1 == conn.get_count("osm2pgsql_test_t1"));
-    CHECK(1 == conn.get_count("osm2pgsql_test_t2"));
-    CHECK(3 == conn.get_count("osm2pgsql_test_tboth"));
-    CHECK(1 == conn.get_count("osm2pgsql_test_tboth",
-                              "way_id = 10 AND rel_ids IS NULL"));
-}
-
-TEST_CASE("change tboth without stage2 to tboth with stage2")
-{
-    options_t options = testing::opt_t().slim().flex(conf_file);
-
-    testing::data_t data{tdata};
-    data.add({"w10 v1 dV Ttboth=yes Nn10,n11",
-              "r30 v1 dV Tt=ag Mw10@,w11@,w12@mark,w13@,w14@mark"});
-
-    REQUIRE_NOTHROW(db.run_import(options, data()));
-
-    auto conn = db.db().connect();
-
-    CHECK(1 == conn.get_count("osm2pgsql_test_t1"));
-    CHECK(1 == conn.get_count("osm2pgsql_test_t2"));
-    CHECK(3 == conn.get_count("osm2pgsql_test_tboth"));
-    CHECK(1 == conn.get_count("osm2pgsql_test_tboth",
-                              "way_id = 10 AND rel_ids IS NULL"));
-
-    options.append = true;
-
-    REQUIRE_NOTHROW(db.run_import(
-        options, "r30 v2 dV Tt=ag Mw10@mark,w11@,w12@mark,w13@,w14@mark"));
-
-    CHECK(1 == conn.get_count("osm2pgsql_test_t1"));
-    CHECK(1 == conn.get_count("osm2pgsql_test_t2"));
-    CHECK(3 == conn.get_count("osm2pgsql_test_tboth"));
-    CHECK(1 == conn.get_count("osm2pgsql_test_tboth",
-                              "way_id = 10 AND rel_ids = '{30}'"));
-}
-
 TEST_CASE("change valid geom to invalid geom")
 {
     options_t options = testing::opt_t().slim().flex(conf_file);
@@ -219,6 +159,8 @@ TEST_CASE("change valid geom to invalid geom")
 
     CHECK(2 == conn.get_count("osm2pgsql_test_t1"));
     CHECK(2 == conn.get_count("osm2pgsql_test_t2"));
+    CHECK(1 == conn.get_count("osm2pgsql_test_t2",
+                              "way_id = 10 AND rel_ids = '{30}'"));
     CHECK(3 == conn.get_count("osm2pgsql_test_tboth"));
     CHECK(1 == conn.get_count("osm2pgsql_test_tboth",
                               "way_id = 10 AND rel_ids = '{30}'"));
@@ -238,9 +180,9 @@ TEST_CASE("change valid geom to invalid geom")
 
     CHECK(1 == conn.get_count("osm2pgsql_test_t1"));
     CHECK(1 == conn.get_count("osm2pgsql_test_t2"));
+    CHECK(0 == conn.get_count("osm2pgsql_test_t2", "way_id = 10"));
     CHECK(2 == conn.get_count("osm2pgsql_test_tboth"));
-    CHECK(0 == conn.get_count("osm2pgsql_test_tboth",
-                              "way_id = 10 AND rel_ids = '{30}'"));
+    CHECK(0 == conn.get_count("osm2pgsql_test_tboth", "way_id = 10"));
 }
 
 TEST_CASE("change invalid geom to valid geom")
@@ -257,9 +199,9 @@ TEST_CASE("change invalid geom to valid geom")
 
     CHECK(1 == conn.get_count("osm2pgsql_test_t1"));
     CHECK(1 == conn.get_count("osm2pgsql_test_t2"));
+    CHECK(0 == conn.get_count("osm2pgsql_test_t2", "way_id = 10"));
     CHECK(2 == conn.get_count("osm2pgsql_test_tboth"));
-    CHECK(0 == conn.get_count("osm2pgsql_test_tboth",
-                              "way_id = 10 AND rel_ids = '{30}'"));
+    CHECK(0 == conn.get_count("osm2pgsql_test_tboth", "way_id = 10"));
 
     options.append = true;
 
@@ -268,6 +210,8 @@ TEST_CASE("change invalid geom to valid geom")
 
     CHECK(2 == conn.get_count("osm2pgsql_test_t1"));
     CHECK(2 == conn.get_count("osm2pgsql_test_t2"));
+    CHECK(1 == conn.get_count("osm2pgsql_test_t2",
+                              "way_id = 10 AND rel_ids = '{30}'"));
     CHECK(3 == conn.get_count("osm2pgsql_test_tboth"));
     CHECK(1 == conn.get_count("osm2pgsql_test_tboth",
                               "way_id = 10 AND rel_ids = '{30}'"));
