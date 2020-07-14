@@ -149,10 +149,10 @@ script:
   - make -j2
   - echo "Running tests ... "
   - if [[ $TEST_NODB ]]; then
-      ctest -VV -L NoDB;
+      ctest --output-on-failure -L NoDB;
     else
       for PG_VERSION in $PG_VERSIONS; do
-        pg_virtualenv -v $PG_VERSION ctest -VV;
+        pg_virtualenv -v $PG_VERSION ctest --output-on-failure;
         if [[ $? -ne "0" ]]; then exit 2; fi
       done
     fi
