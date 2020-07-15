@@ -5,6 +5,7 @@
 #include <osmium/io/any_input.hpp>
 #include <osmium/io/file.hpp>
 #include <osmium/io/reader.hpp>
+#include <osmium/osm/types_from_string.hpp>
 #include <osmium/visitor.hpp>
 
 #include "dependency-manager.hpp"
@@ -17,6 +18,11 @@
 #include "taginfo-impl.hpp"
 
 #include "common-pg.hpp"
+
+#include <algorithm>
+#include <iterator>
+#include <string>
+#include <vector>
 
 namespace testing {
 
@@ -41,6 +47,69 @@ inline void parse_file(options_t const &options,
 
     osmdata.stop();
 }
+
+/**
+ * This is used as a helper to assemble OSM objects into an OPL file which
+ * can later be used as input for testing.
+ */
+class data_t
+{
+public:
+    data_t() = default;
+
+    template <typename CONTAINER>
+    data_t(CONTAINER const &objects)
+    {
+        std::copy(std::begin(objects), std::end(objects),
+                  std::back_inserter(m_objects));
+    }
+
+    void add(char const *object) { m_objects.emplace_back(object); }
+
+    template <typename CONTAINER>
+    void add(CONTAINER const &objects)
+    {
+        std::copy(std::begin(objects), std::end(objects),
+                  std::back_inserter(m_objects));
+    }
+
+    void add(std::initializer_list<const char *> const &objects)
+    {
+        std::copy(std::begin(objects), std::end(objects),
+                  std::back_inserter(m_objects));
+    }
+
+    const char *operator()()
+    {
+        std::sort(m_objects.begin(), m_objects.end(),
+                  [](std::string const &a, std::string const &b) {
+                      return get_type_id(a) < get_type_id(b);
+                  });
+
+        m_result.clear();
+        for (auto const &obj : m_objects) {
+            assert(!obj.empty());
+            m_result.append(obj);
+            if (m_result.back() != '\n') {
+                m_result += '\n';
+            }
+        }
+
+        return m_result.c_str();
+    }
+
+private:
+    static std::pair<osmium::item_type, osmium::object_id_type>
+    get_type_id(std::string const &str)
+    {
+        std::string ti(str, 0, str.find(' '));
+        return osmium::string_to_object_id(ti.c_str(),
+                                           osmium::osm_entity_bits::nwr);
+    }
+
+    std::vector<std::string> m_objects;
+    std::string m_result;
+};
 
 namespace db {
 

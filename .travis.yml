@@ -18,8 +18,18 @@ matrix:
     - os: linux
       dist: bionic
       compiler: gcc-8
-      env: T="bionic_gcc8_all_luajit_release"
-           PG_VERSIONS="9.3 9.4 9.5 9.6 10 11 12"
+      env: T="bionic_gcc8_all_9_luajit_release"
+           PG_VERSIONS="9.3 9.4 9.5 9.6"
+           LUA_VERSION=5.3
+           BUILD_TYPE="Release" LUAJIT_OPTION="ON"
+           CXXFLAGS="-pedantic -Wextra -Werror"
+           CC=gcc-8 CXX=g++-8 CPPVERSION=14
+
+    - os: linux
+      dist: bionic
+      compiler: gcc-8
+      env: T="bionic_gcc8_all_10+_luajit_release"
+           PG_VERSIONS="10 11 12"
            LUA_VERSION=5.3
            BUILD_TYPE="Release" LUAJIT_OPTION="ON"
            CXXFLAGS="-pedantic -Wextra -Werror"
@@ -149,10 +159,10 @@ script:
   - make -j2
   - echo "Running tests ... "
   - if [[ $TEST_NODB ]]; then
-      ctest -VV -L NoDB;
+      ctest --output-on-failure -L NoDB;
     else
       for PG_VERSION in $PG_VERSIONS; do
-        pg_virtualenv -v $PG_VERSION ctest -VV;
+        pg_virtualenv -v $PG_VERSION ctest --output-on-failure;
         if [[ $? -ne "0" ]]; then exit 2; fi
       done
     fi
