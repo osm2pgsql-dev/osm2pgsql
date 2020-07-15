@@ -11,6 +11,7 @@
 #include <osmium/io/any_input.hpp>
 #include <osmium/visitor.hpp>
 
+#include "check-order.hpp"
 #include "db-copy.hpp"
 #include "format.hpp"
 #include "input-handler.hpp"
@@ -375,9 +376,10 @@ progress_display_t osmdata_t::process_file(osmium::io::File const &file,
     fmt::print(stderr, "Using {} parser.\n",
                osmium::io::as_string(file.format()));
 
+    check_order_t check_order{};
     input_handler_t handler{bbox, m_append, this};
     osmium::io::Reader reader{file};
-    osmium::apply(reader, handler);
+    osmium::apply(reader, check_order, handler);
     reader.close();
 
     return handler.progress();
