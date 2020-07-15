@@ -9,8 +9,24 @@ input_handler_t::input_handler_t(osmium::Box const &bbox, bool append,
 : m_data(osmdata), m_bbox(bbox), m_append(append)
 {}
 
+void input_handler_t::negative_id_warning()
+{
+    fmt::print(
+        stderr,
+        "\nWARNING: The input file contains at least one object with a\n"
+        "         negative id. Negative ids are not properly supported\n"
+        "         in osm2pgsql (and never were). They will not work in\n"
+        "         future versions at all. You can use the osmium tool to\n"
+        "         'renumber' your file.\n\n");
+    m_issued_warning_negative_id = true;
+}
+
 void input_handler_t::node(osmium::Node const &node)
 {
+    if (node.id() < 0 && !m_issued_warning_negative_id) {
+        negative_id_warning();
+    }
+
     if (m_type != osmium::item_type::node) {
         m_type = osmium::item_type::node;
         m_data->flush();
@@ -50,6 +66,10 @@ void input_handler_t::node(osmium::Node const &node)
 
 void input_handler_t::way(osmium::Way &way)
 {
+    if (way.id() < 0 && !m_issued_warning_negative_id) {
+        negative_id_warning();
+    }
+
     if (m_type != osmium::item_type::way) {
         m_type = osmium::item_type::way;
         m_data->flush();
@@ -73,6 +93,10 @@ void input_handler_t::way(osmium::Way &way)
 
 void input_handler_t::relation(osmium::Relation const &rel)
 {
+    if (rel.id() < 0 && !m_issued_warning_negative_id) {
+        negative_id_warning();
+    }
+
     if (m_type != osmium::item_type::relation) {
         m_type = osmium::item_type::relation;
         m_data->flush();
