@@ -37,7 +37,11 @@ TEST_CASE("test way: add relation with way in t1 (marked)")
     data.add("w10 v1 dV Tt1=yes,t2=yes Nn10,n11");
 
     SECTION("no relation") {}
-    SECTION("relation without w10") { data.add("r32 v1 dV Tt=ag Mw15@"); }
+
+    SECTION("relation without w10")
+    {
+        data.add("r32 v1 dV Tt=ag Mw11@,w12@,w13@,w14@,w15@");
+    }
 
     REQUIRE_NOTHROW(db.run_import(options, data()));
 
@@ -52,7 +56,8 @@ TEST_CASE("test way: add relation with way in t1 (marked)")
 
     options.append = true;
 
-    REQUIRE_NOTHROW(db.run_import(options, "r32 v2 dV Tt=ag Mw10@mark,w15@\n"));
+    REQUIRE_NOTHROW(db.run_import(
+        options, "r32 v2 dV Tt=ag Mw10@mark,w11@,w12@,w13@,w14@,w15@\n"));
 
     CHECK(2 == conn.get_count("osm2pgsql_test_t1"));
     CHECK(1 == conn.get_count("osm2pgsql_test_t1", "way_id = 10"));
@@ -70,7 +75,7 @@ TEST_CASE("test way: add relation with way in t2 (marked)")
     testing::data_t data{tdata};
 
     data.add("w10 v1 dV Tt2=yes Nn10,n11");
-    data.add("r31 v1 dV Tt=ag Mw10@mark");
+    data.add("r31 v1 dV Tt=ag Mw10@mark,w11@,w12@,w13@,w14@");
 
     REQUIRE_NOTHROW(db.run_import(options, data()));
 
@@ -86,7 +91,8 @@ TEST_CASE("test way: add relation with way in t2 (marked)")
 
     options.append = true;
 
-    REQUIRE_NOTHROW(db.run_import(options, "r32 v2 dV Tt=ag Mw10@mark,w15@\n"));
+    REQUIRE_NOTHROW(db.run_import(
+        options, "r32 v2 dV Tt=ag Mw10@mark,w11@,w12@,w13@,w14@,w15@\n"));
 
     CHECK(1 == conn.get_count("osm2pgsql_test_t1"));
     CHECK(0 == conn.get_count("osm2pgsql_test_t1", "way_id = 10"));
@@ -104,7 +110,7 @@ TEST_CASE("test way: add relation with way in t1 and t2 (marked)")
     testing::data_t data{tdata};
 
     data.add("w10 v1 dV Tt1=yes,t2=yes Nn10,n11");
-    data.add("r31 v1 dV Tt=ag Mw10@mark");
+    data.add("r31 v1 dV Tt=ag Mw10@mark,w11@,w12@,w13@,w14@");
 
     REQUIRE_NOTHROW(db.run_import(options, data()));
 
@@ -120,7 +126,8 @@ TEST_CASE("test way: add relation with way in t1 and t2 (marked)")
 
     options.append = true;
 
-    REQUIRE_NOTHROW(db.run_import(options, "r32 v2 dV Tt=ag Mw10@mark,w15@\n"));
+    REQUIRE_NOTHROW(db.run_import(
+        options, "r32 v2 dV Tt=ag Mw10@mark,w11@,w12@,w13@,w14@,w15@\n"));
 
     CHECK(2 == conn.get_count("osm2pgsql_test_t1"));
     CHECK(1 == conn.get_count("osm2pgsql_test_t1", "way_id = 10"));
@@ -139,11 +146,14 @@ TEST_CASE("test way: add (to) relation with way in tboth stage 1 (marked)")
 
     data.add("w10 v1 dV Ttboth=yes Nn10,n11");
 
-    SECTION("adding relation") {
-        data.add("r31 v1 dV Tt=ag Mw10@");
+    SECTION("adding relation")
+    {
+        data.add("r31 v1 dV Tt=ag Mw10@,w11@,w12@,w13@,w14@");
     }
-    SECTION("changing relation") {
-        data.add("r32 v1 dV Tt=ag Mw10@,w15@");
+
+    SECTION("changing relation")
+    {
+        data.add("r32 v1 dV Tt=ag Mw10@,w11@,w12@,w13@,w14@,w15@");
     }
 
     REQUIRE_NOTHROW(db.run_import(options, data()));
@@ -161,7 +171,8 @@ TEST_CASE("test way: add (to) relation with way in tboth stage 1 (marked)")
 
     options.append = true;
 
-    REQUIRE_NOTHROW(db.run_import(options, "r32 v2 dV Tt=ag Mw10@mark,w15@\n"));
+    REQUIRE_NOTHROW(db.run_import(
+        options, "r32 v2 dV Tt=ag Mw10@mark,w11@,w12@,w13@,w14@,w15@\n"));
 
     CHECK(1 == conn.get_count("osm2pgsql_test_t1"));
     CHECK(0 == conn.get_count("osm2pgsql_test_t1", "way_id = 10"));
@@ -180,7 +191,7 @@ TEST_CASE("test way: add relation with way in tboth stage 2 (marked)")
     testing::data_t data{tdata};
 
     data.add("w10 v1 dV Ttboth=yes Nn10,n11");
-    data.add("r31 v1 dV Tt=ag Mw10@mark");
+    data.add("r31 v1 dV Tt=ag Mw10@mark,w11@,w12@,w13@,w14@");
 
     REQUIRE_NOTHROW(db.run_import(options, data()));
 
@@ -197,7 +208,8 @@ TEST_CASE("test way: add relation with way in tboth stage 2 (marked)")
 
     options.append = true;
 
-    REQUIRE_NOTHROW(db.run_import(options, "r32 v2 dV Tt=ag Mw10@mark,w15@\n"));
+    REQUIRE_NOTHROW(db.run_import(
+        options, "r32 v2 dV Tt=ag Mw10@mark,w11@,w12@,w13@,w14@,w15@\n"));
 
     CHECK(1 == conn.get_count("osm2pgsql_test_t1"));
     CHECK(0 == conn.get_count("osm2pgsql_test_t1", "way_id = 10"));
@@ -221,7 +233,11 @@ TEST_CASE("test way: add relation with way in t1 (not marked)")
     data.add("w10 v1 dV Tt1=yes,t2=yes Nn10,n11");
 
     SECTION("no relation") {}
-    SECTION("relation without w10") { data.add("r32 v1 dV Tt=ag Mw15@"); }
+
+    SECTION("relation without w10")
+    {
+        data.add("r32 v1 dV Tt=ag Mw11@,w12@,w13@,w14@,w15@");
+    }
 
     REQUIRE_NOTHROW(db.run_import(options, data()));
 
@@ -236,7 +252,8 @@ TEST_CASE("test way: add relation with way in t1 (not marked)")
 
     options.append = true;
 
-    REQUIRE_NOTHROW(db.run_import(options, "r32 v2 dV Tt=ag Mw10@,w15@\n"));
+    REQUIRE_NOTHROW(db.run_import(
+        options, "r32 v2 dV Tt=ag Mw10@,w11@,w12@,w13@,w14@,w15@\n"));
 
     CHECK(2 == conn.get_count("osm2pgsql_test_t1"));
     CHECK(1 == conn.get_count("osm2pgsql_test_t1", "way_id = 10"));
@@ -253,7 +270,7 @@ TEST_CASE("test way: add relation with way in t2 (not marked)")
     testing::data_t data{tdata};
 
     data.add("w10 v1 dV Tt2=yes Nn10,n11");
-    data.add("r31 v1 dV Tt=ag Mw10@mark");
+    data.add("r31 v1 dV Tt=ag Mw10@mark,w11@,w12@,w13@,w14@");
 
     REQUIRE_NOTHROW(db.run_import(options, data()));
 
@@ -269,7 +286,8 @@ TEST_CASE("test way: add relation with way in t2 (not marked)")
 
     options.append = true;
 
-    REQUIRE_NOTHROW(db.run_import(options, "r32 v2 dV Tt=ag Mw10@,w15@\n"));
+    REQUIRE_NOTHROW(db.run_import(
+        options, "r32 v2 dV Tt=ag Mw10@,w11@,w12@,w13@,w14@,w15@\n"));
 
     CHECK(1 == conn.get_count("osm2pgsql_test_t1"));
     CHECK(0 == conn.get_count("osm2pgsql_test_t1", "way_id = 10"));
@@ -287,7 +305,7 @@ TEST_CASE("test way: add relation with way in t1 and t2 (not marked)")
     testing::data_t data{tdata};
 
     data.add("w10 v1 dV Tt1=yes,t2=yes Nn10,n11");
-    data.add("r31 v1 dV Tt=ag Mw10@mark");
+    data.add("r31 v1 dV Tt=ag Mw10@mark,w11@,w12@,w13@,w14@");
 
     REQUIRE_NOTHROW(db.run_import(options, data()));
 
@@ -303,7 +321,8 @@ TEST_CASE("test way: add relation with way in t1 and t2 (not marked)")
 
     options.append = true;
 
-    REQUIRE_NOTHROW(db.run_import(options, "r32 v2 dV Tt=ag Mw10@,w15@\n"));
+    REQUIRE_NOTHROW(db.run_import(
+        options, "r32 v2 dV Tt=ag Mw10@,w11@,w12@,w13@,w14@,w15@\n"));
 
     CHECK(2 == conn.get_count("osm2pgsql_test_t1"));
     CHECK(1 == conn.get_count("osm2pgsql_test_t1", "way_id = 10"));
@@ -321,7 +340,7 @@ TEST_CASE("test way: add relation with way in tboth stage 1 (not marked)")
     testing::data_t data{tdata};
 
     data.add("w10 v1 dV Ttboth=yes Nn10,n11");
-    data.add("r31 v1 dV Tt=ag Mw10@");
+    data.add("r31 v1 dV Tt=ag Mw10@,w11@,w12@,w13@,w14@");
 
     REQUIRE_NOTHROW(db.run_import(options, data()));
 
@@ -338,7 +357,8 @@ TEST_CASE("test way: add relation with way in tboth stage 1 (not marked)")
 
     options.append = true;
 
-    REQUIRE_NOTHROW(db.run_import(options, "r32 v2 dV Tt=ag Mw10@,w15@\n"));
+    REQUIRE_NOTHROW(db.run_import(
+        options, "r32 v2 dV Tt=ag Mw10@,w11@,w12@,w13@,w14@,w15@\n"));
 
     CHECK(1 == conn.get_count("osm2pgsql_test_t1"));
     CHECK(0 == conn.get_count("osm2pgsql_test_t1", "way_id = 10"));
@@ -357,7 +377,7 @@ TEST_CASE("test way: add relation with way in tboth stage 2 (not marked)")
     testing::data_t data{tdata};
 
     data.add("w10 v1 dV Ttboth=yes Nn10,n11");
-    data.add("r31 v1 dV Tt=ag Mw10@mark");
+    data.add("r31 v1 dV Tt=ag Mw10@mark,w11@,w12@,w13@,w14@");
 
     REQUIRE_NOTHROW(db.run_import(options, data()));
 
@@ -374,7 +394,8 @@ TEST_CASE("test way: add relation with way in tboth stage 2 (not marked)")
 
     options.append = true;
 
-    REQUIRE_NOTHROW(db.run_import(options, "r32 v2 dV Tt=ag Mw10@,w15@\n"));
+    REQUIRE_NOTHROW(db.run_import(
+        options, "r32 v2 dV Tt=ag Mw10@,w11@,w12@,w13@,w14@,w15@\n"));
 
     CHECK(1 == conn.get_count("osm2pgsql_test_t1"));
     CHECK(0 == conn.get_count("osm2pgsql_test_t1", "way_id = 10"));

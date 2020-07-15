@@ -32,7 +32,7 @@ TEST_CASE("test way: delete relation with way not in relation")
     testing::data_t data{tdata};
 
     data.add("w10 v1 dV Tt=ag Nn10,n11");
-    data.add("r32 v1 dV Tt=ag Mw15@");
+    data.add("r32 v1 dV Tt=ag Mw11@,w12@,w13@,w14@,w15@");
 
     REQUIRE_NOTHROW(db.run_import(options, data()));
 
@@ -64,7 +64,7 @@ TEST_CASE("test way: delete relation with way in t1")
     testing::data_t data{tdata};
 
     data.add("w10 v1 dV Tt1=yes Nn10,n11");
-    data.add("r32 v1 dV Tt=ag Mw15@");
+    data.add("r32 v1 dV Tt=ag Mw11@,w12@,w13@,w14@,w15@");
 
     REQUIRE_NOTHROW(db.run_import(options, data()));
 
@@ -97,7 +97,7 @@ TEST_CASE("test way: delete relation with way in t2 (multi)")
 
     data.add("w10 v1 dV Tt2=yes Nn10,n11");
     data.add("r31 v1 dV Tt=ag Mw10@mark");
-    data.add("r32 v1 dV Tt=ag Mw10@mark,w15@");
+    data.add("r32 v1 dV Tt=ag Mw10@mark,w11@,w12@,w13@,w14@,w15@");
 
     REQUIRE_NOTHROW(db.run_import(options, data()));
 
@@ -117,9 +117,11 @@ TEST_CASE("test way: delete relation with way in t2 (multi)")
     {
         REQUIRE_NOTHROW(db.run_import(options, "r32 v2 dD\n"));
     }
+
     SECTION("remove way from relation")
     {
-        REQUIRE_NOTHROW(db.run_import(options, "r32 v2 dV Tt=ag Mw15@\n"));
+        REQUIRE_NOTHROW(db.run_import(
+            options, "r32 v2 dV Tt=ag Mw11@,w12@,w13@,w14@,w15@\n"));
     }
 
     CHECK(1 == conn.get_count("osm2pgsql_test_t1"));
@@ -138,7 +140,7 @@ TEST_CASE("test way: delete relation with way in t2 (single)")
     testing::data_t data{tdata};
 
     data.add("w10 v1 dV Tt2=yes Nn10,n11");
-    data.add("r32 v1 dV Tt=ag Mw10@mark,w15@");
+    data.add("r32 v1 dV Tt=ag Mw10@mark,w11@,w12@,w13@,w14@,w15@");
 
     REQUIRE_NOTHROW(db.run_import(options, data()));
 
@@ -158,9 +160,11 @@ TEST_CASE("test way: delete relation with way in t2 (single)")
     {
         REQUIRE_NOTHROW(db.run_import(options, "r32 v2 dD\n"));
     }
+
     SECTION("remove way from relation")
     {
-        REQUIRE_NOTHROW(db.run_import(options, "r32 v2 dV Tt=ag Mw15@\n"));
+        REQUIRE_NOTHROW(db.run_import(
+            options, "r32 v2 dV Tt=ag Mw11@,w12@,w13@,w14@,w15@\n"));
     }
 
     CHECK(1 == conn.get_count("osm2pgsql_test_t1"));
@@ -180,7 +184,7 @@ TEST_CASE("test way: delete relation with way in t1 + t2 (multi)")
 
     data.add("w10 v1 dV Tt1=yes,t2=yes Nn10,n11");
     data.add("r31 v1 dV Tt=ag Mw10@mark");
-    data.add("r32 v1 dV Tt=ag Mw10@mark,w15@");
+    data.add("r32 v1 dV Tt=ag Mw10@mark,w11@,w12@,w13@,w14@,w15@");
 
     REQUIRE_NOTHROW(db.run_import(options, data()));
 
@@ -200,9 +204,11 @@ TEST_CASE("test way: delete relation with way in t1 + t2 (multi)")
     {
         REQUIRE_NOTHROW(db.run_import(options, "r32 v2 dD\n"));
     }
+
     SECTION("remove way from relation")
     {
-        REQUIRE_NOTHROW(db.run_import(options, "r32 v2 dV Tt=ag Mw15@\n"));
+        REQUIRE_NOTHROW(db.run_import(
+            options, "r32 v2 dV Tt=ag Mw11@,w12@,w13@,w14@,w15@\n"));
     }
 
     CHECK(2 == conn.get_count("osm2pgsql_test_t1"));
@@ -221,7 +227,7 @@ TEST_CASE("test way: delete relation with way in t1 + t2 (single)")
     testing::data_t data{tdata};
 
     data.add("w10 v1 dV Tt1=yes,t2=yes Nn10,n11");
-    data.add("r32 v1 dV Tt=ag Mw10@mark,w15@");
+    data.add("r32 v1 dV Tt=ag Mw10@mark,w11@,w12@,w13@,w14@,w15@");
 
     REQUIRE_NOTHROW(db.run_import(options, data()));
 
@@ -241,9 +247,11 @@ TEST_CASE("test way: delete relation with way in t1 + t2 (single)")
     {
         REQUIRE_NOTHROW(db.run_import(options, "r32 v2 dD\n"));
     }
+
     SECTION("remove way from relation")
     {
-        REQUIRE_NOTHROW(db.run_import(options, "r32 v2 dV Tt=ag Mw15@\n"));
+        REQUIRE_NOTHROW(db.run_import(
+            options, "r32 v2 dV Tt=ag Mw11@,w12@,w13@,w14@,w15@\n"));
     }
 
     CHECK(2 == conn.get_count("osm2pgsql_test_t1"));
@@ -262,7 +270,7 @@ TEST_CASE("test way: delete relation with way in tboth (multi)")
 
     data.add("w10 v1 dV Ttboth=yes Nn10,n11");
     data.add("r31 v1 dV Tt=ag Mw10@mark");
-    data.add("r32 v1 dV Tt=ag Mw10@mark,w15@");
+    data.add("r32 v1 dV Tt=ag Mw10@mark,w11@,w12@,w13@,w14@,w15@");
 
     REQUIRE_NOTHROW(db.run_import(options, data()));
 
@@ -282,9 +290,11 @@ TEST_CASE("test way: delete relation with way in tboth (multi)")
     {
         REQUIRE_NOTHROW(db.run_import(options, "r32 v2 dD\n"));
     }
+
     SECTION("remove way from relation")
     {
-        REQUIRE_NOTHROW(db.run_import(options, "r32 v2 dV Tt=ag Mw15@\n"));
+        REQUIRE_NOTHROW(db.run_import(
+            options, "r32 v2 dV Tt=ag Mw11@,w12@,w13@,w14@,w15@\n"));
     }
 
     CHECK(1 == conn.get_count("osm2pgsql_test_t1"));
@@ -303,7 +313,7 @@ TEST_CASE("test way: delete relation with way in tboth (single)")
     testing::data_t data{tdata};
 
     data.add("w10 v1 dV Ttboth=yes Nn10,n11");
-    data.add("r32 v1 dV Tt=ag Mw10@mark,w15@");
+    data.add("r32 v1 dV Tt=ag Mw10@mark,w11@,w12@,w13@,w14@,w15@");
 
     REQUIRE_NOTHROW(db.run_import(options, data()));
 
@@ -323,9 +333,11 @@ TEST_CASE("test way: delete relation with way in tboth (single)")
     {
         REQUIRE_NOTHROW(db.run_import(options, "r32 v2 dD\n"));
     }
+
     SECTION("remove way from relation")
     {
-        REQUIRE_NOTHROW(db.run_import(options, "r32 v2 dV Tt=ag Mw15@\n"));
+        REQUIRE_NOTHROW(db.run_import(
+            options, "r32 v2 dV Tt=ag Mw11@,w12@,w13@,w14@,w15@\n"));
     }
 
     CHECK(1 == conn.get_count("osm2pgsql_test_t1"));
