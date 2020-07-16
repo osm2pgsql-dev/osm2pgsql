@@ -142,7 +142,7 @@ reimporting the database, at the cost of a
 
 * `--multi-geometry` skips an optimization for rendering where PostGIS
   MULTIPOLYGONs are split into multiple POLYGONs. `--multi-geometry` can be
-  used to [avoid some labeling issues at the cost of speed](http://paulnorman.ca/blog/2014/03/osm2pgsql-multipolygons/).
+  used to [avoid some labeling issues at the cost of speed](http://www.paulnorman.ca/blog/2014/03/osm2pgsql-and-hstore/).
   It is also typically required for [analysis](analysis.md).
 
 * `--keep-coastlines` disables a hard-coded rule that would otherwise
