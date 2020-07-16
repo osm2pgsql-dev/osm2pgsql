@@ -14,7 +14,7 @@ To start with, we'll download the data for the region as an [extract from Geofab
 
 `--multi-geometry` (`-G`) is necessary for most analysis as it prevents
 MULTIPOLYGONs from being split into multiple POLYGONs, a step that is
-normally used to [increase rendering speed](http://paulnorman.ca/blog/2014/03/osm2pgsql-multipolygons)
+normally used to [increase rendering speed](http://www.paulnorman.ca/blog/2014/03/osm2pgsql-multipolygons/)
 but increases the complexity of analysis SQL.
 
 Loading should take about 10 minutes, depending on computer speed. Once this
