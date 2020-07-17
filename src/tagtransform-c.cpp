@@ -32,8 +32,6 @@ static const struct
               {37, "primary", 1},       {38, "trunk", 1},
               {39, "motorway", 1}};
 
-static const unsigned int nLayers = (sizeof(layers) / sizeof(*layers));
-
 void add_z_order(taglist_t &tags, int *roads)
 {
     std::string const *const layer = tags.get("layer");
@@ -50,10 +48,10 @@ void add_z_order(taglist_t &tags, int *roads)
     *roads = 0;
 
     if (highway) {
-        for (unsigned i = 0; i < nLayers; ++i) {
-            if (!std::strcmp(layers[i].highway, highway->c_str())) {
-                z_order += layers[i].offset;
-                *roads = layers[i].roads;
+        for (const auto &layer : layers) {
+            if (*highway == layer.highway) {
+                z_order += layer.offset;
+                *roads = layer.roads;
                 break;
             }
         }
@@ -220,7 +218,9 @@ bool c_tagtransform_t::filter_rel_member_tags(
 {
     //if it has a relation figure out what kind it is
     std::string const *type = rel_tags.get("type");
-    bool is_route = false, is_boundary = false, is_multipolygon = false;
+    bool is_route = false;
+    bool is_boundary = false;
+    bool is_multipolygon = false;
     if (type) {
         //what kind of relation is it
         if (*type == "route") {

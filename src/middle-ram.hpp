@@ -75,7 +75,7 @@ public:
         assert(block < m_blocks.size());
 
         if (!m_blocks[block]) {
-            return 0;
+            return nullptr;
         }
 
         return m_blocks[block]->get(id2offset(id));
@@ -91,8 +91,8 @@ public:
 
 struct middle_ram_t : public middle_t, public middle_query_t
 {
-    middle_ram_t(options_t const *options);
-    virtual ~middle_ram_t() noexcept = default;
+    explicit middle_ram_t(options_t const *options);
+    ~middle_ram_t() noexcept override = default;
 
     void start() override {}
     void stop(thread_pool_t &pool) override;

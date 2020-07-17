@@ -26,7 +26,7 @@ class progress_display_t
         std::time_t start = 0;
         int m_frac;
 
-        Counter(int frac) noexcept : m_frac(frac) {}
+        explicit Counter(int frac) noexcept : m_frac(frac) {}
 
         osmid_t count_k() const noexcept { return count / 1000; }
 

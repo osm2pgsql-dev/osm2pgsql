@@ -15,7 +15,7 @@ class lua_tagtransform_t : public tagtransform_t
     lua_tagtransform_t(lua_tagtransform_t const &other) = default;
 
 public:
-    lua_tagtransform_t(options_t const *options);
+    explicit lua_tagtransform_t(options_t const *options);
     ~lua_tagtransform_t();
 
     std::unique_ptr<tagtransform_t> clone() const override;

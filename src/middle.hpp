@@ -87,8 +87,8 @@ struct middle_t
 
     virtual void start() = 0;
     virtual void stop(thread_pool_t &pool) = 0;
-    virtual void analyze(void) = 0;
-    virtual void commit(void) = 0;
+    virtual void analyze() = 0;
+    virtual void commit() = 0;
 
     /**
      * Add a node to data storage. The node must not already be in the
@@ -135,7 +135,7 @@ inline middle_t::~middle_t() = default;
  */
 struct slim_middle_t : public middle_t
 {
-    virtual ~slim_middle_t() = 0;
+    ~slim_middle_t() override = 0;
 
     /**
      * Delete a node from data storage. Either because you want it removed

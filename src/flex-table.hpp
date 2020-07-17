@@ -31,7 +31,8 @@ public:
         permanent
     };
 
-    flex_table_t(std::string const &name, int srid) : m_name(name), m_srid(srid)
+    flex_table_t(std::string name, int srid)
+    : m_name(std::move(name)), m_srid(srid)
     {}
 
     std::string const &name() const noexcept { return m_name; }

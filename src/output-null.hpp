@@ -11,7 +11,8 @@ class output_null_t : public output_t
 public:
     output_null_t(std::shared_ptr<middle_query_t> const &mid,
                   options_t const &options);
-    virtual ~output_null_t();
+
+    ~output_null_t() override;
 
     std::shared_ptr<output_t>
     clone(std::shared_ptr<middle_query_t> const &mid,

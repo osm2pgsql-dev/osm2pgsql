@@ -118,8 +118,7 @@ void middle_ram_t::stop(thread_pool_t &)
 }
 
 middle_ram_t::middle_ram_t(options_t const *options)
-: m_ways(), m_rels(),
-  m_cache(new node_ram_cache{options->alloc_chunkwise, options->cache}),
+: m_cache(new node_ram_cache{options->alloc_chunkwise, options->cache}),
   m_extra_attributes(options->extra_attributes)
 {}
 

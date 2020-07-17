@@ -50,7 +50,7 @@ public:
         int get_count() const noexcept { return m_count; }
 
     private:
-        wkb_reader(pg_result_t &&result)
+        explicit wkb_reader(pg_result_t &&result)
         : m_result(std::move(result)), m_count(m_result.num_tuples()),
           m_current(0)
         {}
