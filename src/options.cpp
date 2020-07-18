@@ -658,4 +658,11 @@ void options_t::check_options()
         fprintf(stderr, "WARNING: maximum zoom level for tile expiry is too "
                         "large and has been set to 31.\n\n");
     }
+
+    if (output_backend == "flex" || output_backend == "gazetteer") {
+        if (style == DEFAULT_STYLE) {
+            throw std::runtime_error{
+                "You have to set the config file with the -S|--style option."};
+        }
+    }
 }
