@@ -1,5 +1,6 @@
 
 set(osm2pgsql_lib_SOURCES
+  check-order.cpp
   db-copy.cpp
   dependency-manager.cpp
   expire-tiles.cpp

@@ -5,14 +5,14 @@
     <node id="88" version="2" timestamp="2013-08-07T15:58:07Z" uid="5" user="Test123" changeset="1" lat="-0.0034521" lon="-0.0025154"/>
   </modify>
   <create>
-    <node id="110739" version="1" timestamp="2013-08-30T00:11:07Z" uid="5" user="Test123" changeset="5" lat="-0.0117967" lon="0.0073064"/>
-    <node id="110737" version="1" timestamp="2013-08-30T00:11:07Z" uid="5" user="Test123" changeset="5" lat="-0.011878" lon="0.0082495"/>
-    <node id="110735" version="1" timestamp="2013-08-30T00:11:07Z" uid="5" user="Test123" changeset="5" lat="-0.0113739" lon="0.0083145"/>
-    <node id="110734" version="1" timestamp="2013-08-30T00:11:07Z" uid="5" user="Test123" changeset="5" lat="-0.0111951" lon="0.0072739"/>
-    <node id="110730" version="1" timestamp="2013-08-30T00:11:07Z" uid="5" user="Test123" changeset="5" lat="-0.011943" lon="0.0068349"/>
-    <node id="110728" version="1" timestamp="2013-08-30T00:11:07Z" uid="5" user="Test123" changeset="5" lat="-0.0124308" lon="0.0088023"/>
-    <node id="110726" version="1" timestamp="2013-08-30T00:11:07Z" uid="5" user="Test123" changeset="5" lat="-0.0110162" lon="0.0088673"/>
     <node id="110725" version="1" timestamp="2013-08-30T00:11:07Z" uid="5" user="Test123" changeset="5" lat="-0.0108536" lon="0.0067049"/>
+    <node id="110726" version="1" timestamp="2013-08-30T00:11:07Z" uid="5" user="Test123" changeset="5" lat="-0.0110162" lon="0.0088673"/>
+    <node id="110728" version="1" timestamp="2013-08-30T00:11:07Z" uid="5" user="Test123" changeset="5" lat="-0.0124308" lon="0.0088023"/>
+    <node id="110730" version="1" timestamp="2013-08-30T00:11:07Z" uid="5" user="Test123" changeset="5" lat="-0.011943" lon="0.0068349"/>
+    <node id="110734" version="1" timestamp="2013-08-30T00:11:07Z" uid="5" user="Test123" changeset="5" lat="-0.0111951" lon="0.0072739"/>
+    <node id="110735" version="1" timestamp="2013-08-30T00:11:07Z" uid="5" user="Test123" changeset="5" lat="-0.0113739" lon="0.0083145"/>
+    <node id="110737" version="1" timestamp="2013-08-30T00:11:07Z" uid="5" user="Test123" changeset="5" lat="-0.011878" lon="0.0082495"/>
+    <node id="110739" version="1" timestamp="2013-08-30T00:11:07Z" uid="5" user="Test123" changeset="5" lat="-0.0117967" lon="0.0073064"/>
   </create>
   <modify>
     <way id="15" version="1" timestamp="2013-08-07T15:58:09Z" uid="5" user="Test123" changeset="1">
@@ -102,19 +102,19 @@
       <nd ref="182"/>
       <tag k="landuse" v="residential"/>
     </way>
-    <way id="110736" version="1" timestamp="2013-08-07T15:58:08Z" uid="5" user="Test123" changeset="1">
-      <nd ref="110734"/>
-      <nd ref="110735"/>
-      <nd ref="110737"/>
-      <nd ref="110739"/>
-      <nd ref="110734"/>
-    </way>
     <way id="110727" version="1" timestamp="2013-08-07T15:58:08Z" uid="5" user="Test123" changeset="1">
       <nd ref="110725"/>
       <nd ref="110726"/>
       <nd ref="110728"/>
       <nd ref="110730"/>
       <nd ref="110725"/>
+    </way>
+    <way id="110736" version="1" timestamp="2013-08-07T15:58:08Z" uid="5" user="Test123" changeset="1">
+      <nd ref="110734"/>
+      <nd ref="110735"/>
+      <nd ref="110737"/>
+      <nd ref="110739"/>
+      <nd ref="110734"/>
     </way>
   </create>
   <modify>

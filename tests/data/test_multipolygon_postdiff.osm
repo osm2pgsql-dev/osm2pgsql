@@ -768,16 +768,16 @@
     <nd ref='230' />
     <nd ref='228' />
   </way>
+  <way id='101420' timestamp='2013-08-07T15:58:08Z' uid='5' user='Test123' visible='true' version='1' changeset='1'>
+    <nd ref='121' />
+    <nd ref='179' />
+    <nd ref='181' />
+  </way>
   <way id='101426' timestamp='2013-08-07T15:58:08Z' uid='5' user='Test123' visible='true' version='1' changeset='2'>
     <nd ref='162' />
     <nd ref='178' />
     <nd ref='182' />
     <tag k='landuse' v='residential' />
-  </way>
-  <way id='101420' timestamp='2013-08-07T15:58:08Z' uid='5' user='Test123' visible='true' version='1' changeset='1'>
-    <nd ref='121' />
-    <nd ref='179' />
-    <nd ref='181' />
   </way>
   <relation id='1' timestamp='2013-08-07T15:58:11Z' uid='5' user='Test123' visible='true' version='1' changeset='1'>
     <member type='way' ref='71' role='outer' />
