@@ -539,7 +539,12 @@ middle_query_pgsql_t::middle_query_pgsql_t(
     std::string const &conninfo, std::shared_ptr<node_ram_cache> const &cache,
     std::shared_ptr<node_persistent_cache> const &persistent_cache)
 : m_sql_conn(conninfo), m_cache(cache), m_persistent_cache(persistent_cache)
-{}
+{
+    // Disable JIT and parallel workers as they are known to cause
+    // problems when accessing the intarrays.
+    m_sql_conn.set_config("jit_above_cost", "-1");
+    m_sql_conn.set_config("max_parallel_workers_per_gather", "0");
+}
 
 void middle_pgsql_t::start()
 {
@@ -554,6 +559,11 @@ void middle_pgsql_t::start()
     }
 
     if (m_append) {
+        // Disable JIT and parallel workers as they are known to cause
+        // problems when accessing the intarrays.
+        m_db_connection.set_config("jit_above_cost", "-1");
+        m_db_connection.set_config("max_parallel_workers_per_gather", "0");
+
         // Prepare queries for updating dependent objects
         for (auto &table : m_tables) {
             if (!table.m_prepare_intarray.empty()) {

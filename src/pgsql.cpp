@@ -41,6 +41,17 @@ pg_result_t pg_conn_t::query(ExecStatusType expect,
     return query(expect, sql.c_str());
 }
 
+void pg_conn_t::set_config(char const *setting, char const *value) const
+{
+    // Update pg_settings instead of using SET because it does not yield
+    // errors on older versions of PostgreSQL where the settings are not
+    // implemented.
+    auto const sql =
+        "UPDATE pg_settings SET setting = '{}' WHERE name = '{}'"_format(
+            setting, value);
+    query(PGRES_TUPLES_OK, sql);
+}
+
 void pg_conn_t::exec(char const *sql) const { query(PGRES_COMMAND_OK, sql); }
 
 void pg_conn_t::exec(std::string const &sql) const
