@@ -123,6 +123,8 @@ public:
 
     pg_result_t query(ExecStatusType expect, std::string const &sql) const;
 
+    void set_config(char const *setting, char const *value) const;
+
     void exec(char const *sql) const;
 
     void exec(std::string const &sql) const;
