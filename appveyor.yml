@@ -14,7 +14,7 @@ environment:
     BZIP2_INCLUDE_DIR: C:\bzip2\dev
     BZIP2_LIBRARY: C:\bzip2\dll
     BOOST_PATH: C:\Libraries\boost_1_63_0
-    POSTGRESQL_VER: 9.6.6
+    POSTGRESQL_VER: 11.2
     TESTS_POSTGRESQL_ROOT: C:\Progra~1\PostgreSQL\9.6
     POSTGIS_VER: 2.4.3
     POSTGIS_URL: "https://lonvia.dev.openstreetmap.org/osm2pgsql-winbuild/postgis-bundle-pg96-2.4.3x64.zip"
@@ -98,8 +98,6 @@ after_build:
   - copy /y ..\*.style osm2pgsql-bin
   - copy /y ..\*.lua osm2pgsql-bin
   - copy /y %conda_library_path%\bin\libpq.dll osm2pgsql-bin
-  - copy /y %conda_library_path%\bin\libeay32.dll osm2pgsql-bin
-  - copy /y %conda_library_path%\bin\ssleay32.dll osm2pgsql-bin
   - copy /y %conda_library_path%\bin\zlib.dll osm2pgsql-bin
   - copy /y %conda_library_path%\bin\expat.dll osm2pgsql-bin
   - copy /y %BZIP2_LIBRARY%\libbz2.dll osm2pgsql-bin
