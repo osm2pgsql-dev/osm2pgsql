@@ -102,10 +102,11 @@ after_build:
   - copy /y %conda_library_path%\bin\expat.dll osm2pgsql-bin
   - copy /y %conda_library_path%\bin\gssapi64.dll osm2pgsql-bin
   - copy /y %conda_library_path%\bin\libcrypto-1_1-x64.dll osm2pgsql-bin
-  - copy /y %conda_library_path%\bin\libssl-1_1-x64.dll osm2pgsql-bin  
-  - copy /y %conda_library_path%\bin\comerr64.dll osm2pgsql-bin  
-  - copy /y %conda_library_path%\bin\krb5_64.dll osm2pgsql-bin  
-  - copy /y %conda_library_path%\bin\k5sprt64.dll osm2pgsql-bin  
+  - copy /y %conda_library_path%\bin\libssl-1_1-x64.dll osm2pgsql-bin
+  - copy /y %conda_library_path%\bin\comerr64.dll osm2pgsql-bin
+  - copy /y %conda_library_path%\bin\krb5_64.dll osm2pgsql-bin
+  - copy /y %conda_library_path%\bin\k5sprt64.dll osm2pgsql-bin
+  - copy /y %conda_library_path%\bin\wshelp64.dll osm2pgsql-bin
   - copy /y %BZIP2_LIBRARY%\libbz2.dll osm2pgsql-bin
   - copy /y %LUA_DLL% osm2pgsql-bin
   - 7z a c:\osm2pgsql\osm2pgsql_%build_type%_%arch%.zip osm2pgsql-bin -tzip
