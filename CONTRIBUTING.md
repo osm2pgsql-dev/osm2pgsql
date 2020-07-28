@@ -23,11 +23,10 @@ in modern C++, making use of data structures in the standard library.
 
 ## Versioning
 
-Osm2pgsql uses a X.Y.Z version number, where Y tells you if you are on a stable
-or development series. Even numbers are stable and development versions are odd.
+Osm2pgsql uses [semantic versioning](https://semver.org/).
 
 Bugs and known issues are fixed on the main branch only. Exceptions may be made
-for easy bug fixes, or if a patch backporting a fix is provided.
+for severe bugs.
 
 ## Code style
 
@@ -42,7 +41,7 @@ Template parameters must use all upper case.
 Headers should be included in the order `config.h`, C++ standard library headers,
 C library headers, Boost headers, and last osm2pgsql files.
 
-There is a .clang-format configuration avialable and all code must be run through
+There is a .clang-format configuration available and all code must be run through
 clang-format before submitting. You can use git-clang-format after staging all
 your changes:
 
@@ -132,5 +131,4 @@ the report.
 ## Maintainers
 
 The current maintainers of osm2pgsql are [Sarah Hoffmann](https://github.com/lonvia/)
-and [Paul Norman](https://github.com/pnorman/). Sarah has more experience with
-the gazetteer backend and Paul with the pgsql and multi backends.
+and [Paul Norman](https://github.com/pnorman/).
