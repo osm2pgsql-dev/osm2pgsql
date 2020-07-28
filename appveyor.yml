@@ -14,15 +14,12 @@ environment:
     BZIP2_INCLUDE_DIR: C:\bzip2\dev
     BZIP2_LIBRARY: C:\bzip2\dll
     BOOST_PATH: C:\Libraries\boost_1_63_0
-    POSTGRESQL_VER: 9.6.6
+    POSTGRESQL_VER: 11.2
     TESTS_POSTGRESQL_ROOT: C:\Progra~1\PostgreSQL\9.6
     POSTGIS_VER: 2.4.3
     POSTGIS_URL: "https://lonvia.dev.openstreetmap.org/osm2pgsql-winbuild/postgis-bundle-pg96-2.4.3x64.zip"
     PGUSER: postgres
     PGPASSWORD: Password12!
-  matrix:
-    - arch: x86
-    - arch: x64
 
 os: Visual Studio 2015
 
@@ -35,37 +32,29 @@ clone_depth: 1
 
 init:
   - git config --global core.autocrlf input
-  - set bz2_dll_url=https://github.com/philr/bzip2-windows/releases/download/v%BZIP2_VER%/bzip2-dll-%BZIP2_VER%-win-%arch%.zip
-  - set bz2_dev_url=https://github.com/philr/bzip2-windows/releases/download/v%BZIP2_VER%/bzip2-dev-%BZIP2_VER%-win-%arch%.zip
-  - if "%arch%"=="x86" (
-      set vcvarsall_arg=x86&&
-      set conda_path=C:\Miniconda36\Scripts&&
-      set python_path=C:\Python38&&
-      set conda_library_path=C:\Miniconda36\envs\osm2pgsql\Library&&
-      set lua_url=https://lonvia.dev.openstreetmap.org/osm2pgsql-winbuild/lua_x86.zip&&
-      set build_type=Release)
-  - if "%arch%"=="x64" (
-      set vcvarsall_arg=amd64&&
-      set conda_path=C:\Miniconda36-x64\Scripts&&
-      set python_path=C:\Python38-x64&&
-      set conda_library_path=C:\Miniconda36-x64\envs\osm2pgsql\Library&&
-      set lua_url=https://lonvia.dev.openstreetmap.org/osm2pgsql-winbuild/lua_x64.zip&&
-      set build_type=Release)
+  - set bz2_dll_url=https://github.com/philr/bzip2-windows/releases/download/v%BZIP2_VER%/bzip2-dll-%BZIP2_VER%-win-x64.zip
+  - set bz2_dev_url=https://github.com/philr/bzip2-windows/releases/download/v%BZIP2_VER%/bzip2-dev-%BZIP2_VER%-win-x64.zip
+  - set vcvarsall_arg=amd64
+  - set conda_path=C:\Miniconda36-x64\Scripts
+  - set python_path=C:\Python38-x64
+  - set conda_library_path=C:\Miniconda36-x64\envs\osm2pgsql\Library
+  - set lua_url=https://lonvia.dev.openstreetmap.org/osm2pgsql-winbuild/lua_x64.zip
+  - set build_type=Release
   - '"C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall" %vcvarsall_arg%'
 
 install:
-  - set PATH=%TESTS_POSTGRESQL_ROOt%\bin;%python_path%;%PATH%;%conda_path%
+  - set PATH=%TESTS_POSTGRESQL_ROOT%\bin;%python_path%;%PATH%;%conda_path%
   - cd c:\
   - conda config --set always_yes yes
   - conda create --name osm2pgsql
   - activate osm2pgsql
   - conda install expat=%EXPAT_VER% proj4=%PROJ4_VER% zlib=%ZLIB_VER% postgresql=%POSTGRESQL_VER%
-  - ps: if (!(Test-Path "C:\bzip2_dll_$env:arch.zip")){(new-object net.webclient).DownloadFile($env:bz2_dll_url, "C:\bzip2_dll_$env:arch.zip")}
-  - 7z x -y C:\bzip2_dll_%arch%.zip -o%BZIP2_LIBRARY%
-  - ps: if (!(Test-Path "C:\bzip2_dev_$env:arch.zip")){(new-object net.webclient).DownloadFile($env:bz2_dev_url, "C:\bzip2_dev_$env:arch.zip")}
-  - 7z x -y C:\bzip2_dev_%arch%.zip -o%BZIP2_INCLUDE_DIR%
-  - ps: if (!(Test-Path "C:\lua_$env:arch.zip")){(new-object net.webclient).DownloadFile($env:lua_url, "C:\lua_$env:arch.zip")}
-  - 7z x -y C:\lua_%arch%.zip -oC:\lua
+  - ps: if (!(Test-Path "C:\bzip2_dll_x64.zip")){(new-object net.webclient).DownloadFile($env:bz2_dll_url, "C:\bzip2_dll_x64.zip")}
+  - 7z x -y C:\bzip2_dll_x64.zip -o%BZIP2_LIBRARY%
+  - ps: if (!(Test-Path "C:\bzip2_dev_x64.zip")){(new-object net.webclient).DownloadFile($env:bz2_dev_url, "C:\bzip2_dev_x64.zip")}
+  - 7z x -y C:\bzip2_dev_x64.zip -o%BZIP2_INCLUDE_DIR%
+  - ps: if (!(Test-Path "C:\lua_x64.zip")){(new-object net.webclient).DownloadFile($env:lua_url, "C:\lua_x64.zip")}
+  - 7z x -y C:\lua_x64.zip -oC:\lua
   - ps: if (!(Test-Path "C:\postgis.zip")){(new-object net.webclient).DownloadFile($env:POSTGIS_URL, "C:\postgis.zip")}
   - 7z x C:\postgis.zip -oC:\postgis
   - xcopy /e /y /q C:\postgis\postgis-bundle-pg96-2.4.3x64 %TESTS_POSTGRESQL_ROOT%
@@ -98,13 +87,18 @@ after_build:
   - copy /y ..\*.style osm2pgsql-bin
   - copy /y ..\*.lua osm2pgsql-bin
   - copy /y %conda_library_path%\bin\libpq.dll osm2pgsql-bin
-  - copy /y %conda_library_path%\bin\libeay32.dll osm2pgsql-bin
-  - copy /y %conda_library_path%\bin\ssleay32.dll osm2pgsql-bin
   - copy /y %conda_library_path%\bin\zlib.dll osm2pgsql-bin
   - copy /y %conda_library_path%\bin\expat.dll osm2pgsql-bin
+  - copy /y %conda_library_path%\bin\gssapi64.dll osm2pgsql-bin
+  - copy /y %conda_library_path%\bin\libcrypto-1_1-x64.dll osm2pgsql-bin
+  - copy /y %conda_library_path%\bin\libssl-1_1-x64.dll osm2pgsql-bin
+  - copy /y %conda_library_path%\bin\comerr64.dll osm2pgsql-bin
+  - copy /y %conda_library_path%\bin\krb5_64.dll osm2pgsql-bin
+  - copy /y %conda_library_path%\bin\k5sprt64.dll osm2pgsql-bin
+  - copy /y %conda_library_path%\bin\wshelp64.dll osm2pgsql-bin
   - copy /y %BZIP2_LIBRARY%\libbz2.dll osm2pgsql-bin
   - copy /y %LUA_DLL% osm2pgsql-bin
-  - 7z a c:\osm2pgsql\osm2pgsql_%build_type%_%arch%.zip osm2pgsql-bin -tzip
+  - 7z a c:\osm2pgsql\osm2pgsql_%build_type%_x64.zip osm2pgsql-bin -tzip
 
 before_test:
   - cd c:\
@@ -122,10 +116,10 @@ test_script:
   - ctest -VV -LE FlatNodes # enable when Postgis will be available
 
 artifacts:
-  - path: osm2pgsql_%build_type%_%arch%.zip
+  - path: osm2pgsql_%build_type%_x64.zip
 
 cache:
-  - C:\lua_%arch%.zip -> appveyor.yml
-  - C:\bzip2_dev_%arch%.zip -> appveyor.yml
-  - C:\bzip2_dll_%arch%.zip -> appveyor.yml
+  - C:\lua_x64.zip -> appveyor.yml
+  - C:\bzip2_dev_x64.zip -> appveyor.yml
+  - C:\bzip2_dll_x64.zip -> appveyor.yml
   - C:\postgis.zip -> appveyor.yml
