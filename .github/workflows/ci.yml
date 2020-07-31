@@ -1,0 +1,42 @@
+name: CI
+
+on: [ push ]
+
+jobs:
+  build:
+
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install prerequisits
+        run: |
+          brew install lua boost postgis
+          pip3 install psycopg2
+        shell: bash
+
+      - name: Setup database
+        run: |
+          pg_ctl -D /usr/local/var/postgres start
+          psql -d postgres -c 'CREATE EXTENSION postgis'
+          psql -d postgres -c 'CREATE EXTENSION hstore'
+          psql -d postgres -c 'SELECT PostGIS_Full_Version()'
+          mkdir -m 700 $GITHUB_WORKSPACE/tablespacetest
+          psql -d postgres -c "CREATE TABLESPACE tablespacetest LOCATION '$GITHUB_WORKSPACE/tablespacetest'"
+        shell: bash
+
+      - name: configure
+        run: mkdir build && cd build && cmake -LA -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_STANDARD=11 -DWITH_LUA=ON ..
+        shell: bash
+
+      - name: build
+        run: cd build && make -j2
+        shell: bash
+
+      - name: test
+        run: cd build && ctest --output-on-failure
+        shell: bash
+        env:
+          PGHOST: /tmp
+

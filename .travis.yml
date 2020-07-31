@@ -58,18 +58,6 @@ matrix:
            CXXFLAGS="-pedantic -Wextra -Werror"
            CC=clang-7 CXX=clang++-7 CPPVERSION=14
 
-  # ---- OSX + CLANG ---------------------------
-  #  - os: osx
-  #    compiler: clang
-  #    env: T="osx_clang_NoDB"
-  #         BUILD_TYPE="Debug" LUAJIT_OPTION="OFF" TEST_NODB=1
-  #         CXXFLAGS="-pedantic -Wextra -Werror" CPPVERSION=11
-  #    before_install:
-  #      - brew install lua; brew install lua
-  #    before_script:
-  #      - proj | head -n1
-  #      - lua -v
-
   # ---- Linux + GCC ---------------------------
     - os: linux
       dist: xenial
