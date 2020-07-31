@@ -30,7 +30,8 @@ inline void parse_file(options_t const &options,
                        std::unique_ptr<dependency_manager_t> dependency_manager,
                        std::shared_ptr<middle_t> const &mid,
                        std::vector<std::shared_ptr<output_t>> const &outs,
-                       char const *filename = nullptr)
+                       char const *filename = nullptr,
+                       bool do_stop = true)
 {
     osmdata_t osmdata{std::move(dependency_manager), mid, outs, options};
 
@@ -45,7 +46,9 @@ inline void parse_file(options_t const &options,
     osmium::io::File file{filepath};
     osmdata.process_file(file, options.bbox);
 
-    osmdata.stop();
+    if (do_stop) {
+        osmdata.stop();
+    }
 }
 
 /**
