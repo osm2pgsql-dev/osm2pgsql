@@ -127,7 +127,7 @@ TEST_CASE("parse xml file")
         new counting_dependency_manager_t{counts});
 
     testing::parse_file(options, std::move(dependency_manager), middle,
-                        {output}, "test_multipolygon.osm");
+                        {output}, "test_multipolygon.osm", false);
 
     auto const *out_test = static_cast<counting_output_t *>(output.get());
     REQUIRE(out_test->sum_ids == 4728);
@@ -167,7 +167,7 @@ TEST_CASE("parse diff file")
         new counting_dependency_manager_t{counts});
 
     testing::parse_file(options, std::move(dependency_manager), middle,
-                        {output}, "008-ch.osc.gz");
+                        {output}, "008-ch.osc.gz", false);
 
     auto const *out_test = static_cast<counting_output_t *>(output.get());
     REQUIRE(out_test->node.added == 0);
@@ -205,7 +205,7 @@ TEST_CASE("parse xml file with extra args")
         new counting_dependency_manager_t{counts});
 
     testing::parse_file(options, std::move(dependency_manager), middle,
-                        {output}, "test_multipolygon.osm");
+                        {output}, "test_multipolygon.osm", false);
 
     auto const *out_test = static_cast<counting_output_t *>(output.get());
     REQUIRE(out_test->sum_ids == 73514);
