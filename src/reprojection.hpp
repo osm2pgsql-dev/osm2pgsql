@@ -48,9 +48,6 @@ public:
     /**
      * Converts coordinates from target projection to tile projection
      * (EPSG:3857)
-     *
-     * Do not confuse with coords_to_tile which does *not* calculate
-     * coordinates in the tile projection, but tile coordinates.
      */
     virtual osmium::geom::Coordinates
         target_to_tile(osmium::geom::Coordinates) const = 0;
