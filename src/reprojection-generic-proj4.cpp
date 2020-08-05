@@ -13,16 +13,17 @@ public:
     explicit generic_reprojection_t(int srs) : m_target_srs(srs), pj_target(srs)
     {}
 
-    Coordinates reproject(osmium::Location loc) const override
+    osmium::geom::Coordinates reproject(osmium::Location loc) const override
     {
         double const lon = osmium::geom::deg_to_rad(loc.lon_without_check());
         double const lat = osmium::geom::deg_to_rad(loc.lat_without_check());
 
         return osmium::geom::transform(pj_source, pj_target,
-                                       Coordinates{lon, lat});
+                                       osmium::geom::Coordinates{lon, lat});
     }
 
-    Coordinates target_to_tile(Coordinates coords) const override
+    osmium::geom::Coordinates
+    target_to_tile(osmium::geom::Coordinates coords) const override
     {
         return osmium::geom::transform(pj_target, pj_tile, coords);
     }

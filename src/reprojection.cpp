@@ -4,7 +4,7 @@
 
 namespace {
 
-Coordinates lonlat2merc(Coordinates coords)
+osmium::geom::Coordinates lonlat2merc(osmium::geom::Coordinates coords)
 {
     if (coords.y > 89.99) {
         coords.y = 89.99;
@@ -18,12 +18,15 @@ Coordinates lonlat2merc(Coordinates coords)
 class latlon_reprojection_t : public reprojection
 {
 public:
-    Coordinates reproject(osmium::Location loc) const noexcept override
+    osmium::geom::Coordinates reproject(osmium::Location loc) const
+        noexcept override
     {
-        return Coordinates{loc.lon_without_check(), loc.lat_without_check()};
+        return osmium::geom::Coordinates{loc.lon_without_check(),
+                                         loc.lat_without_check()};
     }
 
-    Coordinates target_to_tile(Coordinates c) const noexcept override
+    osmium::geom::Coordinates target_to_tile(osmium::geom::Coordinates c) const
+        noexcept override
     {
         return lonlat2merc(c);
     }
@@ -36,14 +39,15 @@ public:
 class merc_reprojection_t : public reprojection
 {
 public:
-    Coordinates reproject(osmium::Location loc) const override
+    osmium::geom::Coordinates reproject(osmium::Location loc) const override
     {
-        Coordinates const coords{loc.lon_without_check(),
-                                 loc.lat_without_check()};
+        osmium::geom::Coordinates const coords{loc.lon_without_check(),
+                                               loc.lat_without_check()};
         return lonlat2merc(coords);
     }
 
-    Coordinates target_to_tile(Coordinates c) const noexcept override
+    osmium::geom::Coordinates target_to_tile(osmium::geom::Coordinates c) const
+        noexcept override
     {
         return c;
     }

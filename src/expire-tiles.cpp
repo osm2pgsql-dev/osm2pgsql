@@ -131,7 +131,8 @@ int expire_tiles::normalise_tile_x_coord(int x)
 static void coords_to_tile(reprojection const &projection, double *tilex,
                            double *tiley, double lon, double lat, int map_width)
 {
-    auto const c = projection.target_to_tile(Coordinates{lon, lat});
+    auto const c =
+        projection.target_to_tile(osmium::geom::Coordinates{lon, lat});
 
     *tilex = map_width * (0.5 + c.x / EARTH_CIRCUMFERENCE);
     *tiley = map_width * (0.5 - c.y / EARTH_CIRCUMFERENCE);

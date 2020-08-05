@@ -14,8 +14,6 @@
 #include <osmium/geom/coordinates.hpp>
 #include <osmium/osm/location.hpp>
 
-using Coordinates = osmium::geom::Coordinates;
-
 enum Projection
 {
     PROJ_LATLONG = 4326,
@@ -45,7 +43,7 @@ public:
      * Reproject from the source projection lat/lon (EPSG:4326)
      * to target projection.
      */
-    virtual Coordinates reproject(osmium::Location loc) const = 0;
+    virtual osmium::geom::Coordinates reproject(osmium::Location loc) const = 0;
 
     /**
      * Converts coordinates from target projection to tile projection
@@ -54,7 +52,8 @@ public:
      * Do not confuse with coords_to_tile which does *not* calculate
      * coordinates in the tile projection, but tile coordinates.
      */
-    virtual Coordinates target_to_tile(Coordinates) const = 0;
+    virtual osmium::geom::Coordinates
+        target_to_tile(osmium::geom::Coordinates) const = 0;
 
     virtual int target_srs() const noexcept = 0;
 
