@@ -4,11 +4,11 @@
 #include <string>
 #include <vector>
 
-enum ColumnType
+enum class ColumnType
 {
-    COLUMN_TYPE_INT,
-    COLUMN_TYPE_REAL,
-    COLUMN_TYPE_TEXT
+    INT,
+    REAL,
+    TEXT
 };
 
 struct Column
@@ -23,11 +23,5 @@ struct Column
 };
 
 using columns_t = std::vector<Column>;
-
-/* Table columns, representing key= tags */
-struct taginfo;
-
-/* list of exported tags */
-struct export_list;
 
 #endif // OSM2PGSQL_TAGINFO_HPP

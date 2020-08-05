@@ -1,8 +1,6 @@
 #include "format.hpp"
 #include "taginfo-impl.hpp"
-#include "util.hpp"
 
-#include <cassert>
 #include <cerrno>
 #include <cstring>
 #include <map>
@@ -10,61 +8,20 @@
 
 #include <osmium/util/string.hpp>
 
-static std::map<std::string, unsigned> const tagflags = {
-    {"polygon", FLAG_POLYGON}, {"linear", FLAG_LINEAR},
-    {"nocache", FLAG_NOCACHE}, {"delete", FLAG_DELETE},
-    {"phstore", FLAG_PHSTORE}, {"nocolumn", FLAG_NOCOLUMN}};
-
-static std::map<std::string, unsigned> const tagtypes = {
-    {"smallint", FLAG_INT_TYPE}, {"integer", FLAG_INT_TYPE},
-    {"bigint", FLAG_INT_TYPE},   {"int2", FLAG_INT_TYPE},
-    {"int4", FLAG_INT_TYPE},     {"int8", FLAG_INT_TYPE},
-    {"real", FLAG_REAL_TYPE},    {"double precision", FLAG_REAL_TYPE}};
-
-taginfo::taginfo() : name(), type(), flags(0) {}
-
-taginfo::taginfo(taginfo const &other)
-: name(other.name), type(other.type), flags(other.flags)
-{}
-
-void export_list::add(osmium::item_type id, taginfo const &info)
+void export_list::add(osmium::item_type type, taginfo const &info)
 {
-    std::vector<taginfo> &infos = get(id);
-    infos.push_back(info);
+    m_export_list(type).push_back(info);
 }
 
-std::vector<taginfo> &export_list::get(osmium::item_type id)
+std::vector<taginfo> const &export_list::get(osmium::item_type type) const
+    noexcept
 {
-    auto const idx = item_type_to_nwr_index(id);
-    if (idx >= exportList.size()) {
-        exportList.resize(idx + 1);
-    }
-    return exportList[idx];
+    return m_export_list(type);
 }
 
-std::vector<taginfo> const &export_list::get(osmium::item_type id) const
+bool export_list::has_column(osmium::item_type type, char const *name) const
 {
-    // this fakes as if we have infinite taginfo vectors, but
-    // means we don't actually have anything allocated unless
-    // the info object has been assigned.
-    static const std::vector<taginfo> empty;
-
-    auto const idx = item_type_to_nwr_index(id);
-    if (idx < exportList.size()) {
-        return exportList[idx];
-    }
-
-    return empty;
-}
-
-bool export_list::has_column(osmium::item_type id, char const *name) const
-{
-    auto const idx = item_type_to_nwr_index(id);
-    if (idx >= exportList.size()) {
-        return false;
-    }
-
-    for (auto const &info : exportList[idx]) {
+    for (auto const &info : m_export_list(type)) {
         if (info.name == name) {
             return true;
         }
@@ -73,11 +30,11 @@ bool export_list::has_column(osmium::item_type id, char const *name) const
     return false;
 }
 
-columns_t export_list::normal_columns(osmium::item_type id) const
+columns_t export_list::normal_columns(osmium::item_type type) const
 {
     columns_t columns;
 
-    for (auto const &info : get(id)) {
+    for (auto const &info : m_export_list(type)) {
         if (!(info.flags & (FLAG_DELETE | FLAG_NOCOLUMN))) {
             columns.emplace_back(info.name, info.type, info.column_type());
         }
@@ -88,6 +45,11 @@ columns_t export_list::normal_columns(osmium::item_type id) const
 
 unsigned parse_tag_flags(std::string const &flags, int lineno)
 {
+    static std::map<std::string, unsigned> const tagflags = {
+        {"polygon", FLAG_POLYGON}, {"linear", FLAG_LINEAR},
+        {"nocache", FLAG_NOCACHE}, {"delete", FLAG_DELETE},
+        {"phstore", FLAG_PHSTORE}, {"nocolumn", FLAG_NOCOLUMN}};
+
     unsigned temp_flags = 0;
 
     for (auto const &flag_name : osmium::split_string(flags, ",\r\n")) {
@@ -103,53 +65,70 @@ unsigned parse_tag_flags(std::string const &flags, int lineno)
     return temp_flags;
 }
 
-int read_style_file(std::string const &filename, export_list *exlist)
+/**
+ * Get the tag type. For unknown types, 0 will be returned.
+ */
+static unsigned get_tag_type(std::string const &tag)
 {
-    FILE *in;
-    int lineno = 0;
-    int num_read = 0;
+    static std::map<std::string, unsigned> const tagtypes = {
+        {"smallint", FLAG_INT_TYPE}, {"integer", FLAG_INT_TYPE},
+        {"bigint", FLAG_INT_TYPE},   {"int2", FLAG_INT_TYPE},
+        {"int4", FLAG_INT_TYPE},     {"int8", FLAG_INT_TYPE},
+        {"real", FLAG_REAL_TYPE},    {"double precision", FLAG_REAL_TYPE}};
+
+    auto const typ = tagtypes.find(tag);
+    if (typ != tagtypes.end()) {
+        return typ->second;
+    }
+
+    return 0;
+}
+
+bool read_style_file(std::string const &filename, export_list *exlist)
+{
     char osmtype[24];
     char tag[64];
     char datatype[24];
     char flags[128];
-    char *str;
-    int fields;
-    struct taginfo temp;
-    char buffer[1024];
-    int enable_way_area = 1;
+    bool enable_way_area = true;
 
-    in = fopen(filename.c_str(), "rt");
+    FILE *const in = std::fopen(filename.c_str(), "rt");
     if (!in) {
         throw std::runtime_error{"Couldn't open style file '{}': {}"_format(
             filename, std::strerror(errno))};
     }
 
+    char buffer[1024];
+    int lineno = 0;
+    bool read_valid_column = false;
     //for each line of the style file
-    while (fgets(buffer, sizeof(buffer), in) != nullptr) {
+    while (std::fgets(buffer, sizeof(buffer), in) != nullptr) {
         ++lineno;
 
         //find where a comment starts and terminate the string there
-        str = std::strchr(buffer, '#');
+        char *const str = std::strchr(buffer, '#');
         if (str) {
             *str = '\0';
         }
 
         //grab the expected fields for this row
-        fields = sscanf(buffer, "%23s %63s %23s %127s", osmtype, tag, datatype,
-                        flags);
+        int const fields = std::sscanf(buffer, "%23s %63s %23s %127s", osmtype,
+                                       tag, datatype, flags);
         if (fields <= 0) { /* Blank line */
             continue;
         }
+
         if (fields < 3) {
-            fmt::print(stderr, "Error reading style file line {} (fields={})\n",
-                       lineno, fields);
-            fclose(in);
-            util::exit_nicely();
+            std::fclose(in);
+            throw std::runtime_error{
+                "Error reading style file line {} (fields={})"_format(lineno,
+                                                                      fields)};
         }
 
         //place to keep info about this tag
-        temp.name.assign(tag);
-        temp.type.assign(datatype);
+        taginfo temp;
+        temp.name = tag;
+        temp.type = datatype;
         temp.flags = parse_tag_flags(flags, lineno);
 
         // check for special data types, by default everything is handled as text
@@ -158,23 +137,19 @@ int read_style_file(std::string const &filename, export_list *exlist)
         // want to convert it back and forth between string and real later. The code
         // will provide a string suitable for the database already.
         if (temp.name != "way_area") {
-            auto const typ = tagtypes.find(temp.type);
-            if (typ != tagtypes.end()) {
-                temp.flags |= typ->second;
-            }
+            temp.flags |= get_tag_type(temp.type);
         }
 
         if ((temp.flags != FLAG_DELETE) &&
             ((temp.name.find('?') != std::string::npos) ||
              (temp.name.find('*') != std::string::npos))) {
-            fmt::print(stderr, "wildcard '{}' in non-delete style entry\n",
-                       temp.name);
-            fclose(in);
-            util::exit_nicely();
+            std::fclose(in);
+            throw std::runtime_error{
+                "wildcard '{}' in non-delete style entry"_format(temp.name)};
         }
 
         if ((temp.name == "way_area") && (temp.flags == FLAG_DELETE)) {
-            enable_way_area = 0;
+            enable_way_area = false;
         }
 
         bool kept = false;
@@ -193,22 +168,26 @@ int read_style_file(std::string const &filename, export_list *exlist)
 
         //do we really want to completely quit on an unusable line?
         if (!kept) {
-            fclose(in);
+            std::fclose(in);
             throw std::runtime_error{
                 "Weird style line {}:{}"_format(filename, lineno)};
         }
-        ++num_read;
+
+        read_valid_column = true;
     }
 
-    if (ferror(in)) {
-        int err = errno;
-        fclose(in);
+    if (std::ferror(in)) {
+        int const err = errno;
+        std::fclose(in);
         throw std::runtime_error{"{}: {}"_format(filename, std::strerror(err))};
     }
-    fclose(in);
-    if (num_read == 0) {
+
+    std::fclose(in);
+
+    if (!read_valid_column) {
         throw std::runtime_error{"Unable to parse any valid columns from "
                                  "the style file. Aborting."};
     }
+
     return enable_way_area;
 }

@@ -73,7 +73,7 @@ protected:
     std::unique_ptr<tagtransform_t> m_tagtransform;
 
     //enable output of a generated way_area tag to either hstore or its own column
-    int m_enable_way_area;
+    bool m_enable_way_area;
 
     std::array<std::unique_ptr<table_t>, t_MAX> m_tables;
 

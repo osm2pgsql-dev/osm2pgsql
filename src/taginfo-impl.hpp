@@ -3,11 +3,14 @@
 
 #include "osmtypes.hpp"
 #include "taginfo.hpp"
+
+#include <osmium/index/nwr_array.hpp>
+
 #include <string>
 #include <utility>
 #include <vector>
 
-enum column_flags
+enum column_flags : unsigned int
 {
     FLAG_POLYGON = 1, /* For polygon table */
     FLAG_LINEAR = 2,  /* For lines table */
@@ -21,36 +24,37 @@ enum column_flags
     FLAG_REAL_TYPE = 64 /* column value should be converted to double */
 };
 
+/* Table columns, representing key= tags */
 struct taginfo
 {
-    taginfo();
-    taginfo(taginfo const &);
-
     ColumnType column_type() const
     {
         if (flags & FLAG_INT_TYPE) {
-            return COLUMN_TYPE_INT;
+            return ColumnType::INT;
         }
         if (flags & FLAG_REAL_TYPE) {
-            return COLUMN_TYPE_REAL;
+            return ColumnType::REAL;
         }
-        return COLUMN_TYPE_TEXT;
+        return ColumnType::TEXT;
     }
 
-    std::string name, type;
-    unsigned flags;
+    std::string name;
+    std::string type;
+    unsigned int flags = 0;
 };
 
-struct export_list
+/* list of exported tags */
+class export_list
 {
-    void add(osmium::item_type id, taginfo const &info);
-    std::vector<taginfo> &get(osmium::item_type id);
-    std::vector<taginfo> const &get(osmium::item_type id) const;
+public:
+    void add(osmium::item_type type, taginfo const &info);
+    std::vector<taginfo> const &get(osmium::item_type type) const noexcept;
 
-    columns_t normal_columns(osmium::item_type id) const;
-    bool has_column(osmium::item_type id, char const *name) const;
+    columns_t normal_columns(osmium::item_type type) const;
+    bool has_column(osmium::item_type type, char const *name) const;
 
-    std::vector<std::vector<taginfo>> exportList; /* Indexed osmium nwr index */
+private:
+    osmium::nwr_array<std::vector<taginfo>> m_export_list;
 };
 
 /* Parse a comma or whitespace delimited list of tags to apply to
@@ -61,9 +65,9 @@ unsigned parse_tag_flags(std::string const &flags, int lineno);
 /* Parse an osm2pgsql "pgsql" backend format style file, putting
  * the results in the `exlist` argument.
  *
- * Returns 1 if the 'way_area' column should (implicitly) exist, or
- * 0 if it should be suppressed.
+ * Returns `true` if the 'way_area' column should (implicitly) exist, or
+ * `false` if it should be suppressed.
  */
-int read_style_file(std::string const &filename, export_list *exlist);
+bool read_style_file(std::string const &filename, export_list *exlist);
 
 #endif // OSM2PGSQL_TAGINFO_IMPL_HPP

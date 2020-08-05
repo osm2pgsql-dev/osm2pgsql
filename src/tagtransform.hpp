@@ -7,8 +7,8 @@
 
 #include "osmtypes.hpp"
 
+class export_list;
 class options_t;
-struct export_list;
 
 class tagtransform_t
 {

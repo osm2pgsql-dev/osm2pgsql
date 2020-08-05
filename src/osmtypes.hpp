@@ -1,17 +1,20 @@
 #ifndef OSM2PGSQL_OSMTYPES_HPP
 #define OSM2PGSQL_OSMTYPES_HPP
 
-/* Data types to hold OSM node, segment, way data */
-
-// when __cplusplus is defined, we need to define this macro as well
-// to get the print format specifiers in the inttypes.h header.
-#define __STDC_FORMAT_MACROS
-#include <cinttypes>
+/**
+ * \file
+ *
+ * This file is part of osm2pgsql (https://github.com/openstreetmap/osm2pgsql).
+ *
+ * In this file some basic (OSM) data types are defined.
+ */
 
 #include <algorithm>
-#include <cmath>
+#include <cstdint>
+#include <cstring>
 #include <limits>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <osmium/builder/attr.hpp>
@@ -19,7 +22,6 @@
 #include <osmium/osm.hpp>
 
 using osmid_t = std::int64_t;
-#define strtoosmid strtoll
 
 struct member
 {
@@ -64,7 +66,7 @@ struct tag_t
     std::string key;
     std::string value;
 
-    operator std::pair<char const *, char const *> const() const
+    operator std::pair<char const *, char const *> const() const noexcept
     {
         return std::pair<char const *, char const *>(key.c_str(),
                                                      value.c_str());

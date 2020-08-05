@@ -20,7 +20,7 @@
 class options_t;
 class table_t;
 class tagtransform_t;
-struct export_list;
+class export_list;
 struct middle_query_t;
 
 class output_multi_t : public output_t
