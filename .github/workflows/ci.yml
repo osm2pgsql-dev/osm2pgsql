@@ -1,6 +1,6 @@
-name: CI
+name: OSX CI
 
-on: [ push ]
+on: [ push, pull_request ]
 
 jobs:
   build:
