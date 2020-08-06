@@ -142,6 +142,12 @@ struct expire_tiles
     static xy_coord_t quadkey_to_xy(uint64_t quadkey, uint32_t zoom);
 
 private:
+
+    /**
+     * Converts from target coordinates to tile coordinates.
+     */
+    void coords_to_tile(double lon, double lat, double *tilex, double *tiley);
+
     /**
      * Expire a single tile.
      *

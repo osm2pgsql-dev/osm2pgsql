@@ -13,7 +13,6 @@
 #include <memory>
 
 #include "osmtypes.hpp"
-#include "reprojection.hpp"
 #include "thread-pool.hpp"
 
 /**

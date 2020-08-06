@@ -253,7 +253,7 @@ public:
         auto const x = read_data<double>();
         auto const y = read_data<double>();
 
-        return osmium::geom::Coordinates(x, y);
+        return osmium::geom::Coordinates{x, y};
     }
 
     void skip_points(size_t num) { m_pos += sizeof(double) * 2 * num; }
@@ -308,11 +308,9 @@ private:
 
         double total = 0;
 
-        auto prev = read_point();
-        proj->target_to_tile(&prev.y, &prev.x);
+        auto prev = proj->target_to_tile(read_point());
         for (unsigned i = 1; i < num_pts; ++i) {
-            auto cur = read_point();
-            proj->target_to_tile(&cur.y, &cur.x);
+            auto const cur = proj->target_to_tile(read_point());
             total += prev.x * cur.y - cur.x * prev.y;
             prev = cur;
         }

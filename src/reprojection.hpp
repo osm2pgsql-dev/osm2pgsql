@@ -1,10 +1,12 @@
 #ifndef OSM2PGSQL_REPROJECTION_HPP
 #define OSM2PGSQL_REPROJECTION_HPP
 
-/*
- * Convert OSM latitude / longitude from degrees to mercator
- * so that Mapnik does not have to project the data again
+/**
+ * \file
  *
+ * This file is part of osm2pgsql (https://github.com/openstreetmap/osm2pgsql).
+ *
+ * It contains the reprojection class.
  */
 
 #include <memory>
@@ -18,6 +20,12 @@ enum Projection
     PROJ_SPHERE_MERC = 3857
 };
 
+/**
+ * Virtual base class used for projecting OSM WGS84 coordinates into a
+ * different coordinate system. Most commonly this will be used to convert
+ * the coordinates into Spherical Mercator coordinates used in common web
+ * tiles.
+ */
 class reprojection
 {
 public:
@@ -38,25 +46,17 @@ public:
     virtual osmium::geom::Coordinates reproject(osmium::Location loc) const = 0;
 
     /**
-     * Converts coordinates from target projection to tile projection (EPSG:3857)
-     *
-     * Do not confuse with coords_to_tile which does *not* calculate coordinates in the
-     * tile projection, but tile coordinates.
+     * Converts coordinates from target projection to tile projection
+     * (EPSG:3857)
      */
-    virtual void target_to_tile(double *lat, double *lon) const = 0;
+    virtual osmium::geom::Coordinates
+        target_to_tile(osmium::geom::Coordinates) const = 0;
 
-    /**
-     * Converts from target coordinates to tile coordinates.
-     *
-     * The zoom level for the coordinates is explicitly given in the
-     * variable map_width.
-     */
-    void coords_to_tile(double *tilex, double *tiley, double lon, double lat,
-                        int map_width);
-    virtual int target_srs() const = 0;
-    virtual char const *target_desc() const = 0;
+    virtual int target_srs() const noexcept = 0;
 
-    bool target_latlon() const { return target_srs() == PROJ_LATLONG; }
+    virtual char const *target_desc() const noexcept = 0;
+
+    bool target_latlon() const noexcept { return target_srs() == PROJ_LATLONG; }
 
     /**
      * Create a reprojection object with target srs `srs`.
