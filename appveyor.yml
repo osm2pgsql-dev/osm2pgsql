@@ -13,18 +13,36 @@ environment:
     GETOPT_LIBRARY: C:\wingetopt\build\wingetopt.lib
     BZIP2_INCLUDE_DIR: C:\bzip2\dev
     BZIP2_LIBRARY: C:\bzip2\dll
-    BOOST_PATH: C:\Libraries\boost_1_63_0
-    POSTGRESQL_VER: 11.2
-    TESTS_POSTGRESQL_ROOT: C:\Progra~1\PostgreSQL\9.6
-    POSTGIS_VER: 2.4.3
-    POSTGIS_URL: "https://osm2pgsql.org/ci/winbuild/postgis-bundle-pg96-2.4.3x64.zip"
     PGUSER: postgres
     PGPASSWORD: Password12!
 
-os: Visual Studio 2015
+  matrix:
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
+      MSVC_SETUP_PATH: C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat
+      MSVC_SETUP_ARG: amd64
+      BOOST_PATH: C:\Libraries\boost_1_63_0
+      POSTGRESQL_VER: 11.2
+      POSTGIS_URL: https://osm2pgsql.org/ci/winbuild/postgis-bundle-pg96-2.5.3x64.zip
+      POSTGIS_DIR: postgis-bundle-pg96-2.5.3x64
+      POSTGRES_DIR: C:\Progra~1\PostgreSQL\9.6
+      POSTGRES_SERVICE: postgresql-x64-9.6
 
-services:
-  - postgresql96
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+      MSVC_SETUP_PATH: C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat
+      MSVC_SETUP_ARG:
+      BOOST_PATH: C:\Libraries\boost_1_71_0
+      POSTGRESQL_VER: 11.2
+      POSTGIS_URL: http://osm2pgsql.org/ci/winbuild/postgis-bundle-pg12-3.0.3x64.zip
+      POSTGIS_DIR: postgis-bundle-pg12-3.0.3x64
+      POSTGRES_DIR: C:\Progra~1\PostgreSQL\12
+      POSTGRES_SERVICE: postgresql-x64-12
+# Workaround pg bug
+      PGGSSENCMODE: disable
+
+# Original locations for PostGIS:
+# https://download.osgeo.org/postgis/windows/pg96/archive/postgis-bundle-pg96-2.5.3x64.zip
+# https://download.osgeo.org/postgis/windows/pg12/archive/postgis-bundle-pg12-3.0.3x64.zip
+
 
 clone_folder: c:\osm2pgsql
 
@@ -34,13 +52,12 @@ init:
   - git config --global core.autocrlf input
   - set bz2_dll_url=https://github.com/philr/bzip2-windows/releases/download/v%BZIP2_VER%/bzip2-dll-%BZIP2_VER%-win-x64.zip
   - set bz2_dev_url=https://github.com/philr/bzip2-windows/releases/download/v%BZIP2_VER%/bzip2-dev-%BZIP2_VER%-win-x64.zip
-  - set vcvarsall_arg=amd64
   - set conda_path=C:\Miniconda36-x64\Scripts
   - set python_path=C:\Python38-x64
   - set conda_library_path=C:\Miniconda36-x64\envs\osm2pgsql\Library
   - set lua_url=https://osm2pgsql.org/ci/winbuild/lua_x64.zip
   - set build_type=Release
-  - '"C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall" %vcvarsall_arg%'
+  - call "%MSVC_SETUP_PATH%" %MSVC_SETUP_ARG%
 
 install:
   - set PATH=%TESTS_POSTGRESQL_ROOT%\bin;%python_path%;%PATH%;%conda_path%
@@ -57,7 +74,7 @@ install:
   - 7z x -y C:\lua_x64.zip -oC:\lua
   - ps: if (!(Test-Path "C:\postgis.zip")){(new-object net.webclient).DownloadFile($env:POSTGIS_URL, "C:\postgis.zip")}
   - 7z x C:\postgis.zip -oC:\postgis
-  - xcopy /e /y /q C:\postgis\postgis-bundle-pg96-2.4.3x64 %TESTS_POSTGRESQL_ROOT%
+  - xcopy /e /y /q C:\postgis\%POSTGIS_DIR% %POSTGRES_DIR%
   - git clone https://github.com/alex85k/wingetopt -b %WINGETOPT_VER% C:\wingetopt
   - python -V
   - python -m pip install psycopg2
@@ -95,12 +112,14 @@ after_build:
   - copy /y %conda_library_path%\bin\comerr64.dll osm2pgsql-bin
   - copy /y %conda_library_path%\bin\krb5_64.dll osm2pgsql-bin
   - copy /y %conda_library_path%\bin\k5sprt64.dll osm2pgsql-bin
-  - copy /y %conda_library_path%\bin\wshelp64.dll osm2pgsql-bin
+  - copy /y %conda_library_path%\bin\*.dll osm2pgsql-bin
+  - del /q osm2pgsql-bin\api-ms-win*.dll
   - copy /y %BZIP2_LIBRARY%\libbz2.dll osm2pgsql-bin
   - copy /y %LUA_DLL% osm2pgsql-bin
   - 7z a c:\osm2pgsql\osm2pgsql_%build_type%_x64.zip osm2pgsql-bin -tzip
 
 before_test:
+  - net start "%POSTGRES_SERVICE%"
   - cd c:\
   - mkdir temp
   - cacls temp /T /E /G Users:F
@@ -117,6 +136,15 @@ test_script:
 
 artifacts:
   - path: osm2pgsql_%build_type%_x64.zip
+
+on_failure:
+  - appveyor PushArtifact CMakeFiles/CMakeOutput.log
+  - appveyor PushArtifact CMakeFiles/CMakeError.log
+# Start up RDP server on AppVeyor for troubleshooting
+#  - reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" /v UserAuthentication /t REG_DWORD /d 0 /f
+#  - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+#  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+
 
 cache:
   - C:\lua_x64.zip -> appveyor.yml
