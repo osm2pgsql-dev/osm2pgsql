@@ -378,8 +378,7 @@ output_pgsql_t::output_pgsql_t(
             type = "LINESTRING";
             break;
         default:
-            //TODO: error message about coding error
-            util::exit_nicely();
+            std::abort(); // should never be here
         }
 
         m_tables[i].reset(

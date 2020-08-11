@@ -11,8 +11,6 @@
 
 namespace util {
 
-void exit_nicely();
-
 class integer_to_buffer
 {
     // This is enough for 64 bit integers
