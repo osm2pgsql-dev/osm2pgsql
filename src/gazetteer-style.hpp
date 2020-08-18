@@ -73,7 +73,8 @@ private:
 class gazetteer_copy_mgr_t : public db_copy_mgr_t<db_deleter_place_t>
 {
 public:
-    gazetteer_copy_mgr_t(std::shared_ptr<db_copy_thread_t> const &processor)
+    explicit gazetteer_copy_mgr_t(
+        std::shared_ptr<db_copy_thread_t> const &processor)
     : db_copy_mgr_t<db_deleter_place_t>(processor),
       m_table(std::make_shared<db_target_descr_t>("place", "place_id"))
     {}
@@ -167,7 +168,7 @@ private:
     /// addresstags to include
     std::vector<ptag_t> m_address;
     /// value of operator tag
-    char const *m_operator;
+    char const *m_operator = nullptr;
     /// admin level
     int m_admin_level;
 

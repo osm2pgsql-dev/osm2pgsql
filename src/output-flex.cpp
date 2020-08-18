@@ -799,7 +799,7 @@ int output_flex_t::table_add_row()
 
     auto &table_connection =
         m_table_connections.at(table_idx_from_param(lua_state()));
-    auto &table = table_connection.table();
+    auto const &table = table_connection.table();
     luaL_checktype(lua_state(), 2, LUA_TTABLE);
     lua_remove(lua_state(), 1);
 

@@ -76,7 +76,7 @@ public:
     calling_context context() const noexcept { return m_calling_context; }
 
     /// Is this function defined in the users Lua code?
-    operator bool() const noexcept { return m_index != 0; }
+    explicit operator bool() const noexcept { return m_index != 0; }
 
 private:
     char const *m_name = nullptr;
@@ -107,7 +107,7 @@ public:
     output_flex_t(output_flex_t &&) = delete;
     output_flex_t &operator=(output_flex_t &&) = delete;
 
-    virtual ~output_flex_t() noexcept = default;
+    ~output_flex_t() noexcept override = default;
 
     std::shared_ptr<output_t>
     clone(std::shared_ptr<middle_query_t> const &mid,

@@ -26,7 +26,7 @@ static std::shared_ptr<db_target_descr_t> setup_table(std::string const &cols)
 }
 
 template <typename... ARGS>
-void add_row(copy_mgr_t &mgr, std::shared_ptr<db_target_descr_t> t,
+void add_row(copy_mgr_t &mgr, std::shared_ptr<db_target_descr_t> const &t,
              ARGS &&... args)
 {
     mgr.new_line(t);
@@ -37,8 +37,8 @@ void add_row(copy_mgr_t &mgr, std::shared_ptr<db_target_descr_t> t,
 }
 
 template <typename T>
-void add_array(copy_mgr_t &mgr, std::shared_ptr<db_target_descr_t> t, int id,
-               std::vector<T> const &values)
+void add_array(copy_mgr_t &mgr, std::shared_ptr<db_target_descr_t> const &t,
+               int id, std::vector<T> const &values)
 {
     mgr.new_line(t);
     mgr.add_column(id);
@@ -53,7 +53,7 @@ void add_array(copy_mgr_t &mgr, std::shared_ptr<db_target_descr_t> t, int id,
 }
 
 static void
-add_hash(copy_mgr_t &mgr, std::shared_ptr<db_target_descr_t> t, int id,
+add_hash(copy_mgr_t &mgr, std::shared_ptr<db_target_descr_t> const &t, int id,
          std::vector<std::pair<std::string, std::string>> const &values)
 {
     mgr.new_line(t);
@@ -74,7 +74,7 @@ static void check_row(std::vector<std::string> const &row)
     auto conn = db.connect();
     auto res = conn.require_row("SELECT * FROM test_copy_mgr");
 
-    for (unsigned i = 0; i < row.size(); ++i) {
+    for (std::size_t i = 0; i < row.size(); ++i) {
         CHECK(res.get_value(0, (int)i) == row[i]);
     }
 }

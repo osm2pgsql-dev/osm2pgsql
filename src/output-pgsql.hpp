@@ -36,7 +36,8 @@ public:
     output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
                    options_t const &options,
                    std::shared_ptr<db_copy_thread_t> const &copy_thread);
-    virtual ~output_pgsql_t();
+
+    ~output_pgsql_t() override;
 
     std::shared_ptr<output_t>
     clone(std::shared_ptr<middle_query_t> const &mid,

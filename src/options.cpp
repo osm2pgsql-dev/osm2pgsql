@@ -297,7 +297,11 @@ options_t::options_t()
 
 static osmium::Box parse_bbox(char const *bbox)
 {
-    double minx, maxx, miny, maxy;
+    double minx;
+    double maxx;
+    double miny;
+    double maxy;
+
     int const n = sscanf(bbox, "%lf,%lf,%lf,%lf", &minx, &miny, &maxx, &maxy);
     if (n != 4) {
         throw std::runtime_error{"Bounding box must be specified like: "

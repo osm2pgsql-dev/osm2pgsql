@@ -507,7 +507,7 @@ static void check_way(std::shared_ptr<middle_pgsql_t> const &mid,
  */
 static void check_way_nodes(std::shared_ptr<middle_pgsql_t> const &mid,
                             osmid_t way_id,
-                            std::vector<osmium::Node const *> nodes)
+                            std::vector<osmium::Node const *> const &nodes)
 {
     auto const mid_q = mid->get_query_instance();
 
