@@ -223,36 +223,57 @@ void middle_pgsql_t::buffer_store_tags(osmium::OSMObject const &obj, bool attrs)
     }
 }
 
+/**
+ * Class for building a stringified list of ids in the format "{id1,id2,id3}"
+ * for use in PostgreSQL queries.
+ */
+class string_id_list
+{
+
+    std::string m_list{"{"};
+
+public:
+    void add(osmid_t id)
+    {
+        fmt::format_to(std::back_inserter(m_list), "{},", id);
+    }
+
+    bool empty() const noexcept { return m_list.size() == 1; }
+
+    std::string const &get()
+    {
+        assert(!empty());
+        m_list.back() = '}';
+        return m_list;
+    }
+
+}; // class string_id_list
+
 size_t
 middle_query_pgsql_t::local_nodes_get_list(osmium::WayNodeList *nodes) const
 {
     size_t count = 0;
-    std::string buffer{"{"};
+    string_id_list id_list;
 
     // get nodes where possible from cache,
     // at the same time build a list for querying missing nodes from DB
-    size_t pos = 0;
     for (auto &n : *nodes) {
         auto const loc = m_cache->get(n.ref());
         if (loc.valid()) {
             n.set_location(loc);
             ++count;
         } else {
-            buffer += std::to_string(n.ref());
-            buffer += ',';
+            id_list.add(n.ref());
         }
-        ++pos;
     }
 
-    if (count == pos) {
-        return count; // all ids found in cache, nothing more to do
+    if (id_list.empty()) {
+        return count;
     }
 
     // get any remaining nodes from the DB
-    buffer[buffer.size() - 1] = '}';
-
     // Nodes must have been written back at this point.
-    auto const res = m_sql_conn.exec_prepared("get_node_list", buffer);
+    auto const res = m_sql_conn.exec_prepared("get_node_list", id_list.get());
     std::unordered_map<osmid_t, osmium::Location> locs;
     for (int i = 0; i < res.num_tuples(); ++i) {
         locs.emplace(
@@ -377,21 +398,19 @@ middle_query_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
                                           rolelist_t *roles,
                                           osmium::memory::Buffer &buffer) const
 {
-    // create a list of ids in id_list to query the database
-    std::string id_list{"{"};
+    string_id_list id_list;
+
     for (auto const &m : rel.members()) {
         if (m.type() == osmium::item_type::way) {
-            fmt::format_to(std::back_inserter(id_list), "{},", m.ref());
+            id_list.add(m.ref());
         }
     }
 
-    if (id_list.size() == 1) {
-        return 0; // no ways found
+    if (id_list.empty()) {
+        return 0;
     }
-    // replace last , with } to complete list of ids
-    id_list.back() = '}';
 
-    auto const res = m_sql_conn.exec_prepared("get_way_list", id_list);
+    auto const res = m_sql_conn.exec_prepared("get_way_list", id_list.get());
     idlist_t wayidspg;
     for_each_id(res, [&wayidspg](osmid_t id) {
         wayidspg.push_back(id);
