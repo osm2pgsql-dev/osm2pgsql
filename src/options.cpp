@@ -324,8 +324,45 @@ static osmium::Box parse_bbox(char const *bbox)
     return osmium::Box{minx, miny, maxx, maxy};
 }
 
+template <typename T>
+T get_env_unsigned(char const *var, T default_value)
+{
+    char const *const str = std::getenv(var);
+
+    if (!str) {
+        return default_value;
+    }
+
+    char *end = nullptr;
+    auto const val = std::strtoull(str, &end, 10);
+
+    if (*end != '\0') {
+        fmt::print("Warning! Could not parse value of env variable {}.\n"
+                   "         Using default value of {}.\n\n",
+                   var, default_value);
+        return default_value;
+    }
+
+    if (val > std::numeric_limits<T>::max()) {
+        fmt::print("Warning! Value of env variable {} out of range.\n"
+                   "         Using default value of {}.\n\n",
+                   var, default_value);
+        return default_value;
+    }
+
+    return static_cast<T>(val);
+}
+
+void options_t::get_options_from_env()
+{
+    index_bucket_size =
+        get_env_unsigned<uint8_t>("OSM2PGSQL_INDEX_BUCKET_SIZE", 32);
+}
+
 options_t::options_t(int argc, char *argv[]) : options_t()
 {
+    get_options_from_env();
+
     bool help_verbose = false; // Will be set when -v/--verbose is set
 
     int c;

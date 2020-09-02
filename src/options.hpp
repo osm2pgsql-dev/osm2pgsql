@@ -130,7 +130,16 @@ public:
 
     std::vector<std::string> input_files;
 
+    /**
+     * Size of buckets used for way node index. Use 0 to disable for backwards
+     * compatibility.
+     */
+    uint8_t index_bucket_size = 32;
+
 private:
+    /// Set advanced options from environment
+    void get_options_from_env();
+
     /**
      * Check input options for sanity
      */
