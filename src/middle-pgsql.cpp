@@ -337,11 +337,6 @@ idlist_t middle_pgsql_t::get_rels_by_rel(osmid_t osm_id)
     return get_ids("mark_rels", osm_id);
 }
 
-idlist_t middle_pgsql_t::get_ways_by_rel(osmid_t osm_id)
-{
-    return get_ids("mark_ways_by_rel", osm_id);
-}
-
 void middle_pgsql_t::way_set(osmium::Way const &way)
 {
     m_db_copy.new_line(m_tables[WAY_TABLE].m_copy_target);
@@ -657,13 +652,7 @@ static table_sql sql_for_ways() noexcept
 
     sql.prepare_mark = "PREPARE mark_ways_by_node(int8) AS"
                        "  SELECT id FROM {prefix}_ways"
-                       "    WHERE nodes && ARRAY[$1];\n"
-                       "PREPARE mark_ways_by_rel(int8) AS"
-                       "  SELECT id FROM {prefix}_ways"
-                       "    WHERE id IN ("
-                       "      SELECT unnest(parts[way_off+1:rel_off])"
-                       "        FROM {prefix}_rels WHERE id = $1"
-                       "    );\n";
+                       "    WHERE nodes && ARRAY[$1];\n";
 
     sql.create_index = "CREATE INDEX ON {prefix}_ways USING GIN (nodes)"
                        "  WITH (fastupdate = off) {index_tablespace};\n";

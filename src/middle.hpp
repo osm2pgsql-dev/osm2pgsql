@@ -123,7 +123,6 @@ struct middle_t
     virtual idlist_t get_rels_by_node(osmid_t) { return {}; }
     virtual idlist_t get_rels_by_way(osmid_t) { return {}; }
     virtual idlist_t get_rels_by_rel(osmid_t) { return {}; }
-    virtual idlist_t get_ways_by_rel(osmid_t) { return {}; }
 
     virtual std::shared_ptr<middle_query_t> get_query_instance() = 0;
 };

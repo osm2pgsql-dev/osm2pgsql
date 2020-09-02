@@ -77,7 +77,6 @@ struct middle_pgsql_t : public slim_middle_t
     idlist_t get_rels_by_node(osmid_t osm_id) override;
     idlist_t get_rels_by_way(osmid_t osm_id) override;
     idlist_t get_rels_by_rel(osmid_t osm_id) override;
-    idlist_t get_ways_by_rel(osmid_t osm_id) override;
 
     class table_desc
     {
