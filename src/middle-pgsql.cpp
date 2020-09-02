@@ -508,16 +508,6 @@ void middle_pgsql_t::relation_delete(osmid_t osm_id)
     m_db_copy.delete_object(osm_id);
 }
 
-idlist_t middle_query_pgsql_t::relations_using_way(osmid_t way_id) const
-{
-    auto const result = m_sql_conn.exec_prepared("rels_using_way", way_id);
-    idlist_t rel_ids;
-    rel_ids.reserve((size_t)result.num_tuples());
-    for_each_id(result, [&rel_ids](osmid_t id) { rel_ids.push_back(id); });
-
-    return rel_ids;
-}
-
 void middle_pgsql_t::analyze()
 {
     for (auto const &table : m_tables) {
@@ -672,11 +662,7 @@ static table_sql sql_for_relations() noexcept
 
     sql.prepare_query = "PREPARE get_rel(int8) AS"
                         "  SELECT members, tags"
-                        "    FROM {prefix}_rels WHERE id = $1;\n"
-                        "PREPARE rels_using_way(int8) AS"
-                        "  SELECT id FROM {prefix}_rels"
-                        "    WHERE parts && ARRAY[$1]"
-                        "      AND parts[way_off+1:rel_off] && ARRAY[$1];\n";
+                        "    FROM {prefix}_rels WHERE id = $1;\n";
 
     sql.prepare_mark = "PREPARE mark_rels_by_node(int8) AS"
                        "  SELECT id FROM {prefix}_rels"
