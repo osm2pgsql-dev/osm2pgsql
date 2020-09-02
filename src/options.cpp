@@ -58,6 +58,7 @@ const struct option long_options[] = {
     {"keep-coastlines", no_argument, nullptr, 'K'},
     {"latlong", no_argument, nullptr, 'l'},
     {"merc", no_argument, nullptr, 'm'},
+    {"middle-way-node-index-id-shift", required_argument, nullptr, 300},
     {"multi-geometry", no_argument, nullptr, 'G'},
     {"number-processes", required_argument, nullptr, 205},
     {"output", required_argument, nullptr, 'O'},
@@ -181,6 +182,10 @@ void long_usage(char const *arg0, bool verbose)
                         The default is \"sparse\"\n");
 #endif
         printf("%s", "\
+    \n\
+    Middle options (experts only):\n\
+          --middle-way-node-index-id-shift shift  Set ID shift for bucket\
+                             index. See documentation for details.\
     \n\
     Expiry options:\n\
        -e|--expire-tiles [min_zoom-]max_zoom    Create a tile expiry list.\n\
@@ -566,6 +571,9 @@ options_t::options_t(int argc, char *argv[]) : options_t()
 #endif
             fprintf(stderr, "\n");
             exit(EXIT_SUCCESS);
+            break;
+        case 300:
+            way_node_index_id_shift = atoi(optarg);
             break;
         case '?':
         default:

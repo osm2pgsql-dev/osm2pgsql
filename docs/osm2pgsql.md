@@ -220,6 +220,10 @@ starting with two dashes (`--`). A summary of options is included below.
 -v, \--verbose
 :   Verbose output.
 
+--middle-way-node-index-id-shift shift
+:   Set ID shift for way node bucket index in middle. Experts only. See
+    documentation for details.
+
 
 # SUPPORTED PROJECTIONS
 
