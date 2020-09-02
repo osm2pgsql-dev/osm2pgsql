@@ -257,8 +257,8 @@ middle_query_pgsql_t::local_nodes_get_list(osmium::WayNodeList *nodes) const
     for (int i = 0; i < res.num_tuples(); ++i) {
         locs.emplace(
             osmium::string_to_object_id(res.get_value(i, 0)),
-            osmium::Location{(int)strtol(res.get_value(i, 2), nullptr, 10),
-                             (int)strtol(res.get_value(i, 1), nullptr, 10)});
+            osmium::Location{(int)strtol(res.get_value(i, 1), nullptr, 10),
+                             (int)strtol(res.get_value(i, 2), nullptr, 10)});
     }
 
     for (auto &n : *nodes) {
@@ -610,7 +610,7 @@ static table_sql sql_for_nodes() noexcept
                        ") {data_tablespace};\n";
 
     sql.prepare_query = "PREPARE get_node_list(int8[]) AS"
-                        "  SELECT id, lat, lon FROM {prefix}_nodes"
+                        "  SELECT id, lon, lat FROM {prefix}_nodes"
                         "  WHERE id = ANY($1::int8[]);\n";
 
     return sql;
