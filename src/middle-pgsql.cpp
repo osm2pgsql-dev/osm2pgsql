@@ -63,12 +63,21 @@ middle_pgsql_t::table_desc::table_desc(options_t const &options,
                                        table_sql const &ts)
 : m_create(build_sql(options, ts.create_table)),
   m_prepare_query(build_sql(options, ts.prepare_query)),
-  m_prepare_intarray(build_sql(options, ts.prepare_mark)),
-  m_array_indexes(build_sql(options, ts.create_index)),
   m_copy_target(std::make_shared<db_target_descr_t>())
 {
     m_copy_target->name = build_sql(options, ts.name);
     m_copy_target->id = "id"; // XXX hardcoded column name
+
+    // Gazetteer doesn't use mark-pending processing and consequently
+    // needs no way-node index.
+    // TODO Currently, set here to keep the impact on the code small.
+    // We actually should have the output plugins report their needs
+    // and pass that via the constructor to middle_t, so that middle_t
+    // itself doesn't need to know about details of the output.
+    if (options.output_backend != "gazetteer") {
+        m_prepare_intarray = build_sql(options, ts.prepare_mark);
+        m_array_indexes = build_sql(options, ts.create_index);
+    }
 }
 
 void middle_query_pgsql_t::exec_sql(std::string const &sql_cmd) const
@@ -547,16 +556,6 @@ middle_query_pgsql_t::middle_query_pgsql_t(
 
 void middle_pgsql_t::start()
 {
-    // Gazetter doesn't use mark-pending processing and consequently
-    // needs no way-node index.
-    // TODO Currently, set here to keep the impact on the code small.
-    // We actually should have the output plugins report their needs
-    // and pass that via the constructor to middle_t, so that middle_t
-    // itself doesn't need to know about details of the output.
-    if (m_out_options->output_backend == "gazetteer") {
-        m_tables[WAY_TABLE].clear_array_indexes();
-    }
-
     if (m_append) {
         // Disable JIT and parallel workers as they are known to cause
         // problems when accessing the intarrays.
