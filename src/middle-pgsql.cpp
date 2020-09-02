@@ -639,10 +639,10 @@ static table_sql sql_for_ways() noexcept
                        ") {data_tablespace};\n";
 
     sql.prepare_query = "PREPARE get_way(int8) AS"
-                        "  SELECT nodes, tags, array_upper(nodes, 1)"
+                        "  SELECT nodes, tags"
                         "    FROM {prefix}_ways WHERE id = $1;\n"
                         "PREPARE get_way_list(int8[]) AS"
-                        "  SELECT id, nodes, tags, array_upper(nodes, 1)"
+                        "  SELECT id, nodes, tags"
                         "    FROM {prefix}_ways WHERE id = ANY($1::int8[]);\n";
 
     sql.prepare_mark = "PREPARE mark_ways_by_node(int8) AS"
@@ -671,7 +671,7 @@ static table_sql sql_for_relations() noexcept
                        ") {data_tablespace};\n";
 
     sql.prepare_query = "PREPARE get_rel(int8) AS"
-                        "  SELECT members, tags, array_upper(members, 1) / 2"
+                        "  SELECT members, tags"
                         "    FROM {prefix}_rels WHERE id = $1;\n"
                         "PREPARE rels_using_way(int8) AS"
                         "  SELECT id FROM {prefix}_rels"
