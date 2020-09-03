@@ -238,9 +238,6 @@ void middle_pgsql_t::buffer_store_tags(osmium::OSMObject const &obj, bool attrs)
  */
 class string_id_list
 {
-
-    std::string m_list{"{"};
-
 public:
     void add(osmid_t id)
     {
@@ -255,6 +252,9 @@ public:
         m_list.back() = '}';
         return m_list;
     }
+
+private:
+    std::string m_list{"{"};
 
 }; // class string_id_list
 
