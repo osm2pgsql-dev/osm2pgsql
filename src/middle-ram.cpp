@@ -122,12 +122,6 @@ middle_ram_t::middle_ram_t(options_t const *options)
   m_extra_attributes(options->extra_attributes)
 {}
 
-idlist_t middle_ram_t::relations_using_way(osmid_t) const
-{
-    assert(false && "Should only be called in slim mode");
-    return {};
-}
-
 std::shared_ptr<middle_query_t> middle_ram_t::get_query_instance()
 {
     return shared_from_this();

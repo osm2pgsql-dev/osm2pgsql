@@ -63,12 +63,21 @@ middle_pgsql_t::table_desc::table_desc(options_t const &options,
                                        table_sql const &ts)
 : m_create(build_sql(options, ts.create_table)),
   m_prepare_query(build_sql(options, ts.prepare_query)),
-  m_prepare_intarray(build_sql(options, ts.prepare_mark)),
-  m_array_indexes(build_sql(options, ts.create_index)),
   m_copy_target(std::make_shared<db_target_descr_t>())
 {
     m_copy_target->name = build_sql(options, ts.name);
     m_copy_target->id = "id"; // XXX hardcoded column name
+
+    // Gazetteer doesn't use mark-pending processing and consequently
+    // needs no way-node index.
+    // TODO Currently, set here to keep the impact on the code small.
+    // We actually should have the output plugins report their needs
+    // and pass that via the constructor to middle_t, so that middle_t
+    // itself doesn't need to know about details of the output.
+    if (options.output_backend != "gazetteer") {
+        m_prepare_intarray = build_sql(options, ts.prepare_mark);
+        m_array_indexes = build_sql(options, ts.create_index);
+    }
 }
 
 void middle_query_pgsql_t::exec_sql(std::string const &sql_cmd) const
@@ -223,42 +232,63 @@ void middle_pgsql_t::buffer_store_tags(osmium::OSMObject const &obj, bool attrs)
     }
 }
 
+/**
+ * Class for building a stringified list of ids in the format "{id1,id2,id3}"
+ * for use in PostgreSQL queries.
+ */
+class string_id_list
+{
+public:
+    void add(osmid_t id)
+    {
+        fmt::format_to(std::back_inserter(m_list), "{},", id);
+    }
+
+    bool empty() const noexcept { return m_list.size() == 1; }
+
+    std::string const &get()
+    {
+        assert(!empty());
+        m_list.back() = '}';
+        return m_list;
+    }
+
+private:
+    std::string m_list{"{"};
+
+}; // class string_id_list
+
 size_t
 middle_query_pgsql_t::local_nodes_get_list(osmium::WayNodeList *nodes) const
 {
     size_t count = 0;
-    std::string buffer{"{"};
+    string_id_list id_list;
 
     // get nodes where possible from cache,
     // at the same time build a list for querying missing nodes from DB
-    size_t pos = 0;
     for (auto &n : *nodes) {
         auto const loc = m_cache->get(n.ref());
         if (loc.valid()) {
             n.set_location(loc);
             ++count;
         } else {
-            buffer += std::to_string(n.ref());
-            buffer += ',';
+            id_list.add(n.ref());
         }
-        ++pos;
     }
 
-    if (count == pos) {
-        return count; // all ids found in cache, nothing more to do
+    if (id_list.empty()) {
+        return count;
     }
 
     // get any remaining nodes from the DB
-    buffer[buffer.size() - 1] = '}';
-
     // Nodes must have been written back at this point.
-    auto const res = m_sql_conn.exec_prepared("get_node_list", buffer);
+    auto const res = m_sql_conn.exec_prepared("get_node_list", id_list.get());
     std::unordered_map<osmid_t, osmium::Location> locs;
     for (int i = 0; i < res.num_tuples(); ++i) {
         locs.emplace(
             osmium::string_to_object_id(res.get_value(i, 0)),
-            osmium::Location{(int)strtol(res.get_value(i, 2), nullptr, 10),
-                             (int)strtol(res.get_value(i, 1), nullptr, 10)});
+            osmium::Location{(int)strtol(res.get_value(i, 1), nullptr, 10),
+                             (int)strtol(res.get_value(i, 2), nullptr, 10)});
     }
 
     for (auto &n : *nodes) {
@@ -332,16 +362,6 @@ idlist_t middle_pgsql_t::get_rels_by_way(osmid_t osm_id)
     return get_ids("mark_rels_by_way", osm_id);
 }
 
-idlist_t middle_pgsql_t::get_rels_by_rel(osmid_t osm_id)
-{
-    return get_ids("mark_rels", osm_id);
-}
-
-idlist_t middle_pgsql_t::get_ways_by_rel(osmid_t osm_id)
-{
-    return get_ids("mark_ways_by_rel", osm_id);
-}
-
 void middle_pgsql_t::way_set(osmium::Way const &way)
 {
     m_db_copy.new_line(m_tables[WAY_TABLE].m_copy_target);
@@ -387,21 +407,19 @@ middle_query_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
                                           rolelist_t *roles,
                                           osmium::memory::Buffer &buffer) const
 {
-    // create a list of ids in id_list to query the database
-    std::string id_list{"{"};
+    string_id_list id_list;
+
     for (auto const &m : rel.members()) {
         if (m.type() == osmium::item_type::way) {
-            fmt::format_to(std::back_inserter(id_list), "{},", m.ref());
+            id_list.add(m.ref());
         }
     }
 
-    if (id_list.size() == 1) {
-        return 0; // no ways found
+    if (id_list.empty()) {
+        return 0;
     }
-    // replace last , with } to complete list of ids
-    id_list.back() = '}';
 
-    auto const res = m_sql_conn.exec_prepared("get_way_list", id_list);
+    auto const res = m_sql_conn.exec_prepared("get_way_list", id_list.get());
     idlist_t wayidspg;
     for_each_id(res, [&wayidspg](osmid_t id) {
         wayidspg.push_back(id);
@@ -518,16 +536,6 @@ void middle_pgsql_t::relation_delete(osmid_t osm_id)
     m_db_copy.delete_object(osm_id);
 }
 
-idlist_t middle_query_pgsql_t::relations_using_way(osmid_t way_id) const
-{
-    auto const result = m_sql_conn.exec_prepared("rels_using_way", way_id);
-    idlist_t rel_ids;
-    rel_ids.reserve((size_t)result.num_tuples());
-    for_each_id(result, [&rel_ids](osmid_t id) { rel_ids.push_back(id); });
-
-    return rel_ids;
-}
-
 void middle_pgsql_t::analyze()
 {
     for (auto const &table : m_tables) {
@@ -548,16 +556,6 @@ middle_query_pgsql_t::middle_query_pgsql_t(
 
 void middle_pgsql_t::start()
 {
-    // Gazetter doesn't use mark-pending processing and consequently
-    // needs no way-node index.
-    // TODO Currently, set here to keep the impact on the code small.
-    // We actually should have the output plugins report their needs
-    // and pass that via the constructor to middle_t, so that middle_t
-    // itself doesn't need to know about details of the output.
-    if (m_out_options->output_backend == "gazetteer") {
-        m_tables[WAY_TABLE].clear_array_indexes();
-    }
-
     if (m_append) {
         // Disable JIT and parallel workers as they are known to cause
         // problems when accessing the intarrays.
@@ -630,7 +628,7 @@ static table_sql sql_for_nodes() noexcept
                        ") {data_tablespace};\n";
 
     sql.prepare_query = "PREPARE get_node_list(int8[]) AS"
-                        "  SELECT id, lat, lon FROM {prefix}_nodes"
+                        "  SELECT id, lon, lat FROM {prefix}_nodes"
                         "  WHERE id = ANY($1::int8[]);\n";
 
     return sql;
@@ -649,21 +647,15 @@ static table_sql sql_for_ways() noexcept
                        ") {data_tablespace};\n";
 
     sql.prepare_query = "PREPARE get_way(int8) AS"
-                        "  SELECT nodes, tags, array_upper(nodes, 1)"
+                        "  SELECT nodes, tags"
                         "    FROM {prefix}_ways WHERE id = $1;\n"
                         "PREPARE get_way_list(int8[]) AS"
-                        "  SELECT id, nodes, tags, array_upper(nodes, 1)"
+                        "  SELECT id, nodes, tags"
                         "    FROM {prefix}_ways WHERE id = ANY($1::int8[]);\n";
 
     sql.prepare_mark = "PREPARE mark_ways_by_node(int8) AS"
                        "  SELECT id FROM {prefix}_ways"
-                       "    WHERE nodes && ARRAY[$1];\n"
-                       "PREPARE mark_ways_by_rel(int8) AS"
-                       "  SELECT id FROM {prefix}_ways"
-                       "    WHERE id IN ("
-                       "      SELECT unnest(parts[way_off+1:rel_off])"
-                       "        FROM {prefix}_rels WHERE id = $1"
-                       "    );\n";
+                       "    WHERE nodes && ARRAY[$1];\n";
 
     sql.create_index = "CREATE INDEX ON {prefix}_ways USING GIN (nodes)"
                        "  WITH (fastupdate = off) {index_tablespace};\n";
@@ -687,12 +679,8 @@ static table_sql sql_for_relations() noexcept
                        ") {data_tablespace};\n";
 
     sql.prepare_query = "PREPARE get_rel(int8) AS"
-                        "  SELECT members, tags, array_upper(members, 1) / 2"
-                        "    FROM {prefix}_rels WHERE id = $1;\n"
-                        "PREPARE rels_using_way(int8) AS"
-                        "  SELECT id FROM {prefix}_rels"
-                        "    WHERE parts && ARRAY[$1]"
-                        "      AND parts[way_off+1:rel_off] && ARRAY[$1];\n";
+                        "  SELECT members, tags"
+                        "    FROM {prefix}_rels WHERE id = $1;\n";
 
     sql.prepare_mark = "PREPARE mark_rels_by_node(int8) AS"
                        "  SELECT id FROM {prefix}_rels"
@@ -701,12 +689,7 @@ static table_sql sql_for_relations() noexcept
                        "PREPARE mark_rels_by_way(int8) AS"
                        "  SELECT id FROM {prefix}_rels"
                        "    WHERE parts && ARRAY[$1]"
-                       "      AND parts[way_off+1:rel_off] && ARRAY[$1];\n"
-                       "PREPARE mark_rels(int8) AS"
-                       "  SELECT id FROM {prefix}_rels"
-                       "    WHERE parts && ARRAY[$1]"
-                       "      AND parts[rel_off+1:array_length(parts,1)]"
-                       "        && ARRAY[$1];\n";
+                       "      AND parts[way_off+1:rel_off] && ARRAY[$1];\n";
 
     sql.create_index = "CREATE INDEX ON {prefix}_rels USING GIN (parts)"
                        "  WITH (fastupdate = off) {index_tablespace};\n";

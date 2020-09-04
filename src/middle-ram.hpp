@@ -113,8 +113,6 @@ struct middle_ram_t : public middle_t, public middle_query_t
 
     void flush() override {}
 
-    idlist_t relations_using_way(osmid_t way_id) const override;
-
     std::shared_ptr<middle_query_t> get_query_instance() override;
 
 private:

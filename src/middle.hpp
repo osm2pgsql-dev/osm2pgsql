@@ -65,12 +65,6 @@ struct middle_query_t : std::enable_shared_from_this<middle_query_t>
      */
     virtual bool relation_get(osmid_t id,
                               osmium::memory::Buffer &buffer) const = 0;
-
-    /*
-     * Retrieve a list of relations with a particular way as a member
-     * \param way_id ID of the way to check
-     */
-    virtual idlist_t relations_using_way(osmid_t way_id) const = 0;
 };
 
 inline middle_query_t::~middle_query_t() = default;
@@ -122,8 +116,6 @@ struct middle_t
     virtual idlist_t get_ways_by_node(osmid_t) { return {}; }
     virtual idlist_t get_rels_by_node(osmid_t) { return {}; }
     virtual idlist_t get_rels_by_way(osmid_t) { return {}; }
-    virtual idlist_t get_rels_by_rel(osmid_t) { return {}; }
-    virtual idlist_t get_ways_by_rel(osmid_t) { return {}; }
 
     virtual std::shared_ptr<middle_query_t> get_query_instance() = 0;
 };

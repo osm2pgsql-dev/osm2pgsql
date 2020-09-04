@@ -31,7 +31,6 @@ public:
     size_t rel_way_members_get(osmium::Relation const &rel, rolelist_t *roles,
                                osmium::memory::Buffer &buffer) const override;
 
-    idlist_t relations_using_way(osmid_t way_id) const override;
     bool relation_get(osmid_t id,
                       osmium::memory::Buffer &buffer) const override;
 
@@ -76,8 +75,6 @@ struct middle_pgsql_t : public slim_middle_t
     idlist_t get_ways_by_node(osmid_t osm_id) override;
     idlist_t get_rels_by_node(osmid_t osm_id) override;
     idlist_t get_rels_by_way(osmid_t osm_id) override;
-    idlist_t get_rels_by_rel(osmid_t osm_id) override;
-    idlist_t get_ways_by_rel(osmid_t osm_id) override;
 
     class table_desc
     {
@@ -86,7 +83,6 @@ struct middle_pgsql_t : public slim_middle_t
         table_desc(options_t const &options, table_sql const &ts);
 
         char const *name() const { return m_copy_target->name.c_str(); }
-        void clear_array_indexes() { m_array_indexes.clear(); }
 
         void stop(std::string const &conninfo, bool droptemp,
                   bool build_indexes);
