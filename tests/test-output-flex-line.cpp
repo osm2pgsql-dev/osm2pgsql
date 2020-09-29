@@ -9,8 +9,7 @@ static char const *const conf_file = "test_output_flex_line.lua";
 
 TEST_CASE("linestring in latlon projection (unsplit and split)")
 {
-    options_t const options =
-        testing::opt_t().flex(conf_file).srs(PROJ_LATLONG);
+    options_t const options = testing::opt_t().flex(conf_file);
 
     REQUIRE_NOTHROW(db.run_import(options,
                                   "n10 v1 dV x1.0 y1.0\n"

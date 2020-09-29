@@ -75,7 +75,34 @@ flex_table_column_t::flex_table_column_t(std::string name,
   m_type(get_column_type_from_string(m_type_name))
 {}
 
-std::string flex_table_column_t::sql_type_name(int srid) const
+void flex_table_column_t::set_projection(char const *projection)
+{
+    if (!projection || *projection == '\0') {
+        return;
+    }
+
+    auto const proj = lowercase(projection);
+
+    if (proj == "merc" || proj == "mercator") {
+        m_srid = 3857;
+        return;
+    }
+
+    if (proj == "latlong" || proj == "latlon" || proj == "wgs84") {
+        m_srid = 4326;
+        return;
+    }
+
+    char *end = nullptr;
+    m_srid = static_cast<int>(std::strtoul(projection, &end, 10));
+
+    if (*end != '\0') {
+        throw std::runtime_error{std::string{"Unknown projection: "} +
+                                 projection};
+    }
+}
+
+std::string flex_table_column_t::sql_type_name() const
 {
     switch (m_type) {
     case table_column_type::sql:
@@ -97,19 +124,19 @@ std::string flex_table_column_t::sql_type_name(int srid) const
     case table_column_type::direction:
         return "int2";
     case table_column_type::geometry:
-        return "Geometry(GEOMETRY, {})"_format(srid);
+        return "Geometry(GEOMETRY, {})"_format(m_srid);
     case table_column_type::point:
-        return "Geometry(POINT, {})"_format(srid);
+        return "Geometry(POINT, {})"_format(m_srid);
     case table_column_type::linestring:
-        return "Geometry(LINESTRING, {})"_format(srid);
+        return "Geometry(LINESTRING, {})"_format(m_srid);
     case table_column_type::polygon:
-        return "Geometry(POLYGON, {})"_format(srid);
+        return "Geometry(POLYGON, {})"_format(m_srid);
     case table_column_type::multipoint:
-        return "Geometry(MULTIPOINT, {})"_format(srid);
+        return "Geometry(MULTIPOINT, {})"_format(m_srid);
     case table_column_type::multilinestring:
-        return "Geometry(MULTILINESTRING, {})"_format(srid);
+        return "Geometry(MULTILINESTRING, {})"_format(m_srid);
     case table_column_type::multipolygon:
-        return "Geometry(MULTIPOLYGON, {})"_format(srid);
+        return "Geometry(MULTIPOLYGON, {})"_format(m_srid);
     case table_column_type::area:
         return "real";
     case table_column_type::id_type:
@@ -135,7 +162,7 @@ std::string flex_table_column_t::sql_modifiers() const
     return modifiers;
 }
 
-std::string flex_table_column_t::sql_create(int srid) const
+std::string flex_table_column_t::sql_create() const
 {
-    return "\"{}\" {} {},"_format(m_name, sql_type_name(srid), sql_modifiers());
+    return "\"{}\" {} {},"_format(m_name, sql_type_name(), sql_modifiers());
 }

@@ -9,8 +9,7 @@ static char const *const conf_file = "test_output_flex_invalid_geom.lua";
 
 TEST_CASE("invalid way geometry should be ignored")
 {
-    options_t const options =
-        testing::opt_t().flex(conf_file).srs(PROJ_LATLONG);
+    options_t const options = testing::opt_t().flex(conf_file);
 
     REQUIRE_NOTHROW(db.run_import(
         options,
@@ -33,8 +32,7 @@ TEST_CASE("invalid way geometry should be ignored")
 
 TEST_CASE("invalid area geometry from way should be ignored")
 {
-    options_t const options =
-        testing::opt_t().flex(conf_file).srs(PROJ_LATLONG);
+    options_t const options = testing::opt_t().flex(conf_file);
 
     REQUIRE_NOTHROW(db.run_import(
         options,
@@ -54,8 +52,7 @@ TEST_CASE("invalid area geometry from way should be ignored")
 
 TEST_CASE("area with self-intersection from way should be ignored")
 {
-    options_t const options =
-        testing::opt_t().flex(conf_file).srs(PROJ_LATLONG);
+    options_t const options = testing::opt_t().flex(conf_file);
 
     REQUIRE_NOTHROW(db.run_import(
         options, "n10 v1 dV x1.70 y1.78\n"
@@ -72,8 +69,7 @@ TEST_CASE("area with self-intersection from way should be ignored")
 
 TEST_CASE("invalid area geometry from relation should be ignored")
 {
-    options_t const options =
-        testing::opt_t().flex(conf_file).srs(PROJ_LATLONG);
+    options_t const options = testing::opt_t().flex(conf_file);
 
     REQUIRE_NOTHROW(db.run_import(options,
                                   "n10 v1 dV x10.0 y10.0\n"

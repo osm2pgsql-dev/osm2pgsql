@@ -4,8 +4,8 @@ local polygons = osm2pgsql.define_table{
     ids = { type = 'area', id_column = 'osm_id' },
     columns = {
         { column = 'name', type = 'text' },
-        { column = 'geom', type = 'geometry' },
-        { column = 'area', type = 'area' },
+        { column = 'geom', type = 'geometry', projection = test.geom_proj },
+        { column = 'area', type = 'area', projection = test.area_proj },
     }
 }
 

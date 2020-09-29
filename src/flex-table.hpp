@@ -3,6 +3,7 @@
 
 #include "db-copy-mgr.hpp"
 #include "flex-table-column.hpp"
+#include "osmium-builder.hpp"
 #include "pgsql.hpp"
 
 #include <osmium/osm/item_type.hpp>
@@ -31,9 +32,7 @@ public:
         permanent
     };
 
-    flex_table_t(std::string name, int srid)
-    : m_name(std::move(name)), m_srid(srid)
-    {}
+    flex_table_t(std::string name) : m_name(std::move(name)) {}
 
     std::string const &name() const noexcept { return m_name; }
 
@@ -98,7 +97,10 @@ public:
         return m_columns[m_geom_column];
     }
 
-    int srid() const noexcept { return m_srid; }
+    int srid() const noexcept
+    {
+        return has_geom_column() ? geom_column().srid() : 4326;
+    }
 
     std::string build_sql_prepare_get_wkb() const;
 
@@ -186,9 +188,6 @@ private:
      */
     osmium::item_type m_id_type = osmium::item_type::undefined;
 
-    /// The SRID all geometries in this table use.
-    int m_srid;
-
 }; // class flex_table_t
 
 class table_connection_t
@@ -196,9 +195,10 @@ class table_connection_t
 public:
     table_connection_t(flex_table_t *table,
                        std::shared_ptr<db_copy_thread_t> const &copy_thread)
-    : m_table(table), m_target(std::make_shared<db_target_descr_t>(
-                          table->name(), table->id_column_names(),
-                          table->build_sql_column_list())),
+    : m_builder(reprojection::create_projection(table->srid())), m_table(table),
+      m_target(std::make_shared<db_target_descr_t>(
+          table->name(), table->id_column_names(),
+          table->build_sql_column_list())),
       m_copy_mgr(copy_thread), m_db_connection(nullptr)
     {
         m_target->schema = table->schema();
@@ -234,7 +234,11 @@ public:
 
     void delete_rows_with(osmium::item_type type, osmid_t id);
 
+    geom::osmium_builder_t *get_builder() { return &m_builder; }
+
 private:
+    geom::osmium_builder_t m_builder;
+
     flex_table_t *m_table;
 
     std::shared_ptr<db_target_descr_t> m_target;

@@ -7,7 +7,7 @@ tables.highways = osm2pgsql.define_table{
     columns = {
         { column = 'tags',  type = 'hstore' },
         { column = 'refs',  type = 'text' },
-        { column = 'geom',  type = 'linestring' },
+        { column = 'geom',  type = 'linestring', projection = 4326 },
     }
 }
 
@@ -17,7 +17,7 @@ tables.routes = osm2pgsql.define_table{
     columns = {
         { column = 'tags',    type = 'hstore' },
         { column = 'members', type = 'text' },
-        { column = 'geom',    type = 'multilinestring' },
+        { column = 'geom',    type = 'multilinestring', projection = 4326 },
     }
 }
 

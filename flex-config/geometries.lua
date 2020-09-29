@@ -4,27 +4,20 @@
 -- at this file. This file will show some options around geometry processing.
 -- After you have understood this file, go on to "data-types.lua".
 
--- The projection configured on the command line is available in Lua:
-print('osm2pgsql srid: ' .. osm2pgsql.srid)
-
--- You can use it, for instance, to figure out the maximum lengths for line
--- geometries, see below for how this is used.
-if osm2pgsql.srid == 3857 then
-    max_length = 100000
-else
-    max_length = 1
-end
-
 local tables = {}
 
 tables.pois = osm2pgsql.define_node_table('pois', {
     { column = 'tags', type = 'hstore' },
+    -- Create a geometry column for point geometries. The geometry will be
+    -- in web mercator, EPSG 3857.
     { column = 'geom', type = 'point' },
 })
 
 tables.ways = osm2pgsql.define_way_table('ways', {
     { column = 'tags', type = 'hstore' },
-    { column = 'geom', type = 'linestring' },
+    -- Create a geometry column for linestring geometries. The geometry will
+    -- be in latlong (WGS84), EPSG 4326.
+    { column = 'geom', type = 'linestring', projection = 4326 },
 })
 
 tables.polygons = osm2pgsql.define_area_table('polygons', {
@@ -32,7 +25,9 @@ tables.polygons = osm2pgsql.define_area_table('polygons', {
     { column = 'geom', type = 'geometry' },
     -- The 'area' type is used to store the calculated area of a polygon
     -- feature. This can be used in style sheets to only render larger polygons
-    -- in small zoom levels.
+    -- in small zoom levels. This will use the area in web mercator projection,
+    -- you can set 'projection = 4326' to calculate the area in WGS84. Other
+    -- projections are currently not supported.
     { column = 'area', type = 'area' },
 })
 
@@ -151,7 +146,7 @@ function osm2pgsql.process_way(object)
         -- multiple rows that are identical except for the geometry.
         tables.ways:add_row({
             tags = object.tags,
-            geom = { create = 'line', split_at = max_length }
+            geom = { create = 'line', split_at = 1 }
         })
     end
 end

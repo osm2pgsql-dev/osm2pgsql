@@ -87,8 +87,9 @@ std::string flex_table_t::build_sql_prepare_get_wkb() const
                geom_column().name(), full_name(), id_column_names());
 }
 
-std::string flex_table_t::build_sql_create_table(table_type ttype,
-                                                 std::string const &table_name) const
+std::string
+flex_table_t::build_sql_create_table(table_type ttype,
+                                     std::string const &table_name) const
 {
     assert(!m_columns.empty());
 
@@ -96,7 +97,7 @@ std::string flex_table_t::build_sql_create_table(table_type ttype,
         ttype == table_type::interim ? "UNLOGGED" : "", table_name);
 
     for (auto const &column : m_columns) {
-        sql += column.sql_create(m_srid);
+        sql += column.sql_create();
     }
 
     assert(sql.back() == ',');
@@ -177,7 +178,7 @@ void table_connection_t::start(bool append)
                 m_db_connection->exec(
                     "ALTER TABLE {} ADD COLUMN \"{}\" {}"_format(
                         table().full_name(), column.name(),
-                        column.sql_type_name(table().srid())));
+                        column.sql_type_name()));
             }
             // Note: we do not verify the type or delete unused columns
         }
@@ -215,7 +216,7 @@ void table_connection_t::stop(bool updateable, bool append)
         std::string sql = "INSERT INTO {} SELECT * FROM {}"_format(
             table().full_tmp_name(), table().full_name());
 
-        if (table().srid() != 4326) {
+        if (table().geom_column().srid() != 4326) {
             // libosmium assures validity of geometries in 4326.
             // Transformation to another projection could make the geometry
             // invalid. Therefore add a filter to drop those.
@@ -228,7 +229,7 @@ void table_connection_t::stop(bool updateable, bool append)
         sql += " ORDER BY ";
         if (postgis_version.major == 2 && postgis_version.minor < 4) {
             fmt::print(stderr, "Using GeoHash for clustering\n");
-            if (table().srid() == 4326) {
+            if (table().geom_column().srid() == 4326) {
                 sql += "ST_GeoHash({},10)"_format(table().geom_column().name());
             } else {
                 sql +=
@@ -265,7 +266,7 @@ void table_connection_t::stop(bool updateable, bool append)
                    table().name());
         m_db_connection->exec(table().build_sql_create_id_index());
 
-        if (table().srid() != 4326 && table().has_geom_column()) {
+        if (table().has_geom_column() && table().geom_column().srid() != 4326) {
             m_db_connection->exec(
                 "CREATE OR REPLACE FUNCTION {}_osm2pgsql_valid()\n"
                 "RETURNS TRIGGER AS $$\n"

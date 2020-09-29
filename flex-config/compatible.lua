@@ -3,6 +3,11 @@
 -- original pgsql c-transform backend. There might be some corner cases but
 -- it should mostly do exactly the same.
 
+-- The output projection used (3857, web mercator is the default). Set this
+-- to 'latlong' if you were using the -l|--latlong option or to the EPSG
+-- code you were using on the -E|-proj option.
+local srid = 3857
+
 -- Set this to true if you were using option -K|--keep-coastlines.
 local keep_coastlines = false
 
@@ -44,7 +49,7 @@ if hstore and hstore_all then
 end
 
 -- Used for splitting up long linestrings
-if osm2pgsql.srid == 4326 then
+if srid == 4326 then
     max_length = 1
 else
     max_length = 100000

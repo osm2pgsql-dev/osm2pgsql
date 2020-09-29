@@ -473,7 +473,7 @@ void output_flex_t::write_column(
 
 void output_flex_t::write_row(table_connection_t *table_connection,
                               osmium::item_type id_type, osmid_t id,
-                              std::string const &geom)
+                              std::string const &geom, int srid)
 {
     assert(table_connection);
     table_connection->new_line();
@@ -494,12 +494,13 @@ void output_flex_t::write_row(table_connection_t *table_connection,
             if (geom.empty()) {
                 write_null(copy_mgr, column);
             } else {
+                // if srid of the area column is the same as for the geom column
                 double const area =
-                    get_options()->reproject_area
-                        ? ewkb::parser_t(geom).get_area<reprojection>(
-                              get_options()->projection.get())
-                        : ewkb::parser_t(geom)
-                              .get_area<osmium::geom::IdentityProjection>();
+                    column.srid() == srid
+                        ? ewkb::parser_t(geom)
+                              .get_area<osmium::geom::IdentityProjection>()
+                        : ewkb::parser_t(geom).get_area<reprojection>(
+                              reprojection::create_projection(srid).get());
                 copy_mgr->add_column(area);
             }
         } else {
@@ -585,7 +586,7 @@ flex_table_t &output_flex_t::create_flex_table()
             "Table with that name already exists: '{}'"_format(table_name)};
     }
 
-    m_tables->emplace_back(table_name, get_options()->projection->target_srs());
+    m_tables->emplace_back(table_name);
     auto &new_table = m_tables->back();
 
     lua_pop(lua_state(), 1);
@@ -703,7 +704,19 @@ void output_flex_t::setup_flex_table_columns(flex_table_t *table)
         column.set_create_only(luaX_get_table_bool(
             lua_state(), "create_only", -4, "Entry 'create_only'", false));
 
-        lua_pop(lua_state(), 5); // create_only, not_null, column, type, table
+        lua_getfield(lua_state(), -5, "projection");
+        if (!lua_isnil(lua_state(), -1)) {
+            if (column.is_geometry_column() ||
+                column.type() == table_column_type::area) {
+                column.set_projection(lua_tostring(lua_state(), -1));
+            } else {
+                throw std::runtime_error{
+                    "Projection can only be set on geometry and area columns"};
+            }
+        }
+
+        // stack has: projection, create_only, not_null, column, type, table
+        lua_pop(lua_state(), 6);
         ++num_columns;
     }
 
@@ -840,7 +853,7 @@ int output_flex_t::table_columns()
         luaX_add_table_str(lua_state(), "name", column.name().c_str());
         luaX_add_table_str(lua_state(), "type", column.type_name().c_str());
         luaX_add_table_str(lua_state(), "sql_type",
-                           column.sql_type_name(table.srid()).c_str());
+                           column.sql_type_name().c_str());
         luaX_add_table_str(lua_state(), "sql_modifiers",
                            column.sql_modifiers().c_str());
         luaX_add_table_bool(lua_state(), "not_null", column.not_null());
@@ -934,24 +947,27 @@ get_default_transform(flex_table_column_t const &column,
 }
 
 geom::osmium_builder_t::wkbs_t
-output_flex_t::run_transform(geom_transform_t const *transform,
+output_flex_t::run_transform(geom::osmium_builder_t *builder,
+                             geom_transform_t const *transform,
                              osmium::Node const &node)
 {
-    return transform->run(&m_builder, node);
+    return transform->run(builder, node);
 }
 
 geom::osmium_builder_t::wkbs_t
-output_flex_t::run_transform(geom_transform_t const *transform,
+output_flex_t::run_transform(geom::osmium_builder_t *builder,
+                             geom_transform_t const *transform,
                              osmium::Way const & /*way*/)
 {
     if (get_way_nodes() <= 1U) {
         return {};
     }
-    return transform->run(&m_builder, m_context_way);
+    return transform->run(builder, m_context_way);
 }
 
 geom::osmium_builder_t::wkbs_t
-output_flex_t::run_transform(geom_transform_t const *transform,
+output_flex_t::run_transform(geom::osmium_builder_t *builder,
+                             geom_transform_t const *transform,
                              osmium::Relation const &relation)
 {
     m_buffer.clear();
@@ -966,7 +982,7 @@ output_flex_t::run_transform(geom_transform_t const *transform,
         m_mid->nodes_get_list(&(way.nodes()));
     }
 
-    return transform->run(&m_builder, relation, m_buffer);
+    return transform->run(builder, relation, m_buffer);
 }
 
 template <typename OBJECT>
@@ -979,7 +995,7 @@ void output_flex_t::add_row(table_connection_t *table_connection,
     osmid_t const id = table.map_id(object.type(), object.id());
 
     if (!table.has_geom_column()) {
-        write_row(table_connection, object.type(), id, "");
+        write_row(table_connection, object.type(), id, "", 0);
         return;
     }
 
@@ -992,10 +1008,12 @@ void output_flex_t::add_row(table_connection_t *table_connection,
         transform = get_default_transform(table.geom_column(), object.type());
     }
 
-    auto const wkbs = run_transform(transform, object);
+    auto *builder = table_connection->get_builder();
+    auto const wkbs = run_transform(builder, transform, object);
     for (auto const &wkb : wkbs) {
         m_expire.from_wkb(wkb.c_str(), id);
-        write_row(table_connection, object.type(), id, wkb);
+        write_row(table_connection, object.type(), id, wkb,
+                  table.geom_column().srid());
     }
 }
 
@@ -1330,7 +1348,7 @@ output_flex_t::output_flex_t(
     std::shared_ptr<idset_t> stage2_way_ids)
 : output_t(mid, o), m_tables(std::move(tables)),
   m_stage2_way_ids(std::move(stage2_way_ids)), m_copy_thread(copy_thread),
-  m_lua_state(std::move(lua_state)), m_builder(o.projection),
+  m_lua_state(std::move(lua_state)),
   m_expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection),
   m_buffer(32768, osmium::memory::Buffer::auto_grow::yes),
   m_rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes),
@@ -1366,8 +1384,6 @@ void output_flex_t::init_lua(std::string const &filename)
     lua_newtable(lua_state());
 
     luaX_add_table_str(lua_state(), "version", get_osm2pgsql_short_version());
-    luaX_add_table_int(lua_state(), "srid",
-                       get_options()->projection->target_srs());
     luaX_add_table_str(lua_state(), "mode",
                        m_options.append ? "append" : "create");
     luaX_add_table_int(lua_state(), "stage", 1);
