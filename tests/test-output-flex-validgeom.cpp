@@ -5,7 +5,7 @@
 
 static testing::db::import_t db;
 
-static char const *const conf_file = "test_output_flex_area.lua";
+static char const *const conf_file = "test_output_flex_validgeom.lua";
 static char const *const data_file = "test_output_pgsql_validgeom.osm";
 
 TEST_CASE("no invalid geometries should end up in the database")
