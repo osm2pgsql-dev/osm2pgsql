@@ -9,7 +9,8 @@ addons:
   apt:
     packages: ['python3-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev',
                'libproj-dev', 'libluajit-5.1-dev',
-               'libboost-dev', 'libboost-system-dev', 'libboost-filesystem-dev']
+               'libboost-dev', 'libboost-system-dev', 'libboost-filesystem-dev',
+               'pandoc']
 
 # env: T="...."     //  please set an unique test id (T="..")
 matrix:
@@ -144,7 +145,7 @@ script:
   - mkdir build && cd build
   - if [ -z "${LUA_VERSION}" ]; then LUA_OPTIONS="-DWITH_LUA=OFF"; else LUA_OPTIONS="-DWITH_LUA=ON -DWITH_LUAJIT=${LUAJIT_OPTION}"; fi
   - cmake .. -LA -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_CXX_STANDARD=${CPPVERSION} ${LUA_OPTIONS}
-  - make -j2
+  - make -j2 all man
   - echo "Running tests ... "
   - if [[ $TEST_NODB ]]; then
       ctest --output-on-failure -L NoDB;

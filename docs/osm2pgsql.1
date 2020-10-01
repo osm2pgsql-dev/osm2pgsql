@@ -1,249 +1,357 @@
-.TH OSM2PGSQL 1 "Nevember 14, 2019"
-.\" Please adjust this date whenever revising the manpage.
+.TH "OSM2PGSQL" "1" "1.3.0" "" ""
 .SH NAME
-osm2pgsql \- Openstreetmap data to PostgreSQL converter.
-.SH SYNOPSIS
-.B osm2pgsql
-.RI [ options ] " planet.osm"
-.br
-.B osm2pgsql
-.RI [ options ] " planet.osm.{gz,bz2,pbf}"
-.br
-.B osm2pgsql
-.RI [ options ] " file1.osm file2.osm file3.osm"
-.br
-.SH DESCRIPTION
-This manual page documents briefly the
-.B osm2pgsql
-command.
 .PP
-.B osm2pgsql
-imports data from OSM file(s) into a PostgreSQL database
-suitable for use by the Mapnik renderer or the Nominatim geocoder.
-.br
+osm2pgsql \- Openstreetmap data to PostgreSQL converter
+.SH SYNOPSIS
+.PP
+\f[B]osm2pgsql\f[] [\f[I]OPTIONS\f[]] OSM\-FILE
+.SH DESCRIPTION
+.PP
+This manual page documents briefly the \f[B]osm2pgsql\f[] command.
+.PP
+\f[B]osm2pgsql\f[] imports data from OSM file(s) into a PostgreSQL
+database suitable for use by the Mapnik renderer or the Nominatim
+geocoder.
 OSM planet snapshots can be downloaded from
-https://planet.openstreetmap.org/. Partial planet files
-("extracts") for various countries are available, see
-https://wiki.openstreetmap.org/wiki/Planet.osm.
+https://planet.openstreetmap.org/.
+Partial planet files (\[lq]extracts\[rq]) for various countries are
+available, see https://wiki.openstreetmap.org/wiki/Planet.osm.
 .PP
 Extracts in PBF (ProtoBufBinary) format are also available from
 https://download.geofabrik.de/.
 .PP
-When operating in "slim" mode (and on a database created in "slim" mode!),
-.B osm2pgsql
-can also process OSM change files (osc files), thereby bringing an existing
-database up to date.
-.PP
+When operating in \[lq]slim\[rq] mode (and on a database created in
+\[lq]slim\[rq] mode!), \f[B]osm2pgsql\f[] can also process OSM change
+files (osc files), thereby bringing an existing database up to date.
 .SH OPTIONS
+.PP
 This program follows the usual GNU command line syntax, with long
 options starting with two dashes (`\-').
 A summary of options is included below.
 .TP
-\fB\-a\fR|\-\-append
-Add the OSM file into the database without removing
-existing data.
+.B \-a, \-\-append
+Add the OSM file into the database without removing existing data.
+.RS
+.RE
 .TP
-\fB\-b\fR|\-\-bbox
+.B \-b, \-\-bbox
 Apply a bounding box filter on the imported data.
-Must be specified as: minlon,minlat,maxlon,maxlat
-e.g. \fB\-\-bbox\fR \fB\-0.5,51.25,0.5,51.75\fR
+Must be specified as: minlon,minlat,maxlon,maxlat e.g.
+\f[B]\[en]bbox\f[] \f[B]\-0.5,51.25,0.5,51.75\f[]
+.RS
+.RE
 .TP
-\fB\-c\fR|\-\-create
-Remove existing data from the database. This is the
-default if \fB\-\-append\fR is not specified.
+.B \-c, \-\-create
+Remove existing data from the database.
+This is the default if \f[B]\[en]append\f[] is not specified.
+.RS
+.RE
 .TP
-\fB\-d\fR|\-\-database name
+.B \-d, \-\-database name
 The name of the PostgreSQL database to connect to.
+.RS
+.RE
 .TP
-\fB\-i\fR|\-\-tablespace\-index tablespacename
-Store all indices in a separate PostgreSQL tablespace named by this parameter.
-This allows one to e.g. store the indices on faster storage like SSDs.
+.B \-i, \-\-tablespace\-index tablespacename
+Store all indices in a separate PostgreSQL tablespace named by this
+parameter.
+This allows one to e.g.\ store the indices on faster storage like SSDs.
+.RS
+.RE
 .TP
-\fB\ \fR\-\-tablespace\-main\-data tablespacename
+.B \-\-tablespace\-main\-data tablespacename
 Store the data tables (non slim) in the given tablespace.
+.RS
+.RE
 .TP
-\fB\ \fR\-\-tablespace\-main\-index tablespacename
+.B \-\-tablespace\-main\-index tablespacename
 Store the indices of the main tables (non slim) in the given tablespace.
+.RS
+.RE
 .TP
-\fB\ \fR\-\-tablespace\-slim\-data tablespacename
+.B \-\-tablespace\-slim\-data tablespacename
 Store the slim mode tables in the given tablespace.
+.RS
+.RE
 .TP
-\fB\ \fR\-\-tablespace\-slim\-index tablespacename
+.B \-\-tablespace\-slim\-index tablespacename
 Store the indices of the slim mode tables in the given tablespace.
+.RS
+.RE
 .TP
-\fB\-l\fR|\-\-latlong
+.B \-\-latlong
 Store data in degrees of latitude & longitude.
+.RS
+.RE
 .TP
-\fB\-m\fR|\-\-merc
-Store data in Spherical Mercator (Web Mercator, EPSG:3857) (the default).
+.B \-m, \-\-merc
+Store data in Spherical Mercator (Web Mercator, EPSG:3857) (the
+default).
+.RS
+.RE
 .TP
-\fB\-E\fR|\-\-proj num
+.B \-E, \-\-proj num
 Use projection EPSG:num.
+.RS
+.RE
 .TP
-\fB\-p\fR|\-\-prefix prefix_string
+.B \-p, \-\-prefix prefix_string
 Prefix for table names (default: planet_osm).
+.RS
+.RE
 .TP
-\fB\-r\fR|\-\-input\-reader format
-Select format of the input file. Available choices are \fBauto\fR
-(default) for autodetecting the format,
-\fBxml\fR for OSM XML format files, \fBo5m\fR for o5m formatted files
-and \fBpbf\fR for OSM PBF binary format.
+.B \-r, \-\-input\-reader format
+Select format of the input file.
+Available choices are \f[B]auto\f[] (default) for autodetecting the
+format, \f[B]xml\f[] for OSM XML format files, \f[B]o5m\f[] for o5m
+formatted files and \f[B]pbf\f[] for OSM PBF binary format.
+.RS
+.RE
 .TP
-\fB\-s\fR|\-\-slim
-Store temporary data in the database. Without this mode, all temporary data is stored in
-RAM and if you do not have enough the import will not work successfully. With slim mode,
-you should be able to import the data even on a system with limited RAM, although if you
-do not have enough RAM to cache at least all of the nodes, the time to import the data
-will likely be greatly increased.
+.B \-s, \-\-slim
+Store temporary data in the database.
+Without this mode, all temporary data is stored in RAM and if you do not
+have enough the import will not work successfully.
+With slim mode, you should be able to import the data even on a system
+with limited RAM, although if you do not have enough RAM to cache at
+least all of the nodes, the time to import the data will likely be
+greatly increased.
+.RS
+.RE
 .TP
-\fB\  \fR\-\-drop
-Drop the slim mode tables from the database once the import is complete. This can
-greatly reduce the size of the database, as the slim mode tables typically are the same
-size, if not slightly bigger than the main tables. It does not, however, reduce the
-maximum spike of disk usage during import. It can furthermore increase the import speed,
-as no indices need to be created for the slim mode tables, which (depending on hardware)
-can nearly halve import time. Slim mode tables however have to be persistent if you want
-to be able to update your database, as these tables are needed for diff processing.
+.B \-\-drop
+Drop the slim mode tables from the database once the import is complete.
+This can greatly reduce the size of the database, as the slim mode
+tables typically are the same size, if not slightly bigger than the main
+tables.
+It does not, however, reduce the maximum spike of disk usage during
+import.
+It can furthermore increase the import speed, as no indices need to be
+created for the slim mode tables, which (depending on hardware) can
+nearly halve import time.
+Slim mode tables however have to be persistent if you want to be able to
+update your database, as these tables are needed for diff processing.
+.RS
+.RE
 .TP
-\fB\-S\fR|\-\-style /path/to/style
-Location of the osm2pgsql style file. This specifies which tags from the data get
-imported into database columns and which tags get dropped. Defaults to /usr/share/osm2pgsql/default.style.
+.B \-S, \-\-style /path/to/style
+Location of the osm2pgsql style file.
+This specifies which tags from the data get imported into database
+columns and which tags get dropped.
+Defaults to /usr/share/osm2pgsql/default.style.
+.RS
+.RE
 .TP
-\fB\-C\fR|\-\-cache num
-Only for slim mode: Use up to num many MB of RAM for caching nodes. Giving osm2pgsql sufficient cache
-to store all imported nodes typically greatly increases the speed of the import. Each cached node
-requires 8 bytes of cache, plus about 10% \- 30% overhead. As a rule of thumb,
-give a bit more than the size of the import file in PBF format. If the RAM is not
-big enough, use about 75% of memory. Make sure to leave enough RAM for PostgreSQL.
-It needs at least the amount of `shared_buffers` given in its configuration.
+.B \-C, \-\-cache num
+Only for slim mode: Use up to num many MB of RAM for caching nodes.
+Giving osm2pgsql sufficient cache to store all imported nodes typically
+greatly increases the speed of the import.
+Each cached node requires 8 bytes of cache, plus about 10% \- 30%
+overhead.
+As a rule of thumb, give a bit more than the size of the import file in
+PBF format.
+If the RAM is not big enough, use about 75% of memory.
+Make sure to leave enough RAM for PostgreSQL.
+It needs at least the amount of `shared_buffers` given in its
+configuration.
 Defaults to 800.
+.RS
+.RE
 .TP
-\fB\  \fR\-\-cache\-strategy strategy
-There are a number of different modes in which osm2pgsql can organize its
-node cache in RAM. These are optimized for different assumptions of the data
-and the hardware resources available. Currently available strategies are
-\fBdense\fR, \fBchunked\fR, \fBsparse\fR and \fBoptimized\fR. \fBdense\fR assumes
-that the node id numbers are densely packed, i.e. only a few IDs in the range are
-missing / deleted. For planet extracts this is usually not the case, making the cache
-very inefficient and wasteful of RAM. \fBsparse\fR assumes node IDs in the data
-are not densely packed, greatly increasing caching efficiency in these cases.
-If node IDs are densely packed, like in the full planet, this strategy has a higher
-overhead for indexing the cache. \fBoptimized\fR uses both dense and sparse strategies
-for different ranges of the ID space. On a block by block basis it tries to determine
-if it is more effective to store the block of IDs in sparse or dense mode. This is the
-default and should be typically used.
+.B \-\-cache\-strategy strategy
+There are a number of different modes in which osm2pgsql can organize
+its node cache in RAM.
+These are optimized for different assumptions of the data and the
+hardware resources available.
+Currently available strategies are \f[B]dense\f[], \f[B]chunked\f[],
+\f[B]sparse\f[] and \f[B]optimized\f[].
+\f[B]dense\f[] assumes that the node id numbers are densely packed,
+i.e.\ only a few IDs in the range are missing / deleted.
+For planet extracts this is usually not the case, making the cache very
+inefficient and wasteful of RAM.
+\f[B]sparse\f[] assumes node IDs in the data are not densely packed,
+greatly increasing caching efficiency in these cases.
+If node IDs are densely packed, like in the full planet, this strategy
+has a higher overhead for indexing the cache.
+\f[B]optimized\f[] uses both dense and sparse strategies for different
+ranges of the ID space.
+On a block by block basis it tries to determine if it is more effective
+to store the block of IDs in sparse or dense mode.
+This is the default and should be typically used.
+.RS
+.RE
 .TP
-\fB\-U\fR|\-\-username name
+.B \-U, \-\-username name
 Postgresql user name.
+.RS
+.RE
 .TP
-\fB\-W\fR|\-\-password
+.B \-W, \-\-password
 Force password prompt.
+.RS
+.RE
 .TP
-\fB\-H\fR|\-\-host hostname
+.B \-H, \-\-host hostname
 Database server hostname or socket location.
+.RS
+.RE
 .TP
-\fB\-P\fR|\-\-port num
+.B \-P, \-\-port num
 Database server port.
+.RS
+.RE
 .TP
-\fB\-e\fR|\-\-expire\-tiles [min_zoom\-]max\-zoom
+.B \-e, \-\-expire\-tiles [min_zoom\-]max\-zoom
 Create a tile expiry list.
+.RS
+.RE
 .TP
-\fB\-o\fR|\-\-expire\-output /path/to/expire.list
+.B \-o, \-\-expire\-output /path/to/expire.list
 Output file name for expired tiles list.
+.RS
+.RE
 .TP
-\fB\-O\fR|\-\-output
-Specifies the output back\-end or database schema to use. Currently osm2pgsql
-supports \fBpgsql\fR, \fBflex\fR, \fBgazetteer\fR and \fBnull\fR. \fBpgsql\fR is
-the default output back\-end / schema and is optimized for rendering with Mapnik.
-\fBgazetteer\fR is a db schema optimized for geocoding and is used by Nominatim.
-The experimental \fBflex\fR backend allows more flexible configuration.
-\fBnull\fR does not write any output and is only useful for testing or with
-\-\-slim for creating slim tables. There is also a \fBmulti\fR backend. This is
-now deprecated and will be removed in future versions of osm2pgsql.
+.B \-O, \-\-output
+Specifies the output back\-end or database schema to use.
+Currently osm2pgsql supports \f[B]pgsql\f[], \f[B]flex\f[],
+\f[B]gazetteer\f[] and \f[B]null\f[].
+\f[B]pgsql\f[] is the default output back\-end / schema and is optimized
+for rendering with Mapnik.
+\f[B]gazetteer\f[] is a db schema optimized for geocoding and is used by
+Nominatim.
+The experimental \f[B]flex\f[] backend allows more flexible
+configuration.
+\f[B]null\f[] does not write any output and is only useful for testing
+or with \[en]slim for creating slim tables.
+There is also a \f[B]multi\f[] backend.
+This is now deprecated and will be removed in future versions of
+osm2pgsql.
+.RS
+.RE
 .TP
-\fB\-x\fR|\-\-extra\-attributes
+.B \-x, \-\-extra\-attributes
 Include attributes for each object in the database.
 This includes the username, userid, timestamp and version.
 Note: this option also requires additional entries in your style file.
+.RS
+.RE
 .TP
-\fB\-k\fR|\-\-hstore
-Add tags without column to an additional hstore (key/value) column to PostgreSQL tables.
+.B \-k, \-\-hstore
+Add tags without column to an additional hstore (key/value) column to
+PostgreSQL tables.
+.RS
+.RE
 .TP
-\fB\-j\fR|\-\-hstore\-all
-Add all tags to an additional hstore (key/value) column in PostgreSQL tables.
+.B \-j, \-\-hstore\-all
+Add all tags to an additional hstore (key/value) column in PostgreSQL
+tables.
+.RS
+.RE
 .TP
-\fB\-z\fR|\-\-hstore\-column key_name
-Add an additional hstore (key/value) column containing all tags
-that start with the specified string, eg \-\-hstore\-column "name:" will
-produce an extra hstore column that contains all name:xx tags
+.B \-z, \-\-hstore\-column key_name
+Add an additional hstore (key/value) column containing all tags that
+start with the specified string, eg \[en]hstore\-column \[lq]name:\[rq]
+will produce an extra hstore column that contains all name:xx tags
+.RS
+.RE
 .TP
-\fB\  \fR\-\-hstore\-match\-only
-Only keep objects that have a value in one of the columns
-(normal action with \-\-hstore is to keep all objects).
+.B \-\-hstore\-match\-only
+Only keep objects that have a value in one of the columns (normal action
+with \[en]hstore is to keep all objects).
+.RS
+.RE
 .TP
-\fB\  \fR\-\-hstore\-add\-index
+.B \-\-hstore\-add\-index
 Create indices for the hstore columns during import.
+.RS
+.RE
 .TP
-\fB\-G\fR|\-\-multi\-geometry
-Normally osm2pgsql splits multi\-part geometries into separate database rows per part.
-A single OSM id can therefore have several rows. With this option, PostgreSQL instead
-generates multi\-geometry features in the PostgreSQL tables.
+.B \-G, \-\-multi\-geometry
+Normally osm2pgsql splits multi\-part geometries into separate database
+rows per part.
+A single OSM id can therefore have several rows.
+With this option, PostgreSQL instead generates multi\-geometry features
+in the PostgreSQL tables.
+.RS
+.RE
 .TP
-\fB\-K\fR|\-\-keep\-coastlines
+.B \-K, \-\-keep\-coastlines
 Keep coastline data rather than filtering it out.
 By default natural=coastline tagged data will be discarded based on the
-assumption that Shapefiles generated by OSMCoastline (https://osmdata.openstreetmap.de/)
-will be used.
+assumption that Shapefiles generated by OSMCoastline
+(https://osmdata.openstreetmap.de/) will be used.
+.RS
+.RE
 .TP
-\fB\  \fR\-\-number\-processes num
-Specifies the number of parallel processes used for certain operations. If disks are
-fast enough e.g. if you have an SSD, then this can greatly increase speed of
-the "going over pending ways" and "going over pending relations" stages on a multi\-core
-server.
+.B \-\-number\-processes num
+Specifies the number of parallel processes used for certain operations.
+If disks are fast enough e.g.\ if you have an SSD, then this can greatly
+increase speed of the \[lq]going over pending ways\[rq] and \[lq]going
+over pending relations\[rq] stages on a multi\-core server.
+.RS
+.RE
 .TP
-\fB\-I\fR|\-\-disable\-parallel\-indexing
-By default osm2pgsql initiates the index building on all tables in parallel to increase
-performance. This can be disadvantages on slow disks, or if you don't have
-enough RAM for PostgreSQL to perform up to 7 parallel index building processes
-(e.g. because maintenance_work_mem is set high).
+.B \-I, \-\-disable\-parallel\-indexing
+By default osm2pgsql initiates the index building on all tables in
+parallel to increase performance.
+This can be disadvantages on slow disks, or if you don't have enough RAM
+for PostgreSQL to perform up to 7 parallel index building processes
+(e.g.\ because maintenance_work_mem is set high).
+.RS
+.RE
 .TP
-\fB\  \fR\-\-flat\-nodes /path/to/nodes.cache
-The flat\-nodes mode is a separate method to store slim mode node information on disk.
-Instead of storing this information in the main PostgreSQL database, this mode creates
-its own separate custom database to store the information. As this custom database
-has application level knowledge about the data to store and is not general purpose,
-it can store the data much more efficiently. Storing the node information for the full
-planet requires more than 300GB in PostgreSQL, the same data is stored in "only" 50GB using
-the flat\-nodes mode. This can also increase the speed of applying diff files. This option
-activates the flat\-nodes mode and specifies the location of the database file. It is a
-single large file. This mode is only recommended for full planet imports
-as it doesn't work well with small imports. The default is disabled.
+.B \-\-flat\-nodes /path/to/nodes.cache
+The flat\-nodes mode is a separate method to store slim mode node
+information on disk.
+Instead of storing this information in the main PostgreSQL database,
+this mode creates its own separate custom database to store the
+information.
+As this custom database has application level knowledge about the data
+to store and is not general purpose, it can store the data much more
+efficiently.
+Storing the node information for the full planet requires more than
+300GB in PostgreSQL, the same data is stored in \[lq]only\[rq] 50GB
+using the flat\-nodes mode.
+This can also increase the speed of applying diff files.
+This option activates the flat\-nodes mode and specifies the location of
+the database file.
+It is a single large file.
+This mode is only recommended for full planet imports as it doesn't work
+well with small imports.
+The default is disabled.
+.RS
+.RE
 .TP
-\fB\-h\fR|\-\-help
+.B \-h, \-\-help
 Help information.
-.br
-Add \fB\-v\fR to display supported projections.
+Add \f[B]\-v\f[] to display supported projections.
+.RS
+.RE
 .TP
-\fB\-v\fR|\-\-verbose
+.B \-v, \-\-verbose
 Verbose output.
-.PP
+.RS
+.RE
 .SH SUPPORTED PROJECTIONS
-Latlong             (\-l) SRS:  4326 (none)
-.br
-Spherical Mercator  (\-m) SRS:3857 +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs +over
-.br
-EPSG-defined        (\-E) SRS: +init=epsg:(as given in parameter)
 .PP
+Latlong (\-l) SRS: 4326 (none)
+.PD 0
+.P
+.PD
+Spherical Mercator (\-m) SRS:3857 +proj=merc +a=6378137 +b=6378137
++lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=\@null
++no_defs +over
+.PD 0
+.P
+.PD
+EPSG\-defined (\-E) SRS: +init=epsg:(as given in parameter)
 .SH SEE ALSO
-.BR proj (1),
-.BR postgres (1).
-.BR osmcoastline (1).
-.br
-.SH AUTHOR
+.PP
+\f[B]proj\f[](1), \f[B]postgres\f[](1), \f[B]osmcoastline\f[](1).
+.SH AUTHORS
+.PP
 osm2pgsql was written by Jon Burgess, Artem Pavlenko, and other
 OpenStreetMap project members.
 .PP
-This manual page was written by Andreas Putzo <andreas@putzo.net>
-for the Debian project, and amended by OpenStreetMap authors.
-
-\"  LocalWords:  hstore multi Openstreetmap ProtoBufBinary
+This manual page was written by Andreas Putzo <andreas@putzo.net> for
+the Debian project, and amended by OpenStreetMap authors.

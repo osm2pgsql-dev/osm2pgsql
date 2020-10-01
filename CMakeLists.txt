@@ -286,9 +286,14 @@ else()
 endif()
 
 #############################################################
+# Man page
+#############################################################
+
+add_subdirectory(docs)
+
+#############################################################
 # Install
 #############################################################
 
 install(TARGETS osm2pgsql DESTINATION bin)
-install(FILES docs/osm2pgsql.1 DESTINATION share/man/man1)
 install(FILES default.style empty.style DESTINATION share/osm2pgsql)

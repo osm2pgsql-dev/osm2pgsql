@@ -61,6 +61,9 @@ Make sure you have installed the development packages for the libraries
 mentioned in the requirements section and a C++ compiler which supports C++11.
 GCC 5 and later and Clang 3.5 and later are known to work.
 
+To rebuild the included man page you'll need the [pandoc](https://pandoc.org/)
+tool.
+
 First install the dependencies.
 
 On a Debian or Ubuntu system, this can be done with:
@@ -68,14 +71,14 @@ On a Debian or Ubuntu system, this can be done with:
 ```sh
 sudo apt-get install make cmake g++ libboost-dev libboost-system-dev \
   libboost-filesystem-dev libexpat1-dev zlib1g-dev \
-  libbz2-dev libpq-dev libproj-dev lua5.3 liblua5.3-dev
+  libbz2-dev libpq-dev libproj-dev lua5.3 liblua5.3-dev pandoc
 ```
 
 On a Fedora system, use
 
 ```sh
 sudo dnf install cmake make gcc-c++ boost-devel expat-devel zlib-devel \
-  bzip2-devel postgresql-devel proj-devel proj-epsg lua-devel
+  bzip2-devel postgresql-devel proj-devel proj-epsg lua-devel pandoc
 ```
 
 On RedHat / CentOS first run `sudo yum install epel-release` then install
@@ -83,7 +86,7 @@ dependencies with:
 
 ```sh
 sudo yum install cmake make gcc-c++ boost-devel expat-devel zlib-devel \
-  bzip2-devel postgresql-devel proj-devel proj-epsg lua-devel
+  bzip2-devel postgresql-devel proj-devel proj-epsg lua-devel pandoc
 ```
 
 On a FreeBSD system, use
@@ -125,8 +128,8 @@ cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON
 
 ## Usage ##
 
-Osm2pgsql has one program, the executable itself, which has **43** command line
-options.
+Osm2pgsql has one program, the executable itself, which has a lot of command
+line options.
 
 Before loading into a database, the database must be created and the PostGIS
 and optional hstore extensions must be loaded. A full guide to PostgreSQL
