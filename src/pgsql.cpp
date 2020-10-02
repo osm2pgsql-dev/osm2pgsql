@@ -189,10 +189,25 @@ std::string qualified_name(std::string const &schema, std::string const &name)
     return result;
 }
 
-postgis_version get_postgis_version(pg_conn_t const &db_connection) {
+std::map<std::string, std::string>
+get_postgresql_settings(pg_conn_t const &db_connection)
+{
     auto const res = db_connection.query(
-            PGRES_TUPLES_OK,
-            "SELECT regexp_split_to_table(postgis_lib_version(), '\\.')");
+        PGRES_TUPLES_OK, "SELECT name, setting FROM pg_settings");
+
+    std::map<std::string, std::string> settings;
+    for (int i = 0; i < res.num_tuples(); ++i) {
+        settings[res.get_value_as_string(i, 0)] = res.get_value_as_string(i, 1);
+    }
+
+    return settings;
+}
+
+postgis_version get_postgis_version(pg_conn_t const &db_connection)
+{
+    auto const res = db_connection.query(
+        PGRES_TUPLES_OK,
+        "SELECT regexp_split_to_table(postgis_lib_version(), '\\.')");
 
     return {std::stoi(res.get_value_as_string(0, 0)),
             std::stoi(res.get_value_as_string(1, 0))};

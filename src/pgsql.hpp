@@ -14,6 +14,7 @@
 #include <libpq-fe.h>
 
 #include <cassert>
+#include <map>
 #include <memory>
 #include <string>
 
@@ -167,6 +168,10 @@ struct postgis_version
     int major;
     int minor;
 };
+
+/// Get all config settings from the database.
+std::map<std::string, std::string>
+get_postgresql_settings(pg_conn_t const &db_connection);
 
 /// Get PostGIS major and minor version.
 postgis_version get_postgis_version(pg_conn_t const &db_connection);

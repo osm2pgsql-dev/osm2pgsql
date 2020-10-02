@@ -23,6 +23,7 @@
 #-----------------------------------------------------------------------------
 */
 
+#include "db-check.hpp"
 #include "format.hpp"
 #include "middle-pgsql.hpp"
 #include "middle-ram.hpp"
@@ -56,6 +57,8 @@ int main(int argc, char *argv[])
         if (options.long_usage_bool) {
             return 0;
         }
+
+        check_db(options);
 
         auto middle = create_middle(options);
         middle->start();
