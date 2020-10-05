@@ -124,7 +124,8 @@ void long_usage(char const *arg0, bool verbose)
                         for full planet imports. Default is disabled.\n\
     \n\
     Database options:\n\
-       -d|--database    The name of the PostgreSQL database to connect to.\n\
+       -d|--database    The name of the PostgreSQL database to connect to or\n\
+                        a PostgreSQL conninfo string.\n\
        -U|--username    PostgreSQL user name (specify passsword in PGPASSWORD\n\
                         environment variable or use -W).\n\
        -W|--password    Force password prompt.\n\
@@ -256,9 +257,26 @@ void long_usage(char const *arg0, bool verbose)
 
 } // anonymous namespace
 
+static bool compare_prefix(std::string const &str,
+                           std::string const &prefix) noexcept
+{
+    return std::strncmp(str.c_str(), prefix.c_str(), prefix.size()) == 0;
+}
+
 std::string database_options_t::conninfo() const
 {
+    if (compare_prefix(db, "postgresql://") ||
+        compare_prefix(db, "postgres://")) {
+        return db;
+    }
+
     std::string out{"fallback_application_name='osm2pgsql'"};
+
+    if (std::strchr(db.c_str(), '=') != nullptr) {
+        out += " ";
+        out += db;
+        return out;
+    }
 
     if (!db.empty()) {
         out += " dbname='{}'"_format(db);
