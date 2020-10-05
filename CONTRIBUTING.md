@@ -49,14 +49,15 @@ your changes:
 
 clang-format 7 or later is required.
 
+Comments in code should follow the [Doxygen
+convention](https://www.doxygen.nl/manual/docblocks.html) using backslashes
+(not @-signs) for commands.
+
 ## Documentation
 
-User documentation is stored in `docs/`. Pages on the OpenStreetMap wiki are
-known to be unreliable and outdated.
-
-There is some documentation in Doxygen-formatted comments. The documentation can
-be generated with `doxygen docs/Doxyfile`. It is not yet hooked into the build
-scripts as most functions are not yet documented.
+User documentation is available on [the website](https://osm2pgsql.org/), some
+is stored in `docs/`. Pages on the OpenStreetMap wiki are known to be
+unreliable and outdated.
 
 ## Platforms targeted
 
