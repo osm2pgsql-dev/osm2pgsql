@@ -27,9 +27,8 @@ an existing database up to date.
 
 # OPTIONS
 
-This program follows the usual GNU command line syntax, with long
-options starting with two dashes (\`-').
-A summary of options is included below.
+This program follows the usual GNU command line syntax, with long options
+starting with two dashes (`--`). A summary of options is included below.
 
 -a, \--append
 :   Add the OSM file into the database without removing
@@ -38,11 +37,11 @@ A summary of options is included below.
 -b, \--bbox
 :   Apply a bounding box filter on the imported data.
     Must be specified as: minlon,minlat,maxlon,maxlat
-    e.g. **--bbox** **-0.5,51.25,0.5,51.75**
+    e.g. **\--bbox** **-0.5,51.25,0.5,51.75**
 
 -c, \--create
 :   Remove existing data from the database. This is the
-    default if **--append** is not specified.
+    default if **\--append** is not specified.
 
 -d, \--database name
 :   The name of the PostgreSQL database to connect to.
@@ -107,7 +106,7 @@ A summary of options is included below.
     requires 8 bytes of cache, plus about 10% - 30% overhead. As a rule of thumb,
     give a bit more than the size of the import file in PBF format. If the RAM is not
     big enough, use about 75% of memory. Make sure to leave enough RAM for PostgreSQL.
-    It needs at least the amount of \`shared_buffers\` given in its configuration.
+    It needs at least the amount of `shared_buffers` given in its configuration.
     Defaults to 800.
 
 \--cache-strategy strategy
@@ -166,12 +165,12 @@ A summary of options is included below.
 
 -z, \--hstore-column key_name
 :   Add an additional hstore (key/value) column containing all tags
-    that start with the specified string, eg --hstore-column "name:" will
+    that start with the specified string, eg \--hstore-column "name:" will
     produce an extra hstore column that contains all name:xx tags
 
 \--hstore-match-only
 :   Only keep objects that have a value in one of the columns
-   (normal action with --hstore is to keep all objects).
+   (normal action with \--hstore is to keep all objects).
 
 \--hstore-add-index
 :   Create indices for the hstore columns during import.
@@ -221,9 +220,9 @@ A summary of options is included below.
 
 # SUPPORTED PROJECTIONS
 
-Latlong             (-l) SRS:  4326 (none)\
-Spherical Mercator  (-m) SRS:3857 +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs +over\
-EPSG-defined        (-E) SRS: +init=epsg:(as given in parameter)
+* Latlong             (-l) SRS:4326 (none)
+* Spherical Mercator  (-m) SRS:3857 +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs +over
+* EPSG-defined        (-E) SRS: +init=epsg:(as given in parameter)
 
 
 # SEE ALSO
