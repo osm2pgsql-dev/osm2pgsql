@@ -59,6 +59,9 @@ User documentation is available on [the website](https://osm2pgsql.org/), some
 is stored in `docs/`. Pages on the OpenStreetMap wiki are known to be
 unreliable and outdated.
 
+The [man page](docs/osm2pgsql.1) can be built from [source](docs/osm2pgsql.md)
+with `make man`. The result should be checked into the repository.
+
 ## Platforms targeted
 
 Ideally osm2pgsql should compile on Linux, OS X, FreeBSD and Windows. It is
@@ -128,6 +131,13 @@ For this to work you need a coverage tool installed. For GCC this is `gcov`,
 for Clang this is `llvm-cov` in the right version. CMake will automatically
 try to find the correct tool. In any case the tool `gcovr` is used to create
 the report.
+
+## Releasing a new version
+
+* Decide on a new version. (See [semantic versioning](https://semver.org/).)
+* Update version in [CMakeLists.txt](CMakeLists.txt), look for `PACKAGE_VERSION`
+* Build man page (`make man`) and copy it to `docs/osm2pgsql.1`.
+* ...
 
 ## Maintainers
 
