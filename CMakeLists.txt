@@ -60,6 +60,9 @@ option(EXTERNAL_LIBOSMIUM "Do not use the bundled libosmium" OFF)
 option(EXTERNAL_PROTOZERO "Do not use the bundled protozero" OFF)
 option(EXTERNAL_FMT       "Do not use the bundled fmt"       OFF)
 
+set(MINIMUM_POSTGRESQL_SERVER_VERSION "9.3")
+set(MINIMUM_POSTGRESQL_SERVER_VERSION_NUM "90300")
+
 #############################################################
 # Version
 #############################################################
