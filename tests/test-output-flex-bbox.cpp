@@ -9,8 +9,7 @@ static char const *const conf_file = "test_output_flex_bbox.lua";
 
 TEST_CASE("bbox on nodes and ways in 4326")
 {
-    options_t const options =
-        testing::opt_t().flex(conf_file).srs(PROJ_LATLONG);
+    options_t const options = testing::opt_t().flex(conf_file);
 
     REQUIRE_NOTHROW(db.run_import(options,
                                   "n10 v1 dV Ta=b x10.0 y10.0\n"

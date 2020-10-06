@@ -177,16 +177,19 @@ private:
                       flex_table_column_t const &column);
     void write_row(table_connection_t *table_connection,
                    osmium::item_type id_type, osmid_t id,
-                   std::string const &geom);
+                   std::string const &geom, int srid);
 
     geom::osmium_builder_t::wkbs_t
-    run_transform(geom_transform_t const *transform, osmium::Node const &node);
+    run_transform(geom::osmium_builder_t *builder,
+                  geom_transform_t const *transform, osmium::Node const &node);
 
     geom::osmium_builder_t::wkbs_t
-    run_transform(geom_transform_t const *transform, osmium::Way const &way);
+    run_transform(geom::osmium_builder_t *builder,
+                  geom_transform_t const *transform, osmium::Way const &way);
 
     geom::osmium_builder_t::wkbs_t
-    run_transform(geom_transform_t const *transform,
+    run_transform(geom::osmium_builder_t *builder,
+                  geom_transform_t const *transform,
                   osmium::Relation const &relation);
 
     template <typename OBJECT>
@@ -213,7 +216,6 @@ private:
     // accessed while protected using the lua_mutex.
     std::shared_ptr<lua_State> m_lua_state;
 
-    geom::osmium_builder_t m_builder;
     expire_tiles m_expire;
 
     osmium::memory::Buffer m_buffer;

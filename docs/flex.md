@@ -19,8 +19,6 @@ All configuration is done through the `osm2pgsql` object in Lua. It has the
 following fields:
 
 * `osm2pgsql.version`: The version of osm2pgsql as a string.
-* `osm2pgsql.srid`: The SRID set on the command line (with `-l|--latlong`,
-  `-m|--merc`, or `-E|--proj`).
 * `osm2pgsql.mode`: Either `"create"` or `"append"` depending on the command
   line options (`--create` or `-a|--append`).
 * `osm2pgsql.stage`: Either `1` or `2` (1st/2nd stage processing of the data).
@@ -104,8 +102,18 @@ The supported geometry types are:
 * `geometry`: Any kind of geometry. Also used for area tables that should hold
   both polygon and multipolygon geometries.
 
-A column of type `area` will be filled automatically with the area of the
-geometry. This will only work for (multi)polygons.
+By default geometry columns will be created in web mercator (EPSG 3857). To
+change this, set the `projection` parameter of the column to the EPSG code
+you want (or one of the strings `latlon(g)`, `WGS84`, or 'merc(ator)', case
+is ignored).
+
+There is one special geometry column type called `area`. It can be used in
+addition to a `polygon` or `multipolygon` column. Unlike the normal geometry
+column types, the resulting database type will not be a geometry type, but
+`real`. It will be filled automatically with the area of the geometry. The area
+will be calculated in web mercator, or you can set the `projection` parameter
+of the column to `4326` to calculate it with WGS84 coordinates. Other
+projections are currently not supported.
 
 In addition to id and geometry columns, each table can have any number of
 "normal" columns using any type supported by PostgreSQL. Some types are
@@ -343,6 +351,11 @@ flex backend, because they don't make sense in that context:
   flex backend.)
 * `--tag-transform-script` (Set the Lua config file with the `-S|--style`
   option.)
+* `-l|--latlong` (Set `projection = 'latlong'` on geometry columns instead.)
+* `-m|--merc` (This is the default for all geometry columns.)
+* `-E|--proj NUM` (Set `projection = NUM` on geometry columns instead.)
+* `--reproject-area` (This is the default, set `projection = 4326` on the area
+  column to calculate the area using WGS84 coordinates.)
 * `-G|--multi-geometry` (Use the `multi` option on the geometry transformation
   instead, see the "Geometry transformation" section above for details.)
 * The command line options to set the tablespace (`-i|--tablespace-index`,

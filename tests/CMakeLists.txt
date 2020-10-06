@@ -11,7 +11,8 @@ function(set_test test_name)
     target_link_libraries(${test_name} osm2pgsql_lib catch_main_lib)
     add_test(NAME ${test_name} COMMAND ${test_name})
 
-    set_tests_properties(${test_name} PROPERTIES TIMEOUT ${TESTING_TIMEOUT})
+    set_tests_properties(${test_name} PROPERTIES TIMEOUT ${TESTING_TIMEOUT}
+                                                 ENVIRONMENT SRCPATH=${CMAKE_CURRENT_SOURCE_DIR})
 
     if (DEFINED test_param_LABELS)
         list(FIND test_param_LABELS Tablespace test_num_labels)

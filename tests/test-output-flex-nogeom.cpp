@@ -9,8 +9,7 @@ static char const *const conf_file = "test_output_flex_nogeom.lua";
 
 TEST_CASE("updating table without geometry should work")
 {
-    options_t options =
-        testing::opt_t().slim().flex(conf_file).srs(PROJ_LATLONG);
+    options_t options = testing::opt_t().slim().flex(conf_file);
 
     REQUIRE_NOTHROW(db.run_import(options,
                                   "n10 v1 dV Tamenity=restaurant x10.0 y10.0\n"

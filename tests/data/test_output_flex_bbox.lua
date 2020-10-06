@@ -5,7 +5,7 @@ local points = osm2pgsql.define_node_table('osm2pgsql_test_points', {
     { column = 'min_y', type = 'real' },
     { column = 'max_x', type = 'real' },
     { column = 'max_y', type = 'real' },
-    { column = 'geom',  type = 'point' },
+    { column = 'geom',  type = 'point', projection = 4326 },
 })
 
 local highways = osm2pgsql.define_way_table('osm2pgsql_test_highways', {
@@ -14,7 +14,7 @@ local highways = osm2pgsql.define_way_table('osm2pgsql_test_highways', {
     { column = 'min_y', type = 'real' },
     { column = 'max_x', type = 'real' },
     { column = 'max_y', type = 'real' },
-    { column = 'geom',  type = 'linestring' },
+    { column = 'geom',  type = 'linestring', projection = 4326 },
 })
 
 function osm2pgsql.process_node(object)

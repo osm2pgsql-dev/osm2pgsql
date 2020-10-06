@@ -2,6 +2,7 @@
 #define OSM2PGSQL_FLEX_TABLE_COLUMN_HPP
 
 #include "format.hpp"
+#include "reprojection.hpp"
 
 #include <cstdint>
 #include <string>
@@ -85,9 +86,13 @@ public:
 
     void set_create_only(bool value = true) noexcept { m_create_only = value; }
 
-    std::string sql_type_name(int srid) const;
+    void set_projection(char const *projection);
+
+    std::string sql_type_name() const;
     std::string sql_modifiers() const;
-    std::string sql_create(int srid) const;
+    std::string sql_create() const;
+
+    int srid() const noexcept { return m_srid; }
 
 private:
     /// The name of the database table column.
@@ -104,6 +109,12 @@ private:
      * in which case m_type_name is the SQL type used in the database.
      */
     table_column_type m_type;
+
+    /**
+     * For geometry and area columns only: The projection SRID. Default is
+     * web mercator.
+     */
+    int m_srid = 3857;
 
     /// NOT NULL constraint
     bool m_not_null = false;

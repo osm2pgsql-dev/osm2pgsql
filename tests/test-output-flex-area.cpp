@@ -5,12 +5,14 @@
 
 static testing::db::import_t db;
 
-static char const *const conf_file = "test_output_flex_area.lua";
+static char const *const conf_file_3857 = "test_output_flex_area_3857.lua";
+static char const *const conf_file_4326 = "test_output_flex_area_4326.lua";
+static char const *const conf_file_mix = "test_output_flex_area_mix.lua";
 static char const *const data_file = "test_output_pgsql_area.osm";
 
 TEST_CASE("area calculation in default projection")
 {
-    options_t const options = testing::opt_t().flex(conf_file);
+    options_t const options = testing::opt_t().flex(conf_file_3857);
 
     REQUIRE_NOTHROW(db.run_file(options, data_file));
 
@@ -37,8 +39,7 @@ TEST_CASE("area calculation in default projection")
 
 TEST_CASE("area calculation in latlon projection")
 {
-    options_t const options =
-        testing::opt_t().flex(conf_file).srs(PROJ_LATLONG);
+    options_t const options = testing::opt_t().flex(conf_file_4326);
 
     REQUIRE_NOTHROW(db.run_file(options, data_file));
 
@@ -59,8 +60,7 @@ TEST_CASE("area calculation in latlon projection")
 
 TEST_CASE("area calculation in latlon projection with way area reprojection")
 {
-    options_t options = testing::opt_t().flex(conf_file).srs(PROJ_LATLONG);
-    options.reproject_area = true;
+    options_t options = testing::opt_t().flex(conf_file_mix);
 
     REQUIRE_NOTHROW(db.run_file(options, data_file));
 

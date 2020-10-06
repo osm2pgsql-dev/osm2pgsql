@@ -6,7 +6,7 @@ tables.line = osm2pgsql.define_table{
     ids = { type = 'way', id_column = 'osm_id' },
     columns = {
         { column = 'tags', type = 'hstore' },
-        { column = 'geom', type = 'linestring' },
+        { column = 'geom', type = 'linestring', projection = 4326 },
     }
 }
 
@@ -15,7 +15,7 @@ tables.polygon = osm2pgsql.define_table{
     ids = { type = 'area', id_column = 'osm_id' },
     columns = {
         { column = 'tags', type = 'hstore' },
-        { column = 'geom', type = 'geometry' }
+        { column = 'geom', type = 'geometry', projection = 4326 }
     }
 }
 
