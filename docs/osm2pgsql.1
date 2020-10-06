@@ -26,7 +26,7 @@ files (osc files), thereby bringing an existing database up to date.
 .SH OPTIONS
 .PP
 This program follows the usual GNU command line syntax, with long
-options starting with two dashes (`\-').
+options starting with two dashes (\f[C]\-\-\f[]).
 A summary of options is included below.
 .TP
 .B \-a, \-\-append
@@ -37,13 +37,13 @@ Add the OSM file into the database without removing existing data.
 .B \-b, \-\-bbox
 Apply a bounding box filter on the imported data.
 Must be specified as: minlon,minlat,maxlon,maxlat e.g.
-\f[B]\[en]bbox\f[] \f[B]\-0.5,51.25,0.5,51.75\f[]
+\f[B]\-\-bbox\f[] \f[B]\-0.5,51.25,0.5,51.75\f[]
 .RS
 .RE
 .TP
 .B \-c, \-\-create
 Remove existing data from the database.
-This is the default if \f[B]\[en]append\f[] is not specified.
+This is the default if \f[B]\-\-append\f[] is not specified.
 .RS
 .RE
 .TP
@@ -152,7 +152,7 @@ As a rule of thumb, give a bit more than the size of the import file in
 PBF format.
 If the RAM is not big enough, use about 75% of memory.
 Make sure to leave enough RAM for PostgreSQL.
-It needs at least the amount of `shared_buffers` given in its
+It needs at least the amount of \f[C]shared_buffers\f[] given in its
 configuration.
 Defaults to 800.
 .RS
@@ -250,14 +250,14 @@ tables.
 .TP
 .B \-z, \-\-hstore\-column key_name
 Add an additional hstore (key/value) column containing all tags that
-start with the specified string, eg \[en]hstore\-column \[lq]name:\[rq]
+start with the specified string, eg \-\-hstore\-column \[lq]name:\[rq]
 will produce an extra hstore column that contains all name:xx tags
 .RS
 .RE
 .TP
 .B \-\-hstore\-match\-only
 Only keep objects that have a value in one of the columns (normal action
-with \[en]hstore is to keep all objects).
+with \-\-hstore is to keep all objects).
 .RS
 .RE
 .TP
@@ -333,17 +333,13 @@ Verbose output.
 .RS
 .RE
 .SH SUPPORTED PROJECTIONS
-.PP
-Latlong (\-l) SRS: 4326 (none)
-.PD 0
-.P
-.PD
+.IP \[bu] 2
+Latlong (\-l) SRS:4326 (none)
+.IP \[bu] 2
 Spherical Mercator (\-m) SRS:3857 +proj=merc +a=6378137 +b=6378137
 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=\@null
 +no_defs +over
-.PD 0
-.P
-.PD
+.IP \[bu] 2
 EPSG\-defined (\-E) SRS: +init=epsg:(as given in parameter)
 .SH SEE ALSO
 .PP
