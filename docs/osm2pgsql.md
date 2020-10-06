@@ -44,7 +44,10 @@ starting with two dashes (`--`). A summary of options is included below.
     default if **\--append** is not specified.
 
 -d, \--database name
-:   The name of the PostgreSQL database to connect to.
+:   The name of the PostgreSQL database to connect to. If this parameter
+    contains an `=` sign or starts with a valid URI prefix (`postgresql://` or
+    `postgres://`), it is treated as a conninfo string. See the PostgreSQL
+    manual for details.
 
 -i, \--tablespace-index tablespacename
 :   Store all indices in a separate PostgreSQL tablespace named by this parameter.

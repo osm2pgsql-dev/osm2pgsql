@@ -143,7 +143,8 @@ class BaseRunner(object):
     @classmethod
     def run_import(cls, params, filename):
         cmdline = [CONFIG['executable']]
-        cmdline.extend(('-d', CONFIG['test_database']))
+        if not '-d' in params and not '--database' in params:
+            cmdline.extend(('-d', CONFIG['test_database']))
         cmdline.extend(params)
         cmdline.append(op.join(CONFIG['test_data_path'], filename))
         logging.info("Executing command: {}".format(' '.join(cmdline)))
@@ -734,4 +735,30 @@ class TestMPUpdateSlimLuaHstore(MultipolygonUpdateRunner, unittest.TestCase,
                                 MultipolygonTests):
     extra_params = ['--slim', '-k']
     use_lua_tagtransform = True
+
+# Database access tests
+
+class TestDBAccessNorm(BaseUpdateRunner, unittest.TestCase,
+                       PgsqlBaseTests):
+    extra_params = ['--slim', '-d', CONFIG['test_database']]
+
+class TestDBAccessNormLong(BaseUpdateRunner, unittest.TestCase,
+                       PgsqlBaseTests):
+    extra_params = ['--slim', '--database', CONFIG['test_database']]
+
+class TestDBAccessConninfo(BaseUpdateRunner, unittest.TestCase,
+                           PgsqlBaseTests):
+    extra_params = ['--slim', '-d', 'dbname=' + CONFIG['test_database']]
+
+class TestDBAccessConninfoLong(BaseUpdateRunner, unittest.TestCase,
+                           PgsqlBaseTests):
+    extra_params = ['--slim', '--database', 'dbname=' + CONFIG['test_database']]
+
+class TestDBAccessURIPostgresql(BaseUpdateRunner, unittest.TestCase,
+                           PgsqlBaseTests):
+    extra_params = ['--slim', '-d', 'postgresql:///' + CONFIG['test_database']]
+
+class TestDBAccessURIPostgres(BaseUpdateRunner, unittest.TestCase,
+                           PgsqlBaseTests):
+    extra_params = ['--slim', '-d', 'postgres:///' + CONFIG['test_database']]
 
