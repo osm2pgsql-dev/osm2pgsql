@@ -130,6 +130,14 @@ public:
 
     std::vector<std::string> input_files;
 
+    /**
+     * How many bits should the node id be shifted for the way node index?
+     * Use 0 to disable for backwards compatibility.
+     * Currently the default is 0, making osm2pgsql backwards compatible to
+     * earlier versions.
+     */
+    uint8_t way_node_index_id_shift = 0;
+
 private:
     /**
      * Check input options for sanity

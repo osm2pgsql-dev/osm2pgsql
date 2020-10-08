@@ -55,8 +55,8 @@ static std::string build_sql(options_t const &options, char const *templ)
         fmt::arg("unlogged", options.droptemp ? "UNLOGGED" : ""),
         fmt::arg("using_tablespace", using_tablespace),
         fmt::arg("data_tablespace", tablespace_clause(options.tblsslim_data)),
-        fmt::arg("index_tablespace",
-                 tablespace_clause(options.tblsslim_index)));
+        fmt::arg("index_tablespace", tablespace_clause(options.tblsslim_index)),
+        fmt::arg("way_node_index_id_shift", options.way_node_index_id_shift));
 }
 
 middle_pgsql_t::table_desc::table_desc(options_t const &options,
@@ -634,7 +634,8 @@ static table_sql sql_for_nodes() noexcept
     return sql;
 }
 
-static table_sql sql_for_ways() noexcept
+static table_sql sql_for_ways(bool has_bucket_index,
+                              uint8_t way_node_index_id_shift) noexcept
 {
     table_sql sql{};
 
@@ -653,12 +654,33 @@ static table_sql sql_for_ways() noexcept
                         "  SELECT id, nodes, tags"
                         "    FROM {prefix}_ways WHERE id = ANY($1::int8[]);\n";
 
-    sql.prepare_mark = "PREPARE mark_ways_by_node(int8) AS"
-                       "  SELECT id FROM {prefix}_ways"
-                       "    WHERE nodes && ARRAY[$1];\n";
+    if (has_bucket_index) {
+        sql.prepare_mark = "PREPARE mark_ways_by_node(int8) AS"
+                           "  SELECT id FROM {prefix}_ways w"
+                           "    WHERE $1 = ANY(nodes)"
+                           "      AND {prefix}_index_bucket(w.nodes)"
+                           "       && {prefix}_index_bucket(ARRAY[$1]);\n";
+    } else {
+        sql.prepare_mark = "PREPARE mark_ways_by_node(int8) AS"
+                           "  SELECT id FROM {prefix}_ways"
+                           "    WHERE nodes && ARRAY[$1];\n";
+    }
 
-    sql.create_index = "CREATE INDEX ON {prefix}_ways USING GIN (nodes)"
-                       "  WITH (fastupdate = off) {index_tablespace};\n";
+    if (way_node_index_id_shift == 0) {
+        sql.create_index = "CREATE INDEX ON {prefix}_ways USING GIN (nodes)"
+                           "  WITH (fastupdate = off) {index_tablespace};\n";
+    } else {
+        sql.create_index = "CREATE OR REPLACE FUNCTION"
+                           "    {prefix}_index_bucket(int8[])"
+                           "  RETURNS int8[] AS $$\n"
+                           "  SELECT ARRAY(SELECT DISTINCT"
+                           "    unnest($1) >> {way_node_index_id_shift})\n"
+                           "$$ LANGUAGE SQL IMMUTABLE;\n"
+                           "CREATE INDEX {prefix}_ways_nodes_bucket_idx"
+                           "  ON {prefix}_ways"
+                           "  USING GIN ({prefix}_index_bucket(nodes))"
+                           "  WITH (fastupdate = off) {index_tablespace};\n";
+    }
 
     return sql;
 }
@@ -697,6 +719,16 @@ static table_sql sql_for_relations() noexcept
     return sql;
 }
 
+static bool check_bucket_index(pg_conn_t *db_connection,
+                               std::string const &prefix)
+{
+    auto const res = db_connection->query(
+        PGRES_TUPLES_OK,
+        "SELECT relname FROM pg_class WHERE relkind='i' AND"
+        "  relname = '{}_ways_nodes_bucket_idx';"_format(prefix));
+    return res.num_tuples() > 0;
+}
+
 middle_pgsql_t::middle_pgsql_t(options_t const *options)
 : m_append(options->append), m_out_options(options),
   m_cache(new node_ram_cache{options->alloc_chunkwise | ALLOC_LOSSY,
@@ -712,8 +744,18 @@ middle_pgsql_t::middle_pgsql_t(options_t const *options)
 
     fmt::print(stderr, "Mid: pgsql, cache={}\n", options->cache);
 
+    bool const has_bucket_index =
+        check_bucket_index(&m_db_connection, options->prefix);
+
+    if (!has_bucket_index && options->append) {
+        fmt::print(stderr, "You don't have a bucket index. See"
+                           " docs/bucket-index.md for details.\n");
+    }
+
     m_tables[NODE_TABLE] = table_desc{*options, sql_for_nodes()};
-    m_tables[WAY_TABLE] = table_desc{*options, sql_for_ways()};
+    m_tables[WAY_TABLE] =
+        table_desc{*options, sql_for_ways(has_bucket_index,
+                                          options->way_node_index_id_shift)};
     m_tables[REL_TABLE] = table_desc{*options, sql_for_relations()};
 }
 
