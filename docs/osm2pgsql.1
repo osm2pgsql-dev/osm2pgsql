@@ -7,18 +7,15 @@ osm2pgsql \- Openstreetmap data to PostgreSQL converter
 \f[B]osm2pgsql\f[] [\f[I]OPTIONS\f[]] OSM\-FILE
 .SH DESCRIPTION
 .PP
-This manual page documents briefly the \f[B]osm2pgsql\f[] command.
+\f[B]osm2pgsql\f[] imports OpenStreetMap data into a PostgreSQL/PostGIS
+database.
+It is an essential part of many rendering toolchains, the Nominatim
+geocoder and other applications processing OSM data.
 .PP
-\f[B]osm2pgsql\f[] imports data from OSM file(s) into a PostgreSQL
-database suitable for use by the Mapnik renderer or the Nominatim
-geocoder.
 OSM planet snapshots can be downloaded from
 https://planet.openstreetmap.org/.
-Partial planet files (\[lq]extracts\[rq]) for various countries are
-available, see https://wiki.openstreetmap.org/wiki/Planet.osm.
-.PP
-Extracts in PBF (ProtoBufBinary) format are also available from
-https://download.geofabrik.de/.
+Data extracts for various countries or other areas are also available,
+see https://wiki.openstreetmap.org/wiki/Planet.osm.
 .PP
 When operating in \[lq]slim\[rq] mode (and on a database created in
 \[lq]slim\[rq] mode!), \f[B]osm2pgsql\f[] can also process OSM change
@@ -27,17 +24,17 @@ files (osc files), thereby bringing an existing database up to date.
 .PP
 This program follows the usual GNU command line syntax, with long
 options starting with two dashes (\f[C]\-\-\f[]).
-A summary of options is included below.
+.PP
+Mandatory arguments to long options are mandatory for short options too.
 .TP
 .B \-a, \-\-append
 Add the OSM file into the database without removing existing data.
 .RS
 .RE
 .TP
-.B \-b, \-\-bbox
+.B \-b, \-\-bbox=MINLON,MINLAT,MAXLON,MAXLAT
 Apply a bounding box filter on the imported data.
-Must be specified as: minlon,minlat,maxlon,maxlat e.g.
-\f[B]\-\-bbox\f[] \f[B]\-0.5,51.25,0.5,51.75\f[]
+Example: \f[B]\-\-bbox\f[] \f[B]\-0.5,51.25,0.5,51.75\f[]
 .RS
 .RE
 .TP
@@ -47,34 +44,38 @@ This is the default if \f[B]\-\-append\f[] is not specified.
 .RS
 .RE
 .TP
-.B \-d, \-\-database name
+.B \-d, \-\-database=NAME
 The name of the PostgreSQL database to connect to.
+If this parameter contains an \f[C]=\f[] sign or starts with a valid URI
+prefix (\f[C]postgresql://\f[] or \f[C]postgres://\f[]), it is treated
+as a conninfo string.
+See the PostgreSQL manual for details.
 .RS
 .RE
 .TP
-.B \-i, \-\-tablespace\-index tablespacename
+.B \-i, \-\-tablespace\-index=TABLESPACENAME
 Store all indices in a separate PostgreSQL tablespace named by this
 parameter.
 This allows one to e.g.\ store the indices on faster storage like SSDs.
 .RS
 .RE
 .TP
-.B \-\-tablespace\-main\-data tablespacename
+.B \-\-tablespace\-main\-data=TABLESPACENAME
 Store the data tables (non slim) in the given tablespace.
 .RS
 .RE
 .TP
-.B \-\-tablespace\-main\-index tablespacename
+.B \-\-tablespace\-main\-index=TABLESPACENAME
 Store the indices of the main tables (non slim) in the given tablespace.
 .RS
 .RE
 .TP
-.B \-\-tablespace\-slim\-data tablespacename
+.B \-\-tablespace\-slim\-data=TABLESPACENAME
 Store the slim mode tables in the given tablespace.
 .RS
 .RE
 .TP
-.B \-\-tablespace\-slim\-index tablespacename
+.B \-\-tablespace\-slim\-index=TABLESPACENAME
 Store the indices of the slim mode tables in the given tablespace.
 .RS
 .RE
@@ -90,17 +91,17 @@ default).
 .RS
 .RE
 .TP
-.B \-E, \-\-proj num
-Use projection EPSG:num.
+.B \-E, \-\-proj=SRID
+Use projection EPSG:SRID.
 .RS
 .RE
 .TP
-.B \-p, \-\-prefix prefix_string
-Prefix for table names (default: planet_osm).
+.B \-p, \-\-prefix=PREFIX
+Prefix for table names (default: \f[C]planet_osm\f[]).
 .RS
 .RE
 .TP
-.B \-r, \-\-input\-reader format
+.B \-r, \-\-input\-reader=FORMAT
 Select format of the input file.
 Available choices are \f[B]auto\f[] (default) for autodetecting the
 format, \f[B]xml\f[] for OSM XML format files, \f[B]o5m\f[] for o5m
@@ -134,16 +135,26 @@ update your database, as these tables are needed for diff processing.
 .RS
 .RE
 .TP
-.B \-S, \-\-style /path/to/style
-Location of the osm2pgsql style file.
+.B \-S, \-\-style=FILE
+The osm2pgsql style file.
 This specifies which tags from the data get imported into database
 columns and which tags get dropped.
-Defaults to /usr/share/osm2pgsql/default.style.
+(For the \f[B]pgsql\f[] output, the default is
+\f[C]/usr/share/osm2pgsql/default.style\f[], for other outputs there is
+no default.)
 .RS
 .RE
 .TP
-.B \-C, \-\-cache num
-Only for slim mode: Use up to num many MB of RAM for caching nodes.
+.B \-\-tag\-transform\-script=SCRIPT
+Specify a lua script to handle tag filtering and normalisation.
+The script contains callback functions for nodes, ways and relations,
+which each take a set of tags and returns a transformed, filtered set of
+tags which are then written to the database.
+.RS
+.RE
+.TP
+.B \-C, \-\-cache=NUM
+Only for slim mode: Use up to \f[B]NUM\f[] MB of RAM for caching nodes.
 Giving osm2pgsql sufficient cache to store all imported nodes typically
 greatly increases the speed of the import.
 Each cached node requires 8 bytes of cache, plus about 10% \- 30%
@@ -158,7 +169,7 @@ Defaults to 800.
 .RS
 .RE
 .TP
-.B \-\-cache\-strategy strategy
+.B \-\-cache\-strategy=STRATEGY
 There are a number of different modes in which osm2pgsql can organize
 its node cache in RAM.
 These are optimized for different assumptions of the data and the
@@ -181,7 +192,7 @@ This is the default and should be typically used.
 .RS
 .RE
 .TP
-.B \-U, \-\-username name
+.B \-U, \-\-username=NAME
 Postgresql user name.
 .RS
 .RE
@@ -191,38 +202,43 @@ Force password prompt.
 .RS
 .RE
 .TP
-.B \-H, \-\-host hostname
+.B \-H, \-\-host=HOSTNAME
 Database server hostname or socket location.
 .RS
 .RE
 .TP
-.B \-P, \-\-port num
+.B \-P, \-\-port=PORT
 Database server port.
 .RS
 .RE
 .TP
-.B \-e, \-\-expire\-tiles [min_zoom\-]max\-zoom
+.B \-e, \-\-expire\-tiles=[MIN_ZOOM\-]MAX\-ZOOM
 Create a tile expiry list.
 .RS
 .RE
 .TP
-.B \-o, \-\-expire\-output /path/to/expire.list
+.B \-o, \-\-expire\-output=FILENAME
 Output file name for expired tiles list.
 .RS
 .RE
 .TP
-.B \-O, \-\-output
-Specifies the output back\-end or database schema to use.
+.B \-\-expire\-bbox\-size=SIZE
+Max size for a polygon to expire the whole polygon, not just the
+boundary.
+.RS
+.RE
+.TP
+.B \-O, \-\-output=OUTPUT
+Specifies the output back\-end to use.
 Currently osm2pgsql supports \f[B]pgsql\f[], \f[B]flex\f[],
 \f[B]gazetteer\f[] and \f[B]null\f[].
-\f[B]pgsql\f[] is the default output back\-end / schema and is optimized
-for rendering with Mapnik.
-\f[B]gazetteer\f[] is a db schema optimized for geocoding and is used by
-Nominatim.
+\f[B]pgsql\f[] is the default output back\-end and is optimized for
+rendering with Mapnik.
+\f[B]gazetteer\f[] is intended for geocoding with Nominatim.
 The experimental \f[B]flex\f[] backend allows more flexible
 configuration.
 \f[B]null\f[] does not write any output and is only useful for testing
-or with \[en]slim for creating slim tables.
+or with \f[B]\-\-slim\f[] for creating slim tables.
 There is also a \f[B]multi\f[] backend.
 This is now deprecated and will be removed in future versions of
 osm2pgsql.
@@ -248,10 +264,11 @@ tables.
 .RS
 .RE
 .TP
-.B \-z, \-\-hstore\-column key_name
+.B \-z, \-\-hstore\-column=KEY_PREFIX
 Add an additional hstore (key/value) column containing all tags that
 start with the specified string, eg \-\-hstore\-column \[lq]name:\[rq]
-will produce an extra hstore column that contains all name:xx tags
+will produce an extra hstore column that contains all \f[C]name:xx\f[]
+tags
 .RS
 .RE
 .TP
@@ -270,21 +287,26 @@ Create indices for the hstore columns during import.
 Normally osm2pgsql splits multi\-part geometries into separate database
 rows per part.
 A single OSM id can therefore have several rows.
-With this option, PostgreSQL instead generates multi\-geometry features
+With this option, osm2pgsql instead generates multi\-geometry features
 in the PostgreSQL tables.
 .RS
 .RE
 .TP
 .B \-K, \-\-keep\-coastlines
 Keep coastline data rather than filtering it out.
-By default natural=coastline tagged data will be discarded based on the
-assumption that Shapefiles generated by OSMCoastline
-(https://osmdata.openstreetmap.de/) will be used.
+By default objects tagged \f[C]natural=coastline\f[] will be discarded
+based on the assumption that Shapefiles generated by OSMCoastline
+(https://osmdata.openstreetmap.de/) will be used for the coastline data.
 .RS
 .RE
 .TP
-.B \-\-number\-processes num
-Specifies the number of parallel processes used for certain operations.
+.B \-\-reproject\-area
+Compute area column using spherical mercator coordinates.
+.RS
+.RE
+.TP
+.B \-\-number\-processes=THREADS
+Specifies the number of parallel threads used for certain operations.
 If disks are fast enough e.g.\ if you have an SSD, then this can greatly
 increase speed of the \[lq]going over pending ways\[rq] and \[lq]going
 over pending relations\[rq] stages on a multi\-core server.
@@ -294,13 +316,13 @@ over pending relations\[rq] stages on a multi\-core server.
 .B \-I, \-\-disable\-parallel\-indexing
 By default osm2pgsql initiates the index building on all tables in
 parallel to increase performance.
-This can be disadvantages on slow disks, or if you don't have enough RAM
-for PostgreSQL to perform up to 7 parallel index building processes
-(e.g.\ because maintenance_work_mem is set high).
+This can be a disadvantage on slow disks, or if you don't have enough
+RAM for PostgreSQL to perform up to 7 parallel index building processes
+(e.g.\ because \f[C]maintenance_work_mem\f[] is set high).
 .RS
 .RE
 .TP
-.B \-\-flat\-nodes /path/to/nodes.cache
+.B \-\-flat\-nodes=FILENAME
 The flat\-nodes mode is a separate method to store slim mode node
 information on disk.
 Instead of storing this information in the main PostgreSQL database,
@@ -323,13 +345,20 @@ The default is disabled.
 .RE
 .TP
 .B \-h, \-\-help
-Help information.
-Add \f[B]\-v\f[] to display supported projections.
+Show usage information.
+Add \f[B]\-v\f[] to display more verbose help.
 .RS
 .RE
 .TP
 .B \-v, \-\-verbose
 Verbose output.
+.RS
+.RE
+.TP
+.B \[en]middle\-way\-node\-index\-id\-shift shift
+Set ID shift for way node bucket index in middle.
+Experts only.
+See documentation for details.
 .RS
 .RE
 .SH SUPPORTED PROJECTIONS
