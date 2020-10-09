@@ -75,8 +75,22 @@ CREATE INDEX {prefix}_ways_nodes_bucket_idx ON {prefix}_ways
 
 ## Id shift (for experts)
 
+When an OSM node is changing, the way node index is used to look up all ways
+that use that particular node and therefore might have to be updated, too.
+This index is quite large, because most nodes are in at least one way.
+
 When creating a new database (when used in create mode with slim option),
-osm2pgsql can create a bucket index using a configurable id shift.
+osm2pgsql can create a "bucket index" using a configurable id shift for the
+nodes in the way node index. This bucket index will create index entries not
+for each node id, but for "buckets" of node ids. It does this by shifting the
+node ids a few bits to the right. As a result there are far fewer entries
+in the index, it becomes a lot smaller. This is especially true in our case,
+because ways often contain consecutive nodes, so if node id `n` is in a way,
+there is a good chance, that node id `n+1` is also in the way.
+
+On the other hand, looking up an id will result in false positives, so the
+database has to retrieve more ways than absolutely necessary, which leads to
+the considerable slowdown.
 
 You can set the shift with the command line option
 `--middle-way-node-index-id-shift`. Values between about 3 and 6 might make
