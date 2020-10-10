@@ -1,5 +1,6 @@
 #include "flex-table.hpp"
 #include "format.hpp"
+#include "pgsql-helper.hpp"
 #include "util.hpp"
 
 #include <cassert>
@@ -267,24 +268,9 @@ void table_connection_t::stop(bool updateable, bool append)
         m_db_connection->exec(table().build_sql_create_id_index());
 
         if (table().has_geom_column() && table().geom_column().srid() != 4326) {
-            m_db_connection->exec(
-                "CREATE OR REPLACE FUNCTION {}_osm2pgsql_valid()\n"
-                "RETURNS TRIGGER AS $$\n"
-                "BEGIN\n"
-                "  IF ST_IsValid(NEW.{}) THEN \n"
-                "    RETURN NEW;\n"
-                "  END IF;\n"
-                "  RETURN NULL;\n"
-                "END;"
-                "$$ LANGUAGE plpgsql;"_format(table().name(),
-                                              table().geom_column().name()));
-
-            m_db_connection->exec("CREATE TRIGGER \"{0}_osm2pgsql_valid\""
-                                  " BEFORE INSERT OR UPDATE"
-                                  " ON {1}"
-                                  " FOR EACH ROW EXECUTE PROCEDURE"
-                                  " {0}_osm2pgsql_valid();"_format(
-                                      table().name(), table().full_name()));
+            create_geom_check_trigger(m_db_connection.get(), table().schema(),
+                                      table().name(),
+                                      table().geom_column().name());
         }
     }
 

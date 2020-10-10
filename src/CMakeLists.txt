@@ -22,6 +22,7 @@ set(osm2pgsql_lib_SOURCES
   output-pgsql.cpp
   output.cpp
   pgsql.cpp
+  pgsql-helper.cpp
   processor-line.cpp
   processor-point.cpp
   processor-polygon.cpp

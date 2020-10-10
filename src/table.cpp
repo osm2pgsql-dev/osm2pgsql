@@ -8,6 +8,7 @@
 
 #include "format.hpp"
 #include "options.hpp"
+#include "pgsql-helper.hpp"
 #include "table.hpp"
 #include "taginfo.hpp"
 #include "util.hpp"
@@ -237,23 +238,8 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
                 "CREATE INDEX ON {} USING BTREE (osm_id) {}"_format(
                     m_target->name, tablespace_clause(table_space_index)));
             if (m_srid != "4326") {
-                m_sql_conn->exec(
-                    "CREATE OR REPLACE FUNCTION {}_osm2pgsql_valid()\n"
-                    "RETURNS TRIGGER AS $$\n"
-                    "BEGIN\n"
-                    "  IF ST_IsValid(NEW.way) THEN \n"
-                    "    RETURN NEW;\n"
-                    "  END IF;\n"
-                    "  RETURN NULL;\n"
-                    "END;"
-                    "$$ LANGUAGE plpgsql;"_format(m_target->name));
-
-                m_sql_conn->exec(
-                    "CREATE TRIGGER {0}_osm2pgsql_valid "
-                    "BEFORE INSERT OR UPDATE\n"
-                    "  ON {0}\n"
-                    "    FOR EACH ROW EXECUTE PROCEDURE "
-                    "{0}_osm2pgsql_valid();"_format(m_target->name));
+                create_geom_check_trigger(m_sql_conn.get(), "", m_target->name,
+                                          "way");
             }
         }
         /* Create hstore index if selected */
