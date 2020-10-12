@@ -1,6 +1,18 @@
 
-local test_table = osm2pgsql.define_table{
-    name = 'osm2pgsql_test_data',
+-- Table with a single id column
+local table1idcol = osm2pgsql.define_table{
+    name = 'osm2pgsql_test_data1',
+    ids = { type = 'any', id_column = 'the_id' },
+    columns = {
+        { column = 'orig_id', type = 'int8' },
+        { column = 'tags', type = 'hstore' },
+        { column = 'geom', type = 'geometry' },
+    }
+}
+
+-- Table with two id columns: type and id
+local table2idcol = osm2pgsql.define_table{
+    name = 'osm2pgsql_test_data2',
     ids = { type = 'any', type_column = 'x_type', id_column = 'x_id' },
     columns = {
         { column = 'tags', type = 'hstore' },
@@ -17,7 +29,12 @@ function osm2pgsql.process_node(object)
         return
     end
 
-    test_table:add_row({
+    table1idcol:add_row({
+        orig_id = object.id,
+        tags = object.tags,
+        geom = { create = 'point' }
+    })
+    table2idcol:add_row({
         tags = object.tags,
         geom = { create = 'point' }
     })
@@ -29,12 +46,22 @@ function osm2pgsql.process_way(object)
     end
 
     if object.tags.building then
-        test_table:add_row({
+        table1idcol:add_row({
+            orig_id = object.id,
+            tags = object.tags,
+            geom = { create = 'area' }
+        })
+        table2idcol:add_row({
             tags = object.tags,
             geom = { create = 'area' }
         })
     else
-        test_table:add_row({
+        table1idcol:add_row({
+            orig_id = object.id,
+            tags = object.tags,
+            geom = { create = 'line' }
+        })
+        table2idcol:add_row({
             tags = object.tags,
             geom = { create = 'line' }
         })
@@ -43,7 +70,12 @@ end
 
 function osm2pgsql.process_relation(object)
     if object.tags.type == 'multipolygon' then
-        test_table:add_row({
+        table1idcol:add_row({
+            orig_id = object.id,
+            tags = object.tags,
+            geom = { create = 'area', multi = false }
+        })
+        table2idcol:add_row({
             tags = object.tags,
             geom = { create = 'area', multi = false }
         })

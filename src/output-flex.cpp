@@ -654,16 +654,17 @@ void output_flex_t::setup_id_columns(flex_table_t *table)
     } else if (type == "area") {
         table->set_id_type(osmium::item_type::area);
     } else if (type == "any") {
-        std::string type_column_name{"osm_type"};
+        table->set_id_type(osmium::item_type::undefined);
         lua_getfield(lua_state(), -2, "type_column");
         if (lua_isstring(lua_state(), -1)) {
-            type_column_name = lua_tolstring(lua_state(), -1, nullptr);
-            check_name(type_column_name, "column");
+            auto const column_name = lua_tolstring(lua_state(), -1, nullptr);
+            check_name(column_name, "column");
+            auto &column = table->add_column(column_name, "id_type");
+            column.set_not_null();
+        } else if (!lua_isnil(lua_state(), -1)) {
+            throw std::runtime_error{"type_column must be a string or nil"};
         }
         lua_pop(lua_state(), 1); // type_column
-        auto &column = table->add_column(type_column_name, "id_type");
-        column.set_not_null();
-        table->set_id_type(osmium::item_type::undefined);
     } else {
         throw std::runtime_error{"Unknown ids type: " + type};
     }

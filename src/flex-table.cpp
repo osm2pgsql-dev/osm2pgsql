@@ -308,9 +308,7 @@ void table_connection_t::delete_rows_with(osmium::item_type type, osmid_t id)
 {
     m_copy_mgr.new_line(m_target);
 
-    // If the table id type is some specific type, we don't care about the
-    // type of the individual object, because they all will be the same.
-    if (table().id_type() != osmium::item_type::undefined) {
+    if (!table().has_multicolumn_id_index()) {
         type = osmium::item_type::undefined;
     }
     m_copy_mgr.delete_object(type_to_char(type)[0], id);
