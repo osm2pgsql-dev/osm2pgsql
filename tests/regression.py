@@ -108,8 +108,9 @@ class BaseRunner(object):
             cls.skipTest(None, "Test tablespace 'tablespacetest' not configured.")
         with psycopg2.connect("dbname='{}'".format(CONFIG['test_database'])) as conn:
             with conn.cursor() as cur:
-                for t in ('nodes', 'ways', 'rels'):
+                for t in ('nodes', 'ways', 'rels', 'point', 'line', 'roads', 'polygon'):
                     cur.execute("DROP TABLE IF EXISTS planet_osm_" + t)
+                cur.execute("DROP SCHEMA IF EXISTS osm CASCADE")
                 if cls.schema:
                     cur.execute("CREATE SCHEMA " + cls.schema)
 
@@ -124,13 +125,12 @@ class BaseRunner(object):
 
     @classmethod
     def tearDownClass(cls):
-        with psycopg2.connect("dbname='{}'".format(CONFIG['test_database'])) as conn:
-            with conn.cursor() as cur:
-                if cls.schema:
-                    cur.execute("DROP SCHEMA IF EXISTS {} CASCADE".format(cls.schema))
         if BaseRunner.conn:
             BaseRunner.conn.close()
             BaseRunner.conn = None
+        if cls.schema:
+            with psycopg2.connect("dbname='{}'".format(CONFIG['test_database'])) as conn:
+                conn.cursor().execute("DROP SCHEMA IF EXISTS {} CASCADE".format(cls.schema))
 
     @classmethod
     def get_def_params(cls):
@@ -169,6 +169,8 @@ class BaseRunner(object):
 
 
     def assert_count(self, count, table, where=None):
+        if self.schema:
+            table = self.schema + '.' + table
         sql = 'SELECT count(*) FROM ' + table
         if where:
             sql += ' WHERE ' + where
