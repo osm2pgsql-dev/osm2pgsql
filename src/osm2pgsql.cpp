@@ -79,10 +79,6 @@ int main(int argc, char *argv[])
         osmdata_t osmdata{std::move(dependency_manager), middle, outputs,
                           options};
 
-        fmt::print(stderr, "Using projection SRS {} ({})\n",
-                   options.projection->target_srs(),
-                   options.projection->target_desc());
-
         util::timer_t timer_overall;
         osmdata.start();
 

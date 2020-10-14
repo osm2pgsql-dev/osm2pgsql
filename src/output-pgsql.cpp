@@ -343,6 +343,9 @@ output_pgsql_t::output_pgsql_t(
   buffer(32768, osmium::memory::Buffer::auto_grow::yes),
   rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
 {
+    fmt::print(stderr, "Using projection SRS {} ({})\n",
+               o.projection->target_srs(), o.projection->target_desc());
+
     export_list exlist;
 
     m_enable_way_area = read_style_file(m_options.style, &exlist);
