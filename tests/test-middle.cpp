@@ -187,8 +187,16 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
     testing::cleanup::file_t flatnode_cleaner{
         options.flat_node_file.get_value_or("")};
 
+    auto conn = db.connect();
+    auto const num_tables =
+        conn.get_count("pg_tables", "schemaname = 'public'");
+    auto const num_indexes =
+        conn.get_count("pg_indexes", "schemaname = 'public'");
+    auto const num_procs =
+        conn.get_count("pg_proc", "pronamespace = (SELECT oid FROM "
+                                  "pg_namespace WHERE nspname = 'public')");
+
     if (!options.middle_dbschema.empty()) {
-        auto conn = db.connect();
         conn.exec("CREATE SCHEMA IF NOT EXISTS osm;");
     }
 
@@ -322,6 +330,17 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
 
         // other relations are not retrievable
         REQUIRE_FALSE(mid_q->relation_get(999, outbuf));
+    }
+
+    if (!options.middle_dbschema.empty()) {
+        REQUIRE(num_tables ==
+                conn.get_count("pg_tables", "schemaname = 'public'"));
+        REQUIRE(num_indexes ==
+                conn.get_count("pg_indexes", "schemaname = 'public'"));
+        REQUIRE(num_procs ==
+                conn.get_count("pg_proc",
+                               "pronamespace = (SELECT oid FROM "
+                               "pg_namespace WHERE nspname = 'public')"));
     }
 }
 
