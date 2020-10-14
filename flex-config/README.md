@@ -1,16 +1,16 @@
 
-# Flex Backend Configuration
+# Flex Output Configuration
 
-**The Flex Backend is experimental. Everything in here is subject to change.**
+**The flex output is experimental. Everything in here is subject to change.**
 
-See the [Flex Backend Documentation](../docs/flex.md) for all the details.
+See the [Flex Output Documentation](../docs/flex.md) for all the details.
 
 ## Example config files
 
-This directory contains example config files for the flex backend. All config
+This directory contains example config files for the flex output. All config
 files are documented extensively with inline comments.
 
-If you are learning about the flex backend, read the config files in the
+If you are learning about the flex output, read the config files in the
 following order (from easiest to understand to the more complex ones):
 
 1. [simple.lua](simple.lua) -- Introduction to config file format
@@ -23,14 +23,15 @@ After that you can dive into more advanced topics:
   to bring tags from relations to member ways
 * [unitable.lua](unitable.lua) -- Put all OSM data into a single table
 * [places.lua](places.lua) -- Creating JSON/JSONB columns
+* [with-schema.lua](with-schema.lua) -- Use a database schema
 
-The "default" configuration is a full-featured but simple configuration that
+The "generic" configuration is a full-featured but simple configuration that
 is a good starting point for your own real-world configuration:
 
-* [default-config.lua](default-config.lua)
+* [generic.lua](generic.lua)
 
 The following config file tries to be more or less compatible with the old
-osm2pgsql C transforms:
+pgsql (C transform) output:
 
 * [compatible.lua](compatible.lua)
 
