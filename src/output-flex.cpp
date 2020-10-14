@@ -310,6 +310,14 @@ void output_flex_t::write_column(
     db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
     flex_table_column_t const &column)
 {
+    // If there is nothing on the Lua stack, then the Lua function add_row()
+    // was called without a table parameter. In that case this column will
+    // be set to NULL.
+    if (lua_gettop(lua_state()) == 0) {
+        write_null(copy_mgr, column);
+        return;
+    }
+
     lua_getfield(lua_state(), -1, column.name().c_str());
     int const ltype = lua_type(lua_state(), -1);
 
@@ -805,7 +813,10 @@ int output_flex_t::table_add_row()
             "process_node/way/relation() functions"};
     }
 
-    if (lua_gettop(lua_state()) != 2) {
+    // Params are the table object and an optional Lua table with the contents
+    // for the fields.
+    auto const num_params = lua_gettop(lua_state());
+    if (num_params < 1 || num_params > 2) {
         throw std::runtime_error{
             "Need two parameters: The osm2pgsql.table and the row data"};
     }
@@ -813,7 +824,11 @@ int output_flex_t::table_add_row()
     auto &table_connection =
         m_table_connections.at(table_idx_from_param(lua_state()));
     auto const &table = table_connection.table();
-    luaL_checktype(lua_state(), 2, LUA_TTABLE);
+
+    // It there is a second parameter, it must be a Lua table.
+    if (num_params == 2) {
+        luaL_checktype(lua_state(), 2, LUA_TTABLE);
+    }
     lua_remove(lua_state(), 1);
 
     if (m_context_node) {
@@ -997,6 +1012,14 @@ void output_flex_t::add_row(table_connection_t *table_connection,
     if (!table.has_geom_column()) {
         write_row(table_connection, object.type(), id, "", 0);
         return;
+    }
+
+    // From here we are handling the case where the table has a geometry
+    // column. In this case the second parameter to the Lua function add_row()
+    // must be present.
+    if (lua_gettop(lua_state()) == 0) {
+        throw std::runtime_error{
+            "Need two parameters: The osm2pgsql.table and the row data"};
     }
 
     auto const geom_transform = get_transform(lua_state(), table.geom_column());
