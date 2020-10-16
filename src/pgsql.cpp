@@ -51,7 +51,7 @@ void pg_conn_t::set_config(char const *setting, char const *value) const
     // implemented.
     auto const sql =
         "UPDATE pg_settings SET setting = '{}' WHERE name = '{}'"_format(
-            setting, value);
+            value, setting);
     query(PGRES_TUPLES_OK, sql);
 }
 
