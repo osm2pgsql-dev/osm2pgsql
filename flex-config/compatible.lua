@@ -1,7 +1,7 @@
 
--- This configuration for the flex backend tries to be compatible with the
--- original pgsql c-transform backend. There might be some corner cases but
--- it should mostly do exactly the same.
+-- This configuration for the flex output tries to be compatible with the
+-- original pgsql C transform output. There might be some corner cases but
+-- it should do exactly the same in almost all cases.
 
 -- The output projection used (3857, web mercator is the default). Set this
 -- to 'latlong' if you were using the -l|--latlong option or to the EPSG

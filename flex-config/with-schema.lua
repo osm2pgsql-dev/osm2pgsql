@@ -3,7 +3,6 @@
 -- a PostgreSQL schema.
 
 local dtable = osm2pgsql.define_way_table('data', {
-        { column = 'attrs', type = 'hstore' },
         { column = 'tags',  type = 'hstore' },
         { column = 'geom',  type = 'geometry' },
     }, { schema = 'myschema' })
