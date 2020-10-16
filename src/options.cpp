@@ -58,10 +58,12 @@ const struct option long_options[] = {
     {"keep-coastlines", no_argument, nullptr, 'K'},
     {"latlong", no_argument, nullptr, 'l'},
     {"merc", no_argument, nullptr, 'm'},
+    {"middle-schema", required_argument, nullptr, 215},
     {"middle-way-node-index-id-shift", required_argument, nullptr, 300},
     {"multi-geometry", no_argument, nullptr, 'G'},
     {"number-processes", required_argument, nullptr, 205},
     {"output", required_argument, nullptr, 'O'},
+    {"output-pgsql-schema", required_argument, nullptr, 216},
     {"password", no_argument, nullptr, 'W'},
     {"port", required_argument, nullptr, 'P'},
     {"prefix", required_argument, nullptr, 'p'},
@@ -123,6 +125,7 @@ void long_usage(char const *arg0, bool verbose)
                         information in slim mode instead of in PostgreSQL.\n\
                         This file is a single > 40Gb large file. Only recommended\n\
                         for full planet imports. Default is disabled.\n\
+          --middle-schema   Schema to use for middle tables (default: none)\n\
     \n\
     Database options:\n\
        -d|--database    The name of the PostgreSQL database to connect to or\n\
@@ -211,7 +214,8 @@ void long_usage(char const *arg0, bool verbose)
                         multi - Multiple Custom Table Output to a PostGIS \n\
                                 database (deprecated)\n\
                         gazetteer - Output to a PostGIS database for Nominatim\n\
-                        null - No output. Useful for testing. Still creates tables if --slim is specified.\n");
+                        null - No output. Useful for testing. Still creates tables if --slim is specified.\n\
+          --output-pgsql-schema Schema to use for pgsql/multi output tables (default: none)\n");
 #ifdef HAVE_LUA
         printf("\
           --tag-transform-script  Specify a lua script to handle tag filtering and normalisation\n\
@@ -571,6 +575,12 @@ options_t::options_t(int argc, char *argv[]) : options_t()
 #endif
             fprintf(stderr, "\n");
             exit(EXIT_SUCCESS);
+            break;
+        case 215:
+            middle_dbschema = optarg;
+            break;
+        case 216:
+            output_dbschema = optarg;
             break;
         case 300:
             way_node_index_id_shift = atoi(optarg);

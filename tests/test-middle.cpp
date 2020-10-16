@@ -112,6 +112,16 @@ struct options_slim_default
     }
 };
 
+struct options_slim_with_schema
+{
+    static options_t options(pg::tempdb_t const &tmpdb)
+    {
+        options_t o = testing::opt_t().slim(tmpdb);
+        o.middle_dbschema = "osm";
+        return o;
+    }
+};
+
 struct options_slim_dense_cache
 {
     static options_t options(pg::tempdb_t const &tmpdb)
@@ -170,12 +180,25 @@ TEST_CASE("elem_cache_t")
 }
 
 TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
-                   options_slim_dense_cache, options_ram_optimized,
-                   options_ram_flatnode)
+                   options_slim_with_schema, options_slim_dense_cache,
+                   options_ram_optimized, options_ram_flatnode)
 {
     options_t const options = TestType::options(db);
     testing::cleanup::file_t flatnode_cleaner{
         options.flat_node_file.get_value_or("")};
+
+    auto conn = db.connect();
+    auto const num_tables =
+        conn.get_count("pg_tables", "schemaname = 'public'");
+    auto const num_indexes =
+        conn.get_count("pg_indexes", "schemaname = 'public'");
+    auto const num_procs =
+        conn.get_count("pg_proc", "pronamespace = (SELECT oid FROM "
+                                  "pg_namespace WHERE nspname = 'public')");
+
+    if (!options.middle_dbschema.empty()) {
+        conn.exec("CREATE SCHEMA IF NOT EXISTS osm;");
+    }
 
     auto mid = options.slim
                    ? std::shared_ptr<middle_t>(new middle_pgsql_t{&options})
@@ -307,6 +330,17 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
 
         // other relations are not retrievable
         REQUIRE_FALSE(mid_q->relation_get(999, outbuf));
+    }
+
+    if (!options.middle_dbschema.empty()) {
+        REQUIRE(num_tables ==
+                conn.get_count("pg_tables", "schemaname = 'public'"));
+        REQUIRE(num_indexes ==
+                conn.get_count("pg_indexes", "schemaname = 'public'"));
+        REQUIRE(num_procs ==
+                conn.get_count("pg_proc",
+                               "pronamespace = (SELECT oid FROM "
+                               "pg_namespace WHERE nspname = 'public')"));
     }
 }
 

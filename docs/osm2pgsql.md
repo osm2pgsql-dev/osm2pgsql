@@ -233,6 +233,15 @@ Mandatory arguments to long options are mandatory for short options too.
 :   Set ID shift for way node bucket index in middle. Experts only. See
     documentation for details.
 
+--middle-schema=SCHEMA
+:   Use PostgreSQL schema SCHEMA for all tables, indexes, and functions in
+    the middle (default is no schema, i.e. the `public` schema is used).
+
+--output-pgsql-schema=SCHEMA
+:   Use PostgreSQL schema SCHEMA for all tables, indexes, and functions in
+    the pgsql and multi outputs (default is no schema, i.e. the `public` schema
+    is used).
+
 
 # SUPPORTED PROJECTIONS
 

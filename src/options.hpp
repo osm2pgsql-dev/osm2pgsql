@@ -70,6 +70,12 @@ public:
     /// Pg Tablespace to store slim tables (no default TABLESPACE)
     std::string tblsslim_data{};
 
+    /// Pg schema to store middle tables in, default none
+    std::string middle_dbschema{};
+
+    /// Pg schema to store output tables in, default none
+    std::string output_dbschema{};
+
     std::string style{DEFAULT_STYLE}; ///< style file to use
     uint32_t expire_tiles_zoom = 0;   ///< Zoom level for tile expiry list
 
