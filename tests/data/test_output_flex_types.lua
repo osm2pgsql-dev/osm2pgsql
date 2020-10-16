@@ -15,7 +15,7 @@ function osm2pgsql.process_node(object)
     local test_type = object.tags.type
 
     if test_type == 'nil' then
-        test_table:add_row{}
+        test_table:add_row()
         return
     end
     if test_type == 'boolean' then
