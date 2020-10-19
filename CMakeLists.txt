@@ -21,14 +21,6 @@ option(BUILD_COVERAGE "Build with coverage" OFF)
 option(WITH_LUA       "Build with Lua support" ON)
 option(WITH_LUAJIT    "Build with LuaJIT support" OFF)
 
-if (NOT WIN32 AND NOT APPLE)
-    # No need for this path, just a workaround to make cmake check pass on all systems
-    set(PostgreSQL_TYPE_INCLUDE_DIR /usr/include)
-endif()
-
-# Just in case user installed RPMs from http://yum.postgresql.org/
-list(APPEND CMAKE_PREFIX_PATH /usr/pgsql-9.3 /usr/pgsql-9.4 /usr/pgsql-9.5 /usr/pgsql-9.6)
-
 if (PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
     message(FATAL_ERROR "In-source builds are not allowed, please use a separate build directory like `mkdir build && cd build && cmake ..`")
 endif()
@@ -62,6 +54,8 @@ option(EXTERNAL_FMT       "Do not use the bundled fmt"       OFF)
 
 set(MINIMUM_POSTGRESQL_SERVER_VERSION "9.3")
 set(MINIMUM_POSTGRESQL_SERVER_VERSION_NUM "90300")
+
+set(PostgreSQL_ADDITIONAL_VERSIONS "9.3" "9.4" "9.5" "9.6" "10" "11" "12" "13")
 
 #############################################################
 # Version
