@@ -19,6 +19,7 @@
 from collections import namedtuple
 import logging
 from os import path as op
+import os
 import subprocess
 import sys
 import psycopg2
@@ -102,6 +103,11 @@ class BaseRunner(object):
 
     @classmethod
     def setUpClass(cls):
+        try:
+            # In case one is left over from a previous test
+            os.remove('flat.nodes')
+        except (FileNotFoundError):
+            pass
         if cls.use_lua_tagtransform and not CONFIG['have_lua']:
             cls.skipTest(None, "No Lua configured.")
         if 'tablespacetest' in cls.extra_params and not CONFIG['have_lua']:
@@ -131,6 +137,10 @@ class BaseRunner(object):
         if cls.schema:
             with psycopg2.connect("dbname='{}'".format(CONFIG['test_database'])) as conn:
                 conn.cursor().execute("DROP SCHEMA IF EXISTS {} CASCADE".format(cls.schema))
+        try:
+            os.remove('flat.nodes')
+        except (FileNotFoundError):
+            pass
 
     @classmethod
     def get_def_params(cls):
