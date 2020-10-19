@@ -16,7 +16,6 @@
     to call osm2pgsql and then inherits from all test groups it wants executed.
 """
 
-from collections import namedtuple
 import logging
 from os import path as op
 import os
