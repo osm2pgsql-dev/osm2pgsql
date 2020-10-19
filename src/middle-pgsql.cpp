@@ -578,14 +578,12 @@ void middle_pgsql_t::start()
         // (Re)create tables.
         m_db_connection.exec("SET client_min_messages = WARNING");
         for (auto const &table : m_tables) {
-            if (!table.m_create.empty()) {
-                fmt::print(stderr, "Setting up table: {}\n", table.name());
-                auto const qual_name = qualified_name(
-                    table.m_copy_target->schema, table.m_copy_target->name);
-                m_db_connection.exec(
-                    "DROP TABLE IF EXISTS {} CASCADE"_format(qual_name));
-                m_db_connection.exec(table.m_create);
-            }
+            fmt::print(stderr, "Setting up table: {}\n", table.name());
+            auto const qual_name = qualified_name(
+                table.m_copy_target->schema, table.m_copy_target->name);
+            m_db_connection.exec(
+                "DROP TABLE IF EXISTS {} CASCADE"_format(qual_name));
+            m_db_connection.exec(table.m_create);
         }
 
         // The extra query connection is only needed in append mode, so close.
