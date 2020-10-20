@@ -1,7 +1,7 @@
 
 local test_table = osm2pgsql.define_table{
     name = 'osm2pgsql_test_data',
-    ids = { type = 'any', type_column = 'osm_type', id_column = 'osm_id' },
+    ids = { type = 'any', type_column = 'x_type', id_column = 'x_id' },
     columns = {
         { column = 'tags', type = 'hstore' },
         { column = 'geom', type = 'geometry' },
