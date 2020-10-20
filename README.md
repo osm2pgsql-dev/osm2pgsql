@@ -1,5 +1,7 @@
 # osm2pgsql #
 
+https://osm2pgsql.org
+
 osm2pgsql is a tool for loading OpenStreetMap data into a PostgreSQL / PostGIS
 database suitable for applications like rendering into a map, geocoding with
 Nominatim, or general analysis.
@@ -49,7 +51,7 @@ Required libraries are
 * [Boost libraries](https://www.boost.org/), including system and filesystem
 * [PostgreSQL](https://www.postgresql.org/) client libraries
 * [Lua](https://www.lua.org/) (Optional, used for [Lua tag transforms](docs/lua.md)
-  and the [flex backend](docs/flex.md))
+  and the flex output)
 * [Python](https://python.org/) (only for running tests)
 * [Psycopg](http://initd.org/psycopg/) (only for running tests)
 
@@ -128,6 +130,9 @@ cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON
 
 ## Usage ##
 
+This is only a short introduction. There is extensive documentation available
+on [osm2pgsq.org](https://osm2pgsql.org/doc/).
+
 Osm2pgsql has one program, the executable itself, which has a lot of command
 line options.
 
@@ -159,7 +164,7 @@ osm2pgsql -c -d gis --slim -C <cache size> \
 ```
 where
 * `<cache size>` is about 75% of memory in MiB, to a maximum of about 30000. Additional RAM will not be used.
-* `<flat nodes>` is a location where a 36GiB+ file can be saved.
+* `<flat nodes>` is a location where a 50GiB+ file can be saved.
 
 Many different data files (e.g., .pbf) can be found at [planet.osm.org](https://planet.osm.org/).
 
@@ -172,18 +177,15 @@ among others. It can also be used for [spatial analysis](docs/analysis.md) or
 
 [Additional documentation is available on writing command lines](docs/usage.md).
 
-## Alternate backends ##
+## Alternate outputs (backends) ##
 
-In addition to the standard [pgsql](docs/pgsql.md) backend designed for
-rendering there is also the [gazetteer](docs/gazetteer.md) database for
-geocoding, principally with [Nominatim](https://www.nominatim.org/), and the
-null backend for testing.
+In addition to the standard [pgsql](docs/pgsql.md) output designed for
+rendering there is also the gazetteer output for geocoding, principally with
+[Nominatim](https://www.nominatim.org/), and the null output for testing.
 
-Also available is the new [flex](docs/flex.md) backend. It is much more
-flexible than the other backends. IT IS CURRENTLY EXPERIMENTAL AND SUBJECT
-TO CHANGE. The flex backend is only available if you have compiled osm2pgsql
-with Lua support. More details at
-https://github.com/openstreetmap/osm2pgsql/issues/1036 .
+Also available is the new flex output. It is much more flexible than the other
+outputs. IT IS CURRENTLY EXPERIMENTAL AND SUBJECT TO CHANGE. The flex output is
+only available if you have compiled osm2pgsql with Lua support.
 
 ## LuaJIT support ##
 
