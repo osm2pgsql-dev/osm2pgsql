@@ -229,7 +229,7 @@ Mandatory arguments to long options are mandatory for short options too.
 -v, \--verbose
 :   Verbose output.
 
---middle-way-node-index-id-shift shift
+--middle-way-node-index-id-shift=SHIFT
 :   Set ID shift for way node bucket index in middle. Experts only. See
     documentation for details.
 
