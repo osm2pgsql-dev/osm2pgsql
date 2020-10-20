@@ -12,6 +12,9 @@ jobs:
 
       - name: Install prerequisits
         run: |
+          brew info postgresql
+          brew upgrade postgresql
+          brew info postgresql
           brew install lua boost postgis pandoc
           pip3 install psycopg2
         shell: bash
