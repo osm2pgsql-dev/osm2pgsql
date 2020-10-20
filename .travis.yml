@@ -144,7 +144,7 @@ before_script:
 script:
   - mkdir build && cd build
   - if [ -z "${LUA_VERSION}" ]; then LUA_OPTIONS="-DWITH_LUA=OFF"; else LUA_OPTIONS="-DWITH_LUA=ON -DWITH_LUAJIT=${LUAJIT_OPTION}"; fi
-  - cmake .. -LA -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_CXX_STANDARD=${CPPVERSION} ${LUA_OPTIONS}
+  - cmake .. -LA -DPostgreSQL_TYPE_INCLUDE_DIR=/usr/include -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_CXX_STANDARD=${CPPVERSION} ${LUA_OPTIONS}
   - make -j2 all man
   - echo "Running tests ... "
   - if [[ $TEST_NODB ]]; then
