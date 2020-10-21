@@ -655,7 +655,7 @@ void output_flex_t::setup_id_columns(flex_table_t *table)
         table->set_id_type(osmium::item_type::area);
     } else if (type == "any") {
         std::string type_column_name{"osm_type"};
-        lua_getfield(lua_state(), -1, "type_column");
+        lua_getfield(lua_state(), -2, "type_column");
         if (lua_isstring(lua_state(), -1)) {
             type_column_name = lua_tolstring(lua_state(), -1, nullptr);
             check_name(type_column_name, "column");
