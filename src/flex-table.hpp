@@ -139,7 +139,20 @@ public:
     osmid_t map_id(osmium::item_type type, osmid_t id) const noexcept
     {
         if (m_id_type == osmium::item_type::undefined) {
-            return id;
+            if (has_multicolumn_id_index()) {
+                return id;
+            }
+
+            switch (type) {
+            case osmium::item_type::node:
+                return id;
+            case osmium::item_type::way:
+                return -id;
+            case osmium::item_type::relation:
+                return -id - 100000000000000000LL;
+            default:
+                assert(false);
+            }
         }
 
         if (m_id_type != osmium::item_type::relation &&
