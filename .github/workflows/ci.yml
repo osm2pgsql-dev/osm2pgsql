@@ -1,24 +1,27 @@
-name: OSX CI
+name: CI
 
 on: [ push, pull_request ]
 
 jobs:
-  build:
+  macos:
+
+    env:
+      LUA_VERSION: 5.2
 
     runs-on: macos-latest
 
     steps:
       - uses: actions/checkout@v2
 
-      - name: Install prerequisits
+      - name: Install prerequisites
         run: |
           brew install lua boost postgis pandoc
           pip3 install psycopg2
+          pg_ctl -D /usr/local/var/postgres start
         shell: bash
 
       - name: Setup database
         run: |
-          pg_ctl -D /usr/local/var/postgres start
           psql -d postgres -c 'CREATE EXTENSION postgis'
           psql -d postgres -c 'CREATE EXTENSION hstore'
           psql -d postgres -c 'SELECT PostGIS_Full_Version()'
@@ -26,17 +29,167 @@ jobs:
           psql -d postgres -c "CREATE TABLESPACE tablespacetest LOCATION '$GITHUB_WORKSPACE/tablespacetest'"
         shell: bash
 
-      - name: configure
-        run: mkdir build && cd build && cmake -LA -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_STANDARD=11 -DWITH_LUA=ON ..
-        shell: bash
-
-      - name: build
-        run: cd build && make -j2 all man
-        shell: bash
-
-      - name: test
-        run: cd build && ctest --output-on-failure
-        shell: bash
+      - uses: ./.github/actions/build-and-test
+        with:
+          test-wrapper:
         env:
           PGHOST: /tmp
+
+
+  ubuntu-pg93-gcc5:
+    runs-on: ubuntu-16.04
+
+    env:
+      CC: gcc-5
+      CXX: g++-5
+      LUA_VERSION: 5.1
+      LUAJIT_OPTION: OFF
+      POSTGRESQL_VERSION: 9.3
+      POSTGIS_VERSION: 2.2
+      BUILD_TYPE: Release
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/build-and-test
+
+  ubuntu-pg94-clang6:
+    runs-on: ubuntu-16.04
+
+    env:
+      CC: clang-6.0
+      CXX: clang++-6.0
+      LUA_VERSION: 5.2
+      LUAJIT_OPTION: OFF
+      POSTGRESQL_VERSION: 9.4
+      POSTGIS_VERSION: 2.3
+      BUILD_TYPE: Release
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/build-and-test
+
+  ubuntu-pg95-gcc7-jit:
+    runs-on: ubuntu-18.04
+
+    env:
+      CC: gcc-7
+      CXX: g++-7
+      LUA_VERSION: 5.3
+      LUAJIT_OPTION: ON
+      POSTGRESQL_VERSION: 9.5
+      POSTGIS_VERSION: 2.4
+      BUILD_TYPE: Release
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/build-and-test
+
+  ubuntu-pg96-clang8-jit:
+    runs-on: ubuntu-18.04
+
+    env:
+      CC: clang-8
+      CXX: clang++-8
+      LUA_VERSION: 5.3
+      LUAJIT_OPTION: ON
+      POSTGRESQL_VERSION: 9.6
+      POSTGIS_VERSION: 2.4
+      BUILD_TYPE: Release
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/build-and-test
+
+  ubuntu-pg10-gcc9:
+    runs-on: ubuntu-18.04
+
+    env:
+      CC: gcc-9
+      CXX: g++-9
+      LUA_VERSION: 5.3
+      LUAJIT_OPTION: OFF
+      POSTGRESQL_VERSION: 10
+      POSTGIS_VERSION: 3
+      CPPVERSION: 11
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/build-and-test
+
+
+  ubuntu-pg11-clang9:
+    runs-on: ubuntu-18.04
+
+    env:
+      CC: clang-9
+      CXX: clang++-9
+      LUA_VERSION: 5.3
+      LUAJIT_OPTION: OFF
+      POSTGRESQL_VERSION: 11
+      POSTGIS_VERSION: 2.5
+      CPPVERSION: 11
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/build-and-test
+
+  ubuntu-pg12-gcc10-jit:
+    runs-on: ubuntu-20.04
+
+    env:
+      CC: gcc-10
+      CXX: g++-10
+      LUA_VERSION: 5.3
+      LUAJIT_OPTION: ON
+      POSTGRESQL_VERSION: 12
+      POSTGIS_VERSION: 2.5
+      CPPVERSION: 14
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/build-and-test
+
+
+  ubuntu-pg13-clang10-jit:
+    runs-on: ubuntu-20.04
+    continue-on-error: true
+
+    env:
+      CC: clang-10
+      CXX: clang++-10
+      LUA_VERSION: 5.3
+      LUAJIT_OPTION: ON
+      POSTGRESQL_VERSION: 13
+      POSTGIS_VERSION: 3
+      CPPVERSION: 14
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/build-and-test
+
+  ubuntu-pg12-gcc10-release:
+    runs-on: ubuntu-20.04
+
+    env:
+      CC: gcc-10
+      CXX: g++-10
+      LUA_VERSION: 5.3
+      LUAJIT_OPTION: ON
+      POSTGRESQL_VERSION: 13
+      POSTGIS_VERSION: 2.5
+      CPPVERSION: 14
+      BUILD_TYPE: Release
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/build-and-test
 
