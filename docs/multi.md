@@ -73,6 +73,3 @@ An example based on the above is in [multi.lua](../multi.lua) and
 stops, one for buildings, and one for highways. Some Lua processing is done to
 unify tagging values.
 
-## Importing ##
-
-See: [Importing](pgsql.md#importing).
