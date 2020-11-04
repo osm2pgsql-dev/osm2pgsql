@@ -50,7 +50,7 @@ Required libraries are
 * [zlib](https://www.zlib.net/)
 * [Boost libraries](https://www.boost.org/), including system and filesystem
 * [PostgreSQL](https://www.postgresql.org/) client libraries
-* [Lua](https://www.lua.org/) (Optional, used for [Lua tag transforms](docs/lua.md)
+* [Lua](https://www.lua.org/) (Optional, used for Lua tag transforms
   and the flex output)
 * [Python](https://python.org/) (only for running tests)
 * [Psycopg](http://initd.org/psycopg/) (only for running tests)
@@ -172,15 +172,12 @@ The databases from either of these commands can be used immediately by
 [Mapnik](https://mapnik.org/) for rendering maps with standard tools like
 [renderd/mod_tile](https://github.com/openstreetmap/mod_tile),
 [TileMill](https://tilemill-project.github.io/tilemill/), [Nik4](https://github.com/Zverik/Nik4),
-among others. It can also be used for [spatial analysis](docs/analysis.md) or
-[shapefile exports](docs/export.md).
-
-[Additional documentation is available on writing command lines](docs/usage.md).
+among others.
 
 ## Alternate outputs (backends) ##
 
-In addition to the standard [pgsql](docs/pgsql.md) output designed for
-rendering there is also the gazetteer output for geocoding, principally with
+In addition to the standard pgsql output designed for rendering there is also
+the gazetteer output for geocoding, principally with
 [Nominatim](https://www.nominatim.org/), and the null output for testing.
 
 Also available is the new flex output. It is much more flexible than the other
