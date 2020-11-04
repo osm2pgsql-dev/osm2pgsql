@@ -46,20 +46,20 @@ Mandatory arguments to long options are mandatory for short options too.
     manual for details.
 
 -i, \--tablespace-index=TABLESPACENAME
-:   Store all indices in a separate PostgreSQL tablespace named by this parameter.
-    This allows one to e.g. store the indices on faster storage like SSDs.
+:   Store all indexes in a separate PostgreSQL tablespace named by this parameter.
+    This allows one to e.g. store the indexes on faster storage like SSDs.
 
 \--tablespace-main-data=TABLESPACENAME
 :   Store the data tables (non slim) in the given tablespace.
 
 \--tablespace-main-index=TABLESPACENAME
-:   Store the indices of the main tables (non slim) in the given tablespace.
+:   Store the indexes of the main tables (non slim) in the given tablespace.
 
 \--tablespace-slim-data=TABLESPACENAME
 :   Store the slim mode tables in the given tablespace.
 
 \--tablespace-slim-index=TABLESPACENAME
-:   Store the indices of the slim mode tables in the given tablespace.
+:   Store the indexes of the slim mode tables in the given tablespace.
 
 \--latlong
 :   Store data in degrees of latitude & longitude.
@@ -91,7 +91,7 @@ Mandatory arguments to long options are mandatory for short options too.
     greatly reduce the size of the database, as the slim mode tables typically are the same
     size, if not slightly bigger than the main tables. It does not, however, reduce the
     maximum spike of disk usage during import. It can furthermore increase the import speed,
-    as no indices need to be created for the slim mode tables, which (depending on hardware)
+    as no indexes need to be created for the slim mode tables, which (depending on hardware)
     can nearly halve import time. Slim mode tables however have to be persistent if you want
     to be able to update your database, as these tables are needed for diff processing.
 
@@ -168,22 +168,22 @@ Mandatory arguments to long options are mandatory for short options too.
     Note: this option also requires additional entries in your style file.
 
 -k, \--hstore
-:   Add tags without column to an additional hstore (key/value) column to PostgreSQL tables.
+:   Add tags without column to an additional hstore (key/value) column to database tables.
 
 -j, \--hstore-all
-:   Add all tags to an additional hstore (key/value) column in PostgreSQL tables.
+:   Add all tags to an additional hstore (key/value) column in database tables.
 
 -z, \--hstore-column=KEY_PREFIX
 :   Add an additional hstore (key/value) column containing all tags
     that start with the specified string, eg \--hstore-column "name:" will
-    produce an extra hstore column that contains all `name:xx` tags
+    produce an extra hstore column that contains all `name:xx` tags.
 
 \--hstore-match-only
-:   Only keep objects that have a value in one of the columns
-   (normal action with \--hstore is to keep all objects).
+:   Only keep objects that have a value in at least one of the non-hstore
+    columns.
 
 \--hstore-add-index
-:   Create indices for the hstore columns during import.
+:   Create indexes for all hstore columns after import.
 
 -G, \--multi-geometry
 :   Normally osm2pgsql splits multi-part geometries into separate database rows per part.
