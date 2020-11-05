@@ -1,0 +1,29 @@
+name: 'Install Prerequisites on Ubuntu'
+
+runs:
+  using: "composite"
+
+  steps:
+    - name: Remove preinstalled postgresql
+      run: |
+        sudo apt-get remove -yq postgresql*
+      shell: bash
+
+    - name: Install software
+      run: sudo apt install -yq --no-install-suggests --no-install-recommends postgresql-${POSTGRESQL_VERSION}-postgis-${POSTGIS_VERSION} postgresql-${POSTGRESQL_VERSION}-postgis-${POSTGIS_VERSION}-scripts postgresql-client postgresql-contrib-${POSTGRESQL_VERSION} postgresql-${POSTGRESQL_VERSION} libpq-dev libboost-system-dev libboost-filesystem-dev libexpat1-dev zlib1g-dev libbz2-dev libproj-dev pandoc python3-psycopg2 libluajit-5.1-dev
+      shell: bash
+
+    - name: Install lua
+      run: |
+        if [ -n "${LUA_VERSION}" ]; then
+          sudo apt install -yq --no-install-suggests --no-install-recommends liblua${LUA_VERSION}-dev lua${LUA_VERSION}
+        fi
+      shell: bash
+
+    - name: Adapt postgresql configuration
+      run: |
+        echo 'fsync = off' | sudo tee /etc/postgresql/${POSTGRESQL_VERSION}/main/conf.d/local.conf
+        echo 'synchronous_commit = off' | sudo tee -a /etc/postgresql/${POSTGRESQL_VERSION}/main/conf.d/local.conf
+        echo 'full_page_writes = off' | sudo tee -a /etc/postgresql/${POSTGRESQL_VERSION}/main/conf.d/local.conf
+        echo 'shared_buffers = 1GB' | sudo tee -a /etc/postgresql/${POSTGRESQL_VERSION}/main/conf.d/local.conf
+      shell: bash
