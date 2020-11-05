@@ -102,7 +102,7 @@ void middle_pgsql_t::table_desc::stop(std::string const &conninfo,
     if (droptemp) {
         auto const qual_name = qualified_name(
             m_copy_target->schema, m_copy_target->name);
-        sql_conn.exec("DROP TABLE {}"_format(qual_name));
+        sql_conn.exec("DROP TABLE IF EXISTS {}"_format(qual_name));
     } else if (build_indexes && !m_array_indexes.empty()) {
         fmt::print(stderr, "Building index on table: {}\n", name());
         sql_conn.exec(m_array_indexes);
