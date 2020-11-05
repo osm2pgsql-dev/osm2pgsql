@@ -44,8 +44,6 @@ public:
     void stop(thread_pool_t *) noexcept override {}
     void sync() override;
 
-    bool need_forward_dependencies() const noexcept override { return false; }
-
     void pending_way(osmid_t) noexcept override {}
     void pending_relation(osmid_t) noexcept override {}
 

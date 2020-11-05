@@ -95,6 +95,7 @@ private:
     bool m_droptemp;
     bool m_parallel_indexing;
     bool m_with_extra_attrs;
+    bool m_with_forward_dependencies;
 
 };
 

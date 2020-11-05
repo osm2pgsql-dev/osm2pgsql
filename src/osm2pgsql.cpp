@@ -66,15 +66,10 @@ int main(int argc, char *argv[])
         auto const outputs =
             output_t::create_outputs(middle->get_query_instance(), options);
 
-        bool const need_dependencies =
-            std::any_of(outputs.cbegin(), outputs.cend(),
-                        [](std::shared_ptr<output_t> const &output) {
-                            return output->need_forward_dependencies();
-                        });
-
         auto dependency_manager = std::unique_ptr<dependency_manager_t>(
-            need_dependencies ? new full_dependency_manager_t{middle}
-                              : new dependency_manager_t{});
+            options.with_forward_dependencies
+                ? new full_dependency_manager_t{middle}
+                : new dependency_manager_t{});
 
         osmdata_t osmdata{std::move(dependency_manager), middle, outputs,
                           options};

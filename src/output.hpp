@@ -45,8 +45,6 @@ public:
 
     virtual void reprocess_marked() {}
 
-    virtual bool need_forward_dependencies() const noexcept { return true; }
-
     virtual void pending_way(osmid_t id) = 0;
     virtual void pending_relation(osmid_t id) = 0;
     virtual void pending_relation_stage1c(osmid_t) {}

@@ -80,6 +80,7 @@ const struct option long_options[] = {
     {"username", required_argument, nullptr, 'U'},
     {"verbose", no_argument, nullptr, 'v'},
     {"version", no_argument, nullptr, 'V'},
+    {"with-forward-dependencies", required_argument, nullptr, 217},
     {nullptr, 0, nullptr, 0}};
 
 void short_usage(char *arg0)
@@ -126,6 +127,8 @@ void long_usage(char const *arg0, bool verbose)
                         This file is a single > 40Gb large file. Only recommended\n\
                         for full planet imports. Default is disabled.\n\
           --middle-schema   Schema to use for middle tables (default: none)\n\
+          --with-forward-dependencies true|false Propagate changes from nodes to ways\n\
+                             and node/way members to relations (Default: true).\n\
     \n\
     Database options:\n\
        -d|--database    The name of the PostgreSQL database to connect to or\n\
@@ -187,8 +190,8 @@ void long_usage(char const *arg0, bool verbose)
         printf("%s", "\
     \n\
     Middle options (experts only):\n\
-          --middle-way-node-index-id-shift shift  Set ID shift for bucket\
-                             index. See documentation for details.\
+          --middle-way-node-index-id-shift shift  Set ID shift for bucket\n\
+                             index. See documentation for details.\n\
     \n\
     Expiry options:\n\
        -e|--expire-tiles [min_zoom-]max_zoom    Create a tile expiry list.\n\
@@ -581,6 +584,17 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             break;
         case 216:
             output_dbschema = optarg;
+            break;
+        case 217:
+            if (std::strcmp(optarg, "false") == 0) {
+                with_forward_dependencies = false;
+            } else if (std::strcmp(optarg, "true") == 0) {
+                with_forward_dependencies = true;
+            } else {
+                throw std::runtime_error{
+                    "Unknown value for --with-forward-dependencies option: {}\n"_format(
+                        optarg)};
+            }
             break;
         case 300:
             way_node_index_id_shift = atoi(optarg);

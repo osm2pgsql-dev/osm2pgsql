@@ -105,6 +105,12 @@ public:
     int num_procs;
     bool droptemp = false; ///< drop slim mode temp tables after act
 
+    /**
+     * Should changes of objects be propagated forwards (from nodes to ways and
+     * from node/way members to parent relations)?
+     */
+    bool with_forward_dependencies = true;
+
     /// only copy rows that match an explicitly listed key
     bool hstore_match_only = false;
 

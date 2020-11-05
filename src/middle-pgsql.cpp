@@ -72,13 +72,7 @@ middle_pgsql_t::table_desc::table_desc(options_t const &options,
     m_copy_target->schema = options.middle_dbschema;
     m_copy_target->id = "id"; // XXX hardcoded column name
 
-    // Gazetteer doesn't use mark-pending processing and consequently
-    // needs no way-node index.
-    // TODO Currently, set here to keep the impact on the code small.
-    // We actually should have the output plugins report their needs
-    // and pass that via the constructor to middle_t, so that middle_t
-    // itself doesn't need to know about details of the output.
-    if (options.output_backend != "gazetteer") {
+    if (options.with_forward_dependencies) {
         m_prepare_intarray = build_sql(options, ts.prepare_mark);
         m_array_indexes = build_sql(options, ts.create_index);
     }
