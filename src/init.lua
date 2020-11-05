@@ -13,6 +13,17 @@ local _define_table_impl = function(_type, _name, _columns, _options)
     return osm2pgsql.define_table(_options)
 end
 
+function osm2pgsql.has_prefix(str, prefix)
+    return str:sub(1, prefix:len()) == prefix
+end
+
+function osm2pgsql.has_suffix(str, suffix)
+    if suffix == '' then
+        return true
+    end
+    return str:sub(- suffix:len()) == suffix
+end
+
 function osm2pgsql.define_node_table(_name, _columns, _options)
     return _define_table_impl('node', _name, _columns, _options)
 end
@@ -62,10 +73,13 @@ end
 function osm2pgsql.make_clean_tags_func(keys)
     local keys_to_delete = {}
     local prefixes_to_delete = {}
+    local suffixes_to_delete = {}
 
     for _, k in ipairs(keys) do
         if k:sub(-1) == '*' then
             prefixes_to_delete[#prefixes_to_delete + 1] = k:sub(1, -2)
+        elseif k:sub(1, 1) == '*' then
+            suffixes_to_delete[#suffixes_to_delete + 1] = k:sub(2)
         else
             keys_to_delete[#keys_to_delete + 1] = k
         end
@@ -82,7 +96,16 @@ function osm2pgsql.make_clean_tags_func(keys)
 
         for tag, _ in pairs(tags) do
             for _, k in ipairs(prefixes_to_delete) do
-                if tag:sub(1, k:len()) == k then
+                if osm2pgsql.has_prefix(tag, k) then
+                    tags[tag] = nil
+                    break
+                end
+            end
+        end
+
+        for tag, _ in pairs(tags) do
+            for _, k in ipairs(suffixes_to_delete) do
+                if osm2pgsql.has_suffix(tag, k) then
                     tags[tag] = nil
                     break
                 end
