@@ -98,6 +98,97 @@ do
     assert(num == 3)
 end
 
+-- trim
+assert(osm2pgsql.trim('') == '')
+assert(osm2pgsql.trim(' ') == '')
+assert(osm2pgsql.trim('  ') == '')
+assert(osm2pgsql.trim('a') == 'a')
+assert(osm2pgsql.trim(' a') == 'a')
+assert(osm2pgsql.trim('a ') == 'a')
+assert(osm2pgsql.trim(' a ') == 'a')
+assert(osm2pgsql.trim('  a  ') == 'a')
+assert(osm2pgsql.trim('  ab cd  ') == 'ab cd')
+assert(osm2pgsql.trim(' \t\r\n\f\va\000b \r\t\n\f\v') == 'a\000b')
+
+-- split_unit
+
+v, u = o.split_unit('20m', '')
+assert(v == 20 and u == 'm')
+
+v, u = o.split_unit('20 m')
+assert(v == 20 and u == 'm')
+
+v, u = o.split_unit('20ft', '')
+assert(v == 20 and u == 'ft')
+
+v, u = o.split_unit('23.4 ft', '')
+assert(v == 23.4 and u == 'ft')
+
+v, u = o.split_unit('20 ft', 'm')
+assert(v == 20 and u == 'ft')
+
+v, u = o.split_unit('20km', 'm')
+assert(v == 20 and u == 'km')
+
+v, u = o.split_unit('20')
+assert(v == 20 and u == nil)
+
+v, u = o.split_unit('20', 'm')
+assert(v == 20 and u == 'm')
+
+v, u = o.split_unit('0', 'm')
+assert(v == 0 and u == 'm')
+
+v, u = o.split_unit('-20000', 'leagues')
+assert(v == -20000 and u == 'leagues')
+
+v, u = o.split_unit('20xx20', '')
+assert(v == nil)
+
+v, u = o.split_unit('20-20', '')
+assert(v == nil)
+
+v, u = o.split_unit('20xx20', 'foo')
+assert(v == nil)
+
+v, u = o.split_unit('abc', 'def')
+assert(v == nil)
+
+v, u = o.split_unit(nil)
+assert(v == nil and u == nil)
+
+v, u = o.split_unit(nil, 'foo')
+assert(v == nil and u == nil)
+
+-- split_string
+
+r = o.split_string('ab c;d;e f;ghi')
+assert(#r == 4)
+assert(r[1] == 'ab c')
+assert(r[2] == 'd')
+assert(r[3] == 'e f')
+assert(r[4] == 'ghi')
+
+r = o.split_string('ab c;d  ;  e f; ghi')
+assert(#r == 4)
+assert(r[1] == 'ab c')
+assert(r[2] == 'd')
+assert(r[3] == 'e f')
+assert(r[4] == 'ghi')
+
+r = o.split_string('ab c ')
+assert(#r == 1)
+assert(r[1] == 'ab c')
+
+r = o.split_string('')
+assert(#r == 0)
+
+r = o.split_string('ab c;d  ,  e f, ghi', ',')
+assert(#r == 3)
+assert(r[1] == 'ab c;d')
+assert(r[2] == 'e f')
+assert(r[3] == 'ghi')
+
 -- ---------------------------------------------------------------------------
 
 print("All tests successful")

@@ -21,7 +21,7 @@ function osm2pgsql.has_suffix(str, suffix)
     if suffix == '' then
         return true
     end
-    return str:sub(- suffix:len()) == suffix
+    return str:sub(- #suffix) == suffix
 end
 
 function osm2pgsql.define_node_table(_name, _columns, _options)
@@ -114,6 +114,40 @@ function osm2pgsql.make_clean_tags_func(keys)
 
         return next(tags) == nil
     end
+end
+
+-- from http://lua-users.org/wiki/StringTrim
+function osm2pgsql.trim(str)
+    local from = str:match("^%s*()")
+    return from > #str and "" or str:match(".*%S", from)
+end
+
+function osm2pgsql.split_unit(str, default_unit)
+    if str == nil then
+        return nil
+    end
+
+    local val, unit = string.match(str, "^(-?[0-9.]+) ?(%a*)$")
+    if val == nil then
+        return nil
+    end
+
+    if unit == '' then
+        unit = default_unit
+    end
+
+    val = tonumber(val)
+
+    return val, unit
+end
+
+function osm2pgsql.split_string(str, separator)
+    local pattern = '([^' .. (separator or ';') .. ']+)'
+    local result = {}
+    for w in string.gmatch(str, pattern) do
+        result[#result + 1] = osm2pgsql.trim(w)
+    end
+    return result
 end
 
 -- This will be the metatable for the OSM objects given to the process callback
