@@ -250,6 +250,7 @@ void table_connection_t::stop(bool updateable, bool append)
         m_db_connection->exec("DROP TABLE {}"_format(table().full_name()));
         m_db_connection->exec("ALTER TABLE {} RENAME TO \"{}\""_format(
             table().full_tmp_name(), table().name()));
+        m_id_index_created = false;
 
         fmt::print(stderr, "Creating geometry index on table '{}'...\n",
                    table().name());
@@ -263,9 +264,7 @@ void table_connection_t::stop(bool updateable, bool append)
     }
 
     if (updateable && table().has_id_column()) {
-        fmt::print(stderr, "Creating id index on table '{}'...\n",
-                   table().name());
-        m_db_connection->exec(table().build_sql_create_id_index());
+        create_id_index();
 
         if (table().has_geom_column() && table().geom_column().srid() != 4326) {
             create_geom_check_trigger(m_db_connection.get(), table().schema(),
@@ -288,6 +287,19 @@ void table_connection_t::prepare()
     assert(m_db_connection);
     if (table().has_id_column() && table().has_geom_column()) {
         m_db_connection->exec(table().build_sql_prepare_get_wkb());
+    }
+}
+
+void table_connection_t::create_id_index()
+{
+    if (m_id_index_created) {
+        fmt::print(stderr, "Id index on table '{}' already created.\n",
+                   table().name());
+    } else {
+        fmt::print(stderr, "Creating id index on table '{}'...\n",
+                   table().name());
+        m_db_connection->exec(table().build_sql_create_id_index());
+        m_id_index_created = true;
     }
 }
 
