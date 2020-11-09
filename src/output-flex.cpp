@@ -1507,8 +1507,6 @@ void output_flex_t::reprocess_marked()
 
         for (auto &table : m_table_connections) {
             if (table.table().matches_type(osmium::item_type::way)) {
-                fmt::print(stderr, "  Creating id index on table '{}'...\n",
-                           table.table().name());
                 table.create_id_index();
             }
         }

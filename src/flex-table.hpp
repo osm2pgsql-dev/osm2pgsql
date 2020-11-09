@@ -229,10 +229,7 @@ public:
 
     void prepare();
 
-    void create_id_index()
-    {
-        m_db_connection->exec(table().build_sql_create_id_index());
-    }
+    void create_id_index();
 
     pg_result_t get_geom_by_id(osmium::item_type type, osmid_t id) const;
 
@@ -264,6 +261,9 @@ private:
 
     /// The connection to the database server.
     std::unique_ptr<pg_conn_t> m_db_connection;
+
+    /// Has the Id index already been created?
+    bool m_id_index_created = false;
 
 }; // class table_connection_t
 
