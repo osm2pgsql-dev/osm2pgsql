@@ -4,7 +4,7 @@
 -- it should do exactly the same in almost all cases.
 
 -- The output projection used (3857, web mercator is the default). Set this
--- to 'latlong' if you were using the -l|--latlong option or to the EPSG
+-- to 4326 if you were using the -l|--latlong option or to the EPSG
 -- code you were using on the -E|-proj option.
 local srid = 3857
 
@@ -347,6 +347,7 @@ function gen_columns(text_columns, with_hstore, area, geometry_type)
     end
 
     add_column('way', geometry_type)
+    columns[#columns].projection = srid
 
     return columns
 end
