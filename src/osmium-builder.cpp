@@ -47,6 +47,26 @@ void add_nodes_to_builder(osmium::builder::WayNodeListBuilder &builder,
 
 namespace geom {
 
+void osmium_builder_t::wrap_in_multipolygon(
+    osmium_builder_t::wkbs_t *geometries)
+{
+    assert(!geometries->empty());
+
+    m_writer.multipolygon_start();
+    for (auto const &p : *geometries) {
+        m_writer.add_sub_geometry(p);
+    }
+    (*geometries)[0] = m_writer.multipolygon_finish(geometries->size());
+    geometries->resize(1);
+}
+
+void osmium_builder_t::wrap_in_multipolygon(osmium_builder_t::wkb_t *geometry)
+{
+    m_writer.multipolygon_start();
+    m_writer.add_sub_geometry(*geometry);
+    *geometry = m_writer.multipolygon_finish(1);
+}
+
 osmium_builder_t::wkb_t
 osmium_builder_t::get_wkb_node(osmium::Location const &loc) const
 {
@@ -145,28 +165,45 @@ osmium_builder_t::get_wkb_polygon(osmium::Way const &way)
 
     auto const wkbs = create_polygons(m_buffer.get<osmium::Area>(0));
 
-    return wkbs.empty() ? wkb_t() : wkbs[0];
+    return wkbs.empty() ? wkb_t{} : wkbs[0];
 }
 
 osmium_builder_t::wkbs_t
 osmium_builder_t::get_wkb_multipolygon(osmium::Relation const &rel,
                                        osmium::memory::Buffer const &ways,
-                                       bool build_multigeoms)
+                                       bool build_multigeoms, bool wrap_multi)
 {
-    wkbs_t ret;
     osmium::area::AssemblerConfig area_config;
     area_config.ignore_invalid_locations = true;
     osmium::area::GeomAssembler assembler{area_config};
 
     m_buffer.clear();
+
+    wkbs_t ret;
     if (assembler(rel, ways, m_buffer)) {
+        auto const &area = m_buffer.get<osmium::Area>(0);
+
+        // This returns a vector of one or more polygons
+        ret = create_polygons(area);
+        assert(!ret.empty());
+
         if (build_multigeoms) {
-            ret.push_back(create_multipolygon(m_buffer.get<osmium::Area>(0)));
+            if (ret.size() > 1) {
+                // wrap all polygons into a single multipolygon
+                wrap_in_multipolygon(&ret);
+            } else if (wrap_multi) {
+                // wrap single polygon into a multipolygon
+                wrap_in_multipolygon(&ret[0]);
+            }
         } else {
-            ret = create_polygons(m_buffer.get<osmium::Area>(0));
+            if (wrap_multi) {
+                for (auto &wkb : ret) {
+                    // wrap each polygon into its own multipolygon
+                    wrap_in_multipolygon(&wkb);
+                }
+            }
         }
     }
-
     return ret;
 }
 
@@ -343,31 +380,6 @@ size_t osmium_builder_t::add_mp_points(osmium::NodeRefList const &nodes)
     }
 
     return num_points;
-}
-
-osmium_builder_t::wkb_t
-osmium_builder_t::create_multipolygon(osmium::Area const &area)
-{
-    wkb_t ret;
-
-    auto const polys = create_polygons(area);
-
-    switch (polys.size()) {
-    case 0:
-        break; //nothing
-    case 1:
-        ret = polys[0];
-        break;
-    default:
-        m_writer.multipolygon_start();
-        for (auto const &p : polys) {
-            m_writer.add_sub_geometry(p);
-        }
-        ret = m_writer.multipolygon_finish(polys.size());
-        break;
-    }
-
-    return ret;
 }
 
 osmium_builder_t::wkbs_t

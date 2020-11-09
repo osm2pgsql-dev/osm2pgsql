@@ -89,32 +89,31 @@ bool geom_transform_area_t::set_param(char const *name, lua_State *lua_state)
 bool geom_transform_area_t::is_compatible_with(
     table_column_type geom_type) const noexcept
 {
-    if (m_multi) {
-        return geom_type == table_column_type::multipolygon ||
-               geom_type == table_column_type::geometry;
-    }
-
     return geom_type == table_column_type::polygon ||
+           geom_type == table_column_type::multipolygon ||
            geom_type == table_column_type::geometry;
 }
 
 geom::osmium_builder_t::wkbs_t
 geom_transform_area_t::run(geom::osmium_builder_t *builder,
-                           table_column_type /*target_geom_type*/,
+                           table_column_type target_geom_type,
                            osmium::Way *way) const
 {
     assert(builder);
     assert(way);
 
+    geom::osmium_builder_t::wkbs_t result;
+
     if (!way->is_closed()) {
-        return {};
+        return result;
     }
 
-    geom::osmium_builder_t::wkbs_t result;
     result.push_back(builder->get_wkb_polygon(*way));
 
     if (result.front().empty()) {
         result.clear();
+    } else if (target_geom_type == table_column_type::multipolygon) {
+        builder->wrap_in_multipolygon(&result);
     }
 
     return result;
@@ -122,13 +121,15 @@ geom_transform_area_t::run(geom::osmium_builder_t *builder,
 
 geom::osmium_builder_t::wkbs_t
 geom_transform_area_t::run(geom::osmium_builder_t *builder,
-                           table_column_type /*target_geom_type*/,
+                           table_column_type target_geom_type,
                            osmium::Relation const &relation,
                            osmium::memory::Buffer const &buffer) const
 {
     assert(builder);
 
-    return builder->get_wkb_multipolygon(relation, buffer, m_multi);
+    bool const wrap_multi = target_geom_type == table_column_type::multipolygon;
+
+    return builder->get_wkb_multipolygon(relation, buffer, m_multi, wrap_multi);
 }
 
 std::unique_ptr<geom_transform_t> create_geom_transform(char const *type)
