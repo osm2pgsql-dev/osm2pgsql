@@ -16,6 +16,7 @@ bool geom_transform_point_t::is_compatible_with(
 
 geom::osmium_builder_t::wkbs_t
 geom_transform_point_t::run(geom::osmium_builder_t *builder,
+                            table_column_type /*target_geom_type*/,
                             osmium::Node const &node) const
 {
     assert(builder);
@@ -49,6 +50,7 @@ bool geom_transform_line_t::is_compatible_with(
 
 geom::osmium_builder_t::wkbs_t
 geom_transform_line_t::run(geom::osmium_builder_t *builder,
+                           table_column_type /*target_geom_type*/,
                            osmium::Way *way) const
 {
     assert(builder);
@@ -59,6 +61,7 @@ geom_transform_line_t::run(geom::osmium_builder_t *builder,
 
 geom::osmium_builder_t::wkbs_t
 geom_transform_line_t::run(geom::osmium_builder_t *builder,
+                           table_column_type /*target_geom_type*/,
                            osmium::Relation const & /*relation*/,
                            osmium::memory::Buffer const &buffer) const
 {
@@ -97,6 +100,7 @@ bool geom_transform_area_t::is_compatible_with(
 
 geom::osmium_builder_t::wkbs_t
 geom_transform_area_t::run(geom::osmium_builder_t *builder,
+                           table_column_type /*target_geom_type*/,
                            osmium::Way *way) const
 {
     assert(builder);
@@ -118,6 +122,7 @@ geom_transform_area_t::run(geom::osmium_builder_t *builder,
 
 geom::osmium_builder_t::wkbs_t
 geom_transform_area_t::run(geom::osmium_builder_t *builder,
+                           table_column_type /*target_geom_type*/,
                            osmium::Relation const &relation,
                            osmium::memory::Buffer const &buffer) const
 {
