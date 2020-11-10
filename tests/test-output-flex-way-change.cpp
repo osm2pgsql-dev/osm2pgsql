@@ -35,8 +35,8 @@ TEST_CASE("change way from t1")
 
     options.append = true;
 
-    int num_t1 = 0;
-    int num_t2 = 0;
+    unsigned long num_t1 = 0;
+    unsigned long num_t2 = 0;
     std::string update;
     SECTION("to t2")
     {
@@ -78,8 +78,8 @@ TEST_CASE("change way from t2")
 
     options.append = true;
 
-    int num_t1 = 0;
-    int num_t2 = 0;
+    unsigned long num_t1 = 0;
+    unsigned long num_t2 = 0;
     std::string update;
     SECTION("to t1")
     {
@@ -122,8 +122,8 @@ TEST_CASE("change way from t1 and t2")
 
     options.append = true;
 
-    int num_t1 = 0;
-    int num_t2 = 0;
+    unsigned long num_t1 = 0;
+    unsigned long num_t2 = 0;
     std::string update;
     SECTION("to t1")
     {
