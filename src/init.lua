@@ -14,10 +14,16 @@ local _define_table_impl = function(_type, _name, _columns, _options)
 end
 
 function osm2pgsql.has_prefix(str, prefix)
+    if str == nil then
+        return nil
+    end
     return str:sub(1, prefix:len()) == prefix
 end
 
 function osm2pgsql.has_suffix(str, suffix)
+    if str == nil then
+        return nil
+    end
     if suffix == '' then
         return true
     end
@@ -51,6 +57,9 @@ function osm2pgsql.way_member_ids(relation)
 end
 
 function osm2pgsql.clamp(value, low, high)
+    if value == nil then
+        return nil
+    end
     return math.min(math.max(value, low), high)
 end
 
@@ -118,6 +127,9 @@ end
 
 -- from http://lua-users.org/wiki/StringTrim
 function osm2pgsql.trim(str)
+    if str == nil then
+        return nil
+    end
     local from = str:match("^%s*()")
     return from > #str and "" or str:match(".*%S", from)
 end
@@ -142,11 +154,15 @@ function osm2pgsql.split_unit(str, default_unit)
 end
 
 function osm2pgsql.split_string(str, separator)
-    local pattern = '([^' .. (separator or ';') .. ']+)'
     local result = {}
-    for w in string.gmatch(str, pattern) do
-        result[#result + 1] = osm2pgsql.trim(w)
+
+    if str ~= nil then
+        local pattern = '([^' .. (separator or ';') .. ']+)'
+        for w in string.gmatch(str, pattern) do
+            result[#result + 1] = osm2pgsql.trim(w)
+        end
     end
+
     return result
 end
 

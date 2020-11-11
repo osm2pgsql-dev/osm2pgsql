@@ -20,6 +20,7 @@ assert(o.has_prefix('addr:city', ''))
 assert(not o.has_prefix('name', 'addr:'))
 assert(o.has_prefix('a', 'a'))
 assert(not o.has_prefix('a', 'ab'))
+assert(o.has_prefix(nil, 'a') == nil)
 
 -- has_suffix()
 
@@ -29,6 +30,7 @@ assert(o.has_suffix('tiger:source', ''))
 assert(not o.has_suffix('name', ':source'))
 assert(o.has_suffix('a', 'a'))
 assert(not o.has_suffix('a', 'ba'))
+assert(o.has_suffix(nil, 'a') == nil)
 
 -- ---------------------------------------------------------------------------
 
@@ -39,6 +41,7 @@ do
     assert(o.clamp(3, -1, 1) == 1)
     assert(o.clamp(-3, -1, 1) == -1)
     assert(o.clamp(2.718, 0, 3.141) == 2.718)
+    assert(o.clamp(nil, -1, 1) == nil)
 end
 
 -- make_check_values_func without default
@@ -109,6 +112,7 @@ assert(osm2pgsql.trim(' a ') == 'a')
 assert(osm2pgsql.trim('  a  ') == 'a')
 assert(osm2pgsql.trim('  ab cd  ') == 'ab cd')
 assert(osm2pgsql.trim(' \t\r\n\f\va\000b \r\t\n\f\v') == 'a\000b')
+assert(osm2pgsql.trim(nil) == nil)
 
 -- split_unit
 
@@ -188,6 +192,9 @@ assert(#r == 3)
 assert(r[1] == 'ab c;d')
 assert(r[2] == 'e f')
 assert(r[3] == 'ghi')
+
+r = o.split_string(nil)
+assert(#r == 0)
 
 -- ---------------------------------------------------------------------------
 
