@@ -145,8 +145,8 @@ parse_multi_config(std::shared_ptr<middle_query_t> const &mid,
 
     } catch (std::exception const &e) {
         throw std::runtime_error{
-            "Unable to parse multi config file `{}': {}"_format(file_name,
-                                                                e.what())};
+            "Unable to parse multi config file `{}': {}."_format(file_name,
+                                                                 e.what())};
     }
 
     return outputs;

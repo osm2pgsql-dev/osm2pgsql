@@ -29,7 +29,7 @@ table_t::table_t(std::string const &name, std::string const &type,
     // if we dont have any columns
     if (m_columns.empty() && m_hstore_mode != hstore_column::all) {
         throw std::runtime_error{
-            "No columns provided for table {}"_format(name)};
+            "No columns provided for table {}."_format(name)};
     }
 
     generate_copy_column_list();
@@ -67,7 +67,7 @@ void table_t::start(std::string const &conninfo, std::string const &table_space)
 {
     if (m_sql_conn) {
         throw std::runtime_error{m_target->name +
-                                 " cannot start, its already started"};
+                                 " cannot start, its already started."};
     }
 
     m_conninfo = conninfo;

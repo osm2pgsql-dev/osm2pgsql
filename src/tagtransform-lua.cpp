@@ -28,7 +28,7 @@ void lua_tagtransform_t::open_style()
     luaL_openlibs(L);
     if (luaL_dofile(L, m_lua_file.c_str())) {
         throw std::runtime_error{
-            "Lua tag transform style error: {}"_format(lua_tostring(L, -1))};
+            "Lua tag transform style error: {}."_format(lua_tostring(L, -1))};
     }
 
     check_lua_function_exists(m_node_func);
@@ -52,7 +52,7 @@ void lua_tagtransform_t::check_lua_function_exists(std::string const &func_name)
     lua_getglobal(L, func_name.c_str());
     if (!lua_isfunction(L, -1)) {
         throw std::runtime_error{
-            "Tag transform style does not contain a function {}"_format(
+            "Tag transform style does not contain a function {}."_format(
                 func_name)};
     }
     lua_pop(L, 1);
@@ -72,7 +72,7 @@ bool lua_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
         lua_getglobal(L, m_rel_func.c_str());
         break;
     default:
-        throw std::runtime_error{"Unknown OSM type"};
+        throw std::runtime_error{"Unknown OSM type."};
     }
 
     lua_newtable(L); /* key value table */
@@ -100,7 +100,7 @@ bool lua_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
     if (lua_pcall(L, 2, (o.type() == osmium::item_type::way) ? 4 : 2, 0)) {
         /* lua function failed */
         throw std::runtime_error{"Failed to execute lua function for basic tag "
-                                 "processing: {}"_format(lua_tostring(L, -1))};
+                                 "processing: {}."_format(lua_tostring(L, -1))};
     }
 
     if (o.type() == osmium::item_type::way) {
@@ -187,7 +187,7 @@ bool lua_tagtransform_t::filter_rel_member_tags(
         /* lua function failed */
         throw std::runtime_error{
             "Failed to execute lua function for relation tag "
-            "processing: {}"_format(lua_tostring(L, -1))};
+            "processing: {}."_format(lua_tostring(L, -1))};
     }
 
     *roads = (int)lua_tointeger(L, -1);

@@ -33,7 +33,7 @@ pg_result_t pg_conn_t::query(ExecStatusType expect, char const *sql) const
     if (PQresultStatus(res.get()) != expect) {
         fmt::print(stderr, "SQL command failed: {}\nFull query: {}\n",
                    error_msg(), sql);
-        throw std::runtime_error{"Executing SQL"};
+        throw std::runtime_error{"Executing SQL."};
     }
     return res;
 }
@@ -105,14 +105,14 @@ void pg_conn_t::end_copy(std::string const &context) const
     if (PQputCopyEnd(m_conn.get(), nullptr) != 1) {
         fmt::print(stderr, "COPY END for {} failed: {}\n", context,
                    error_msg());
-        throw std::runtime_error{"Ending COPY mode"};
+        throw std::runtime_error{"Ending COPY mode."};
     }
 
     pg_result_t const res{PQgetResult(m_conn.get())};
     if (PQresultStatus(res.get()) != PGRES_COMMAND_OK) {
         fmt::print(stderr, "result COPY END for {} failed: {}\n", context,
                    error_msg());
-        throw std::runtime_error{"Ending COPY mode"};
+        throw std::runtime_error{"Ending COPY mode."};
     }
 }
 
@@ -136,7 +136,7 @@ pg_conn_t::exec_prepared_internal(char const *stmt, int num_params,
                            param_values[i] ? param_values[i] : "<NULL>");
             }
         }
-        throw std::runtime_error{"Executing prepared statement"};
+        throw std::runtime_error{"Executing prepared statement."};
     }
 
     return res;

@@ -95,7 +95,7 @@ void node_ram_cache::set_sparse(osmid_t id, osmium::Location location)
             }
             throw std::runtime_error{
                 "Node cache size is too small to fit all nodes. Please "
-                "increase cache size\n"};
+                "increase cache size."};
         }
     }
     maxSparseId = id;
@@ -174,7 +174,7 @@ void node_ram_cache::set_dense(osmid_t id, osmium::Location location)
             blocks[block].reset_used();
             blocks[block].block_offset = block;
             if (!blocks[block].nodes) {
-                throw std::runtime_error{"Error allocating nodes"};
+                throw std::runtime_error{"Error allocating nodes."};
             }
             queue[usedBlocks] = &blocks[block];
             ++usedBlocks;
@@ -190,7 +190,7 @@ void node_ram_cache::set_dense(osmid_t id, osmium::Location location)
             if ((allocStrategy & ALLOC_LOSSY) == 0) {
                 throw std::runtime_error{
                     "Node cache size is too small to fit all nodes. "
-                    "Please increase cache size"};
+                    "Please increase cache size."};
             }
             /* We've reached the maximum number of blocks, so now we push the
              * current head of the tree down to the right level to restore the
@@ -313,7 +313,7 @@ node_ram_cache::node_ram_cache(int strategy, int cacheSizeMB)
         if (!blocks) {
             throw std::runtime_error{
                 "Out of memory for node cache dense index, try using "
-                "\"--cache-strategy sparse\" instead"};
+                "\"--cache-strategy sparse\" instead."};
         }
         queue = (ramNodeBlock **)calloc(maxBlocks, sizeof(ramNodeBlock *));
         /* Use this method of allocation if virtual memory is limited,
@@ -324,7 +324,7 @@ node_ram_cache::node_ram_cache(int strategy, int cacheSizeMB)
             fprintf(stderr,
                     "Allocating dense node cache in block sized chunks\n");
             if (!queue) {
-                throw std::runtime_error{"Out of memory, reduce --cache size"};
+                throw std::runtime_error{"Out of memory, reduce --cache size."};
             }
         } else {
             fprintf(stderr, "Allocating dense node cache in one big chunk\n");
@@ -332,7 +332,7 @@ node_ram_cache::node_ram_cache(int strategy, int cacheSizeMB)
                                         sizeof(osmium::Location));
             if (!queue || !blockCache) {
                 throw std::runtime_error{
-                    "Out of memory for dense node cache, reduce --cache size"};
+                    "Out of memory for dense node cache, reduce --cache size."};
             }
         }
     }
@@ -356,7 +356,7 @@ node_ram_cache::node_ram_cache(int strategy, int cacheSizeMB)
         }
         if (!sparseBlock) {
             throw std::runtime_error{
-                "Out of memory for sparse node cache, reduce --cache size"};
+                "Out of memory for sparse node cache, reduce --cache size."};
         }
     }
 
@@ -414,7 +414,7 @@ void node_ram_cache::set(osmid_t id, osmium::Location location)
     if ((id > 0 && id >> BLOCK_SHIFT >> 32U) ||
         (id < 0 && ~id >> BLOCK_SHIFT >> 32U)) {
         throw std::runtime_error{"Absolute node IDs must not be larger than {}"
-                                 " (got {})"_format(1ULL << 42U, id)};
+                                 " (got {})."_format(1ULL << 42U, id)};
     }
     ++totalNodes;
     /* if ALLOC_DENSE and ALLOC_SPARSE are set, send it through
@@ -429,7 +429,7 @@ void node_ram_cache::set(osmid_t id, osmium::Location location)
         // Command line options always have ALLOC_DENSE | ALLOC_SPARSE
         throw std::logic_error{
             "Unexpected cache strategy in node_ram_cache::set with "
-            "allocStrategy {}"_format(allocStrategy)};
+            "allocStrategy {}."_format(allocStrategy)};
     }
 }
 

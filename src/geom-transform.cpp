@@ -31,7 +31,7 @@ bool geom_transform_line_t::set_param(char const *name, lua_State *lua_state)
     if (lua_type(lua_state, -1) != LUA_TNUMBER) {
         throw std::runtime_error{
             "The 'split_at' field in a geometry transformation "
-            "description must be a number"};
+            "description must be a number."};
     }
     m_split_at = lua_tonumber(lua_state, -1);
 
@@ -75,7 +75,7 @@ bool geom_transform_area_t::set_param(char const *name, lua_State *lua_state)
     if (lua_type(lua_state, -1) != LUA_TBOOLEAN) {
         throw std::runtime_error{
             "The 'multi' field in a geometry transformation "
-            "description must be a boolean"};
+            "description must be a boolean."};
     }
     m_multi = lua_toboolean(lua_state, -1);
 
@@ -140,7 +140,7 @@ std::unique_ptr<geom_transform_t> create_geom_transform(char const *type)
     }
 
     throw std::runtime_error{
-        "Unknown geometry transformation '{}'"_format(type)};
+        "Unknown geometry transformation '{}'."_format(type)};
 }
 
 void init_geom_transform(geom_transform_t *transform, lua_State *lua_state)
@@ -155,7 +155,7 @@ void init_geom_transform(geom_transform_t *transform, lua_State *lua_state)
         char const *const field = lua_tostring(lua_state, -2);
         if (field == nullptr) {
             throw std::runtime_error{"All fields in geometry transformation "
-                                     "description must have string keys"};
+                                     "description must have string keys."};
         }
 
         if (std::strcmp(field, "create") != 0) {

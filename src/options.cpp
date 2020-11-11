@@ -84,8 +84,8 @@ const struct option long_options[] = {
 
 void short_usage(char *arg0)
 {
-    throw std::runtime_error{"Usage error. For further information see:\n"
-                             "\t{} -h|--help\n"_format(program_name(arg0))};
+    throw std::runtime_error{"Usage error. For further information call:"
+                             " {} --help"_format(program_name(arg0))};
 }
 
 void long_usage(char const *arg0, bool verbose)
@@ -332,17 +332,17 @@ static osmium::Box parse_bbox(char const *bbox)
     int const n = sscanf(bbox, "%lf,%lf,%lf,%lf", &minx, &miny, &maxx, &maxy);
     if (n != 4) {
         throw std::runtime_error{"Bounding box must be specified like: "
-                                 "minlon,minlat,maxlon,maxlat\n"};
+                                 "minlon,minlat,maxlon,maxlat."};
     }
 
     if (maxx <= minx) {
         throw std::runtime_error{
-            "Bounding box failed due to maxlon <= minlon\n"};
+            "Bounding box failed due to maxlon <= minlon."};
     }
 
     if (maxy <= miny) {
         throw std::runtime_error{
-            "Bounding box failed due to maxlat <= minlat\n"};
+            "Bounding box failed due to maxlat <= minlat."};
     }
 
     fmt::print(stderr, "Applying Bounding box: {},{} to {},{}\n", minx, miny,
@@ -442,7 +442,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             if (!optarg || optarg[0] == '-') {
                 throw std::runtime_error{
                     "Missing argument for option --expire-tiles. Zoom "
-                    "levels must be positive.\n"};
+                    "levels must be positive."};
             }
             char *next_char;
             expire_tiles_zoom_min =
@@ -451,7 +451,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
                 throw std::runtime_error{
                     "Bad argument for option --expire-tiles. "
                     "Minimum zoom level must be larger "
-                    "than 0.\n"};
+                    "than 0."};
             }
             // The first character after the number is ignored because that is the separating hyphen.
             if (*next_char == '-') {
@@ -463,11 +463,11 @@ options_t::options_t(int argc, char *argv[]) : options_t()
                         std::strtoul(next_char, &after_maxzoom, 10));
                     if (expire_tiles_zoom == 0 || *after_maxzoom != '\0') {
                         throw std::runtime_error{"Invalid maximum zoom level "
-                                                 "given for tile expiry.\n"};
+                                                 "given for tile expiry."};
                     }
                 } else {
                     throw std::runtime_error{
-                        "Invalid maximum zoom level given for tile expiry.\n"};
+                        "Invalid maximum zoom level given for tile expiry."};
                 }
             } else if (*next_char == '\0') {
                 // end of string, no second zoom level given
@@ -475,7 +475,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             } else {
                 throw std::runtime_error{"Minimum and maximum zoom level for "
                                          "tile expiry must be separated by "
-                                         "'-'.\n"};
+                                         "'-'."};
             }
             break;
         case 'o':
@@ -498,7 +498,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
         case 'k':
             if (hstore_mode != hstore_column::none) {
                 throw std::runtime_error{"You can not specify both --hstore "
-                                         "(-k) and --hstore-all (-j)\n"};
+                                         "(-k) and --hstore-all (-j)."};
             }
             hstore_mode = hstore_column::norm;
             break;
@@ -508,7 +508,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
         case 'j':
             if (hstore_mode != hstore_column::none) {
                 throw std::runtime_error{"You can not specify both --hstore "
-                                         "(-k) and --hstore-all (-j)\n"};
+                                         "(-k) and --hstore-all (-j)."};
             }
             hstore_mode = hstore_column::all;
             break;
@@ -540,7 +540,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
                 alloc_chunkwise = ALLOC_DENSE | ALLOC_SPARSE;
             } else {
                 throw std::runtime_error{
-                    "Unrecognized cache strategy {}.\n"_format(optarg)};
+                    "Unrecognized cache strategy {}."_format(optarg)};
             }
             break;
         case 205:
@@ -627,15 +627,15 @@ void options_t::check_options()
 {
     if (append && create) {
         throw std::runtime_error{"--append and --create options can not be "
-                                 "used at the same time!\n"};
+                                 "used at the same time!"};
     }
 
     if (append && !slim) {
-        throw std::runtime_error{"--append can only be used with slim mode!\n"};
+        throw std::runtime_error{"--append can only be used with slim mode!"};
     }
 
     if (droptemp && !slim) {
-        throw std::runtime_error{"--drop only makes sense with --slim.\n"};
+        throw std::runtime_error{"--drop only makes sense with --slim."};
     }
 
     if (hstore_mode == hstore_column::none && hstore_columns.empty() &&
@@ -662,7 +662,7 @@ void options_t::check_options()
     if (cache == 0) {
         if (!slim) {
             throw std::runtime_error{
-                "Ram node cache can only be disable in slim mode.\n"};
+                "Ram node cache can only be disable in slim mode."};
         }
         if (!flat_node_cache_enabled) {
             fprintf(stderr, "WARNING: ram cache is disabled. This will likely "

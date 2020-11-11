@@ -21,7 +21,7 @@ tagtransform_t::make_tagtransform(options_t const *options,
 #else
         throw std::runtime_error{"Error: Could not init lua tag transform, as "
                                  "lua support was not compiled into this "
-                                 "version"};
+                                 "version."};
 #endif
     }
 

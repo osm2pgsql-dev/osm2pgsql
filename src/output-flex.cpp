@@ -86,7 +86,7 @@ prepared_lua_function_t::prepared_lua_function_t(lua_State *lua_state,
         return;
     }
 
-    throw std::runtime_error{"osm2pgsql.{} must be a function"_format(name)};
+    throw std::runtime_error{"osm2pgsql.{} must be a function."_format(name)};
 }
 
 static void push_osm_object_to_lua_stack(lua_State *lua_state,
@@ -339,8 +339,9 @@ void output_flex_t::write_column(
         (column.type() == table_column_type::text)) {
         auto const *const str = lua_tolstring(lua_state(), -1, nullptr);
         if (!str) {
-            throw std::runtime_error{"Invalid type '{}' for text column"_format(
-                lua_typename(lua_state(), ltype))};
+            throw std::runtime_error{
+                "Invalid type '{}' for text column."_format(
+                    lua_typename(lua_state(), ltype))};
         }
         copy_mgr->add_column(str);
     } else if (column.type() == table_column_type::boolean) {
@@ -357,7 +358,7 @@ void output_flex_t::write_column(
             break;
         default:
             throw std::runtime_error{
-                "Invalid type '{}' for boolean column"_format(
+                "Invalid type '{}' for boolean column."_format(
                     lua_typename(lua_state(), ltype))};
         }
     } else if (column.type() == table_column_type::int2) {
@@ -376,7 +377,7 @@ void output_flex_t::write_column(
             copy_mgr->add_column(lua_toboolean(lua_state(), -1));
         } else {
             throw std::runtime_error{
-                "Invalid type '{}' for int2 column"_format(
+                "Invalid type '{}' for int2 column."_format(
                     lua_typename(lua_state(), ltype))};
         }
     } else if (column.type() == table_column_type::int4) {
@@ -395,7 +396,7 @@ void output_flex_t::write_column(
             copy_mgr->add_column(lua_toboolean(lua_state(), -1));
         } else {
             throw std::runtime_error{
-                "Invalid type '{}' for int4 column"_format(
+                "Invalid type '{}' for int4 column."_format(
                     lua_typename(lua_state(), ltype))};
         }
     } else if (column.type() == table_column_type::int8) {
@@ -408,7 +409,7 @@ void output_flex_t::write_column(
             copy_mgr->add_column(lua_toboolean(lua_state(), -1));
         } else {
             throw std::runtime_error{
-                "Invalid type '{}' for int8 column"_format(
+                "Invalid type '{}' for int8 column."_format(
                     lua_typename(lua_state(), ltype))};
         }
     } else if (column.type() == table_column_type::real) {
@@ -419,7 +420,7 @@ void output_flex_t::write_column(
                          lua_tolstring(lua_state(), -1, nullptr));
         } else {
             throw std::runtime_error{
-                "Invalid type '{}' for real column"_format(
+                "Invalid type '{}' for real column."_format(
                     lua_typename(lua_state(), ltype))};
         }
     } else if (column.type() == table_column_type::hstore) {
@@ -451,7 +452,7 @@ void output_flex_t::write_column(
             copy_mgr->finish_hash();
         } else {
             throw std::runtime_error{
-                "Invalid type '{}' for hstore column"_format(
+                "Invalid type '{}' for hstore column."_format(
                     lua_typename(lua_state(), ltype))};
         }
     } else if (column.type() == table_column_type::direction) {
@@ -468,12 +469,12 @@ void output_flex_t::write_column(
             break;
         default:
             throw std::runtime_error{
-                "Invalid type '{}' for direction column"_format(
+                "Invalid type '{}' for direction column."_format(
                     lua_typename(lua_state(), ltype))};
         }
     } else {
         throw std::runtime_error{
-            "Column type {} not implemented"_format(column.type())};
+            "Column type {} not implemented."_format(column.type())};
     }
 
     lua_pop(lua_state(), 1);
@@ -535,11 +536,11 @@ int output_flex_t::app_get_bbox()
     if (m_calling_context != calling_context::process_node &&
         m_calling_context != calling_context::process_way) {
         throw std::runtime_error{"The function get_bbox() can only be called"
-                                 " from process_node() or process_way()"};
+                                 " from process_node() or process_way()."};
     }
 
     if (lua_gettop(lua_state()) > 1) {
-        throw std::runtime_error{"No parameter(s) needed for get_box()"};
+        throw std::runtime_error{"No parameter(s) needed for get_box()."};
     }
 
     if (m_context_node) {
@@ -574,7 +575,7 @@ static void check_name(std::string const &name, char const *in)
     }
 
     throw std::runtime_error{
-        "Special characters are not allowed in {} names: '{}'"_format(in,
+        "Special characters are not allowed in {} names: '{}'."_format(in,
                                                                       name)};
 }
 
@@ -591,7 +592,7 @@ flex_table_t &output_flex_t::create_flex_table()
                                  });
     if (it != m_tables->cend()) {
         throw std::runtime_error{
-            "Table with that name already exists: '{}'"_format(table_name)};
+            "Table with name '{}' already exists."_format(table_name)};
     }
 
     m_tables->emplace_back(table_name);
@@ -662,11 +663,11 @@ void output_flex_t::setup_id_columns(flex_table_t *table)
             auto &column = table->add_column(column_name, "id_type");
             column.set_not_null();
         } else if (!lua_isnil(lua_state(), -1)) {
-            throw std::runtime_error{"type_column must be a string or nil"};
+            throw std::runtime_error{"type_column must be a string or nil."};
         }
         lua_pop(lua_state(), 1); // type_column
     } else {
-        throw std::runtime_error{"Unknown ids type: " + type};
+        throw std::runtime_error{"Unknown ids type: {}."_format(type)};
     }
 
     std::string const name =
@@ -684,7 +685,7 @@ void output_flex_t::setup_flex_table_columns(flex_table_t *table)
     lua_getfield(lua_state(), -1, "columns");
     if (lua_type(lua_state(), -1) != LUA_TTABLE) {
         throw std::runtime_error{
-            "No columns defined for table '{}'"_format(table->name())};
+            "No columns defined for table '{}'."_format(table->name())};
     }
 
     std::size_t num_columns = 0;
@@ -692,11 +693,11 @@ void output_flex_t::setup_flex_table_columns(flex_table_t *table)
     while (lua_next(lua_state(), -2) != 0) {
         if (!lua_isnumber(lua_state(), -2)) {
             throw std::runtime_error{
-                "The 'columns' field must contain an array"};
+                "The 'columns' field must contain an array."};
         }
         if (!lua_istable(lua_state(), -1)) {
             throw std::runtime_error{
-                "The entries in the 'columns' array must be tables"};
+                "The entries in the 'columns' array must be tables."};
         }
 
         char const *const type =
@@ -720,7 +721,7 @@ void output_flex_t::setup_flex_table_columns(flex_table_t *table)
                 column.set_projection(lua_tostring(lua_state(), -1));
             } else {
                 throw std::runtime_error{
-                    "Projection can only be set on geometry and area columns"};
+                    "Projection can only be set on geometry and area columns."};
             }
         }
 
@@ -731,15 +732,16 @@ void output_flex_t::setup_flex_table_columns(flex_table_t *table)
 
     if (num_columns == 0) {
         throw std::runtime_error{
-            "No columns defined for table '{}'"_format(table->name())};
+            "No columns defined for table '{}'."_format(table->name())};
     }
 }
 
 int output_flex_t::app_define_table()
 {
     if (m_calling_context != calling_context::main) {
-        throw std::runtime_error{"Database tables have to be defined in the"
-                                 " main Lua code, not in any of the callbacks"};
+        throw std::runtime_error{
+            "Database tables have to be defined in the"
+            " main Lua code, not in any of the callbacks."};
     }
 
     luaL_checktype(lua_state(), 1, LUA_TTABLE);
@@ -763,13 +765,13 @@ static std::size_t table_idx_from_param(lua_State *lua_state)
 
     if (user_data == nullptr || !lua_getmetatable(lua_state, 1)) {
         throw std::runtime_error{
-            "First parameter must be of type osm2pgsql.table"};
+            "First parameter must be of type osm2pgsql.table."};
     }
 
     luaL_getmetatable(lua_state, osm2pgsql_table_name);
     if (!lua_rawequal(lua_state, -1, -2)) {
         throw std::runtime_error{
-            "First parameter must be of type osm2pgsql.table"};
+            "First parameter must be of type osm2pgsql.table."};
     }
     lua_pop(lua_state, 2);
 
@@ -782,7 +784,7 @@ flex_table_t const &output_flex_t::get_table_from_param()
 {
     if (lua_gettop(lua_state()) != 1) {
         throw std::runtime_error{
-            "Need exactly one parameter of type osm2pgsql.table"};
+            "Need exactly one parameter of type osm2pgsql.table."};
     }
 
     auto const &table = m_tables->at(table_idx_from_param(lua_state()));
@@ -811,7 +813,7 @@ int output_flex_t::table_add_row()
         m_calling_context != calling_context::process_relation) {
         throw std::runtime_error{
             "The function add_row() can only be called from the "
-            "process_node/way/relation() functions"};
+            "process_node/way/relation() functions."};
     }
 
     // Params are the table object and an optional Lua table with the contents
@@ -819,7 +821,7 @@ int output_flex_t::table_add_row()
     auto const num_params = lua_gettop(lua_state());
     if (num_params < 1 || num_params > 2) {
         throw std::runtime_error{
-            "Need two parameters: The osm2pgsql.table and the row data"};
+            "Need two parameters: The osm2pgsql.table and the row data."};
     }
 
     auto &table_connection =
@@ -835,19 +837,19 @@ int output_flex_t::table_add_row()
     if (m_context_node) {
         if (!table.matches_type(osmium::item_type::node)) {
             throw std::runtime_error{
-                "Trying to add node to table '{}'"_format(table.name())};
+                "Trying to add node to table '{}'."_format(table.name())};
         }
         add_row(&table_connection, *m_context_node);
     } else if (m_context_way) {
         if (!table.matches_type(osmium::item_type::way)) {
             throw std::runtime_error{
-                "Trying to add way to table '{}'"_format(table.name())};
+                "Trying to add way to table '{}'."_format(table.name())};
         }
         add_row(&table_connection, *m_context_way);
     } else if (m_context_relation) {
         if (!table.matches_type(osmium::item_type::relation)) {
             throw std::runtime_error{
-                "Trying to add relation to table '{}'"_format(table.name())};
+                "Trying to add relation to table '{}'."_format(table.name())};
         }
         add_row(&table_connection, *m_context_relation);
     }
@@ -913,7 +915,7 @@ get_transform(lua_State *lua_state, flex_table_column_t const &column)
     char const *create_type = lua_tostring(lua_state, -1);
     if (create_type == nullptr) {
         throw std::runtime_error{
-            "Missing geometry transformation for column '{}'"_format(
+            "Missing geometry transformation for column '{}'."_format(
                 column.name())};
     }
 
@@ -923,7 +925,7 @@ get_transform(lua_State *lua_state, flex_table_column_t const &column)
     if (!transform->is_compatible_with(column.type())) {
         throw std::runtime_error{
             "Geometry transformation is not compatible "
-            "with column type '{}'"_format(column.type_name())};
+            "with column type '{}'."_format(column.type_name())};
     }
 
     lua_pop(lua_state, 1); // geom field
@@ -958,7 +960,7 @@ get_default_transform(flex_table_column_t const &column,
     }
 
     throw std::runtime_error{
-        "Missing geometry transformation for column '{}'"_format(
+        "Missing geometry transformation for column '{}'."_format(
             column.name())};
 }
 
@@ -1020,7 +1022,7 @@ void output_flex_t::add_row(table_connection_t *table_connection,
     // must be present.
     if (lua_gettop(lua_state()) == 0) {
         throw std::runtime_error{
-            "Need two parameters: The osm2pgsql.table and the row data"};
+            "Need two parameters: The osm2pgsql.table and the row data."};
     }
 
     auto const geom_transform = get_transform(lua_state(), table.geom_column());
@@ -1055,7 +1057,7 @@ void output_flex_t::call_lua_function(prepared_lua_function_t func,
     if (luaX_pcall(lua_state(), 1, func.nresults())) {
         throw std::runtime_error{
             "Failed to execute Lua function 'osm2pgsql.{}':"
-            " {}"_format(func.name(), lua_tostring(lua_state(), -1))};
+            " {}."_format(func.name(), lua_tostring(lua_state(), -1))};
     }
 
     m_calling_context = calling_context::main;
@@ -1110,7 +1112,7 @@ void output_flex_t::select_relation_members(osmium::Relation const &relation)
 
     if (lua_type(lua_state(), -1) != LUA_TTABLE) {
         throw std::runtime_error{"select_relation_members() returned something "
-                                 "other than nil or a table"};
+                                 "other than nil or a table."};
     }
 
     // We have established that we have a table. Get the 'ways' field...
@@ -1126,7 +1128,7 @@ void output_flex_t::select_relation_members(osmium::Relation const &relation)
     if (ltype != LUA_TTABLE) {
         throw std::runtime_error{
             "Table returned from select_relation_members() contains 'ways' "
-            "field, but it isn't an array table"};
+            "field, but it isn't an array table."};
     }
 
     // Iterate over the 'ways' table to get all ids...
@@ -1135,7 +1137,7 @@ void output_flex_t::select_relation_members(osmium::Relation const &relation)
         if (!lua_isnumber(lua_state(), -2)) {
             throw std::runtime_error{
                 "Table returned from select_relation_members() contains 'ways' "
-                "field, but it isn't an array table"};
+                "field, but it isn't an array table."};
         }
 
         osmid_t const id = lua_tointeger(lua_state(), -1);
@@ -1143,7 +1145,7 @@ void output_flex_t::select_relation_members(osmium::Relation const &relation)
             throw std::runtime_error{
                 "Table returned from select_relation_members() contains 'ways' "
                 "field, which must contain an array of non-zero integer way "
-                "ids"};
+                "ids."};
         }
 
         m_stage2_way_ids->set(id);
@@ -1419,7 +1421,7 @@ void output_flex_t::init_lua(std::string const &filename)
 
     // Define "osmpgsql.table" metatable
     if (luaL_newmetatable(lua_state(), osm2pgsql_table_name) != 1) {
-        throw std::runtime_error{"Internal error: Lua newmetatable failed"};
+        throw std::runtime_error{"Internal error: Lua newmetatable failed."};
     }
     lua_pushvalue(lua_state(), -1);
     lua_setfield(lua_state(), -2, "__index");
@@ -1435,7 +1437,7 @@ void output_flex_t::init_lua(std::string const &filename)
 
     // Load compiled in init.lua
     if (luaL_dostring(lua_state(), lua_init())) {
-        throw std::runtime_error{"Internal error in Lua setup: {}"_format(
+        throw std::runtime_error{"Internal error in Lua setup: {}."_format(
             lua_tostring(lua_state(), -1))};
     }
 
@@ -1457,7 +1459,7 @@ void output_flex_t::init_lua(std::string const &filename)
     // Load user config file
     luaX_set_context(lua_state(), this);
     if (luaL_dofile(lua_state(), filename.c_str())) {
-        throw std::runtime_error{"Error loading lua config: {}"_format(
+        throw std::runtime_error{"Error loading lua config: {}."_format(
             lua_tostring(lua_state(), -1))};
     }
 
