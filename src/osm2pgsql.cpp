@@ -49,6 +49,40 @@ static std::shared_ptr<middle_t> create_middle(options_t const &options)
     return std::make_shared<middle_ram_t>(&options);
 }
 
+/**
+ * Prepare input file(s). Does format checks as far as this is possible
+ * without actually opening the files.
+ */
+static std::vector<osmium::io::File>
+prepare_input_files(options_t const &options)
+{
+    std::vector<osmium::io::File> files;
+
+    for (auto const &filename : options.input_files) {
+        osmium::io::File file{filename, options.input_format};
+
+        if (file.format() == osmium::io::file_format::unknown) {
+            if (options.input_format.empty()) {
+                throw std::runtime_error{
+                    "Cannot detect file format. Try using -r."};
+            }
+            throw std::runtime_error{
+                "Unknown file format '{}'."_format(options.input_format)};
+        }
+
+        if (!options.append && file.has_multiple_object_versions()) {
+            throw std::runtime_error{
+                "Reading an OSM change file only works in append mode."};
+        }
+
+        log_info("Reading file: {}", filename);
+
+        files.emplace_back(file);
+    }
+
+    return files;
+}
+
 int main(int argc, char *argv[])
 {
     try {
@@ -60,6 +94,8 @@ int main(int argc, char *argv[])
         }
 
         check_db(options);
+
+        auto const files = prepare_input_files(options);
 
         auto middle = create_middle(options);
         middle->start();
@@ -81,28 +117,14 @@ int main(int argc, char *argv[])
         // Processing: In this phase the input file(s) are read and parsed,
         // populating some of the tables.
         progress_display_t progress;
-        for (auto const &filename : options.input_files) {
-            log_info("Reading file: {}", filename);
-            util::timer_t timer_parse;
 
-            osmium::io::File file{filename, options.input_format};
-            if (file.format() == osmium::io::file_format::unknown) {
-                if (options.input_format.empty()) {
-                    throw std::runtime_error{
-                        "Cannot detect file format. Try using -r."};
-                }
-                throw std::runtime_error{
-                    "Unknown file format '{}'."_format(options.input_format)};
-            }
+        util::timer_t timer_parse;
 
-            progress.update(osmdata.process_file(file, options.bbox));
+        progress.update(osmdata.process_files(files, options.bbox));
 
-            if (get_logger().show_progress()) {
-                progress.print_status(std::time(nullptr));
-                fmt::print(stderr, "  parse time: {}\n",
-                           util::human_readable_duration(timer_parse.stop()));
-            }
-        }
+        progress.print_status(std::time(nullptr));
+        fmt::print(stderr, "  parse time: {}\n",
+                   util::human_readable_duration(timer_parse.stop()));
 
         progress.print_summary();
 
