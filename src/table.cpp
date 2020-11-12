@@ -272,8 +272,8 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
         }
         fmt::print(stderr, "Creating indexes on {} finished\n", m_target->name);
         m_sql_conn->exec("ANALYZE {}"_format(qual_name));
-        fmt::print(stderr, "All indexes on {} created in {}s\n", m_target->name,
-                   timer.stop());
+        fmt::print(stderr, "All indexes on {} created in {}\n", m_target->name,
+                   util::human_readable_duration(timer.stop()));
     }
     teardown();
 

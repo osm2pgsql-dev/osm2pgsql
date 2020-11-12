@@ -108,7 +108,8 @@ void middle_pgsql_t::table_desc::stop(std::string const &conninfo,
         sql_conn.exec(m_array_indexes);
     }
 
-    fmt::print(stderr, "Stopped table: {} in {}s\n", name(), timer.stop());
+    fmt::print(stderr, "Stopped table: {} in {}\n", name(),
+               util::human_readable_duration(timer.stop()));
 }
 
 namespace {

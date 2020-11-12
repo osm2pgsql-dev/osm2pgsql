@@ -102,7 +102,8 @@ int main(int argc, char *argv[])
             progress.update(osmdata.process_file(file, options.bbox));
 
             progress.print_status(std::time(nullptr));
-            fmt::print(stderr, "  parse time: {}s\n", timer_parse.stop());
+            fmt::print(stderr, "  parse time: {}\n",
+                       util::human_readable_duration(timer_parse.stop()));
         }
 
         progress.print_summary();
@@ -111,8 +112,8 @@ int main(int argc, char *argv[])
         // create indexes.
         osmdata.stop();
 
-        fmt::print(stderr, "\nOsm2pgsql took {}s overall\n",
-                   timer_overall.stop());
+        fmt::print(stderr, "\nOsm2pgsql took {} overall\n",
+                   util::human_readable_duration(timer_overall.stop()));
     } catch (std::exception const &e) {
         fmt::print(stderr, "Osm2pgsql failed due to ERROR: {}\n", e.what());
         return 1;

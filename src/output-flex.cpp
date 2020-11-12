@@ -1511,8 +1511,8 @@ void output_flex_t::reprocess_marked()
             }
         }
 
-        fmt::print(stderr, "  Creating id indexes took {} seconds\n"_format(
-                               timer.stop()));
+        fmt::print(stderr, "  Creating id indexes took {}\n"_format(
+                               util::human_readable_duration(timer.stop())));
     }
 
     lua_gc(lua_state(), LUA_GCCOLLECT, 0);

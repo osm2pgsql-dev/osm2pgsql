@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <ctime>
+#include <string>
 
 namespace util {
 
@@ -89,6 +90,8 @@ private:
     std::time_t m_stop = 0;
 
 }; // class timer_t
+
+std::string human_readable_duration(uint64_t seconds);
 
 } // namespace util
 
