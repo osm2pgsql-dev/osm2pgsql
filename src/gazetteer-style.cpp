@@ -192,7 +192,7 @@ void gazetteer_style_t::add_style_entry(std::string const &key,
         }
         if (!value.empty()) {
             throw std::runtime_error{
-                "Style error. Prefix key can only be used with empty value.\n"};
+                "Style error. Prefix key can only be used with empty value."};
         }
         m_matcher.emplace_back(key.substr(0, key.size() - 1), flags,
                                matcher_t::MT_PREFIX);
@@ -203,7 +203,7 @@ void gazetteer_style_t::add_style_entry(std::string const &key,
     if (key[0] == '*') {
         if (!value.empty()) {
             throw std::runtime_error{
-                "Style error. Suffix key can only be used with empty value.\n"};
+                "Style error. Suffix key can only be used with empty value."};
         }
         m_matcher.emplace_back(key.substr(1), flags, matcher_t::MT_SUFFIX);
         return;
@@ -218,12 +218,12 @@ void gazetteer_style_t::add_style_entry(std::string const &key,
     if (add_metadata_style_entry(key)) {
         if (!value.empty()) {
             throw std::runtime_error{"Style error. Rules for OSM metadata "
-                                     "attributes must have an empty value.\n"};
+                                     "attributes must have an empty value."};
         }
         if (flags != SF_EXTRA) {
             throw std::runtime_error{"Style error. Rules for OSM metadata "
                                      "attributes must have the style flag "
-                                     "\"extra\" and no other flag.\n"};
+                                     "\"extra\" and no other flag."};
         }
         return;
     }

@@ -59,7 +59,7 @@ node_persistent_cache::node_persistent_cache(
     if (m_fd < 0) {
         fmt::print(stderr, "Cannot open location cache file '{}': {}\n",
                    m_fname, std::strerror(errno));
-        throw std::runtime_error{"Unable to open flatnode file\n"};
+        throw std::runtime_error{"Unable to open flatnode file."};
     }
 
     m_index.reset(new index_t{m_fd});

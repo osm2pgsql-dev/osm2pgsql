@@ -97,8 +97,8 @@ void flex_table_column_t::set_projection(char const *projection)
     m_srid = static_cast<int>(std::strtoul(projection, &end, 10));
 
     if (*end != '\0') {
-        throw std::runtime_error{std::string{"Unknown projection: "} +
-                                 projection};
+        throw std::runtime_error{
+            "Unknown projection: '{}'."_format(projection)};
     }
 }
 
@@ -144,7 +144,7 @@ std::string flex_table_column_t::sql_type_name() const
     case table_column_type::id_num:
         return "int8";
     }
-    throw std::runtime_error{"Unknown column type"};
+    throw std::runtime_error{"Unknown column type."};
 }
 
 std::string flex_table_column_t::sql_modifiers() const

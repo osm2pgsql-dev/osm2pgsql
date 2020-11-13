@@ -94,7 +94,7 @@ bool read_style_file(std::string const &filename, export_list *exlist)
 
     FILE *const in = std::fopen(filename.c_str(), "rt");
     if (!in) {
-        throw std::runtime_error{"Couldn't open style file '{}': {}"_format(
+        throw std::runtime_error{"Couldn't open style file '{}': {}."_format(
             filename, std::strerror(errno))};
     }
 
@@ -121,8 +121,8 @@ bool read_style_file(std::string const &filename, export_list *exlist)
         if (fields < 3) {
             std::fclose(in);
             throw std::runtime_error{
-                "Error reading style file line {} (fields={})"_format(lineno,
-                                                                      fields)};
+                "Error reading style file line {} (fields={})."_format(lineno,
+                                                                       fields)};
         }
 
         //place to keep info about this tag
@@ -145,7 +145,7 @@ bool read_style_file(std::string const &filename, export_list *exlist)
              (temp.name.find('*') != std::string::npos))) {
             std::fclose(in);
             throw std::runtime_error{
-                "wildcard '{}' in non-delete style entry"_format(temp.name)};
+                "Wildcard '{}' in non-delete style entry."_format(temp.name)};
         }
 
         if ((temp.name == "way_area") && (temp.flags == FLAG_DELETE)) {
@@ -170,7 +170,7 @@ bool read_style_file(std::string const &filename, export_list *exlist)
         if (!kept) {
             std::fclose(in);
             throw std::runtime_error{
-                "Weird style line {}:{}"_format(filename, lineno)};
+                "Weird style line {}:{}."_format(filename, lineno)};
         }
 
         read_valid_column = true;
@@ -179,7 +179,8 @@ bool read_style_file(std::string const &filename, export_list *exlist)
     if (std::ferror(in)) {
         int const err = errno;
         std::fclose(in);
-        throw std::runtime_error{"{}: {}"_format(filename, std::strerror(err))};
+        throw std::runtime_error{
+            "{}: {}."_format(filename, std::strerror(err))};
     }
 
     std::fclose(in);
