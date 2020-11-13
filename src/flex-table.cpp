@@ -276,8 +276,8 @@ void table_connection_t::stop(bool updateable, bool append)
     fmt::print(stderr, "Analyzing table '{}'...\n", table().name());
     m_db_connection->exec("ANALYZE " + table().full_name());
 
-    fmt::print(stderr, "All postprocessing on table '{}' done in {}s.\n",
-               table().name(), timer.stop());
+    fmt::print(stderr, "All postprocessing on table '{}' done in {}.\n",
+               table().name(), util::human_readable_duration(timer.stop()));
 
     teardown();
 }

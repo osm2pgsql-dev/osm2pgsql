@@ -337,8 +337,8 @@ private:
 
         timer.stop();
 
-        fmt::print(stderr, "\rFinished processing {} {}s in {} s\n\n",
-                   ids_queued, type, timer.elapsed());
+        fmt::print(stderr, "\rFinished processing {} {}s in {}\n\n", ids_queued,
+                   type, util::human_readable_duration(timer.elapsed()));
 
         if (timer.elapsed() > 0) {
             fmt::print(stderr,
