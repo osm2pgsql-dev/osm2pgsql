@@ -121,7 +121,7 @@ public:
                        id);
     }
 
-    void del(osmid_t id) { fmt::format_to(m_way_opl, "r{} v2 dD\n", id); }
+    void del(osmid_t id) { fmt::format_to(m_rel_opl, "r{} v2 dD\n", id); }
 
     std::string get_and_clear_opl()
     {
@@ -303,9 +303,9 @@ TEMPLATE_TEST_CASE("Main tags", "", node_importer_t, way_importer_t,
         CHECK(1 == t.obj_count(conn, 2, "railway"));
         CHECK(1 == t.obj_count(conn, 3, "amenity"));
 
-        t.del(3);
         t.add(1, "not_a=restaurant");
         t.add(2, "highway=bus_stop,name=X");
+        t.del(3);
 
         t.update();
 
