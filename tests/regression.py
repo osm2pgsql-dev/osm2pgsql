@@ -218,6 +218,11 @@ class BaseUpdateRunnerWithOutputSchema(BaseUpdateRunner):
     schema = 'osm'
 
 
+class DependencyUpdateRunner(BaseRunner):
+    import_file = 'test_forward_dependencies.opl'
+    update_file = 'test_forward_dependencies_diff.opl'
+
+
 ########################################################################
 #
 # Test groups
@@ -768,6 +773,28 @@ class TestMPUpdateSlimWithFlatNodes(MultipolygonUpdateRunner, unittest.TestCase,
     def test_planet_osm_nodes(self):
         self.assert_count(0, 'pg_tables',
                           where="tablename = 'planet_osm_nodes'")
+
+class TestMPUpdateWithForwardDependencies(DependencyUpdateRunner, unittest.TestCase):
+    extra_params = ['--latlong', '--slim', '--with-forward-dependencies=true']
+
+    def test_count(self):
+        self.assert_count(1, 'planet_osm_point')
+        self.assert_count(1, 'planet_osm_line')
+        self.assert_count(0, 'planet_osm_line', 'abs(ST_X(ST_StartPoint(way)) - 3.0) < 0.0001')
+        self.assert_count(1, 'planet_osm_line', 'abs(ST_X(ST_StartPoint(way)) - 3.1) < 0.0001')
+        self.assert_count(1, 'planet_osm_roads')
+        self.assert_count(1, 'planet_osm_polygon')
+
+class TestMPUpdateWithoutForwardDependencies(DependencyUpdateRunner, unittest.TestCase):
+    extra_params = ['--latlong', '--slim', '--with-forward-dependencies=false']
+
+    def test_count(self):
+        self.assert_count(1, 'planet_osm_point')
+        self.assert_count(1, 'planet_osm_line')
+        self.assert_count(1, 'planet_osm_line', 'abs(ST_X(ST_StartPoint(way)) - 3.0) < 0.0001')
+        self.assert_count(0, 'planet_osm_line', 'abs(ST_X(ST_StartPoint(way)) - 3.1) < 0.0001')
+        self.assert_count(1, 'planet_osm_roads')
+        self.assert_count(2, 'planet_osm_polygon')
 
 # Database access tests
 

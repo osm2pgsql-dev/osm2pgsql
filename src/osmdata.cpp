@@ -30,7 +30,8 @@ osmdata_t::osmdata_t(std::unique_ptr<dependency_manager_t> dependency_manager,
   m_outs(std::move(outs)), m_conninfo(options.database_options.conninfo()),
   m_num_procs(options.num_procs), m_append(options.append),
   m_droptemp(options.droptemp), m_parallel_indexing(options.parallel_indexing),
-  m_with_extra_attrs(options.extra_attributes)
+  m_with_extra_attrs(options.extra_attributes),
+  m_with_forward_dependencies(options.with_forward_dependencies)
 {
     assert(m_dependency_manager);
     assert(m_mid);
@@ -193,11 +194,7 @@ public:
             auto copy_thread = std::make_shared<db_copy_thread_t>(conninfo);
 
             for (auto const &out : m_outputs) {
-                if (out->need_forward_dependencies()) {
-                    m_clones[i].push_back(out->clone(midq, copy_thread));
-                } else {
-                    m_clones[i].emplace_back(nullptr);
-                }
+                m_clones[i].push_back(out->clone(midq, copy_thread));
             }
         }
     }
@@ -246,9 +243,7 @@ public:
         for (auto const &output : m_outputs) {
             for (auto const &clone : m_clones) {
                 assert(n < clone.size());
-                if (clone[n]) {
-                    output->merge_expire_trees(clone[n].get());
-                }
+                output->merge_expire_trees(clone[n].get());
             }
             ++n;
         }
@@ -459,7 +454,7 @@ void osmdata_t::stop() const
         out->sync();
     }
 
-    if (m_append) {
+    if (m_append && m_with_forward_dependencies) {
         process_dependents();
     }
 

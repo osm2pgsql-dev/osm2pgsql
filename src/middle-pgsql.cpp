@@ -64,7 +64,7 @@ static std::string build_sql(options_t const &options, char const *templ)
 
 middle_pgsql_t::table_desc::table_desc(options_t const &options,
                                        table_sql const &ts)
-: m_create(build_sql(options, ts.create_table)),
+: m_create_table(build_sql(options, ts.create_table)),
   m_prepare_query(build_sql(options, ts.prepare_query)),
   m_copy_target(std::make_shared<db_target_descr_t>())
 {
@@ -72,15 +72,10 @@ middle_pgsql_t::table_desc::table_desc(options_t const &options,
     m_copy_target->schema = options.middle_dbschema;
     m_copy_target->id = "id"; // XXX hardcoded column name
 
-    // Gazetteer doesn't use mark-pending processing and consequently
-    // needs no way-node index.
-    // TODO Currently, set here to keep the impact on the code small.
-    // We actually should have the output plugins report their needs
-    // and pass that via the constructor to middle_t, so that middle_t
-    // itself doesn't need to know about details of the output.
-    if (options.output_backend != "gazetteer") {
-        m_prepare_intarray = build_sql(options, ts.prepare_mark);
-        m_array_indexes = build_sql(options, ts.create_index);
+    if (options.with_forward_dependencies) {
+        m_prepare_fw_dep_lookups =
+            build_sql(options, ts.prepare_fw_dep_lookups);
+        m_create_fw_dep_indexes = build_sql(options, ts.create_fw_dep_indexes);
     }
 }
 
@@ -103,9 +98,9 @@ void middle_pgsql_t::table_desc::stop(std::string const &conninfo,
         auto const qual_name = qualified_name(
             m_copy_target->schema, m_copy_target->name);
         sql_conn.exec("DROP TABLE IF EXISTS {}"_format(qual_name));
-    } else if (build_indexes && !m_array_indexes.empty()) {
+    } else if (build_indexes && !m_create_fw_dep_indexes.empty()) {
         fmt::print(stderr, "Building index on table: {}\n", name());
-        sql_conn.exec(m_array_indexes);
+        sql_conn.exec(m_create_fw_dep_indexes);
     }
 
     fmt::print(stderr, "Stopped table: {} in {}s\n", name(), timer.stop());
@@ -570,8 +565,8 @@ void middle_pgsql_t::start()
 
         // Prepare queries for updating dependent objects
         for (auto &table : m_tables) {
-            if (!table.m_prepare_intarray.empty()) {
-                m_db_connection.exec(table.m_prepare_intarray);
+            if (!table.m_prepare_fw_dep_lookups.empty()) {
+                m_db_connection.exec(table.m_prepare_fw_dep_lookups);
             }
         }
     } else {
@@ -583,7 +578,7 @@ void middle_pgsql_t::start()
                 table.m_copy_target->schema, table.m_copy_target->name);
             m_db_connection.exec(
                 "DROP TABLE IF EXISTS {} CASCADE"_format(qual_name));
-            m_db_connection.exec(table.m_create);
+            m_db_connection.exec(table.m_create_table);
         }
 
         // The extra query connection is only needed in append mode, so close.
@@ -666,33 +661,34 @@ static table_sql sql_for_ways(bool has_bucket_index,
                         "      WHERE id = ANY($1::int8[]);\n";
 
     if (has_bucket_index) {
-        sql.prepare_mark =
+        sql.prepare_fw_dep_lookups =
             "PREPARE mark_ways_by_node(int8) AS"
             "  SELECT id FROM {schema}{prefix}_ways w"
             "    WHERE $1 = ANY(nodes)"
             "      AND {schema}{prefix}_index_bucket(w.nodes)"
             "       && {schema}{prefix}_index_bucket(ARRAY[$1]);\n";
     } else {
-        sql.prepare_mark = "PREPARE mark_ways_by_node(int8) AS"
-                           "  SELECT id FROM {schema}{prefix}_ways"
-                           "    WHERE nodes && ARRAY[$1];\n";
+        sql.prepare_fw_dep_lookups = "PREPARE mark_ways_by_node(int8) AS"
+                                     "  SELECT id FROM {schema}{prefix}_ways"
+                                     "    WHERE nodes && ARRAY[$1];\n";
     }
 
     if (way_node_index_id_shift == 0) {
-        sql.create_index =
+        sql.create_fw_dep_indexes =
             "CREATE INDEX ON {schema}{prefix}_ways USING GIN (nodes)"
             "  WITH (fastupdate = off) {index_tablespace};\n";
     } else {
-        sql.create_index = "CREATE OR REPLACE FUNCTION"
-                           "    {schema}{prefix}_index_bucket(int8[])"
-                           "  RETURNS int8[] AS $$\n"
-                           "  SELECT ARRAY(SELECT DISTINCT"
-                           "    unnest($1) >> {way_node_index_id_shift})\n"
-                           "$$ LANGUAGE SQL IMMUTABLE;\n"
-                           "CREATE INDEX {schema}{prefix}_ways_nodes_bucket_idx"
-                           "  ON {schema}{prefix}_ways"
-                           "  USING GIN ({schema}{prefix}_index_bucket(nodes))"
-                           "  WITH (fastupdate = off) {index_tablespace};\n";
+        sql.create_fw_dep_indexes =
+            "CREATE OR REPLACE FUNCTION"
+            "    {schema}{prefix}_index_bucket(int8[])"
+            "  RETURNS int8[] AS $$\n"
+            "  SELECT ARRAY(SELECT DISTINCT"
+            "    unnest($1) >> {way_node_index_id_shift})\n"
+            "$$ LANGUAGE SQL IMMUTABLE;\n"
+            "CREATE INDEX {schema}{prefix}_ways_nodes_bucket_idx"
+            "  ON {schema}{prefix}_ways"
+            "  USING GIN ({schema}{prefix}_index_bucket(nodes))"
+            "  WITH (fastupdate = off) {index_tablespace};\n";
     }
 
     return sql;
@@ -717,17 +713,19 @@ static table_sql sql_for_relations() noexcept
                         "  SELECT members, tags"
                         "    FROM {schema}{prefix}_rels WHERE id = $1;\n";
 
-    sql.prepare_mark = "PREPARE mark_rels_by_node(int8) AS"
-                       "  SELECT id FROM {schema}{prefix}_rels"
-                       "    WHERE parts && ARRAY[$1]"
-                       "      AND parts[1:way_off] && ARRAY[$1];\n"
-                       "PREPARE mark_rels_by_way(int8) AS"
-                       "  SELECT id FROM {schema}{prefix}_rels"
-                       "    WHERE parts && ARRAY[$1]"
-                       "      AND parts[way_off+1:rel_off] && ARRAY[$1];\n";
+    sql.prepare_fw_dep_lookups =
+        "PREPARE mark_rels_by_node(int8) AS"
+        "  SELECT id FROM {schema}{prefix}_rels"
+        "    WHERE parts && ARRAY[$1]"
+        "      AND parts[1:way_off] && ARRAY[$1];\n"
+        "PREPARE mark_rels_by_way(int8) AS"
+        "  SELECT id FROM {schema}{prefix}_rels"
+        "    WHERE parts && ARRAY[$1]"
+        "      AND parts[way_off+1:rel_off] && ARRAY[$1];\n";
 
-    sql.create_index = "CREATE INDEX ON {schema}{prefix}_rels USING GIN (parts)"
-                       "  WITH (fastupdate = off) {index_tablespace};\n";
+    sql.create_fw_dep_indexes =
+        "CREATE INDEX ON {schema}{prefix}_rels USING GIN (parts)"
+        "  WITH (fastupdate = off) {index_tablespace};\n";
 
     return sql;
 }

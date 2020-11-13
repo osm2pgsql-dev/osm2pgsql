@@ -151,11 +151,11 @@ Mandatory arguments to long options are mandatory for short options too.
     single large file. This mode is only recommended for full planet imports
     as it doesn't work well with small imports. The default is disabled.
 
---middle-schema=SCHEMA
+\--middle-schema=SCHEMA
 :   Use PostgreSQL schema SCHEMA for all tables, indexes, and functions in
     the middle (default is no schema, i.e. the `public` schema is used).
 
---middle-way-node-index-id-shift=SHIFT
+\--middle-way-node-index-id-shift=SHIFT
 :   Set ID shift for way node bucket index in middle. Experts only. See
     documentation for details.
 
@@ -245,7 +245,7 @@ Mandatory arguments to long options are mandatory for short options too.
 \--reproject-area
 :   Compute area column using spherical mercator coordinates.
 
---output-pgsql-schema=SCHEMA
+\--output-pgsql-schema=SCHEMA
 :   Use PostgreSQL schema SCHEMA for all tables, indexes, and functions in
     the pgsql and multi outputs (default is no schema, i.e. the `public` schema
     is used).
@@ -269,6 +269,10 @@ Mandatory arguments to long options are mandatory for short options too.
 
 \--number-processes=THREADS
 :   Specifies the number of parallel threads used for certain operations.
+
+\--with-forward-dependencies=BOOL
+:   Propagate changes from nodes to ways and node/way members to relations
+    (Default: `true`).
 
 # SEE ALSO
 

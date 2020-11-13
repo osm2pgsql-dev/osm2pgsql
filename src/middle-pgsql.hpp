@@ -48,8 +48,8 @@ struct table_sql {
     char const *name = "";
     char const *create_table = "";
     char const *prepare_query = "";
-    char const *prepare_mark = "";
-    char const *create_index = "";
+    char const *prepare_fw_dep_lookups = "";
+    char const *create_fw_dep_indexes = "";
 };
 
 struct middle_pgsql_t : public slim_middle_t
@@ -87,10 +87,10 @@ struct middle_pgsql_t : public slim_middle_t
         void stop(std::string const &conninfo, bool droptemp,
                   bool build_indexes);
 
-        std::string m_create;
+        std::string m_create_table;
         std::string m_prepare_query;
-        std::string m_prepare_intarray;
-        std::string m_array_indexes;
+        std::string m_prepare_fw_dep_lookups;
+        std::string m_create_fw_dep_indexes;
 
         std::shared_ptr<db_target_descr_t> m_copy_target;
     };

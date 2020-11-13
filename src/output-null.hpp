@@ -23,8 +23,6 @@ public:
     void sync() override {}
     void cleanup() {}
 
-    bool need_forward_dependencies() const noexcept override { return false; }
-
     void pending_way(osmid_t) override {}
     void pending_relation(osmid_t) override {}
 

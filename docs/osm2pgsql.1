@@ -219,14 +219,14 @@ The default is disabled.
 .RS
 .RE
 .TP
-.B \[en]middle\-schema=SCHEMA
+.B \-\-middle\-schema=SCHEMA
 Use PostgreSQL schema SCHEMA for all tables, indexes, and functions in
 the middle (default is no schema, i.e.\ the \f[C]public\f[] schema is
 used).
 .RS
 .RE
 .TP
-.B \[en]middle\-way\-node\-index\-id\-shift=SHIFT
+.B \-\-middle\-way\-node\-index\-id\-shift=SHIFT
 Set ID shift for way node bucket index in middle.
 Experts only.
 See documentation for details.
@@ -369,7 +369,7 @@ Compute area column using spherical mercator coordinates.
 .RS
 .RE
 .TP
-.B \[en]output\-pgsql\-schema=SCHEMA
+.B \-\-output\-pgsql\-schema=SCHEMA
 Use PostgreSQL schema SCHEMA for all tables, indexes, and functions in
 the pgsql and multi outputs (default is no schema, i.e.\ the
 \f[C]public\f[] schema is used).
@@ -402,6 +402,12 @@ index after the other.
 .TP
 .B \-\-number\-processes=THREADS
 Specifies the number of parallel threads used for certain operations.
+.RS
+.RE
+.TP
+.B \-\-with\-forward\-dependencies=BOOL
+Propagate changes from nodes to ways and node/way members to relations
+(Default: \f[C]true\f[]).
 .RS
 .RE
 .SH SEE ALSO
