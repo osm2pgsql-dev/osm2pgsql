@@ -6,6 +6,7 @@ runs:
   steps:
     - name: Remove preinstalled postgresql
       run: |
+        sudo apt update -qq
         sudo apt-get remove -yq postgresql*
       shell: bash
 
