@@ -52,6 +52,13 @@ option(EXTERNAL_LIBOSMIUM "Do not use the bundled libosmium" OFF)
 option(EXTERNAL_PROTOZERO "Do not use the bundled protozero" OFF)
 option(EXTERNAL_FMT       "Do not use the bundled fmt"       OFF)
 
+if (NOT WIN32 AND NOT APPLE)
+    # No need for this path, just a workaround to make cmake work on all systems.
+    # Without this we need the PostgreSQL server libraries installed.
+    # https://stackoverflow.com/questions/13920383/findpostgresql-cmake-wont-work-on-ubuntu
+    set(PostgreSQL_TYPE_INCLUDE_DIR /usr/include)
+endif()
+
 set(MINIMUM_POSTGRESQL_SERVER_VERSION "9.3")
 set(MINIMUM_POSTGRESQL_SERVER_VERSION_NUM "90300")
 
