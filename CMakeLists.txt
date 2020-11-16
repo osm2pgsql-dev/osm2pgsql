@@ -55,7 +55,7 @@ option(EXTERNAL_FMT       "Do not use the bundled fmt"       OFF)
 set(MINIMUM_POSTGRESQL_SERVER_VERSION "9.3")
 set(MINIMUM_POSTGRESQL_SERVER_VERSION_NUM "90300")
 
-set(PostgreSQL_ADDITIONAL_VERSIONS "9.3" "9.4" "9.5" "9.6" "10" "11" "12" "13")
+set(PostgreSQL_ADDITIONAL_VERSIONS "13" "12" "11" "10" "9.6" "9.5" "9.4" "9.3")
 
 #############################################################
 # Version
