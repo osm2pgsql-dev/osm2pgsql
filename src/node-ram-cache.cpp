@@ -4,6 +4,7 @@
 */
 
 #include "format.hpp"
+#include "logging.hpp"
 #include "node-ram-cache.hpp"
 #include "osmtypes.hpp"
 #include "util.hpp"
@@ -242,10 +243,9 @@ void node_ram_cache::set_dense(osmid_t id, osmium::Location location)
 
         if (queue[expectedpos] != &blocks[block]) {
             if (m_warn_node_order) {
-                fmt::print(stderr,
-                           "WARNING: Found out of order node {}"
-                           " ({},{}) - this will impact the cache efficiency\n",
-                           id, block, offset);
+                log_warn("Found out of order node {}"
+                         " ({},{}) - this will impact the cache efficiency",
+                         id, block, offset);
 
                 // Only warn once
                 m_warn_node_order = false;
@@ -308,7 +308,7 @@ node_ram_cache::node_ram_cache(int strategy, int cacheSizeMB)
     maxSparseTuples = (cacheSize / sizeof(ramNodeID)) + 1;
 
     if ((allocStrategy & ALLOC_DENSE) > 0) {
-        fprintf(stderr, "Allocating memory for dense node cache\n");
+        log_info("Allocating memory for dense node cache");
         blocks = (ramNodeBlock *)calloc(num_blocks(), sizeof(ramNodeBlock));
         if (!blocks) {
             throw std::runtime_error{
@@ -321,13 +321,12 @@ node_ram_cache::node_ram_cache(int strategy, int cacheSizeMB)
          * once it is needed.
          */
         if ((allocStrategy & ALLOC_DENSE_CHUNK) > 0) {
-            fprintf(stderr,
-                    "Allocating dense node cache in block sized chunks\n");
+            log_info("Allocating dense node cache in block sized chunks");
             if (!queue) {
                 throw std::runtime_error{"Out of memory, reduce --cache size."};
             }
         } else {
-            fprintf(stderr, "Allocating dense node cache in one big chunk\n");
+            log_info("Allocating dense node cache in one big chunk");
             blockCache = (char *)malloc((maxBlocks + 1024) * per_block() *
                                         sizeof(osmium::Location));
             if (!queue || !blockCache) {
@@ -346,12 +345,12 @@ node_ram_cache::node_ram_cache(int strategy, int cacheSizeMB)
      */
 
     if ((allocStrategy & ALLOC_SPARSE) > 0) {
-        fprintf(stderr, "Allocating memory for sparse node cache\n");
+        log_info("Allocating memory for sparse node cache");
         if (!blockCache) {
             sparseBlock =
                 (ramNodeID *)malloc(maxSparseTuples * sizeof(ramNodeID));
         } else {
-            fprintf(stderr, "Sharing dense sparse\n");
+            log_info("Sharing dense sparse");
             sparseBlock = (ramNodeID *)blockCache;
         }
         if (!sparseBlock) {
@@ -360,11 +359,9 @@ node_ram_cache::node_ram_cache(int strategy, int cacheSizeMB)
         }
     }
 
-    fmt::print(
-        stderr,
-        "Node-cache: cache={}MB, maxblocks={}*{}, allocation method={}\n",
-        (cacheSize >> 20U), maxBlocks, per_block() * sizeof(osmium::Location),
-        allocStrategy);
+    log_info("Node-cache: cache={}MB, maxblocks={}*{}, allocation method={}",
+             (cacheSize >> 20U), maxBlocks,
+             per_block() * sizeof(osmium::Location), allocStrategy);
 }
 
 node_ram_cache::~node_ram_cache()
@@ -373,11 +370,10 @@ node_ram_cache::~node_ram_cache()
         return;
     }
 
-    fmt::print(
-        stderr,
+    log_info(
         "node cache: stored: {}"
         "({:.2f}%), storage efficiency: {:.2f}% (dense blocks: {}, "
-        "sparse nodes: {}), hit rate: {:.2f}%\n",
+        "sparse nodes: {}), hit rate: {:.2f}%",
         storedNodes, totalNodes == 0 ? 0.0f : 100.0f * storedNodes / totalNodes,
         cacheUsed == 0
             ? 0.0f

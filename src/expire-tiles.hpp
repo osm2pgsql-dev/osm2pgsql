@@ -4,6 +4,7 @@
 #include <memory>
 #include <unordered_set>
 
+#include "logging.hpp"
 #include "osmtypes.hpp"
 #include "pgsql.hpp"
 
@@ -30,7 +31,6 @@ struct xy_coord_t
 class tile_output_t
 {
     FILE *outfile;
-    uint32_t outcount = 0;
 
 public:
     tile_output_t(char const *filename);
@@ -93,6 +93,7 @@ struct expire_tiles
          * last_quadkey is initialized with a value which is not expected to exist
          * (larger than largest possible quadkey). */
         uint64_t last_quadkey = 1ULL << (2 * maxzoom);
+        std::size_t count = 0;
         for (std::vector<uint64_t>::const_iterator it = tiles_maxzoom.cbegin();
              it != tiles_maxzoom.cend(); ++it) {
             for (uint32_t dz = 0; dz <= maxzoom - minzoom; ++dz) {
@@ -107,9 +108,11 @@ struct expire_tiles
                 }
                 xy_coord_t xy = quadkey_to_xy(qt_current, maxzoom - dz);
                 output_writer.output_dirty_tile(xy.x, xy.y, maxzoom - dz);
+                ++count;
             }
             last_quadkey = *it;
         }
+        log_info("Wrote {} entries to expired tiles list", count);
     }
 
     /**

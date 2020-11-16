@@ -21,6 +21,7 @@
 #include <unistd.h>
 
 #include "expire-tiles.hpp"
+#include "logging.hpp"
 #include "middle.hpp"
 #include "node-ram-cache.hpp"
 #include "options.hpp"
@@ -343,8 +344,8 @@ output_pgsql_t::output_pgsql_t(
   buffer(32768, osmium::memory::Buffer::auto_grow::yes),
   rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
 {
-    fmt::print(stderr, "Using projection SRS {} ({})\n",
-               o.projection->target_srs(), o.projection->target_desc());
+    log_info("Using projection SRS {} ({})", o.projection->target_srs(),
+             o.projection->target_desc());
 
     export_list exlist;
 

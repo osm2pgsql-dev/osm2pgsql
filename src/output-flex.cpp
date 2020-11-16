@@ -3,6 +3,7 @@
 
 #include "expire-tiles.hpp"
 #include "geom-transform.hpp"
+#include "logging.hpp"
 #include "lua-init.hpp"
 #include "lua-utils.hpp"
 #include "middle.hpp"
@@ -635,10 +636,9 @@ void output_flex_t::setup_id_columns(flex_table_t *table)
     assert(table);
     lua_getfield(lua_state(), -1, "ids");
     if (lua_type(lua_state(), -1) != LUA_TTABLE) {
-        fmt::print(stderr,
-                   "WARNING! Table '{}' doesn't have an 'ids' column. Updates"
-                   " and expire will not work!\n",
-                   table->name());
+        log_warn("Table '{}' doesn't have an 'ids' column. Updates"
+                 " and expire will not work!",
+                 table->name());
         lua_pop(lua_state(), 1); // ids
         return;
     }
@@ -1483,11 +1483,10 @@ void output_flex_t::init_lua(std::string const &filename)
 idset_t const &output_flex_t::get_marked_way_ids()
 {
     if (m_stage2_way_ids->empty()) {
-        fmt::print(stderr, "Skipping stage 1c (no marked ways).\n");
+        log_info("Skipping stage 1c (no marked ways).");
     } else {
-        fmt::print(stderr,
-                   "Entering stage 1c processing of {} ways...\n"_format(
-                       m_stage2_way_ids->size()));
+        log_info("Entering stage 1c processing of {} ways..."_format(
+            m_stage2_way_ids->size()));
         m_stage2_way_ids->sort_unique();
     }
 
@@ -1497,14 +1496,14 @@ idset_t const &output_flex_t::get_marked_way_ids()
 void output_flex_t::reprocess_marked()
 {
     if (m_stage2_way_ids->empty()) {
-        fmt::print(stderr, "No marked ways (Skipping stage 2).\n");
+        log_info("No marked ways (Skipping stage 2).");
         return;
     }
 
-    fmt::print(stderr, "Reprocess marked ways (stage 2)...\n");
+    log_info("Reprocess marked ways (stage 2)...");
 
     if (!m_options.append) {
-        fmt::print(stderr, "Creating id indexes...\n");
+        log_info("Creating id indexes...");
         util::timer_t timer;
 
         for (auto &table : m_table_connections) {
@@ -1513,21 +1512,21 @@ void output_flex_t::reprocess_marked()
             }
         }
 
-        fmt::print(stderr, "  Creating id indexes took {}\n"_format(
-                               util::human_readable_duration(timer.stop())));
+        log_info("Creating id indexes took {}"_format(
+            util::human_readable_duration(timer.stop())));
     }
 
     lua_gc(lua_state(), LUA_GCCOLLECT, 0);
-    fmt::print(stderr, "Lua program uses {} MBytes\n",
-               lua_gc(lua_state(), LUA_GCCOUNT, 0) / 1024);
+    log_debug("Lua program uses {} MBytes",
+              lua_gc(lua_state(), LUA_GCCOUNT, 0) / 1024);
 
     lua_getglobal(lua_state(), "osm2pgsql");
     lua_pushinteger(lua_state(), 2);
     lua_setfield(lua_state(), -2, "stage");
     lua_pop(lua_state(), 1); // osm2pgsql
 
-    fmt::print(stderr, "There are {} ways to reprocess...\n"_format(
-                           m_stage2_way_ids->size()));
+    log_info(
+        "There are {} ways to reprocess..."_format(m_stage2_way_ids->size()));
 
     m_stage2_way_ids->sort_unique();
     for (osmid_t const id : *m_stage2_way_ids) {

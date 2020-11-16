@@ -25,6 +25,7 @@
 
 #include "db-check.hpp"
 #include "format.hpp"
+#include "logging.hpp"
 #include "middle-pgsql.hpp"
 #include "middle-ram.hpp"
 #include "options.hpp"
@@ -51,7 +52,7 @@ static std::shared_ptr<middle_t> create_middle(options_t const &options)
 int main(int argc, char *argv[])
 {
     try {
-        fmt::print(stderr, "osm2pgsql version {}\n\n", get_osm2pgsql_version());
+        log_info("osm2pgsql version {}", get_osm2pgsql_version());
 
         options_t const options{argc, argv};
         if (options.long_usage_bool) {
@@ -81,7 +82,7 @@ int main(int argc, char *argv[])
         // populating some of the tables.
         progress_display_t progress;
         for (auto const &filename : options.input_files) {
-            fmt::print(stderr, "\nReading in file: {}\n", filename);
+            log_info("Reading file: {}", filename);
             util::timer_t timer_parse;
 
             osmium::io::File file{filename, options.input_format};
@@ -96,9 +97,11 @@ int main(int argc, char *argv[])
 
             progress.update(osmdata.process_file(file, options.bbox));
 
-            progress.print_status(std::time(nullptr));
-            fmt::print(stderr, "  parse time: {}\n",
-                       util::human_readable_duration(timer_parse.stop()));
+            if (get_logger().show_progress()) {
+                progress.print_status(std::time(nullptr));
+                fmt::print(stderr, "  parse time: {}\n",
+                           util::human_readable_duration(timer_parse.stop()));
+            }
         }
 
         progress.print_summary();
@@ -107,10 +110,10 @@ int main(int argc, char *argv[])
         // create indexes.
         osmdata.stop();
 
-        fmt::print(stderr, "\nOsm2pgsql took {} overall\n",
-                   util::human_readable_duration(timer_overall.stop()));
+        log_info("Osm2pgsql took {} overall",
+                 util::human_readable_duration(timer_overall.stop()));
     } catch (std::exception const &e) {
-        fmt::print(stderr, "Osm2pgsql failed due to ERROR: {}\n", e.what());
+        log_error("{}", e.what());
         return 1;
     }
     return 0;

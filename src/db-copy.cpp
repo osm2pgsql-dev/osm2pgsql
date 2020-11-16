@@ -2,6 +2,7 @@
 
 #include "db-copy.hpp"
 #include "format.hpp"
+#include "logging.hpp"
 #include "pgsql.hpp"
 
 void db_deleter_by_id_t::delete_rows(std::string const &table,
@@ -151,7 +152,7 @@ void db_copy_thread_t::thread_t::operator()()
 
         m_conn.reset();
     } catch (std::runtime_error const &e) {
-        fmt::print(stderr, "DB copy thread failed: {}\n", e.what());
+        log_error("DB copy thread failed: {}", e.what());
         exit(2);
     }
 }

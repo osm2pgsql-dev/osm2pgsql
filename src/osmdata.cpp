@@ -15,6 +15,7 @@
 #include "db-copy.hpp"
 #include "format.hpp"
 #include "input-handler.hpp"
+#include "logging.hpp"
 #include "middle.hpp"
 #include "options.hpp"
 #include "osmdata.hpp"
@@ -297,7 +298,9 @@ private:
             queue_size = queue->size();
             mutex->unlock();
 
-            fmt::print(stderr, "\rLeft to process: {}...", queue_size);
+            if (get_logger().show_progress()) {
+                fmt::print(stderr, "\rLeft to process: {}...", queue_size);
+            }
 
             std::this_thread::sleep_for(std::chrono::seconds{1});
         } while (queue_size > 0);
@@ -308,9 +311,12 @@ private:
     {
         auto const ids_queued = list.size();
 
-        fmt::print(stderr, "\nGoing over pending {}s...\n", type);
-        fmt::print(stderr, "\t{} {}s are pending\n", ids_queued, type);
-        fmt::print(stderr, "\nUsing {} helper-processes\n", m_clones.size());
+        if (get_logger().show_progress()) {
+            fmt::print(stderr, "\nGoing over pending {}s...\n", type);
+            fmt::print(stderr, "\t{} {}s are pending\n", ids_queued, type);
+            fmt::print(stderr, "\nUsing {} helper-processes\n",
+                       m_clones.size());
+        }
 
         util::timer_t timer;
         std::vector<std::future<void>> workers;
@@ -337,14 +343,16 @@ private:
 
         timer.stop();
 
-        fmt::print(stderr, "\rFinished processing {} {}s in {}\n\n", ids_queued,
-                   type, util::human_readable_duration(timer.elapsed()));
+        if (get_logger().show_progress()) {
+            fmt::print(stderr, "\rFinished processing {} {}s in {}\n\n",
+                       ids_queued, type,
+                       util::human_readable_duration(timer.elapsed()));
+        }
 
         if (timer.elapsed() > 0) {
-            fmt::print(stderr,
-                       "{} pending {}s took {}s at a rate of {:.2f}/s\n",
-                       ids_queued, type, timer.elapsed(),
-                       timer.per_second(ids_queued));
+            log_info("{} pending {}s took {} at a rate of {:.2f}/s", ids_queued,
+                     type, util::human_readable_duration(timer.elapsed()),
+                     timer.per_second(ids_queued));
         }
     }
 
@@ -368,8 +376,7 @@ progress_display_t osmdata_t::process_file(osmium::io::File const &file,
             "Reading an OSM change file only works in append mode."};
     }
 
-    fmt::print(stderr, "Using {} parser.\n",
-               osmium::io::as_string(file.format()));
+    log_info("Using {} parser.", osmium::io::as_string(file.format()));
 
     check_order_t check_order{};
     input_handler_t handler{bbox, m_append, this};

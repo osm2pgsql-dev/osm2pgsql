@@ -1,5 +1,6 @@
 /* Helper functions for the postgresql connections */
 #include "format.hpp"
+#include "logging.hpp"
 #include "pgsql.hpp"
 #include "util.hpp"
 
@@ -14,8 +15,8 @@ pg_conn_t::pg_conn_t(std::string const &conninfo)
         throw std::runtime_error{"Connecting to database failed."};
     }
     if (PQstatus(m_conn.get()) != CONNECTION_OK) {
-        fmt::print(stderr, "Connection to database failed: {}\n", error_msg());
-        throw std::runtime_error{"Connecting to database."};
+        throw std::runtime_error{
+            "Connecting to database failed: {}."_format(error_msg())};
     }
 }
 
@@ -26,14 +27,10 @@ char const *pg_conn_t::error_msg() const noexcept
 
 pg_result_t pg_conn_t::query(ExecStatusType expect, char const *sql) const
 {
-#ifdef DEBUG_PGSQL
-    fmt::print(stderr, "Executing: {}\n", sql);
-#endif
+    log_sql("{}", sql);
     pg_result_t res{PQexec(m_conn.get(), sql)};
     if (PQresultStatus(res.get()) != expect) {
-        fmt::print(stderr, "SQL command failed: {}\nFull query: {}\n",
-                   error_msg(), sql);
-        throw std::runtime_error{"Executing SQL."};
+        throw std::runtime_error{"Database error: {}"_format(error_msg())};
     }
     return res;
 }
@@ -72,9 +69,7 @@ void pg_conn_t::exec(std::string const &sql) const
 void pg_conn_t::copy_data(std::string const &sql,
                           std::string const &context) const
 {
-#ifdef DEBUG_PGSQL
-    fmt::print(stderr, "{}>>> {}\n", context, sql);
-#endif
+    log_sql_data("Copy data to '{}':\n{}", context, sql);
     int const r = PQputCopyData(m_conn.get(), sql.c_str(), (int)sql.size());
 
     if (r == 1) {
@@ -83,18 +78,18 @@ void pg_conn_t::copy_data(std::string const &sql,
 
     switch (r) {
     case 0: // need to wait for write ready
-        fmt::print(stderr, "{} - COPY unexpectedly busy\n", context);
+        log_error("{} - COPY unexpectedly busy", context);
         break;
     case -1: // error occurred
-        fmt::print(stderr, "{} - error on COPY: {}\n", context, error_msg());
+        log_error("{} - error on COPY: {}", context, error_msg());
         break;
     }
 
     if (sql.size() < 1100) {
-        fmt::print(stderr, "Data:\n{}\n", sql);
+        log_error("Data: {}", sql);
     } else {
-        fmt::print(stderr, "Data:\n{}\n...\n{}\n", std::string(sql, 0, 500),
-                   std::string(sql, sql.size() - 500));
+        log_error("Data: {}\n...\n{}", std::string(sql, 0, 500),
+                  std::string(sql, sql.size() - 500));
     }
 
     throw std::runtime_error{"COPYing data to Postgresql."};
@@ -103,16 +98,14 @@ void pg_conn_t::copy_data(std::string const &sql,
 void pg_conn_t::end_copy(std::string const &context) const
 {
     if (PQputCopyEnd(m_conn.get(), nullptr) != 1) {
-        fmt::print(stderr, "COPY END for {} failed: {}\n", context,
-                   error_msg());
-        throw std::runtime_error{"Ending COPY mode."};
+        throw std::runtime_error{"Ending COPY mode for '{}' failed: {}."_format(
+            context, error_msg())};
     }
 
     pg_result_t const res{PQgetResult(m_conn.get())};
     if (PQresultStatus(res.get()) != PGRES_COMMAND_OK) {
-        fmt::print(stderr, "result COPY END for {} failed: {}\n", context,
-                   error_msg());
-        throw std::runtime_error{"Ending COPY mode."};
+        throw std::runtime_error{fmt::format(
+            "Ending COPY mode for '{}' failed: {}.", context, error_msg())};
     }
 }
 
@@ -120,23 +113,31 @@ pg_result_t
 pg_conn_t::exec_prepared_internal(char const *stmt, int num_params,
                                   char const *const *param_values) const
 {
-#ifdef DEBUG_PGSQL
-    fmt::print(stderr, "ExecPrepared: {}\n", stmt);
-#endif
+    if (get_logger().log_sql()) {
+        std::string params;
+        for (int i = 0; i < num_params; ++i) {
+            params += param_values[i] ? param_values[i] : "<NULL>";
+            params += ',';
+        }
+        if (!params.empty()) {
+            params.resize(params.size() - 1);
+        }
+        log_sql("EXECUTE {}({})", stmt, params);
+    }
     pg_result_t res{PQexecPrepared(m_conn.get(), stmt, num_params, param_values,
                                    nullptr, nullptr, 0)};
     if (PQresultStatus(res.get()) != PGRES_TUPLES_OK) {
-        fmt::print(stderr, "Prepared statement failed with: {} ({})\n",
-                   error_msg(), PQresultStatus(res.get()));
-        fmt::print(stderr, "Query: {}\n", stmt);
-        if (num_params) {
-            fmt::print(stderr, "with arguments:\n");
-            for (int i = 0; i < num_params; ++i) {
-                fmt::print(stderr, "  {}: {}\n, ", i,
-                           param_values[i] ? param_values[i] : "<NULL>");
-            }
+        std::string params;
+        for (int i = 0; i < num_params; ++i) {
+            params += param_values[i] ? param_values[i] : "<NULL>";
+            params += ',';
         }
-        throw std::runtime_error{"Executing prepared statement."};
+        if (!params.empty()) {
+            params.resize(params.size() - 1);
+        }
+        log_error("SQL command failed: EXECUTE {}({})", stmt, params);
+        throw std::runtime_error{"Database error: {} ({})"_format(
+            error_msg(), PQresultStatus(res.get()))};
     }
 
     return res;

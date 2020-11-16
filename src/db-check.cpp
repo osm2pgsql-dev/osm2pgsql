@@ -1,5 +1,5 @@
 #include "db-check.hpp"
-#include "format.hpp"
+#include "logging.hpp"
 #include "pgsql.hpp"
 #include "version.hpp"
 
@@ -28,7 +28,7 @@ void check_db(options_t const &options)
     auto const settings = get_postgresql_settings(db_connection);
 
     try {
-        fmt::print("Database version: {}\n", settings.at("server_version"));
+        log_info("Database version: {}", settings.at("server_version"));
 
         auto const version_str = settings.at("server_version_num");
         auto const version = std::strtoul(version_str.c_str(), nullptr, 10);
