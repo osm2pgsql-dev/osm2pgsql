@@ -16,7 +16,7 @@ runs:
 
       - name: configure
         run: |
-          CMAKE_OPTIONS="-DPostgreSQL_TYPE_INCLUDE_DIR=/usr/include -LA -DBUILD_TESTS=ON"
+          CMAKE_OPTIONS="-LA -DBUILD_TESTS=ON"
           if [ -z "${LUA_VERSION}" ]; then
             CMAKE_OPTIONS="$CMAKE_OPTIONS -DWITH_LUA=OFF"
           else
