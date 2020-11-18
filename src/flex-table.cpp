@@ -167,25 +167,6 @@ void table_connection_t::start(bool append)
             table().has_geom_column() ? flex_table_t::table_type::interim
                                       : flex_table_t::table_type::permanent,
             table().full_name()));
-    } else {
-        //check the columns against those in the existing table
-        auto const res = m_db_connection->query(
-            PGRES_TUPLES_OK,
-            "SELECT * FROM {} LIMIT 0"_format(table().full_name()));
-
-        for (auto const &column : table()) {
-            if (res.get_column_number(column.name()) < 0) {
-                log_info("Adding new column '{}' to '{}'", column.name(),
-                         table().name());
-                m_db_connection->exec(
-                    "ALTER TABLE {} ADD COLUMN \"{}\" {}"_format(
-                        table().full_name(), column.name(),
-                        column.sql_type_name()));
-            }
-            // Note: we do not verify the type or delete unused columns
-        }
-
-        //TODO: change the type of the geometry column if needed - this can only change to a more permissive type
     }
 
     prepare();
