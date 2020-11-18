@@ -8,6 +8,7 @@
 #include "domain-matcher.hpp"
 #include "format.hpp"
 #include "gazetteer-style.hpp"
+#include "logging.hpp"
 #include "pgsql.hpp"
 #include "wkb.hpp"
 
@@ -81,7 +82,7 @@ std::string gazetteer_style_t::class_list() const
 
 void gazetteer_style_t::load_style(std::string const &filename)
 {
-    fmt::print(stderr, "Parsing gazetteer style file '{}'.\n", filename);
+    log_info("Parsing gazetteer style file '{}'.", filename);
     pt::ptree root;
 
     pt::read_json(filename, root);

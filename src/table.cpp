@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "format.hpp"
+#include "logging.hpp"
 #include "options.hpp"
 #include "pgsql-helper.hpp"
 #include "table.hpp"
@@ -74,7 +75,7 @@ void table_t::start(std::string const &conninfo, std::string const &table_space)
     m_table_space = tablespace_clause(table_space);
 
     connect();
-    fmt::print(stderr, "Setting up table: {}\n", m_target->name);
+    log_info("Setting up table: {}", m_target->name);
     m_sql_conn->exec("SET client_min_messages = WARNING");
     auto const qual_name = qualified_name(m_target->schema, m_target->name);
     auto const qual_tmp_name = qualified_name(
@@ -129,8 +130,8 @@ void table_t::start(std::string const &conninfo, std::string const &table_space)
             PGRES_TUPLES_OK, "SELECT * FROM {} LIMIT 0"_format(qual_name));
         for (auto const &column : m_columns) {
             if (res.get_column_number(column.name) < 0) {
-                fmt::print(stderr, "Adding new column \"{}\" to \"{}\"\n",
-                           column.name, m_target->name);
+                log_info("Adding new column \"{}\" to \"{}\"", column.name,
+                         m_target->name);
                 m_sql_conn->exec("ALTER TABLE {} ADD COLUMN \"{}\" {}"_format(
                     m_target->name, column.name, column.type_name));
             }
@@ -193,8 +194,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
     if (!m_append) {
         util::timer_t timer;
 
-        fmt::print(stderr, "Sorting data and creating indexes for {}\n",
-                   m_target->name);
+        log_info("Sorting data and creating indexes for {}", m_target->name);
 
         // Notices about invalid geometries are expected and can be ignored
         // because they say nothing about the validity of the geometry in OSM.
@@ -215,7 +215,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
 
         sql += " ORDER BY ";
         if (postgis_version.major == 2 && postgis_version.minor < 4) {
-            fmt::print(stderr, "Using GeoHash for clustering\n");
+            log_info("Using GeoHash for clustering");
             if (m_srid == "4326") {
                 sql += "ST_GeoHash(way,10)";
             } else {
@@ -223,7 +223,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
             }
             sql += " COLLATE \"C\"";
         } else {
-            fmt::print(stderr, "Using native order for clustering\n");
+            log_info("Using native order for clustering");
             // Since Postgis 2.4 the order function for geometries gives
             // useful results.
             sql += "way";
@@ -234,9 +234,8 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
         m_sql_conn->exec("DROP TABLE {}"_format(qual_name));
         m_sql_conn->exec(
             "ALTER TABLE {} RENAME TO {}"_format(qual_tmp_name, m_target->name));
-        fmt::print(stderr, "Copying {} to cluster by geometry finished\n",
-                   m_target->name);
-        fmt::print(stderr, "Creating geometry index on {}\n", m_target->name);
+        log_info("Copying {} to cluster by geometry finished", m_target->name);
+        log_info("Creating geometry index on {}", m_target->name);
 
         // Use fillfactor 100 for un-updatable imports
         m_sql_conn->exec("CREATE INDEX ON {} USING GIST (way) {} {}"_format(
@@ -245,7 +244,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
 
         /* slim mode needs this to be able to apply diffs */
         if (updateable) {
-            fmt::print(stderr, "Creating osm_id index on {}\n", m_target->name);
+            log_info("Creating osm_id index on {}", m_target->name);
             m_sql_conn->exec(
                 "CREATE INDEX ON {} USING BTREE (osm_id) {}"_format(
                     qual_name, tablespace_clause(table_space_index)));
@@ -256,8 +255,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
         }
         /* Create hstore index if selected */
         if (enable_hstore_index) {
-            fmt::print(stderr, "Creating hstore indexes on {}\n",
-                       m_target->name);
+            log_info("Creating hstore indexes on {}", m_target->name);
             if (m_hstore_mode != hstore_column::none) {
                 m_sql_conn->exec(
                     "CREATE INDEX ON {} USING GIN (tags) {}"_format(
@@ -270,14 +268,14 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
                         tablespace_clause(table_space_index)));
             }
         }
-        fmt::print(stderr, "Creating indexes on {} finished\n", m_target->name);
+        log_info("Creating indexes on {} finished", m_target->name);
         m_sql_conn->exec("ANALYZE {}"_format(qual_name));
-        fmt::print(stderr, "All indexes on {} created in {}\n", m_target->name,
-                   util::human_readable_duration(timer.stop()));
+        log_info("All indexes on {} created in {}", m_target->name,
+                 util::human_readable_duration(timer.stop()));
     }
     teardown();
 
-    fmt::print(stderr, "Completed {}\n", m_target->name);
+    log_info("Completed table {}", m_target->name);
 }
 
 void table_t::delete_row(osmid_t const id)

@@ -20,6 +20,7 @@
 #include <osmium/osm/types_from_string.hpp>
 
 #include "format.hpp"
+#include "logging.hpp"
 #include "middle-pgsql.hpp"
 #include "node-persistent-cache.hpp"
 #include "node-ram-cache.hpp"
@@ -87,7 +88,7 @@ void middle_query_pgsql_t::exec_sql(std::string const &sql_cmd) const
 void middle_pgsql_t::table_desc::stop(std::string const &conninfo,
                                       bool droptemp, bool build_indexes)
 {
-    fmt::print(stderr, "Stopping table: {}\n", name());
+    log_info("Stopping table: {}", name());
     util::timer_t timer;
 
     // Use a temporary connection here because we might run in a separate
@@ -99,12 +100,12 @@ void middle_pgsql_t::table_desc::stop(std::string const &conninfo,
             m_copy_target->schema, m_copy_target->name);
         sql_conn.exec("DROP TABLE IF EXISTS {}"_format(qual_name));
     } else if (build_indexes && !m_create_fw_dep_indexes.empty()) {
-        fmt::print(stderr, "Building index on table: {}\n", name());
+        log_info("Building index on table: {}", name());
         sql_conn.exec(m_create_fw_dep_indexes);
     }
 
-    fmt::print(stderr, "Stopped table: {} in {}\n", name(),
-               util::human_readable_duration(timer.stop()));
+    log_info("Stopped table: {} in {}", name(),
+             util::human_readable_duration(timer.stop()));
 }
 
 namespace {
@@ -574,7 +575,7 @@ void middle_pgsql_t::start()
         // (Re)create tables.
         m_db_connection.exec("SET client_min_messages = WARNING");
         for (auto const &table : m_tables) {
-            fmt::print(stderr, "Setting up table: {}\n", table.name());
+            log_info("Setting up table: {}", table.name());
             auto const qual_name = qualified_name(
                 table.m_copy_target->schema, table.m_copy_target->name);
             m_db_connection.exec(
@@ -754,14 +755,13 @@ middle_pgsql_t::middle_pgsql_t(options_t const *options)
         m_persistent_cache.reset(new node_persistent_cache{options, m_cache});
     }
 
-    fmt::print(stderr, "Mid: pgsql, cache={}\n", options->cache);
+    log_info("Mid: pgsql, cache={}", options->cache);
 
     bool const has_bucket_index =
         check_bucket_index(&m_db_connection, options->prefix);
 
     if (!has_bucket_index && options->append) {
-        fmt::print(stderr, "You don't have a bucket index. See"
-                           " docs/bucket-index.md for details.\n");
+        log_warn("You don't have a bucket index. See manual for details.");
     }
 
     m_tables[NODE_TABLE] =

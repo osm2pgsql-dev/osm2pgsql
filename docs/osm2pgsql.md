@@ -47,6 +47,26 @@ Mandatory arguments to long options are mandatory for short options too.
 -V, \--version
 :   Print osm2pgsql version.
 
+# LOGGING OPTIONS
+
+\--log-level=LEVEL
+:   Set log level ('debug', 'info' (default), 'warn', or 'error').
+
+\--log-progress=VALUE
+:   Enable (`true`) or disable (`false`) progress logging. The default is
+    `auto` which will enable progress logging on the console and disable it
+    if the output is redirected to a file.
+
+\--log-sql
+:   Enable logging of SQL commands for debugging.
+
+\--log-sql-data
+:   Enable logging of all data added to the database. This will write out
+    a huge amount of data! For debugging.
+
+-v, \--verbose
+:   Same as `--log-level=debug`.
+
 # DATABASE OPTIONS
 
 -d, \--database=NAME

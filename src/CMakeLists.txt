@@ -9,6 +9,7 @@ set(osm2pgsql_lib_SOURCES
   geometry-processor.cpp
   id-tracker.cpp
   input-handler.cpp
+  logging.cpp
   middle-pgsql.cpp
   middle-ram.cpp
   node-persistent-cache.cpp

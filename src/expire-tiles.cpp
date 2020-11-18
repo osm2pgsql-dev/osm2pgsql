@@ -16,6 +16,7 @@
 
 #include "expire-tiles.hpp"
 #include "format.hpp"
+#include "logging.hpp"
 #include "options.hpp"
 #include "reprojection.hpp"
 #include "table.hpp"
@@ -31,10 +32,9 @@ tile_output_t::tile_output_t(char const *filename)
 : outfile(fopen(filename, "a"))
 {
     if (outfile == nullptr) {
-        fmt::print(stderr,
-                   "Failed to open expired tiles file ({}).  Tile expiry "
-                   "list will not be written!\n",
-                   std::strerror(errno));
+        log_error("Failed to open expired tiles file ({}).  Tile expiry "
+                  "list will not be written!",
+                  std::strerror(errno));
     }
 }
 
@@ -52,10 +52,6 @@ void tile_output_t::output_dirty_tile(uint32_t x, uint32_t y, uint32_t zoom)
     }
 
     fmt::print(outfile, "{}/{}/{}\n", zoom, x, y);
-    ++outcount;
-    if (outcount % 1000 == 0) {
-        fmt::print(stderr, "\rWriting dirty tile list ({}K)", outcount / 1000);
-    }
 }
 
 void expire_tiles::output_and_destroy(char const *filename, uint32_t minzoom)
@@ -297,8 +293,7 @@ void expire_tiles::from_wkb(char const *wkb, osmid_t osm_id)
         break;
     }
     default:
-        fmt::print(stderr, "OSM id {}: Unknown geometry type, cannot expire.\n",
-                   osm_id);
+        log_warn("OSM id {}: Unknown geometry type, cannot expire.", osm_id);
     }
 }
 
@@ -359,10 +354,9 @@ void expire_tiles::from_wkb_polygon(ewkb::parser_t *wkb, osmid_t osm_id)
 
     if (from_bbox(min.x, min.y, max.x, max.y)) {
         /* Bounding box too big - just expire tiles on the line */
-        fmt::print(stderr,
-                   "\rLarge polygon ({:.0f} x {:.0f} metres, OSM ID {}"
-                   ") - only expiring perimeter\n",
-                   max.x - min.x, max.y - min.y, osm_id);
+        log_info("Large polygon ({:.0f} x {:.0f} metres, OSM ID {})"
+                 " - only expiring perimeter",
+                 max.x - min.x, max.y - min.y, osm_id);
         wkb->rewind(start);
         for (unsigned ring = 0; ring < num_rings; ++ring) {
             from_wkb_line(wkb);

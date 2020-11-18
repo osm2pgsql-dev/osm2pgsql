@@ -1,5 +1,6 @@
 #include "config.h"
 #include "format.hpp"
+#include "logging.hpp"
 #include "options.hpp"
 #include "sprompt.hpp"
 
@@ -57,6 +58,10 @@ const struct option long_options[] = {
     {"input-reader", required_argument, nullptr, 'r'},
     {"keep-coastlines", no_argument, nullptr, 'K'},
     {"latlong", no_argument, nullptr, 'l'},
+    {"log-level", required_argument, nullptr, 400},
+    {"log-progress", required_argument, nullptr, 401},
+    {"log-sql", no_argument, nullptr, 402},
+    {"log-sql-data", no_argument, nullptr, 403},
     {"merc", no_argument, nullptr, 'm'},
     {"middle-schema", required_argument, nullptr, 215},
     {"middle-way-node-index-id-shift", required_argument, nullptr, 300},
@@ -236,6 +241,10 @@ void long_usage(char const *arg0, bool verbose)
                         By default natural=coastline tagged data will be discarded\n\
                         because renderers usually have shape files for them.\n\
           --reproject-area   compute area column using spherical mercator coordinates.\n\
+          --log-level=LVL Set log level ('debug', 'info' (default), 'warn', or 'error').\n\
+          --log-progress=VAL Log progress ('true', 'false', or 'auto' (default)).\n\
+          --log-sql     Enable logging of SQL commands for debugging.\n\
+          --log-sql-data Enable logging of SQL data for debugging.\n\
        -h|--help        Help information.\n\
        -v|--verbose     Verbose output.\n");
     } else {
@@ -319,8 +328,8 @@ options_t::options_t()
   num_procs((int)std::min(4U, std::thread::hardware_concurrency()))
 {
     if (num_procs < 1) {
-        fprintf(stderr, "WARNING: unable to detect number of hardware threads "
-                        "supported!\n");
+        log_warn("Unable to detect number of hardware threads supported!"
+                 " Using single thread.");
         num_procs = 1;
     }
 }
@@ -348,8 +357,7 @@ static osmium::Box parse_bbox(char const *bbox)
             "Bounding box failed due to maxlat <= minlat."};
     }
 
-    fmt::print(stderr, "Applying Bounding box: {},{} to {},{}\n", minx, miny,
-               maxx, maxy);
+    log_info("Applying bounding box: {},{} to {},{}", minx, miny, maxx, maxy);
 
     return osmium::Box{minx, miny, maxx, maxy};
 }
@@ -381,6 +389,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             break;
         case 'v':
             help_verbose = true;
+            get_logger().set_level(log_level::debug);
             break;
         case 's':
             slim = true;
@@ -490,9 +499,8 @@ options_t::options_t(int argc, char *argv[]) : options_t()
         case 'O':
             output_backend = optarg;
             if (output_backend == "multi") {
-                fprintf(stderr,
-                        "WARNING: 'multi' output is deprecated and will be removed.\n"
-                        "         Please switch to the 'flex' output.\n");
+                log_warn("The 'multi' output is deprecated and will be removed."
+                         "Please switch to the 'flex' output.");
             }
             break;
         case 'x':
@@ -599,6 +607,42 @@ options_t::options_t(int argc, char *argv[]) : options_t()
         case 300:
             way_node_index_id_shift = atoi(optarg);
             break;
+        case 400: // --log-level=LEVEL
+            if (std::strcmp(optarg, "debug") == 0) {
+                get_logger().set_level(log_level::debug);
+            } else if (std::strcmp(optarg, "info") == 0) {
+                get_logger().set_level(log_level::info);
+            } else if ((std::strcmp(optarg, "warn") == 0) ||
+                       (std::strcmp(optarg, "warning") == 0)) {
+                get_logger().set_level(log_level::warn);
+            } else if (std::strcmp(optarg, "error") == 0) {
+                get_logger().set_level(log_level::error);
+            } else {
+                throw std::runtime_error{
+                    "Unknown value for --log-level option: {}"_format(optarg)};
+            }
+            break;
+        case 401: // --log-progress=VALUE
+            if (std::strcmp(optarg, "true") == 0) {
+                log_progress = optarg;
+                get_logger().enable_progress();
+            } else if (std::strcmp(optarg, "false") == 0) {
+                log_progress = optarg;
+                get_logger().disable_progress();
+            } else if (std::strcmp(optarg, "auto") == 0) {
+                log_progress = optarg;
+            } else {
+                throw std::runtime_error{
+                    "Unknown value for --log-progress option: {}"_format(
+                        optarg)};
+            }
+            break;
+        case 402: // --log-sql
+            get_logger().enable_sql();
+            break;
+        case 403: // --log-sql-data
+            get_logger().enable_sql_data();
+            break;
         case '?':
         default:
             short_usage(argv[0]);
@@ -654,63 +698,54 @@ void options_t::check_options()
 
     if (hstore_mode == hstore_column::none && hstore_columns.empty() &&
         hstore_match_only) {
-        fprintf(stderr,
-                "Warning: --hstore-match-only only makes sense with --hstore, "
-                "--hstore-all, or --hstore-column; ignored.\n");
+        log_warn("--hstore-match-only only makes sense with --hstore, "
+                 "--hstore-all, or --hstore-column; ignored.");
         hstore_match_only = false;
     }
 
     if (enable_hstore_index && hstore_mode == hstore_column::none &&
         hstore_columns.empty()) {
-        fprintf(stderr, "Warning: --hstore-add-index only makes sense with "
-                        "hstore enabled.\n");
+        log_warn("--hstore-add-index only makes sense with hstore enabled.");
         enable_hstore_index = false;
     }
 
     if (cache < 0) {
         cache = 0;
-        fprintf(stderr,
-                "WARNING: ram cache cannot be negative. Using 0 instead.\n\n");
+        log_warn("RAM cache cannot be negative. Using 0 instead.");
     }
 
     if (cache == 0) {
         if (!slim) {
             throw std::runtime_error{
-                "Ram node cache can only be disable in slim mode."};
+                "RAM node cache can only be disable in slim mode."};
         }
         if (!flat_node_cache_enabled) {
-            fprintf(stderr, "WARNING: ram cache is disabled. This will likely "
-                            "slow down processing a lot.\n\n");
+            log_warn("RAM cache is disabled. This will likely slow down "
+                     "processing a lot.");
         }
     }
 
     if (num_procs < 1) {
         num_procs = 1;
-        fprintf(stderr, "WARNING: Must use at least 1 process.\n\n");
+        log_warn("Must use at least 1 process.");
     }
 
     if (sizeof(int *) == 4 && !slim) {
-        fprintf(stderr,
-                "\n!! You are running this on 32bit system, so at most\n");
-        fprintf(stderr,
-                "!! 3GB of RAM can be used. If you encounter unexpected\n");
-        fprintf(
-            stderr,
-            "!! exceptions during import, you should try running in slim\n");
-        fprintf(stderr, "!! mode using parameter -s.\n");
+        log_warn(
+            "This is a 32bit system with not a lot of RAM. Try using --slim.");
     }
 
     // zoom level 31 is the technical limit because we use 32-bit integers for the x and y index of a tile ID
     if (expire_tiles_zoom_min >= 32) {
         expire_tiles_zoom_min = 31;
-        fprintf(stderr, "WARNING: minimum zoom level for tile expiry is too "
-                        "large and has been set to 31.\n\n");
+        log_warn("Minimum zoom level for tile expiry is too "
+                 "large and has been set to 31.");
     }
 
     if (expire_tiles_zoom >= 32) {
         expire_tiles_zoom = 31;
-        fprintf(stderr, "WARNING: maximum zoom level for tile expiry is too "
-                        "large and has been set to 31.\n\n");
+        log_warn("Maximum zoom level for tile expiry is too "
+                 "large and has been set to 31.");
     }
 
     if (output_backend == "flex" || output_backend == "gazetteer") {
@@ -718,5 +753,11 @@ void options_t::check_options()
             throw std::runtime_error{
                 "You have to set the config file with the -S|--style option."};
         }
+    }
+
+    if (log_progress.empty() && !get_logger().show_progress()) {
+        log_info("Progress logging disabled because you are not logging to the "
+                 "console.");
+        log_info("  Use --log-progress=true to override this.");
     }
 }

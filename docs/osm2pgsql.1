@@ -56,6 +56,23 @@ Add \f[B]\-v, \-\-verbose\f[] to display more verbose help.
 Print osm2pgsql version.
 .RS
 .RE
+.SH LOGGING OPTIONS
+.TP
+.B \-\-log\-level=LEVEL
+Set log level (`debug', `info' (default), `warn', or `error').
+.RS
+.RE
+.TP
+.B \-\-log\-sql
+Enable logging of SQL commands for debugging.
+.RS
+.RE
+.TP
+.B \-\-log\-sql\-data
+Enable logging of all data added to the database.
+This will write out a huge amount of data! For debugging.
+.RS
+.RE
 .SH DATABASE OPTIONS
 .TP
 .B \-d, \-\-database=NAME

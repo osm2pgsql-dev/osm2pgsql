@@ -1,4 +1,5 @@
 #include "format.hpp"
+#include "logging.hpp"
 #include "taginfo-impl.hpp"
 
 #include <cerrno>
@@ -57,8 +58,7 @@ unsigned parse_tag_flags(std::string const &flags, int lineno)
         if (it != tagflags.end()) {
             temp_flags |= it->second;
         } else {
-            fmt::print(stderr, "Unknown flag '{}' line {}, ignored\n",
-                       flag_name, lineno);
+            log_warn("Unknown flag '{}' line {}, ignored", flag_name, lineno);
         }
     }
 

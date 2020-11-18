@@ -1,5 +1,6 @@
 #include "flex-table.hpp"
 #include "format.hpp"
+#include "logging.hpp"
 #include "pgsql-helper.hpp"
 #include "util.hpp"
 
@@ -174,8 +175,8 @@ void table_connection_t::start(bool append)
 
         for (auto const &column : table()) {
             if (res.get_column_number(column.name()) < 0) {
-                fmt::print(stderr, "Adding new column '{}' to '{}'\n",
-                           column.name(), table().name());
+                log_info("Adding new column '{}' to '{}'", column.name(),
+                         table().name());
                 m_db_connection->exec(
                     "ALTER TABLE {} ADD COLUMN \"{}\" {}"_format(
                         table().full_name(), column.name(),
@@ -204,8 +205,7 @@ void table_connection_t::stop(bool updateable, bool append)
     util::timer_t timer;
 
     if (table().has_geom_column()) {
-        fmt::print(stderr, "Clustering table '{}' by geometry...\n",
-                   table().name());
+        log_info("Clustering table '{}' by geometry...", table().name());
 
         // Notices about invalid geometries are expected and can be ignored
         // because they say nothing about the validity of the geometry in OSM.
@@ -229,7 +229,7 @@ void table_connection_t::stop(bool updateable, bool append)
 
         sql += " ORDER BY ";
         if (postgis_version.major == 2 && postgis_version.minor < 4) {
-            fmt::print(stderr, "Using GeoHash for clustering\n");
+            log_info("Using GeoHash for clustering");
             if (table().geom_column().srid() == 4326) {
                 sql += "ST_GeoHash({},10)"_format(table().geom_column().name());
             } else {
@@ -239,7 +239,7 @@ void table_connection_t::stop(bool updateable, bool append)
             }
             sql += " COLLATE \"C\"";
         } else {
-            fmt::print(stderr, "Using native order for clustering\n");
+            log_info("Using native order for clustering");
             // Since Postgis 2.4 the order function for geometries gives
             // useful results.
             sql += table().geom_column().name();
@@ -252,8 +252,7 @@ void table_connection_t::stop(bool updateable, bool append)
             table().full_tmp_name(), table().name()));
         m_id_index_created = false;
 
-        fmt::print(stderr, "Creating geometry index on table '{}'...\n",
-                   table().name());
+        log_info("Creating geometry index on table '{}'...", table().name());
 
         // Use fillfactor 100 for un-updateable imports
         m_db_connection->exec(
@@ -273,11 +272,11 @@ void table_connection_t::stop(bool updateable, bool append)
         }
     }
 
-    fmt::print(stderr, "Analyzing table '{}'...\n", table().name());
+    log_info("Analyzing table '{}'...", table().name());
     m_db_connection->exec("ANALYZE " + table().full_name());
 
-    fmt::print(stderr, "All postprocessing on table '{}' done in {}.\n",
-               table().name(), util::human_readable_duration(timer.stop()));
+    log_info("All postprocessing on table '{}' done in {}.", table().name(),
+             util::human_readable_duration(timer.stop()));
 
     teardown();
 }
@@ -293,11 +292,9 @@ void table_connection_t::prepare()
 void table_connection_t::create_id_index()
 {
     if (m_id_index_created) {
-        fmt::print(stderr, "Id index on table '{}' already created.\n",
-                   table().name());
+        log_info("Id index on table '{}' already created.", table().name());
     } else {
-        fmt::print(stderr, "Creating id index on table '{}'...\n",
-                   table().name());
+        log_info("Creating id index on table '{}'...", table().name());
         m_db_connection->exec(table().build_sql_create_id_index());
         m_id_index_created = true;
     }

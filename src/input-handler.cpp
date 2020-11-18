@@ -2,6 +2,7 @@
 
 #include "format.hpp"
 #include "input-handler.hpp"
+#include "logging.hpp"
 #include "osmdata.hpp"
 
 input_handler_t::input_handler_t(osmium::Box const &bbox, bool append,
@@ -43,13 +44,8 @@ void input_handler_t::node(osmium::Node const &node)
         // we probably ought to treat invalid locations as if they were
         // deleted and ignore them.
         if (!node.location().valid()) {
-            fmt::print(
-                stderr,
-                "WARNING: Node {} (version {}) has an invalid location and has "
-                "been ignored. This is not expected to happen with recent "
-                "planet files, so please check that your input is correct.\n",
-                node.id(), node.version());
-
+            log_warn("Ignored invalid location on node {} (version {})",
+                     node.id(), node.version());
             return;
         }
 

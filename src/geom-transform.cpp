@@ -1,5 +1,6 @@
 
 #include "geom-transform.hpp"
+#include "logging.hpp"
 
 #include <osmium/osm.hpp>
 
@@ -160,10 +161,9 @@ void init_geom_transform(geom_transform_t *transform, lua_State *lua_state)
 
         if (std::strcmp(field, "create") != 0) {
             if (!transform->set_param(field, lua_state) && show_warning) {
-                fmt::print(stderr,
-                           "\nWarning! Ignoring unknown field '{}' in geometry "
-                           "transformation description.\n",
-                           field);
+                log_warn("Ignoring unknown field '{}' in geometry "
+                         "transformation description.",
+                         field);
                 show_warning = false;
             }
         }
