@@ -5,21 +5,21 @@
 
 static testing::db::import_t db;
 
-static char const *const conf_file_geometry_true =
-    "test_output_flex_multigeom_geometry_true.lua";
-static char const *const conf_file_geometry_false =
-    "test_output_flex_multigeom_geometry_false.lua";
+static char const *const conf_file_geometry =
+    "test_output_flex_multigeom_geometry.lua";
+static char const *const conf_file_geometry_split =
+    "test_output_flex_multigeom_geometry_split.lua";
 static char const *const conf_file_polygon =
     "test_output_flex_multigeom_polygon.lua";
-static char const *const conf_file_multipolygon_true =
-    "test_output_flex_multigeom_multipolygon_true.lua";
-static char const *const conf_file_multipolygon_false =
-    "test_output_flex_multigeom_multipolygon_false.lua";
+static char const *const conf_file_multipolygon =
+    "test_output_flex_multigeom_multipolygon.lua";
+static char const *const conf_file_multipolygon_split =
+    "test_output_flex_multigeom_multipolygon_split.lua";
 static char const *const data_file = "test_output_flex_multigeom.osm";
 
-TEST_CASE("Use 'geometry' column for area (with multi=true)")
+TEST_CASE("Use 'geometry' column for area (not splitting multipolygons)")
 {
-    options_t const options = testing::opt_t().flex(conf_file_geometry_true);
+    options_t const options = testing::opt_t().flex(conf_file_geometry);
     REQUIRE_NOTHROW(db.run_file(options, data_file));
 
     auto conn = db.db().connect();
@@ -34,9 +34,9 @@ TEST_CASE("Use 'geometry' column for area (with multi=true)")
     CHECK(1 == conn.get_count("osm2pgsql_test_polygon", "osm_id = -31"));
 }
 
-TEST_CASE("Use 'geometry' column for area (with multi=false)")
+TEST_CASE("Use 'geometry' column for area (splitting multipolygons)")
 {
-    options_t const options = testing::opt_t().flex(conf_file_geometry_false);
+    options_t const options = testing::opt_t().flex(conf_file_geometry_split);
     REQUIRE_NOTHROW(db.run_file(options, data_file));
 
     auto conn = db.db().connect();
@@ -51,7 +51,7 @@ TEST_CASE("Use 'geometry' column for area (with multi=false)")
     CHECK(2 == conn.get_count("osm2pgsql_test_polygon", "osm_id = -31"));
 }
 
-TEST_CASE("Use 'polygon' column for area, split multipolygons into rows")
+TEST_CASE("Use 'polygon' column for area (splitting multipolygons)")
 {
     options_t const options = testing::opt_t().flex(conf_file_polygon);
     REQUIRE_NOTHROW(db.run_file(options, data_file));
@@ -68,10 +68,9 @@ TEST_CASE("Use 'polygon' column for area, split multipolygons into rows")
     CHECK(2 == conn.get_count("osm2pgsql_test_polygon", "osm_id = -31"));
 }
 
-TEST_CASE("Use 'multipolygon' column for area (with multi=true)")
+TEST_CASE("Use 'multipolygon' column for area (not splitting multipolygons)")
 {
-    options_t const options =
-        testing::opt_t().flex(conf_file_multipolygon_true);
+    options_t const options = testing::opt_t().flex(conf_file_multipolygon);
     REQUIRE_NOTHROW(db.run_file(options, data_file));
 
     auto conn = db.db().connect();
@@ -86,10 +85,10 @@ TEST_CASE("Use 'multipolygon' column for area (with multi=true)")
     CHECK(1 == conn.get_count("osm2pgsql_test_polygon", "osm_id = -31"));
 }
 
-TEST_CASE("Use 'multipolygon' column for area (with multi=false)")
+TEST_CASE("Use 'multipolygon' column for area (splitting multipolygons)")
 {
     options_t const options =
-        testing::opt_t().flex(conf_file_multipolygon_false);
+        testing::opt_t().flex(conf_file_multipolygon_split);
     REQUIRE_NOTHROW(db.run_file(options, data_file));
 
     auto conn = db.db().connect();

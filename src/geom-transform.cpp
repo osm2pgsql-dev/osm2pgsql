@@ -72,18 +72,31 @@ geom_transform_line_t::run(geom::osmium_builder_t *builder,
 
 bool geom_transform_area_t::set_param(char const *name, lua_State *lua_state)
 {
-    if (std::strcmp(name, "multi") != 0) {
+    if (std::strcmp(name, "multi") == 0) {
+        throw std::runtime_error{
+            "The 'multi' field in the geometry transformation has been"
+            " removed. See docs on how to use 'split_at' instead."};
+    }
+
+    if (std::strcmp(name, "split_at") != 0) {
         return false;
     }
 
-    if (lua_type(lua_state, -1) != LUA_TBOOLEAN) {
-        throw std::runtime_error{
-            "The 'multi' field in a geometry transformation "
-            "description must be a boolean."};
-    }
-    m_multi = lua_toboolean(lua_state, -1);
+    auto const val = lua_tostring(lua_state, -1);
 
-    return true;
+    if (!val) {
+        throw std::runtime_error{
+            "The 'split_at' field in a geometry transformation "
+            "description must be a string."};
+    }
+
+    if (std::strcmp(val, "multi") == 0) {
+        m_multi = false;
+        return true;
+    }
+
+    throw std::runtime_error{"Unknown value for 'split_at' field in a geometry"
+                             " transformation: '{}'"_format(val)};
 }
 
 bool geom_transform_area_t::is_compatible_with(

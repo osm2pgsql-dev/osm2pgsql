@@ -108,7 +108,7 @@ public:
         osmium::memory::Buffer const &buffer) const override;
 
 private:
-    bool m_multi = false;
+    bool m_multi = true;
 
 }; // class geom_transform_area_t
 

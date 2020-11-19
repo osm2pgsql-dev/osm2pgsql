@@ -14,8 +14,8 @@ local keep_coastlines = false
 -- Set this to the table name prefix (what used to be option -p|--prefix).
 local prefix = 'planet_osm'
 
--- Set this to true if multipolygons should be written as polygons into db
--- (what used to be option -G|--multi-geometry).
+-- Set this to true if multipolygons should be written as multipolygons into
+-- db (what used to be option -G|--multi-geometry).
 local multi_geometry = false
 
 -- Set this to true if you want an hstore column (what used to be option
@@ -724,7 +724,10 @@ function osm2pgsql.process_relation(object)
     end
 
     if make_boundary or make_polygon then
-        output.way = { create = 'area', multi = multi_geometry }
+        output.way = { create = 'area' }
+        if not multi_geometry then
+            output.way.split_at = 'multi'
+        end
         tables.polygon:add_row(output)
     end
 end

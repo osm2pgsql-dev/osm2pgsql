@@ -26,7 +26,7 @@ end
 function osm2pgsql.process_relation(object)
     polygons:add_row({
         name = object.tags.name,
-        geom = { create = 'area', multi = test.multi }
+        geom = { create = 'area', split_at = test.split_at }
     })
 end
 
