@@ -61,6 +61,8 @@ if (HAVE_PROJ4)
         set_source_files_properties(reprojection-generic-proj4.cpp
             PROPERTIES COMPILE_FLAGS -Wno-deprecated-declarations)
     endif()
+elseif(HAVE_PROJ6)
+    list(APPEND osm2pgsql_lib_SOURCES reprojection-generic-proj6.cpp)
 else()
     list(APPEND osm2pgsql_lib_SOURCES reprojection-generic-none.cpp)
 endif()

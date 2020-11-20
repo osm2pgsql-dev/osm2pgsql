@@ -1,3 +1,4 @@
+#include "format.hpp"
 #include "reprojection.hpp"
 
 #include <osmium/geom/projection.hpp>
@@ -57,3 +58,6 @@ std::shared_ptr<reprojection> reprojection::make_generic_projection(int srs)
 {
     return std::make_shared<generic_reprojection_t>(srs);
 }
+
+std::string get_proj_version() { return "[API 4] {}"_format(pj_get_release()); }
+

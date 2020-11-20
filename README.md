@@ -183,6 +183,23 @@ Also available is the new flex output. It is much more flexible than the other
 outputs. IT IS CURRENTLY EXPERIMENTAL AND SUBJECT TO CHANGE. The flex output is
 only available if you have compiled osm2pgsql with Lua support.
 
+## Projection Support ##
+
+Osm2pgsql has builtin support for the Latlong (WGS84, EPSG:4326) and the
+WebMercator (EPSG:3857) projection. If you need other projections you have to
+compile with the PROJ library.
+
+Both the older API (PROJ version 4) and the newer API (PROJ version 6.1 and
+above) are supported. Usually the CMake configuration will find a suitable
+version and use it automatically, but you can set the `USE_PROJ_LIB` CMake
+cache variable to choose between the following behaviours:
+
+* `4`: Look for PROJ library with API version 4. If it is not found, stop with error.
+* `6`: Look for PROJ library with API version 6. If it is not found, stop with error.
+* `off`: Build without PROJ library.
+* `auto`: Choose API 4 if available, otherwise API 6. If both are not available
+  build without PROJ library. (This is the default.)
+
 ## LuaJIT support ##
 
 To speed up Lua tag transformations, [LuaJIT](https://luajit.org/) can be optionally

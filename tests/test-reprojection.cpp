@@ -4,7 +4,7 @@
 
 TEST_CASE("projection 4326", "[NoDB]")
 {
-    const osmium::Location loc{10.0, 53.0};
+    osmium::Location const loc{10.0, 53.0};
     int const srs = 4326;
 
     auto const reprojection = reprojection::create_projection(srs);
@@ -22,7 +22,7 @@ TEST_CASE("projection 4326", "[NoDB]")
 
 TEST_CASE("projection 3857", "[NoDB]")
 {
-    const osmium::Location loc{10.0, 53.0};
+    osmium::Location const loc{10.0, 53.0};
     int const srs = 3857;
 
     auto const reprojection = reprojection::create_projection(srs);
@@ -41,8 +41,8 @@ TEST_CASE("projection 3857", "[NoDB]")
 #ifdef HAVE_GENERIC_PROJ
 TEST_CASE("projection 5520", "[NoDB]")
 {
-    const osmium::Location loc{10.0, 53.0};
-    int const srs = 5520;
+    osmium::Location const loc{10.0, 53.0};
+    int const srs = 5520; // DHDN / 3-degree Gauss-Kruger zone 1
 
     auto const reprojection = reprojection::create_projection(srs);
     REQUIRE(reprojection->target_srs() == srs);
