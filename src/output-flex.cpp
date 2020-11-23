@@ -1388,6 +1388,11 @@ output_flex_t::output_flex_t(
         init_lua(m_options.style);
     }
 
+    if (m_tables->empty()) {
+        throw std::runtime_error{
+            "No tables defined in Lua config. Nothing to do!"};
+    }
+
     assert(m_table_connections.empty());
     for (auto &table : *m_tables) {
         m_table_connections.emplace_back(&table, m_copy_thread);
