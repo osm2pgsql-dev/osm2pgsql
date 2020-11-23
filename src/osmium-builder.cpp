@@ -188,12 +188,8 @@ osmium_builder_t::get_wkb_multipolygon(osmium::Relation const &rel,
         assert(!ret.empty());
 
         if (build_multigeoms) {
-            if (ret.size() > 1) {
-                // wrap all polygons into a single multipolygon
+            if (ret.size() > 1 || wrap_multi) {
                 wrap_in_multipolygon(&ret);
-            } else if (wrap_multi) {
-                // wrap single polygon into a multipolygon
-                wrap_in_multipolygon(&ret[0]);
             }
         } else {
             if (wrap_multi) {
