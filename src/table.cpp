@@ -123,24 +123,6 @@ void table_t::start(std::string const &conninfo, std::string const &table_space)
 
         //create the table
         m_sql_conn->exec(sql);
-    } //appending
-    else {
-        //check the columns against those in the existing table
-        auto const res = m_sql_conn->query(
-            PGRES_TUPLES_OK, "SELECT * FROM {} LIMIT 0"_format(qual_name));
-        for (auto const &column : m_columns) {
-            if (res.get_column_number(column.name) < 0) {
-                log_info("Adding new column \"{}\" to \"{}\"", column.name,
-                         m_target->name);
-                m_sql_conn->exec("ALTER TABLE {} ADD COLUMN \"{}\" {}"_format(
-                    m_target->name, column.name, column.type_name));
-            }
-            // Note: we do not verify the type or delete unused columns
-        }
-
-        //TODO: check over hstore columns
-
-        //TODO: change the type of the geometry column if needed - this can only change to a more permissive type
     }
 
     prepare();
