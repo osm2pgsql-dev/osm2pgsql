@@ -3,7 +3,8 @@
 
 **The flex output is experimental. Everything in here is subject to change.**
 
-See the [Flex Output Documentation](../docs/flex.md) for all the details.
+See the [Flex Output](https://osm2pgsql.org/doc/manual.html#the-flex-output)
+chapter in the manual for all the details.
 
 ## Example config files
 
