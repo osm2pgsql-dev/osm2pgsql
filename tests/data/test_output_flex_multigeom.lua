@@ -3,7 +3,8 @@ local polygons = osm2pgsql.define_table{
     name = 'osm2pgsql_test_polygon',
     ids = { type = 'area', id_column = 'osm_id' },
     columns = {
-        { column = 'geom', type = 'geometry' },
+        { column = 'name', type = 'text' },
+        { column = 'geom', type = test.type }
     }
 }
 
@@ -17,13 +18,15 @@ function osm2pgsql.process_way(object)
     end
 
     polygons:add_row({
+        name = object.tags.name,
         geom = { create = 'area' }
     })
 end
 
 function osm2pgsql.process_relation(object)
     polygons:add_row({
-        geom = { create = 'area', split_at='multi' }
+        name = object.tags.name,
+        geom = { create = 'area', split_at = test.split_at }
     })
 end
 

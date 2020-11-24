@@ -30,13 +30,24 @@ public:
 
     wkbs_t get_wkb_multipolygon(osmium::Relation const &rel,
                                 osmium::memory::Buffer const &ways,
-                                bool build_multigeoms);
+                                bool build_multigeoms, bool wrap_multi = false);
 
     wkbs_t get_wkb_multiline(osmium::memory::Buffer const &ways,
                              double split_at);
 
+    /**
+     * Wrap the geometries (must be one or more polygons) in the parameter
+     * into a single multipolygon which is returned in-place in geometries.
+     */
+    void wrap_in_multipolygon(wkbs_t *geometries);
+
+    /**
+     * Wrap the polygon geometry in the parameter into a multipolygon which
+     * is returned in-place in geometry.
+     */
+    void wrap_in_multipolygon(wkb_t *geometry);
+
 private:
-    wkb_t create_multipolygon(osmium::Area const &area);
     wkbs_t create_polygons(osmium::Area const &area);
     size_t add_mp_points(osmium::NodeRefList const &nodes);
 

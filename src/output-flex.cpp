@@ -967,25 +967,28 @@ get_default_transform(flex_table_column_t const &column,
 geom::osmium_builder_t::wkbs_t
 output_flex_t::run_transform(geom::osmium_builder_t *builder,
                              geom_transform_t const *transform,
+                             table_column_type target_geom_type,
                              osmium::Node const &node)
 {
-    return transform->run(builder, node);
+    return transform->run(builder, target_geom_type, node);
 }
 
 geom::osmium_builder_t::wkbs_t
 output_flex_t::run_transform(geom::osmium_builder_t *builder,
                              geom_transform_t const *transform,
+                             table_column_type target_geom_type,
                              osmium::Way const & /*way*/)
 {
     if (get_way_nodes() <= 1U) {
         return {};
     }
-    return transform->run(builder, m_context_way);
+    return transform->run(builder, target_geom_type, m_context_way);
 }
 
 geom::osmium_builder_t::wkbs_t
 output_flex_t::run_transform(geom::osmium_builder_t *builder,
                              geom_transform_t const *transform,
+                             table_column_type target_geom_type,
                              osmium::Relation const &relation)
 {
     m_buffer.clear();
@@ -1000,7 +1003,7 @@ output_flex_t::run_transform(geom::osmium_builder_t *builder,
         m_mid->nodes_get_list(&(way.nodes()));
     }
 
-    return transform->run(builder, relation, m_buffer);
+    return transform->run(builder, target_geom_type, relation, m_buffer);
 }
 
 template <typename OBJECT>
@@ -1035,7 +1038,8 @@ void output_flex_t::add_row(table_connection_t *table_connection,
     }
 
     auto *builder = table_connection->get_builder();
-    auto const wkbs = run_transform(builder, transform, object);
+    auto const wkbs =
+        run_transform(builder, transform, table.geom_column().type(), object);
     for (auto const &wkb : wkbs) {
         m_expire.from_wkb(wkb.c_str(), id);
         write_row(table_connection, object.type(), id, wkb,

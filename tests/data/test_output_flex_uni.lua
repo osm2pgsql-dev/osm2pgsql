@@ -73,11 +73,11 @@ function osm2pgsql.process_relation(object)
         table1idcol:add_row({
             orig_id = object.id,
             tags = object.tags,
-            geom = { create = 'area', multi = false }
+            geom = { create = 'area', split_at = 'multi' }
         })
         table2idcol:add_row({
             tags = object.tags,
-            geom = { create = 'area', multi = false }
+            geom = { create = 'area', split_at = 'multi' }
         })
         return
     end

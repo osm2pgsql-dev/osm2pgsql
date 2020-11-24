@@ -32,19 +32,22 @@ public:
 
     virtual geom::osmium_builder_t::wkbs_t
     run(geom::osmium_builder_t * /*builder*/,
+        table_column_type /*target_geom_type*/,
         osmium::Node const & /*node*/) const
     {
         return {};
     }
 
     virtual geom::osmium_builder_t::wkbs_t
-    run(geom::osmium_builder_t * /*builder*/, osmium::Way * /*way*/) const
+    run(geom::osmium_builder_t * /*builder*/,
+        table_column_type /*target_geom_type*/, osmium::Way * /*way*/) const
     {
         return {};
     }
 
     virtual geom::osmium_builder_t::wkbs_t
     run(geom::osmium_builder_t * /*builder*/,
+        table_column_type /*target_geom_type*/,
         osmium::Relation const & /*relation*/,
         osmium::memory::Buffer const & /*buffer*/) const
     {
@@ -60,6 +63,7 @@ public:
         noexcept override;
 
     geom::osmium_builder_t::wkbs_t run(geom::osmium_builder_t *builder,
+                                       table_column_type target_geom_type,
                                        osmium::Node const &node) const override;
 
 }; // class geom_transform_point_t
@@ -73,10 +77,12 @@ public:
         noexcept override;
 
     geom::osmium_builder_t::wkbs_t run(geom::osmium_builder_t *builder,
+                                       table_column_type target_geom_type,
                                        osmium::Way *way) const override;
 
     geom::osmium_builder_t::wkbs_t
-    run(geom::osmium_builder_t *builder, osmium::Relation const &relation,
+    run(geom::osmium_builder_t *builder, table_column_type target_geom_type,
+        osmium::Relation const &relation,
         osmium::memory::Buffer const &buffer) const override;
 
 private:
@@ -93,14 +99,16 @@ public:
         noexcept override;
 
     geom::osmium_builder_t::wkbs_t run(geom::osmium_builder_t *builder,
+                                       table_column_type target_geom_type,
                                        osmium::Way *way) const override;
 
     geom::osmium_builder_t::wkbs_t
-    run(geom::osmium_builder_t *builder, osmium::Relation const &relation,
+    run(geom::osmium_builder_t *builder, table_column_type target_geom_type,
+        osmium::Relation const &relation,
         osmium::memory::Buffer const &buffer) const override;
 
 private:
-    bool m_multi = false;
+    bool m_multi = true;
 
 }; // class geom_transform_area_t
 

@@ -181,16 +181,17 @@ private:
 
     geom::osmium_builder_t::wkbs_t
     run_transform(geom::osmium_builder_t *builder,
-                  geom_transform_t const *transform, osmium::Node const &node);
-
-    geom::osmium_builder_t::wkbs_t
-    run_transform(geom::osmium_builder_t *builder,
-                  geom_transform_t const *transform, osmium::Way const &way);
+                  geom_transform_t const *transform,
+                  table_column_type target_geom_type, osmium::Node const &node);
 
     geom::osmium_builder_t::wkbs_t
     run_transform(geom::osmium_builder_t *builder,
                   geom_transform_t const *transform,
-                  osmium::Relation const &relation);
+                  table_column_type target_geom_type, osmium::Way const &way);
+
+    geom::osmium_builder_t::wkbs_t run_transform(
+        geom::osmium_builder_t *builder, geom_transform_t const *transform,
+        table_column_type target_geom_type, osmium::Relation const &relation);
 
     template <typename OBJECT>
     void add_row(table_connection_t *table_connection, OBJECT const &object);

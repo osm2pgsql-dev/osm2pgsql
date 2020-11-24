@@ -16,6 +16,7 @@ bool geom_transform_point_t::is_compatible_with(
 
 geom::osmium_builder_t::wkbs_t
 geom_transform_point_t::run(geom::osmium_builder_t *builder,
+                            table_column_type /*target_geom_type*/,
                             osmium::Node const &node) const
 {
     assert(builder);
@@ -49,6 +50,7 @@ bool geom_transform_line_t::is_compatible_with(
 
 geom::osmium_builder_t::wkbs_t
 geom_transform_line_t::run(geom::osmium_builder_t *builder,
+                           table_column_type /*target_geom_type*/,
                            osmium::Way *way) const
 {
     assert(builder);
@@ -59,6 +61,7 @@ geom_transform_line_t::run(geom::osmium_builder_t *builder,
 
 geom::osmium_builder_t::wkbs_t
 geom_transform_line_t::run(geom::osmium_builder_t *builder,
+                           table_column_type /*target_geom_type*/,
                            osmium::Relation const & /*relation*/,
                            osmium::memory::Buffer const &buffer) const
 {
@@ -69,48 +72,61 @@ geom_transform_line_t::run(geom::osmium_builder_t *builder,
 
 bool geom_transform_area_t::set_param(char const *name, lua_State *lua_state)
 {
-    if (std::strcmp(name, "multi") != 0) {
+    if (std::strcmp(name, "multi") == 0) {
+        throw std::runtime_error{
+            "The 'multi' field in the geometry transformation has been"
+            " removed. See docs on how to use 'split_at' instead."};
+    }
+
+    if (std::strcmp(name, "split_at") != 0) {
         return false;
     }
 
-    if (lua_type(lua_state, -1) != LUA_TBOOLEAN) {
-        throw std::runtime_error{
-            "The 'multi' field in a geometry transformation "
-            "description must be a boolean."};
-    }
-    m_multi = lua_toboolean(lua_state, -1);
+    auto const val = lua_tostring(lua_state, -1);
 
-    return true;
+    if (!val) {
+        throw std::runtime_error{
+            "The 'split_at' field in a geometry transformation "
+            "description must be a string."};
+    }
+
+    if (std::strcmp(val, "multi") == 0) {
+        m_multi = false;
+        return true;
+    }
+
+    throw std::runtime_error{"Unknown value for 'split_at' field in a geometry"
+                             " transformation: '{}'"_format(val)};
 }
 
 bool geom_transform_area_t::is_compatible_with(
     table_column_type geom_type) const noexcept
 {
-    if (m_multi) {
-        return geom_type == table_column_type::multipolygon ||
-               geom_type == table_column_type::geometry;
-    }
-
     return geom_type == table_column_type::polygon ||
+           geom_type == table_column_type::multipolygon ||
            geom_type == table_column_type::geometry;
 }
 
 geom::osmium_builder_t::wkbs_t
 geom_transform_area_t::run(geom::osmium_builder_t *builder,
+                           table_column_type target_geom_type,
                            osmium::Way *way) const
 {
     assert(builder);
     assert(way);
 
+    geom::osmium_builder_t::wkbs_t result;
+
     if (!way->is_closed()) {
-        return {};
+        return result;
     }
 
-    geom::osmium_builder_t::wkbs_t result;
     result.push_back(builder->get_wkb_polygon(*way));
 
     if (result.front().empty()) {
         result.clear();
+    } else if (target_geom_type == table_column_type::multipolygon) {
+        builder->wrap_in_multipolygon(&result);
     }
 
     return result;
@@ -118,12 +134,15 @@ geom_transform_area_t::run(geom::osmium_builder_t *builder,
 
 geom::osmium_builder_t::wkbs_t
 geom_transform_area_t::run(geom::osmium_builder_t *builder,
+                           table_column_type target_geom_type,
                            osmium::Relation const &relation,
                            osmium::memory::Buffer const &buffer) const
 {
     assert(builder);
 
-    return builder->get_wkb_multipolygon(relation, buffer, m_multi);
+    bool const wrap_multi = target_geom_type == table_column_type::multipolygon;
+
+    return builder->get_wkb_multipolygon(relation, buffer, m_multi, wrap_multi);
 }
 
 std::unique_ptr<geom_transform_t> create_geom_transform(char const *type)
