@@ -12,22 +12,24 @@ osm2pgsql - Openstreetmap data to PostgreSQL converter
 is an essential part of many rendering toolchains, the Nominatim geocoder and
 other applications processing OSM data.
 
-OSM planet snapshots can be downloaded from https://planet.openstreetmap.org/.
-Data extracts for various countries or other areas are also available, see
-https://wiki.openstreetmap.org/wiki/Planet.osm.
+**osm2pgsql** can run in either "create" mode (the default) or in "append" mode
+(option **-a, \--append**). In "create" mode osm2pgsql will create the database
+tables required by the configuration and import the OSM file(s) specified on
+the command line into those tables. Note that you also have to use the
+**-s, \--slim** option if you want your database to be updateable.
 
-When operating in "slim" mode (and on a database created in "slim" mode!),
-**osm2pgsql** can also process OSM change files (osc files), thereby bringing
-an existing database up to date.
+In "append" mode osm2pgsql will update the database tables with the data from
+OSM change files specified on the command line.
 
-See the [manual](https://osm2pgsql.org/doc/manual.html) for more information.
+This man page can only cover some of the basics and describe the command line
+options. See the [Osm2pgsql Manual](https://osm2pgsql.org/doc/manual.html) for
+more information.
 
 # OPTIONS
 
 This program follows the usual GNU command line syntax, with long options
-starting with two dashes (`--`).
-
-Mandatory arguments to long options are mandatory for short options too.
+starting with two dashes (`--`). Mandatory arguments to long options are
+mandatory for short options too.
 
 # MAIN OPTIONS
 
