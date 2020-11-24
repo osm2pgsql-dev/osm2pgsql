@@ -29,12 +29,14 @@ local hstore_all = false
 -- Only keep objects that have a value in one of the non-hstore columns
 -- (normal action with --hstore is to keep all objects). Equivalent to
 -- what used to be set through option --hstore-match-only.
-local hstore_match_only = true
+local hstore_match_only = false
 
 -- Set this to add an additional hstore (key/value) column containing all tags
 -- that start with the specified string, eg "name:". Will produce an extra
 -- hstore column that contains all "name:xx" tags. Equivalent to what used to
--- be set through option -z|--hstore-column.
+-- be set through option -z|--hstore-column. Unlike the -z option which can
+-- be specified multiple time, this does only support a single additional
+-- hstore column.
 local hstore_column = nil
 
 -- There is some very old specialized handling of route relations in osm2pgsql,
