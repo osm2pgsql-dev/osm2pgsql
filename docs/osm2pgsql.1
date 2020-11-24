@@ -12,22 +12,25 @@ database.
 It is an essential part of many rendering toolchains, the Nominatim
 geocoder and other applications processing OSM data.
 .PP
-OSM planet snapshots can be downloaded from
-https://planet.openstreetmap.org/.
-Data extracts for various countries or other areas are also available,
-see https://wiki.openstreetmap.org/wiki/Planet.osm.
+\f[B]osm2pgsql\f[] can run in either \[lq]create\[rq] mode (the default)
+or in \[lq]append\[rq] mode (option \f[B]\-a, \-\-append\f[]).
+In \[lq]create\[rq] mode osm2pgsql will create the database tables
+required by the configuration and import the OSM file(s) specified on
+the command line into those tables.
+Note that you also have to use the \f[B]\-s, \-\-slim\f[] option if you
+want your database to be updateable.
 .PP
-When operating in \[lq]slim\[rq] mode (and on a database created in
-\[lq]slim\[rq] mode!), \f[B]osm2pgsql\f[] can also process OSM change
-files (osc files), thereby bringing an existing database up to date.
+In \[lq]append\[rq] mode osm2pgsql will update the database tables with
+the data from OSM change files specified on the command line.
 .PP
-See the manual (https://osm2pgsql.org/doc/manual.html) for more
-information.
+This man page can only cover some of the basics and describe the command
+line options.
+See the Osm2pgsql Manual (https://osm2pgsql.org/doc/manual.html) for
+more information.
 .SH OPTIONS
 .PP
 This program follows the usual GNU command line syntax, with long
 options starting with two dashes (\f[C]\-\-\f[]).
-.PP
 Mandatory arguments to long options are mandatory for short options too.
 .SH MAIN OPTIONS
 .TP
@@ -63,6 +66,13 @@ Set log level (`debug', `info' (default), `warn', or `error').
 .RS
 .RE
 .TP
+.B \-\-log\-progress=VALUE
+Enable (\f[C]true\f[]) or disable (\f[C]false\f[]) progress logging.
+The default is \f[C]auto\f[] which will enable progress logging on the
+console and disable it if the output is redirected to a file.
+.RS
+.RE
+.TP
 .B \-\-log\-sql
 Enable logging of SQL commands for debugging.
 .RS
@@ -71,6 +81,11 @@ Enable logging of SQL commands for debugging.
 .B \-\-log\-sql\-data
 Enable logging of all data added to the database.
 This will write out a huge amount of data! For debugging.
+.RS
+.RE
+.TP
+.B \-v, \-\-verbose
+Same as \f[C]\-\-log\-level=debug\f[].
 .RS
 .RE
 .SH DATABASE OPTIONS
