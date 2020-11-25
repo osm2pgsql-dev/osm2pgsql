@@ -104,7 +104,7 @@ struct counts_t {
 class counting_dependency_manager_t : public dependency_manager_t
 {
 public:
-    counting_dependency_manager_t(std::shared_ptr<counts_t> counts)
+    explicit counting_dependency_manager_t(std::shared_ptr<counts_t> counts)
     : m_counts(std::move(counts))
     {}
 

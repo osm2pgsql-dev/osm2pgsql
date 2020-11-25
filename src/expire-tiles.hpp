@@ -20,9 +20,8 @@ class parser_t;
  */
 struct xy_coord_t
 {
-    uint32_t x;
-    uint32_t y;
-    xy_coord_t() : x(0), y(0) {}
+    uint32_t x = 0;
+    uint32_t y = 0;
 };
 
 /**
@@ -33,7 +32,7 @@ class tile_output_t
     FILE *outfile;
 
 public:
-    tile_output_t(char const *filename);
+    explicit tile_output_t(char const *filename);
 
     ~tile_output_t();
 

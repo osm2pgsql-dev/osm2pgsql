@@ -7,7 +7,9 @@ std::string human_readable_duration(uint64_t seconds)
 {
     if (seconds < 60) {
         return "{}s"_format(seconds);
-    } else if (seconds < (60 * 60)) {
+    }
+
+    if (seconds < (60 * 60)) {
         return "{}s ({}m {}s)"_format(seconds, seconds / 60, seconds % 60);
     }
 

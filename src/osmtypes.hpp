@@ -29,7 +29,7 @@ struct member
     osmid_t id;
     std::string role;
 
-    operator osmium::builder::attr::member_type const() const
+    explicit operator osmium::builder::attr::member_type const() const
     {
         return osmium::builder::attr::member_type(type, id, role.c_str());
     }
@@ -41,8 +41,6 @@ struct member
 
 struct memberlist_t : public std::vector<member>
 {
-    memberlist_t() {}
-
     explicit memberlist_t(osmium::RelationMemberList const &list)
     {
         for (auto const &m : list) {

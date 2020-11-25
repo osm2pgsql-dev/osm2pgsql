@@ -160,7 +160,7 @@ void db_copy_thread_t::thread_t::operator()()
 void db_copy_thread_t::thread_t::write_to_db(db_cmd_copy_t *buffer)
 {
     if (buffer->has_deletables() ||
-        (m_inflight && !buffer->target->same_copy_target(*m_inflight.get()))) {
+        (m_inflight && !buffer->target->same_copy_target(*m_inflight))) {
         finish_copy();
     }
 

@@ -13,31 +13,31 @@ struct column_type_lookup
     table_column_type type;
 };
 
-static column_type_lookup const column_types[] = {
-    {"sql", table_column_type::sql},
-    {"text", table_column_type::text},
-    {"boolean", table_column_type::boolean},
-    {"bool", table_column_type::boolean},
-    {"int2", table_column_type::int2},
-    {"smallint", table_column_type::int2},
-    {"int4", table_column_type::int4},
-    {"int", table_column_type::int4},
-    {"integer", table_column_type::int4},
-    {"int8", table_column_type::int8},
-    {"bigint", table_column_type::int8},
-    {"real", table_column_type::real},
-    {"hstore", table_column_type::hstore},
-    {"direction", table_column_type::direction},
-    {"geometry", table_column_type::geometry},
-    {"point", table_column_type::point},
-    {"linestring", table_column_type::linestring},
-    {"polygon", table_column_type::polygon},
-    {"multipoint", table_column_type::multipoint},
-    {"multilinestring", table_column_type::multilinestring},
-    {"multipolygon", table_column_type::multipolygon},
-    {"area", table_column_type::area},
-    {"id_type", table_column_type::id_type},
-    {"id_num", table_column_type::id_num}};
+static std::array<column_type_lookup, 24> const column_types = {
+    {{"sql", table_column_type::sql},
+     {"text", table_column_type::text},
+     {"boolean", table_column_type::boolean},
+     {"bool", table_column_type::boolean},
+     {"int2", table_column_type::int2},
+     {"smallint", table_column_type::int2},
+     {"int4", table_column_type::int4},
+     {"int", table_column_type::int4},
+     {"integer", table_column_type::int4},
+     {"int8", table_column_type::int8},
+     {"bigint", table_column_type::int8},
+     {"real", table_column_type::real},
+     {"hstore", table_column_type::hstore},
+     {"direction", table_column_type::direction},
+     {"geometry", table_column_type::geometry},
+     {"point", table_column_type::point},
+     {"linestring", table_column_type::linestring},
+     {"polygon", table_column_type::polygon},
+     {"multipoint", table_column_type::multipoint},
+     {"multilinestring", table_column_type::multilinestring},
+     {"multipolygon", table_column_type::multipolygon},
+     {"area", table_column_type::area},
+     {"id_type", table_column_type::id_type},
+     {"id_num", table_column_type::id_num}}};
 
 static table_column_type
 get_column_type_from_string(std::string const &type) noexcept

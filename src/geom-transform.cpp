@@ -82,7 +82,7 @@ bool geom_transform_area_t::set_param(char const *name, lua_State *lua_state)
         return false;
     }
 
-    auto const val = lua_tostring(lua_state, -1);
+    char const *const val = lua_tostring(lua_state, -1);
 
     if (!val) {
         throw std::runtime_error{

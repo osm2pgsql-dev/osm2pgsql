@@ -275,7 +275,7 @@ void write_integer(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
         return;
     }
 
-    char *end;
+    char *end = nullptr;
     errno = 0;
     auto const value = std::strtoll(str, &end, 10);
 
@@ -658,7 +658,8 @@ void output_flex_t::setup_id_columns(flex_table_t *table)
         table->set_id_type(osmium::item_type::undefined);
         lua_getfield(lua_state(), -2, "type_column");
         if (lua_isstring(lua_state(), -1)) {
-            auto const column_name = lua_tolstring(lua_state(), -1, nullptr);
+            std::string const column_name =
+                lua_tolstring(lua_state(), -1, nullptr);
             check_name(column_name, "column");
             auto &column = table->add_column(column_name, "id_type");
             column.set_not_null();
