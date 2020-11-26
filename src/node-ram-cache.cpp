@@ -234,11 +234,9 @@ void node_ram_cache::set_dense(osmid_t id, osmium::Location location)
          * will break the invariant. However, it will work fine if all the
          * nodes come in numerical order, which is the common case */
 
-        int expectedpos;
+        int expectedpos = 0;
         if ((usedBlocks < maxBlocks) && (cacheUsed < cacheSize)) {
             expectedpos = usedBlocks - 1;
-        } else {
-            expectedpos = 0;
         }
 
         if (queue[expectedpos] != &blocks[block]) {

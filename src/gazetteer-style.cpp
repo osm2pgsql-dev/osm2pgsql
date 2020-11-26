@@ -290,7 +290,7 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
     bool has_postcode = false;
     bool has_country = false;
     char const *place = nullptr;
-    flag_t place_flag;
+    flag_t place_flag = 0;
     bool address_point = false;
     bool interpolation = false;
     bool admin_boundary = false;
@@ -340,7 +340,7 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
         }
 
         if (flag & SF_ADDRESS) {
-            char const *addr_key;
+            char const *addr_key = nullptr;
             if (std::strncmp(k, "addr:", 5) == 0) {
                 addr_key = k + 5;
             } else if (std::strncmp(k, "is_in:", 6) == 0) {

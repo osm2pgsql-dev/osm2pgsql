@@ -16,7 +16,7 @@ static bool has_table(pg_conn_t &db_connection, std::string const &schema,
                      "  WHERE schemaname='{}' AND tablename='{}'"_format(
                          schema.empty() ? "public" : schema, table);
     auto const res = db_connection.query(PGRES_TUPLES_OK, sql);
-    auto const num = res.get_value(0, 0);
+    char const *const num = res.get_value(0, 0);
 
     return num[0] == '1' && num[1] == '\0';
 }

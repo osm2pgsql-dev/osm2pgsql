@@ -19,7 +19,7 @@ class integer_to_buffer
 
 public:
     template <typename T>
-    integer_to_buffer(T value)
+    explicit integer_to_buffer(T value)
     {
         auto const result =
             fmt::format_to_n(m_buffer.begin(), buffer_size - 1, "{}", value);
@@ -38,7 +38,7 @@ class double_to_buffer
     static constexpr std::size_t buffer_size = 32;
 
 public:
-    double_to_buffer(double value)
+    explicit double_to_buffer(double value)
     {
         auto const result =
             fmt::format_to_n(m_buffer.begin(), buffer_size - 1, "{:g}", value);

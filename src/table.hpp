@@ -18,8 +18,8 @@ class table_t
 {
 public:
     table_t(std::string const &name, std::string const &type,
-            columns_t const &columns, hstores_t const &hstore_columns,
-            int const srid, bool const append, hstore_column hstore_mode,
+            columns_t const &columns, hstores_t const &hstore_columns, int srid,
+            bool append, hstore_column hstore_mode,
             std::shared_ptr<db_copy_thread_t> const &copy_thread,
             std::string const &schema);
     table_t(table_t const &other,
@@ -32,7 +32,7 @@ public:
     void sync();
 
     void write_row(osmid_t id, taglist_t const &tags, std::string const &geom);
-    void delete_row(osmid_t const id);
+    void delete_row(osmid_t id);
 
     // interface for retrieving well known binary geometry from the table
     class wkb_reader

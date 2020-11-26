@@ -57,7 +57,7 @@ void osmdata_t::node_add(osmium::Node const &node) const
     m_mid->node_set(node);
 
     if (m_with_extra_attrs || !node.tags().empty()) {
-        for (auto &out : m_outs) {
+        for (auto const &out : m_outs) {
             out->node_add(node);
         }
     }
@@ -68,7 +68,7 @@ void osmdata_t::way_add(osmium::Way *way) const
     m_mid->way_set(*way);
 
     if (m_with_extra_attrs || !way->tags().empty()) {
-        for (auto &out : m_outs) {
+        for (auto const &out : m_outs) {
             out->way_add(way);
         }
     }
@@ -79,7 +79,7 @@ void osmdata_t::relation_add(osmium::Relation const &rel) const
     m_mid->relation_set(rel);
 
     if (m_with_extra_attrs || !rel.tags().empty()) {
-        for (auto &out : m_outs) {
+        for (auto const &out : m_outs) {
             out->relation_add(rel);
         }
     }
@@ -92,7 +92,7 @@ void osmdata_t::node_modify(osmium::Node const &node) const
     slim.node_delete(node.id());
     slim.node_set(node);
 
-    for (auto &out : m_outs) {
+    for (auto const &out : m_outs) {
         out->node_modify(node);
     }
 
@@ -106,7 +106,7 @@ void osmdata_t::way_modify(osmium::Way *way) const
     slim.way_delete(way->id());
     slim.way_set(*way);
 
-    for (auto &out : m_outs) {
+    for (auto const &out : m_outs) {
         out->way_modify(way);
     }
 
@@ -117,21 +117,21 @@ void osmdata_t::relation_modify(osmium::Relation const &rel) const
 {
     auto &slim = slim_middle();
 
-    for (auto &out : m_outs) {
+    for (auto const &out : m_outs) {
         out->select_relation_members(rel.id());
     }
 
     slim.relation_delete(rel.id());
     slim.relation_set(rel);
 
-    for (auto &out : m_outs) {
+    for (auto const &out : m_outs) {
         out->relation_modify(rel);
     }
 }
 
 void osmdata_t::node_delete(osmid_t id) const
 {
-    for (auto &out : m_outs) {
+    for (auto const &out : m_outs) {
         out->node_delete(id);
     }
 
@@ -140,7 +140,7 @@ void osmdata_t::node_delete(osmid_t id) const
 
 void osmdata_t::way_delete(osmid_t id) const
 {
-    for (auto &out : m_outs) {
+    for (auto const &out : m_outs) {
         out->way_delete(id);
     }
 
@@ -149,7 +149,7 @@ void osmdata_t::way_delete(osmid_t id) const
 
 void osmdata_t::relation_delete(osmid_t id) const
 {
-    for (auto &out : m_outs) {
+    for (auto const &out : m_outs) {
         out->relation_delete(id);
     }
 
@@ -158,7 +158,7 @@ void osmdata_t::relation_delete(osmid_t id) const
 
 void osmdata_t::start() const
 {
-    for (auto &out : m_outs) {
+    for (auto const &out : m_outs) {
         out->start();
     }
 }
@@ -292,7 +292,7 @@ private:
     /// Runs in a worker thread: Update progress display once per second.
     static void print_stats(idlist_t *queue, std::mutex *mutex)
     {
-        size_t queue_size;
+        std::size_t queue_size = 0;
         do {
             mutex->lock();
             queue_size = queue->size();

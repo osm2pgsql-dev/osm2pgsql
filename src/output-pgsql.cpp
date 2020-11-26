@@ -75,8 +75,8 @@ void output_pgsql_t::pending_way(osmid_t id)
         pgsql_delete_way_from_output(id);
 
         taglist_t outtags;
-        int polygon;
-        int roads;
+        int polygon = 0;
+        int roads = 0;
         auto &way = buffer.get<osmium::Way>(0);
         if (!m_tagtransform->filter_tags(way, &polygon, &roads, outtags)) {
             auto nnodes = m_mid->nodes_get_list(&(way.nodes()));

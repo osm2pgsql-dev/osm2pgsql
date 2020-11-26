@@ -27,7 +27,7 @@ public:
      */
     void new_line(std::shared_ptr<db_target_descr_t> const &table)
     {
-        if (!m_current || !m_current->target->same_copy_target(*table.get())) {
+        if (!m_current || !m_current->target->same_copy_target(*table)) {
             if (m_current) {
                 m_processor->add_buffer(std::move(m_current));
             }

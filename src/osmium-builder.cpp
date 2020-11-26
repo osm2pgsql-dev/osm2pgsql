@@ -273,7 +273,7 @@ osmium_builder_t::get_wkb_multiline(osmium::memory::Buffer const &ways,
             do {
                 auto &conn = conns[cur];
                 assert(std::get<1>(conn));
-                auto &nl = std::get<1>(conn)->nodes();
+                auto const &nl = std::get<1>(conn)->nodes();
                 bool const skip_first = prev != NOCONN;
                 bool const forward = std::get<0>(conn) == prev;
                 prev = cur;

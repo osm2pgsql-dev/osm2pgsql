@@ -54,7 +54,7 @@ struct table_sql {
 
 struct middle_pgsql_t : public slim_middle_t
 {
-    middle_pgsql_t(options_t const *options);
+    explicit middle_pgsql_t(options_t const *options);
 
     void start() override;
     void stop(thread_pool_t &pool) override;
@@ -79,7 +79,7 @@ struct middle_pgsql_t : public slim_middle_t
     class table_desc
     {
     public:
-        table_desc() {}
+        table_desc() = default;
         table_desc(options_t const &options, table_sql const &ts);
 
         char const *name() const { return m_copy_target->name.c_str(); }

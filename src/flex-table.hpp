@@ -32,7 +32,7 @@ public:
         permanent
     };
 
-    flex_table_t(std::string name) : m_name(std::move(name)) {}
+    explicit flex_table_t(std::string name) : m_name(std::move(name)) {}
 
     std::string const &name() const noexcept { return m_name; }
 
