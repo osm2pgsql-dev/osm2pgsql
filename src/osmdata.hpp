@@ -24,6 +24,22 @@ class output_t;
 struct middle_t;
 struct slim_middle_t;
 
+struct type_id_version {
+    osmium::item_type type;
+    osmid_t id;
+    osmium::object_version_type version;
+};
+
+/**
+ * Compare two tuples (type, id, version) throw a descriptive error if either
+ * the curr id is negative or if the data is not ordered.
+ */
+type_id_version check_input(type_id_version const &last, type_id_version curr);
+
+type_id_version check_input(type_id_version const &last,
+                            osmium::OSMObject const &object);
+
+
 /**
  * This class guides the processing of the OSM data through its multiple
  * stages. It calls upon the major compontents of osm2pgsql, the dependency
@@ -41,11 +57,10 @@ public:
     void flush() const;
 
     /**
-     * Process the specified OSM file (stage 1a). This is called once for
-     * each input file.
+     * Process the specified OSM files (stage 1a).
      */
-    progress_display_t process_file(osmium::io::File const &file,
-                                    osmium::Box const &bbox) const;
+    progress_display_t process_files(std::vector<osmium::io::File> const &files,
+                                     osmium::Box const &bbox) const;
 
     /**
      * Rest of the processing (stages 1b, 1c, 2, and database postprocessing).
@@ -66,6 +81,10 @@ public:
     void relation_delete(osmid_t id) const;
 
 private:
+
+    /// Process a single OSM file (stage 1a).
+    progress_display_t process_file(osmium::io::File const &file,
+                                    osmium::Box const &bbox) const;
 
     /**
      * Run stage 1b and stage 1c processing: Process dependent objects in

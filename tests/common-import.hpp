@@ -44,7 +44,7 @@ inline void parse_file(options_t const &options,
         filepath += options.input_files[0];
     }
     osmium::io::File file{filepath};
-    osmdata.process_file(file, options.bbox);
+    osmdata.process_files({file}, options.bbox);
 
     if (do_stop) {
         osmdata.stop();
@@ -123,7 +123,8 @@ namespace db {
 class import_t
 {
 public:
-    void run_import(options_t options, char const *data,
+    void run_import(options_t options,
+                    std::initializer_list<std::string> input_data,
                     std::string const &format = "opl")
     {
         options.database_options = m_db.db_options();
@@ -150,10 +151,19 @@ public:
 
         osmdata.start();
 
-        osmium::io::File file{data, std::strlen(data), format};
-        osmdata.process_file(file, options.bbox);
+        std::vector<osmium::io::File> files;
+        for (auto const &data : input_data) {
+            files.emplace_back(data.data(), data.size(), format);
+        }
+        osmdata.process_files(files, options.bbox);
 
         osmdata.stop();
+    }
+
+    void run_import(options_t options, char const *data,
+                    std::string const &format = "opl")
+    {
+        run_import(options, std::initializer_list<std::string>{data}, format);
     }
 
     void run_file(options_t options, char const *file = nullptr)
