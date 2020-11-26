@@ -22,6 +22,9 @@ runs:
           else
             CMAKE_OPTIONS="$CMAKE_OPTIONS -DWITH_LUAJIT=${LUAJIT_OPTION}"
           fi
+          if [ -n "$USE_PROJ_LIB" ]; then
+            CMAKE_OPTIONS="$CMAKE_OPTIONS -DUSE_PROJ_LIB=$USE_PROJ_LIB"
+          fi
           if [ -n "$CPP_VERSION" ]; then
             CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_CXX_STANDARD=$CPP_VERSION"
           fi

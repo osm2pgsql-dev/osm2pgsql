@@ -576,6 +576,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
         case 'V':
             fmt::print(stderr, "Compiled using the following library versions:\n");
             fmt::print(stderr, "Libosmium {}\n", LIBOSMIUM_VERSION_STRING);
+            fmt::print(stderr, "Proj {}\n", get_proj_version());
 #ifdef HAVE_LUA
             fmt::print(stderr, "{}", LUA_RELEASE);
 #ifdef HAVE_LUAJIT

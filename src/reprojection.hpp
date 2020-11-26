@@ -9,10 +9,11 @@
  * It contains the reprojection class.
  */
 
-#include <memory>
-
 #include <osmium/geom/coordinates.hpp>
 #include <osmium/osm/location.hpp>
+
+#include <memory>
+#include <string>
 
 enum Projection
 {
@@ -69,5 +70,7 @@ public:
 private:
     static std::shared_ptr<reprojection> make_generic_projection(int srs);
 };
+
+std::string get_proj_version();
 
 #endif // OSM2PGSQL_REPROJECTION_HPP

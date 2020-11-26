@@ -36,7 +36,7 @@ jobs:
           PGHOST: /tmp
 
 
-  ubuntu-pg93-gcc5:
+  ubuntu16-pg93-gcc5:
     runs-on: ubuntu-16.04
 
     env:
@@ -53,7 +53,7 @@ jobs:
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
-  ubuntu-pg94-clang6:
+  ubuntu16-pg94-clang6:
     runs-on: ubuntu-16.04
 
     env:
@@ -70,7 +70,7 @@ jobs:
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
-  ubuntu-pg95-gcc7-jit:
+  ubuntu18-pg95-gcc7-jit:
     runs-on: ubuntu-18.04
 
     env:
@@ -87,7 +87,7 @@ jobs:
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
-  ubuntu-pg96-clang8-jit:
+  ubuntu18-pg96-clang8-jit:
     runs-on: ubuntu-18.04
 
     env:
@@ -104,7 +104,7 @@ jobs:
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
-  ubuntu-pg10-gcc9:
+  ubuntu18-pg10-gcc9:
     runs-on: ubuntu-18.04
 
     env:
@@ -122,7 +122,7 @@ jobs:
       - uses: ./.github/actions/build-and-test
 
 
-  ubuntu-pg11-clang9:
+  ubuntu18-pg11-clang9:
     runs-on: ubuntu-18.04
 
     env:
@@ -139,7 +139,7 @@ jobs:
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
-  ubuntu-pg12-gcc10-jit:
+  ubuntu20-pg12-gcc10-jit:
     runs-on: ubuntu-20.04
 
     env:
@@ -157,9 +157,8 @@ jobs:
       - uses: ./.github/actions/build-and-test
 
 
-  ubuntu-pg13-clang10-jit:
+  ubuntu20-pg13-clang10-jit:
     runs-on: ubuntu-20.04
-    continue-on-error: true
 
     env:
       CC: clang-10
@@ -175,7 +174,43 @@ jobs:
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
-  ubuntu-pg12-gcc10-release:
+  ubuntu20-pg13-clang10-proj6:
+    runs-on: ubuntu-20.04
+
+    env:
+      CC: clang-10
+      CXX: clang++-10
+      LUA_VERSION: 5.3
+      LUAJIT_OPTION: OFF
+      POSTGRESQL_VERSION: 13
+      POSTGIS_VERSION: 3
+      CPPVERSION: 14
+      USE_PROJ_LIB: 6
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/build-and-test
+
+  ubuntu20-pg13-clang10-noproj:
+    runs-on: ubuntu-20.04
+
+    env:
+      CC: clang-10
+      CXX: clang++-10
+      LUA_VERSION: 5.3
+      LUAJIT_OPTION: OFF
+      POSTGRESQL_VERSION: 13
+      POSTGIS_VERSION: 3
+      CPPVERSION: 14
+      USE_PROJ_LIB: off
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/build-and-test
+
+  ubuntu20-pg12-gcc10-release:
     runs-on: ubuntu-20.04
 
     env:
