@@ -1,8 +1,9 @@
 #ifndef OSM2PGSQL_DEPENDENCY_MANAGER_HPP
 #define OSM2PGSQL_DEPENDENCY_MANAGER_HPP
 
-#include "id-tracker.hpp"
 #include "osmtypes.hpp"
+
+#include <osmium/index/id_set.hpp>
 
 #include <cassert>
 #include <memory>
@@ -97,12 +98,12 @@ public:
     }
 
 private:
-    static idlist_t get_ids(id_tracker &tracker);
+    static idlist_t get_ids(osmium::index::IdSetSmall<osmid_t> &tracker);
 
     std::shared_ptr<middle_t> m_object_store;
 
-    id_tracker m_ways_pending_tracker;
-    id_tracker m_rels_pending_tracker;
+    osmium::index::IdSetSmall<osmid_t> m_ways_pending_tracker;
+    osmium::index::IdSetSmall<osmid_t> m_rels_pending_tracker;
 };
 
 #endif // OSM2PGSQL_DEPENDENCY_MANAGER_HPP
