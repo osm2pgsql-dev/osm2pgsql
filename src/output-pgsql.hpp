@@ -8,7 +8,6 @@
 
 #include "db-copy.hpp"
 #include "expire-tiles.hpp"
-#include "id-tracker.hpp"
 #include "osmium-builder.hpp"
 #include "output.hpp"
 #include "table.hpp"

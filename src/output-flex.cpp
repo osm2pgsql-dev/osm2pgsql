@@ -1,6 +1,4 @@
 
-#include "config.h"
-
 #include "expire-tiles.hpp"
 #include "geom-transform.hpp"
 #include "logging.hpp"
