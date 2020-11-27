@@ -4,7 +4,7 @@
 #include <osmium/geom/coordinates.hpp>
 #include <osmium/geom/util.hpp>
 
-#include "proj.h"
+#include <proj.h>
 
 namespace {
 

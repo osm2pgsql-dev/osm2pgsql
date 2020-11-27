@@ -9,7 +9,6 @@
 
 #include "expire-tiles.hpp"
 #include "geometry-processor.hpp"
-#include "id-tracker.hpp"
 #include "osmtypes.hpp"
 #include "output.hpp"
 

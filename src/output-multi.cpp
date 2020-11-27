@@ -1,6 +1,5 @@
 #include "output-multi.hpp"
 #include "expire-tiles.hpp"
-#include "id-tracker.hpp"
 #include "middle.hpp"
 #include "options.hpp"
 #include "table.hpp"
@@ -8,7 +7,6 @@
 #include "tagtransform.hpp"
 #include "wkb.hpp"
 
-#include <boost/algorithm/string/predicate.hpp>
 #include <vector>
 
 output_multi_t::output_multi_t(

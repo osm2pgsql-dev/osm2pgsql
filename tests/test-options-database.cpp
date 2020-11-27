@@ -1,6 +1,6 @@
 #include <catch.hpp>
 
-#include <options.hpp>
+#include "options.hpp"
 
 /**
  * Tests that the conninfo strings are appropriately generated
