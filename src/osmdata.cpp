@@ -499,11 +499,12 @@ private:
         timer.stop();
 
         if (get_logger().show_progress()) {
-            fmt::print(stderr, "\rLeft to process: 0.");
+            fmt::print(stderr, "\rLeft to process: 0.\n");
         }
 
-        log_info("{} pending {}s took {} at a rate of {:.2f}/s", ids_queued,
-                 type, util::human_readable_duration(timer.elapsed()),
+        log_info("Processing {} pending {}s took {} at a rate of {:.2f}/s",
+                 ids_queued, type,
+                 util::human_readable_duration(timer.elapsed()),
                  timer.per_second(ids_queued));
     }
 
