@@ -126,7 +126,7 @@ mandatory for short options too.
     will likely be greatly increased.
 
 \--drop
-:   Drop the slim mode tables from the database once the import is complete. This can
+:   Drop the slim mode tables from the database and the flat node file once the import is complete. This can
     greatly reduce the size of the database, as the slim mode tables typically are the same
     size, if not slightly bigger than the main tables. It does not, however, reduce the
     maximum spike of disk usage during import. It can furthermore increase the import speed,
