@@ -159,9 +159,9 @@ mandatory for short options too.
     default and should be typically used.
 
 -x, \--extra-attributes
-:   Include attributes for each object in the database.
-    This includes the username, userid, timestamp and version.
-    Note: this option also requires additional entries in your style file.
+:   Include attributes of each object in the middle tables and make them
+    available to the outputs. Attributes are: user name, user id, changeset id,
+    timestamp and version.
 
 \--flat-nodes=FILENAME
 :   The flat-nodes mode is a separate method to store slim mode node information on disk.
