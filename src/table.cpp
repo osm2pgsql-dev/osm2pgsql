@@ -197,7 +197,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
 
         sql += " ORDER BY ";
         if (postgis_version.major == 2 && postgis_version.minor < 4) {
-            log_info("Using GeoHash for clustering");
+            log_debug("Using GeoHash for clustering");
             if (m_srid == "4326") {
                 sql += "ST_GeoHash(way,10)";
             } else {
@@ -205,7 +205,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
             }
             sql += " COLLATE \"C\"";
         } else {
-            log_info("Using native order for clustering");
+            log_debug("Using native order for clustering");
             // Since Postgis 2.4 the order function for geometries gives
             // useful results.
             sql += "way";
@@ -216,7 +216,6 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
         m_sql_conn->exec("DROP TABLE {}"_format(qual_name));
         m_sql_conn->exec(
             "ALTER TABLE {} RENAME TO {}"_format(qual_tmp_name, m_target->name));
-        log_info("Copying {} to cluster by geometry finished", m_target->name);
         log_info("Creating geometry index on {}", m_target->name);
 
         // Use fillfactor 100 for un-updatable imports
@@ -250,14 +249,12 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
                         tablespace_clause(table_space_index)));
             }
         }
-        log_info("Creating indexes on {} finished", m_target->name);
+        log_info("Analyzing table '{}'...", m_target->name);
         m_sql_conn->exec("ANALYZE {}"_format(qual_name));
         log_info("All indexes on {} created in {}", m_target->name,
                  util::human_readable_duration(timer.stop()));
     }
     teardown();
-
-    log_info("Completed table {}", m_target->name);
 }
 
 void table_t::delete_row(osmid_t const id)

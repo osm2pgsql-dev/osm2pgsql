@@ -344,8 +344,8 @@ output_pgsql_t::output_pgsql_t(
   buffer(32768, osmium::memory::Buffer::auto_grow::yes),
   rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
 {
-    log_info("Using projection SRS {} ({})", o.projection->target_srs(),
-             o.projection->target_desc());
+    log_debug("Using projection SRS {} ({})", o.projection->target_srs(),
+              o.projection->target_desc());
 
     export_list exlist;
 

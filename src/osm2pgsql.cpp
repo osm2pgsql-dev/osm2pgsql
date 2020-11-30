@@ -75,7 +75,7 @@ prepare_input_files(options_t const &options)
                 "Reading an OSM change file only works in append mode."};
         }
 
-        log_info("Reading file: {}", filename);
+        log_debug("Reading file: {}", filename);
 
         files.emplace_back(file);
     }

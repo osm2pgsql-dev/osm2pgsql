@@ -88,7 +88,6 @@ void middle_query_pgsql_t::exec_sql(std::string const &sql_cmd) const
 void middle_pgsql_t::table_desc::stop(std::string const &conninfo,
                                       bool droptemp, bool build_indexes)
 {
-    log_info("Stopping table: {}", name());
     util::timer_t timer;
 
     // Use a temporary connection here because we might run in a separate
@@ -96,6 +95,7 @@ void middle_pgsql_t::table_desc::stop(std::string const &conninfo,
     pg_conn_t sql_conn{conninfo};
 
     if (droptemp) {
+        log_info("Dropping table: {}", name());
         auto const qual_name = qualified_name(
             m_copy_target->schema, m_copy_target->name);
         sql_conn.exec("DROP TABLE IF EXISTS {}"_format(qual_name));
@@ -104,7 +104,7 @@ void middle_pgsql_t::table_desc::stop(std::string const &conninfo,
         sql_conn.exec(m_create_fw_dep_indexes);
     }
 
-    log_info("Stopped table: {} in {}", name(),
+    log_info("Done postprocessing table: {} in {}", name(),
              util::human_readable_duration(timer.stop()));
 }
 
@@ -575,7 +575,7 @@ void middle_pgsql_t::start()
         // (Re)create tables.
         m_db_connection.exec("SET client_min_messages = WARNING");
         for (auto const &table : m_tables) {
-            log_info("Setting up table: {}", table.name());
+            log_debug("Setting up table: {}", table.name());
             auto const qual_name = qualified_name(
                 table.m_copy_target->schema, table.m_copy_target->name);
             m_db_connection.exec(
@@ -755,7 +755,7 @@ middle_pgsql_t::middle_pgsql_t(options_t const *options)
         m_persistent_cache.reset(new node_persistent_cache{options, m_cache});
     }
 
-    log_info("Mid: pgsql, cache={}", options->cache);
+    log_debug("Mid: pgsql, cache={}", options->cache);
 
     bool const has_bucket_index =
         check_bucket_index(&m_db_connection, options->prefix);

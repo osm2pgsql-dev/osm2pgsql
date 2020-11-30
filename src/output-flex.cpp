@@ -1511,7 +1511,6 @@ void output_flex_t::reprocess_marked()
     log_info("Reprocess marked ways (stage 2)...");
 
     if (!m_options.append) {
-        log_info("Creating id indexes...");
         util::timer_t timer;
 
         for (auto &table : m_table_connections) {

@@ -32,9 +32,9 @@ tile_output_t::tile_output_t(char const *filename)
 : outfile(fopen(filename, "a"))
 {
     if (outfile == nullptr) {
-        log_error("Failed to open expired tiles file ({}).  Tile expiry "
-                  "list will not be written!",
-                  std::strerror(errno));
+        log_warn("Failed to open expired tiles file ({}).  Tile expiry "
+                 "list will not be written!",
+                 std::strerror(errno));
     }
 }
 
@@ -354,9 +354,9 @@ void expire_tiles::from_wkb_polygon(ewkb::parser_t *wkb, osmid_t osm_id)
 
     if (from_bbox(min.x, min.y, max.x, max.y)) {
         /* Bounding box too big - just expire tiles on the line */
-        log_info("Large polygon ({:.0f} x {:.0f} metres, OSM ID {})"
-                 " - only expiring perimeter",
-                 max.x - min.x, max.y - min.y, osm_id);
+        log_debug("Large polygon ({:.0f} x {:.0f} metres, OSM ID {})"
+                  " - only expiring perimeter",
+                  max.x - min.x, max.y - min.y, osm_id);
         wkb->rewind(start);
         for (unsigned ring = 0; ring < num_rings; ++ring) {
             from_wkb_line(wkb);

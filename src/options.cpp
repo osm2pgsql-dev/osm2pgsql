@@ -357,7 +357,7 @@ static osmium::Box parse_bbox(char const *bbox)
             "Bounding box failed due to maxlat <= minlat."};
     }
 
-    log_info("Applying bounding box: {},{} to {},{}", minx, miny, maxx, maxy);
+    log_debug("Applying bounding box: {},{} to {},{}", minx, miny, maxx, maxy);
 
     return osmium::Box{minx, miny, maxx, maxy};
 }
