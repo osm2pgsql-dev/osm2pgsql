@@ -52,7 +52,7 @@ node_persistent_cache::node_persistent_cache(
 
     m_fname = options->flat_node_file->c_str();
     m_remove_file = options->droptemp;
-    log_info("Mid: loading persistent node cache from {}", m_fname);
+    log_debug("Mid: loading persistent node cache from {}", m_fname);
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-signed-bitwise)
     m_fd = open(m_fname, O_RDWR | O_CREAT, 0644);
@@ -74,7 +74,7 @@ node_persistent_cache::~node_persistent_cache() noexcept
 
     if (m_remove_file) {
         try {
-            log_info("Mid: removing persistent node cache at {}", m_fname);
+            log_debug("Mid: removing persistent node cache at {}", m_fname);
         } catch (...) {
         }
         unlink(m_fname);

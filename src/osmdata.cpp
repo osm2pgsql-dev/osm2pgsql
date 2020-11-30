@@ -470,12 +470,8 @@ private:
     {
         auto const ids_queued = list.size();
 
-        if (get_logger().show_progress()) {
-            fmt::print(stderr, "\nGoing over pending {}s...\n", type);
-            fmt::print(stderr, "\t{} {}s are pending\n", ids_queued, type);
-            fmt::print(stderr, "\nUsing {} helper-processes\n",
-                       m_clones.size());
-        }
+        log_info("Going over {} pending {}s (using {} threads)"_format(
+            ids_queued, type, m_clones.size()));
 
         util::timer_t timer;
         std::vector<std::future<void>> workers;
@@ -503,16 +499,12 @@ private:
         timer.stop();
 
         if (get_logger().show_progress()) {
-            fmt::print(stderr, "\rFinished processing {} {}s in {}\n\n",
-                       ids_queued, type,
-                       util::human_readable_duration(timer.elapsed()));
+            fmt::print(stderr, "\rLeft to process: 0.");
         }
 
-        if (timer.elapsed() > 0) {
-            log_info("{} pending {}s took {} at a rate of {:.2f}/s", ids_queued,
-                     type, util::human_readable_duration(timer.elapsed()),
-                     timer.per_second(ids_queued));
-        }
+        log_info("{} pending {}s took {} at a rate of {:.2f}/s", ids_queued,
+                 type, util::human_readable_duration(timer.elapsed()),
+                 timer.per_second(ids_queued));
     }
 
     /// Clones of all outputs, one vector of clones per thread.

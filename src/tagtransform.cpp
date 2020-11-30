@@ -14,8 +14,8 @@ tagtransform_t::make_tagtransform(options_t const *options,
 {
     if (options->tag_transform_script) {
 #ifdef HAVE_LUA
-        log_info("Using lua based tag transformations with script {}",
-                 options->tag_transform_script.get());
+        log_debug("Using lua based tag transformations with script {}",
+                  options->tag_transform_script.get());
         return std::unique_ptr<tagtransform_t>(new lua_tagtransform_t{options});
 #else
         throw std::runtime_error{"Error: Could not init lua tag transform, as "
@@ -24,7 +24,7 @@ tagtransform_t::make_tagtransform(options_t const *options,
 #endif
     }
 
-    log_info("Using built-in tag transformations");
+    log_debug("Using built-in tag transformations");
     return std::unique_ptr<tagtransform_t>(
         new c_tagtransform_t{options, exlist});
 }
