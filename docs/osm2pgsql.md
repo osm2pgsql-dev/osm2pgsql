@@ -4,7 +4,7 @@ osm2pgsql - Openstreetmap data to PostgreSQL converter
 
 # SYNOPSIS
 
-**osm2pgsql** \[*OPTIONS*\] OSM-FILE
+**osm2pgsql** \[*OPTIONS*\] OSM-FILE...
 
 # DESCRIPTION
 
@@ -13,10 +13,12 @@ is an essential part of many rendering toolchains, the Nominatim geocoder and
 other applications processing OSM data.
 
 **osm2pgsql** can run in either "create" mode (the default) or in "append" mode
-(option **-a, \--append**). In "create" mode osm2pgsql will create the database
-tables required by the configuration and import the OSM file(s) specified on
-the command line into those tables. Note that you also have to use the
-**-s, \--slim** option if you want your database to be updateable.
+(option **-a, \--append**).
+
+In "create" mode osm2pgsql will create the database tables required by the
+configuration and import the OSM file(s) specified on the command line into
+those tables. Note that you also have to use the **-s, \--slim** option if you
+want your database to be updateable.
 
 In "append" mode osm2pgsql will update the database tables with the data from
 OSM change files specified on the command line.
