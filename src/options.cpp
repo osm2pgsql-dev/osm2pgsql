@@ -556,6 +556,17 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             break;
         case 205:
             num_procs = atoi(optarg);
+            if (num_procs < 1) {
+                log_warn("--number-processes must be at least 1. Using 1.");
+                num_procs = 1;
+            } else if (num_procs > 32) {
+                // The threads will open up database connections which will
+                // run out at some point. It depends on the number of tables
+                // how many connections there are. The number 32 is way beyond
+                // anything that will make sense here.
+                log_warn("--number-processes too large. Set to 32.");
+                num_procs = 32;
+            }
             break;
         case 206:
             droptemp = true;
@@ -706,7 +717,8 @@ void options_t::check_options()
 
     if (enable_hstore_index && hstore_mode == hstore_column::none &&
         hstore_columns.empty()) {
-        log_warn("--hstore-add-index only makes sense with hstore enabled.");
+        log_warn("--hstore-add-index only makes sense with hstore enabled; "
+                 "ignored.");
         enable_hstore_index = false;
     }
 
@@ -726,24 +738,14 @@ void options_t::check_options()
         }
     }
 
-    if (num_procs < 1) {
-        num_procs = 1;
-        log_warn("Must use at least 1 process.");
-    }
-
-    if (sizeof(int *) == 4 && !slim) {
-        log_warn(
-            "This is a 32bit system with not a lot of RAM. Try using --slim.");
-    }
-
     // zoom level 31 is the technical limit because we use 32-bit integers for the x and y index of a tile ID
-    if (expire_tiles_zoom_min >= 32) {
+    if (expire_tiles_zoom_min > 31) {
         expire_tiles_zoom_min = 31;
         log_warn("Minimum zoom level for tile expiry is too "
                  "large and has been set to 31.");
     }
 
-    if (expire_tiles_zoom >= 32) {
+    if (expire_tiles_zoom > 31) {
         expire_tiles_zoom = 31;
         log_warn("Maximum zoom level for tile expiry is too "
                  "large and has been set to 31.");
