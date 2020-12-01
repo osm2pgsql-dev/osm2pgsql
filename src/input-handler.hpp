@@ -36,8 +36,6 @@ public:
     progress_display_t const &progress() const noexcept { return m_progress; }
 
 private:
-    void negative_id_warning();
-
     osmdata_t const *m_data;
 
     // Bounding box for node import (or invalid Box if everything should be
@@ -52,9 +50,6 @@ private:
 
     // Are we running in append mode?
     bool m_append;
-
-    // Has a warning about a negative id already been issued?
-    bool m_issued_warning_negative_id = false;
 };
 
 #endif // OSM2PGSQL_INPUT_HANDLER_HPP
