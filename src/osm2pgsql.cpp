@@ -64,7 +64,8 @@ prepare_input_files(options_t const &options)
         if (file.format() == osmium::io::file_format::unknown) {
             if (options.input_format.empty()) {
                 throw std::runtime_error{
-                    "Cannot detect file format. Try using -r."};
+                    "Cannot detect file format for '{}'. Try using -r."_format(
+                        filename)};
             }
             throw std::runtime_error{
                 "Unknown file format '{}'."_format(options.input_format)};
