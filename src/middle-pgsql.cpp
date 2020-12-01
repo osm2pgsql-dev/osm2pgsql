@@ -760,7 +760,8 @@ middle_pgsql_t::middle_pgsql_t(options_t const *options)
     bool const has_bucket_index =
         check_bucket_index(&m_db_connection, options->prefix);
 
-    if (!has_bucket_index && options->append) {
+    if (!has_bucket_index && options->append &&
+        options->with_forward_dependencies) {
         log_warn("You don't have a bucket index. See manual for details.");
     }
 

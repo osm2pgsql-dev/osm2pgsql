@@ -240,14 +240,9 @@ void node_ram_cache::set_dense(osmid_t id, osmium::Location location)
         }
 
         if (queue[expectedpos] != &blocks[block]) {
-            if (m_warn_node_order) {
-                log_warn("Found out of order node {}"
-                         " ({},{}) - this will impact the cache efficiency",
-                         id, block, offset);
-
-                // Only warn once
-                m_warn_node_order = false;
-            }
+            // This can only happen if the node is out of order which it
+            // should never be because of earlier checks for that.
+            // Ignore the node.
             return;
         }
     }
