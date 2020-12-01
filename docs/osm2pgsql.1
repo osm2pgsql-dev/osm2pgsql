@@ -169,7 +169,8 @@ greatly increased.
 .RE
 .TP
 .B \-\-drop
-Drop the slim mode tables from the database once the import is complete.
+Drop the slim mode tables from the database and the flat node file once
+the import is complete.
 This can greatly reduce the size of the database, as the slim mode
 tables typically are the same size, if not slightly bigger than the main
 tables.
@@ -223,9 +224,9 @@ This is the default and should be typically used.
 .RE
 .TP
 .B \-x, \-\-extra\-attributes
-Include attributes for each object in the database.
-This includes the username, userid, timestamp and version.
-Note: this option also requires additional entries in your style file.
+Include attributes of each object in the middle tables and make them
+available to the outputs.
+Attributes are: user name, user id, changeset id, timestamp and version.
 .RS
 .RE
 .TP

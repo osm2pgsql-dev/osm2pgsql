@@ -98,180 +98,152 @@ void long_usage(char const *arg0, bool verbose)
 {
     char const *const name = program_name(arg0);
 
-    printf("Usage:\n");
-    printf("\t%s [options] planet.osm\n", name);
-    printf("\t%s [options] planet.osm.{pbf,gz,bz2}\n", name);
-    printf("\t%s [options] file1.osm file2.osm file3.osm\n", name);
-    printf("\nThis will import the data from the OSM file(s) into a PostgreSQL "
-           "database\n");
-    printf("suitable for use by the Mapnik renderer.\n\n");
+    fmt::print(stdout, "\nUsage: {} [OPTIONS] OSM-FILE...\n", name);
+    std::fputs(
+        "\nImport data from the OSM file(s) into a PostgreSQL database.\n\n\
+Full documentation is available at https://osm2pgsql.org/\n\n",
+        stdout);
 
-    printf("%s", "\
-    Common options:\n\
-       -a|--append      Add the OSM file into the database without removing\n\
-                        existing data.\n\
-       -c|--create      Remove existing data from the database. This is the\n\
-                        default if --append is not specified.\n\
-       -l|--latlong     Store data in degrees of latitude & longitude.\n\
-       -m|--merc        Store data in proper spherical mercator (default).\n"
-#ifdef HAVE_GENERIC_PROJ
-                 "       -E|--proj num    Use projection EPSG:num.\n"
+    std::fputs("\
+Common options:\n\
+    -a|--append     Update existing osm2pgsql database with data from file.\n\
+    -c|--create     Import OSM data from file into database. This is the\n\
+                    default if --append is not specified.\n\
+    -O|--output=OUTPUT  Set output. Options are:\n\
+                    pgsql - Output to a PostGIS database (default)\n\
+                    flex - More flexible output to PostGIS database\n\
+                    multi - Multiple Custom Table Output to a PostGIS \n\
+                            database (deprecated)\n\
+                    gazetteer - Output to a PostGIS database for Nominatim\n\
+                    null - No output. Used for testing.\n\
+    -S|--style=FILE  Location of the style file. Defaults to\n\
+                    '" DEFAULT_STYLE "'.\n\
+    -k|--hstore     Add tags without column to an additional hstore column.\n",
+               stdout);
+#ifdef HAVE_LUA
+    std::fputs("\
+       --tag-transform-script=SCRIPT  Specify a Lua script to handle tag\n\
+                    filtering and normalisation (pgsql output only).\n",
+               stdout);
 #endif
-                 "\
-       -s|--slim        Store temporary data in the database. This greatly\n\
-                        reduces the RAM usage but is much slower. This switch is\n\
-                        required if you want to update with --append later.\n\
-       -S|--style       Location of the style file. Defaults to\n");
-    printf("\
-                        %s.\n",
-           DEFAULT_STYLE);
-    printf("%s", "\
-       -C|--cache       Use up to this many MB for caching nodes (default: 800)\n\
-       -F|--flat-nodes  Specifies the flat file to use to persistently store node \n\
-                        information in slim mode instead of in PostgreSQL.\n\
-                        This file is a single > 40Gb large file. Only recommended\n\
-                        for full planet imports. Default is disabled.\n\
-          --middle-schema   Schema to use for middle tables (default: none)\n\
-          --with-forward-dependencies true|false Propagate changes from nodes to ways\n\
-                             and node/way members to relations (Default: true).\n\
-    \n\
-    Database options:\n\
-       -d|--database    The name of the PostgreSQL database to connect to or\n\
-                        a PostgreSQL conninfo string.\n\
-       -U|--username    PostgreSQL user name (specify passsword in PGPASSWORD\n\
-                        environment variable or use -W).\n\
-       -W|--password    Force password prompt.\n\
-       -H|--host        Database server host name or socket location.\n\
-       -P|--port        Database server port.\n");
+    std::fputs("\
+    -s|--slim       Store temporary data in the database. This switch is\n\
+                    required if you want to update with --append later.\n\
+        --drop      Only with --slim: drop temporary tables after import\n\
+                    (no updates are possible).\n\
+    -C|--cache=SIZE  Use up to SIZE MB for caching nodes (default: 800).\n\
+    -F|--flat-nodes=FILE  Specifies the file to use to persistently store node\n\
+                    information in slim mode instead of in PostgreSQL.\n\
+                    This is a single large file (> 50GB). Only recommended\n\
+                    for full planet imports. Default is disabled.\n\
+\n\
+Database options:\n\
+    -d|--database=DB  The name of the PostgreSQL database to connect to or\n\
+                    a PostgreSQL conninfo string.\n\
+    -U|--username=NAME  PostgreSQL user name.\n\
+    -W|--password   Force password prompt.\n\
+    -H|--host=HOST  Database server host name or socket location.\n\
+    -P|--port=PORT  Database server port.\n",
+               stdout);
 
     if (verbose) {
-        printf("%s", "\
-    \n\
-    Hstore options:\n\
-       -k|--hstore      Add tags without column to an additional hstore\n\
-                        (key/value) column\n\
-          --hstore-match-only   Only keep objects that have a value in one of\n\
-                        the columns (default with --hstore is to keep all objects)\n\
-       -j|--hstore-all  Add all tags to an additional hstore (key/value) column\n\
-       -z|--hstore-column   Add an additional hstore (key/value) column containing\n\
-                        all tags that start with the specified string, eg\n\
-                        --hstore-column \"name:\" will produce an extra hstore\n\
-                        column that contains all name:xx tags\n\
-          --hstore-add-index    Add index to hstore column.\n\
-    \n\
-    Performance options:\n\
-       -i|--tablespace-index    The name of the PostgreSQL tablespace where\n\
-                        all indexes will be created.\n\
-                        The following options allow more fine-grained control:\n\
-          --tablespace-main-data    tablespace for main tables\n\
-          --tablespace-main-index   tablespace for main table indexes\n\
-          --tablespace-slim-data    tablespace for slim mode tables\n\
-          --tablespace-slim-index   tablespace for slim mode indexes\n\
-                        (if unset, use db's default; -i is equivalent to setting\n\
-                        --tablespace-main-index and --tablespace-slim-index)\n\
-          --drop        only with --slim: drop temporary tables after import \n\
-                        (no updates are possible).\n\
-          --number-processes        Specifies the number of parallel processes \n\
-                        used for certain operations (default is 1).\n\
-       -I|--disable-parallel-indexing   Disable indexing all tables concurrently.\n\
-          --cache-strategy  Specifies the method used to cache nodes in ram.\n\
-                        Available options are:\n\
-                        dense: caching strategy optimised for full planet import\n\
-                        chunk: caching strategy optimised for non-contiguous \n\
-                            memory allocation\n\
-                        sparse: caching strategy optimised for small imports\n\
-                        optimized: automatically combines dense and sparse \n\
-                            strategies for optimal storage efficiency. This may\n\
-                            us twice as much virtual memory, but no more physical \n\
-                            memory.\n");
+        std::fputs("\n\
+Logging options:\n\
+       --log-level=LEVEL  Set log level ('debug', 'info' (default), 'warn',\n\
+                    or 'error').\n\
+       --log-progress=VALUE  Enable ('true') or disable ('false') progress\n\
+                    logging. The default is 'auto' which will enable progress\n\
+                    logging on the console and disable it if the output is\n\
+                    redirected to a file.\n\
+       --log-sql    Enable logging of SQL commands for debugging.\n\
+       --log-sql-data  Enable logging of all data added to the database.\n\
+    -v|--verbose    Same as '--log-level=debug'.\n\
+\n\
+Input options:\n\
+    -r|--input-reader=FORMAT  Input format ('xml', 'pbf', 'o5m', or\n\
+                    'auto' - autodetect format (default))\n\
+    -b|--bbox=MINLON,MINLAT,MAXLON,MAXLAT  Apply a bounding box filter on the\n\
+                    imported data, e.g. '--bbox -0.5,51.25,0.5,51.75'.\n\
+\n\
+Middle options:\n\
+    -i|--tablespace-index=TBLSPC  The name of the PostgreSQL tablespace where\n\
+                    all indexes will be created.\n\
+                    The following options allow more fine-grained control:\n\
+       --tablespace-slim-data=TBLSPC  Tablespace for slim mode tables.\n\
+       --tablespace-slim-index=TBLSPC  Tablespace for slim mode indexes.\n\
+                    (if unset, use db's default; -i is equivalent to setting\n\
+                    --tablespace-main-index and --tablespace-slim-index).\n\
+    -p|--prefix=PREFIX  Prefix for table names (default 'planet_osm')\n\
+       --cache-strategy=STRATEGY  Specifies the method used to cache nodes in\n\
+                    RAM. Available options are:\n\
+                    dense: caching strategy optimised for full planet import\n\
+                    chunk: caching strategy optimised for non-contiguous\n\
+                           memory allocation\n\
+                    sparse: caching strategy optimised for small imports\n\
+                    optimized: automatically combines dense and sparse \n\
+                           strategies for optimal storage efficiency. This may\n\
+                           us twice as much virtual memory, but no more physical\n\
+                           memory.\n"
 #ifdef __amd64__
-        printf("\
-                        The default is \"optimized\"\n");
+                   "                    The default is 'optimized'.\n"
 #else
-        /* use "chunked" as a default in 32 bit compilations, as it is less wasteful of virtual memory than "optimized"*/
-        printf("\
-                        The default is \"sparse\"\n");
+                   "                    The default is 'sparse'.\n"
 #endif
-        printf("%s", "\
-    \n\
-    Middle options (experts only):\n\
-          --middle-way-node-index-id-shift shift  Set ID shift for bucket\n\
-                             index. See documentation for details.\n\
-    \n\
-    Expiry options:\n\
-       -e|--expire-tiles [min_zoom-]max_zoom    Create a tile expiry list.\n\
-                             Zoom levels must be larger than 0 and smaller\n\
-                             than 32.\n\
-       -o|--expire-output filename  Output filename for expired tiles list.\n\
-          --expire-bbox-size Max size for a polygon to expire the whole polygon,\n\
-                             not just the boundary.\n\
-    \n\
-    Other options:\n\
-       -b|--bbox        Apply a bounding box filter on the imported data\n\
-                        Must be specified as: minlon,minlat,maxlon,maxlat\n\
-                        e.g. --bbox -0.5,51.25,0.5,51.75\n\
-       -p|--prefix      Prefix for table names (default planet_osm)\n\
-       -r|--input-reader    Input format.\n\
-                        auto      - Detect file format. (default)\n\
-                        o5m       - Parse as o5m format.\n\
-                        xml       - Parse as OSM XML.\n\
-                        pbf       - OSM binary format.\n\
-       -O|--output      Output backend.\n\
-                        pgsql - Output to a PostGIS database (default)\n\
-                        flex - More flexible output to PostGIS database\n\
-                        multi - Multiple Custom Table Output to a PostGIS \n\
-                                database (deprecated)\n\
-                        gazetteer - Output to a PostGIS database for Nominatim\n\
-                        null - No output. Useful for testing. Still creates tables if --slim is specified.\n\
-          --output-pgsql-schema Schema to use for pgsql/multi output tables (default: none)\n");
-#ifdef HAVE_LUA
-        printf("\
-          --tag-transform-script  Specify a lua script to handle tag filtering and normalisation\n\
-                        The script contains callback functions for nodes, ways and relations, which each\n\
-                        take a set of tags and returns a transformed, filtered set of tags which are then\n\
-                        written to the database.\n");
+                   "\
+    -x|--extra-attributes  Include attributes (user name, user id, changeset\n\
+                    id, timestamp and version) for each object in the database.\n\
+       --middle-schema=SCHEMA  Schema to use for middle tables (default: none).\n\
+       --middle-way-node-index-id-shift=SHIFT  Set ID shift for bucket index.\n\
+\n\
+Pgsql output options:\n\
+    -i|--tablespace-index=TBLSPC  The name of the PostgreSQL tablespace where\n\
+                    all indexes will be created.\n\
+                    The following options allow more fine-grained control:\n\
+       --tablespace-main-data=TBLSPC  Tablespace for main tables.\n\
+       --tablespace-main-index=TBLSPC  Tablespace for main table indexes.\n\
+    -l|--latlong    Store data in degrees of latitude & longitude (WGS84).\n\
+    -m|--merc       Store data in web mercator (default).\n"
+#ifdef HAVE_GENERIC_PROJ
+                   "    -E|--proj=SRID  Use projection EPSG:SRID.\n"
 #endif
-        printf("\
-       -x|--extra-attributes\n\
-                        Include attributes for each object in the database.\n\
-                        This includes the username, userid, timestamp and version.\n\
-                        Requires additional entries in your style file.\n\
-       -G|--multi-geometry  Generate multi-geometry features in postgresql tables.\n\
-       -K|--keep-coastlines Keep coastline data rather than filtering it out.\n\
-                        By default natural=coastline tagged data will be discarded\n\
-                        because renderers usually have shape files for them.\n\
-          --reproject-area   compute area column using spherical mercator coordinates.\n\
-          --log-level=LVL Set log level ('debug', 'info' (default), 'warn', or 'error').\n\
-          --log-progress=VAL Log progress ('true', 'false', or 'auto' (default)).\n\
-          --log-sql     Enable logging of SQL commands for debugging.\n\
-          --log-sql-data Enable logging of SQL data for debugging.\n\
-       -h|--help        Help information.\n\
-       -v|--verbose     Verbose output.\n");
+                   "\
+    -p|--prefix=PREFIX  Prefix for table names (default 'planet_osm').\n\
+    -x|--extra-attributes  Include attributes (user name, user id, changeset\n\
+                    id, timestamp and version) for each object in the database.\n\
+       --hstore-match-only  Only keep objects that have a value in one of the\n\
+                    columns (default with --hstore is to keep all objects).\n\
+    -j|--hstore-all  Add all tags to an additional hstore (key/value) column.\n\
+    -z|--hstore-column=NAME  Add an additional hstore (key/value) column\n\
+                    containing all tags that start with the specified string,\n\
+                    eg '--hstore-column name:' will produce an extra hstore\n\
+                    column that contains all 'name:xx' tags.\n\
+       --hstore-add-index  Add index to hstore column.\n\
+    -G|--multi-geometry  Generate multi-geometry features in postgresql tables.\n\
+    -K|--keep-coastlines  Keep coastline data rather than filtering it out.\n\
+                    Default: discard objects tagged natural=coastline.\n\
+       --output-pgsql-schema=SCHEMA Schema to use for pgsql/multi output tables\n\
+                    (default: none).\n\
+       --reproject-area  Compute area column using web mercator coordinates.\n\
+\n\
+Expiry options:\n\
+    -e|--expire-tiles=[MIN_ZOOM-]MAX_ZOOM  Create a tile expiry list.\n\
+                    Zoom levels must be larger than 0 and smaller than 32.\n\
+    -o|--expire-output=FILENAME  Output filename for expired tiles list.\n\
+       --expire-bbox-size=SIZE  Max size for a polygon to expire the whole\n\
+                    polygon, not just the boundary.\n\
+\n\
+Advanced options:\n\
+    -I|--disable-parallel-indexing   Disable indexing all tables concurrently.\n\
+       --number-processes=NUM  Specifies the number of parallel processes used\n\
+                   for certain operations (default depends on number of CPUs).\n\
+       --with-forward-dependencies=BOOL  Propagate changes from nodes to ways\n\
+                   and node/way members to relations (Default: true).\n\
+",
+                   stdout);
     } else {
-        printf("\n");
-        printf("A typical command to import a full planet is\n");
-        printf("    %s -c -d gis --slim -C <cache size> -k \\\n", name);
-        printf("      --flat-nodes <flat nodes> planet-latest.osm.pbf\n");
-        printf("where\n");
-        printf("    <cache size> should be equivalent to the size of the \n");
-        printf("      pbf file to be imported if there is enough RAM \n");
-        printf("      or about 75%% of memory in MB on machines with less\n");
-        printf("    <flat nodes> is a location where a 50+GB file can be "
-               "saved.\n");
-        printf("\n");
-        printf("A typical command to update a database imported with the above "
-               "command is\n");
-        printf("    osmosis --rri workingDirectory=<osmosis dir> --simc --wxc "
-               "- \\\n");
-        printf("      | %s -a -d gis --slim -k --flat-nodes <flat nodes> -r "
-               "xml -\n",
-               name);
-        printf("where\n");
-        printf("    <flat nodes> is the same location as above.\n");
-        printf("    <osmosis dir> is the location osmosis replication was "
-               "initialized to.\n");
-        printf(
-            "\nRun %s --help --verbose (-h -v) for a full list of options.\n",
+        fmt::print(
+            stdout,
+            "\nRun '{} --help --verbose' (-h -v) for a full list of options.\n",
             name);
     }
 }
@@ -589,14 +561,14 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             fmt::print(stderr, "Libosmium {}\n", LIBOSMIUM_VERSION_STRING);
             fmt::print(stderr, "Proj {}\n", get_proj_version());
 #ifdef HAVE_LUA
-            fmt::print(stderr, "{}", LUA_RELEASE);
 #ifdef HAVE_LUAJIT
-            fmt::print(stderr, " ({})", LUAJIT_VERSION);
+            fmt::print(stderr, "{} ({})\n", LUA_RELEASE, LUAJIT_VERSION);
+#else
+            fmt::print(stderr, "{}\n", LUA_RELEASE);
 #endif
 #else
-            fprintf(stderr, "Lua support not included");
+            fmt::print(stderr, "Lua support not included\n");
 #endif
-            fprintf(stderr, "\n");
             exit(EXIT_SUCCESS);
             break;
         case 215:
