@@ -762,7 +762,7 @@ middle_pgsql_t::middle_pgsql_t(options_t const *options)
 
     if (!has_bucket_index && options->append &&
         options->with_forward_dependencies) {
-        log_warn("You don't have a bucket index. See manual for details.");
+        log_debug("You don't have a bucket index. See manual for details.");
     }
 
     m_tables[NODE_TABLE] =
