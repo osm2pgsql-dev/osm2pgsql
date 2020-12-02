@@ -27,10 +27,9 @@ to install and run osm2pgsql.
 
 ## Installing
 
-Most Linux distributions include osm2pgsql. It is also available on macOS with [Homebrew](https://brew.sh/).
-
-Unoffical builds for Windows are available from [AppVeyor](https://ci.appveyor.com/project/openstreetmap/osm2pgsql/history) but you need to find the right build artifacts.
-Builds for releases may also be downloaded from the [OpenStreetMap Dev server](https://lonvia.dev.openstreetmap.org/osm2pgsql-winbuild/releases/).
+Most Linux distributions include osm2pgsql. It is available on macOS with
+[Homebrew](https://brew.sh/) and Windows builds are also available. See
+https://osm2pgsql.org/doc/install.html for details.
 
 ## Building
 
