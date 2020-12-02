@@ -137,7 +137,6 @@ public:
     database_options_t database_options;
     std::string output_backend{"pgsql"};
     std::string input_format; ///< input file format (default: autodetect)
-    std::string log_progress; ///< setting of the --log-progress option
     osmium::Box bbox;
     bool extra_attributes = false;
 

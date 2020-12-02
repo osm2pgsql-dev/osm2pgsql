@@ -152,9 +152,9 @@ Logging options:\n\
        --log-level=LEVEL  Set log level ('debug', 'info' (default), 'warn',\n\
                     or 'error').\n\
        --log-progress=VALUE  Enable ('true') or disable ('false') progress\n\
-                    logging. The default is 'auto' which will enable progress\n\
+                    logging. If set to 'auto' osm2pgsql will enable progress\n\
                     logging on the console and disable it if the output is\n\
-                    redirected to a file.\n\
+                    redirected to a file. Default: true.\n\
        --log-sql    Enable logging of SQL commands for debugging.\n\
        --log-sql-data  Enable logging of all data added to the database.\n\
     -v|--verbose    Same as '--log-level=debug'.\n\
@@ -608,13 +608,11 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             break;
         case 401: // --log-progress=VALUE
             if (std::strcmp(optarg, "true") == 0) {
-                log_progress = optarg;
                 get_logger().enable_progress();
             } else if (std::strcmp(optarg, "false") == 0) {
-                log_progress = optarg;
                 get_logger().disable_progress();
             } else if (std::strcmp(optarg, "auto") == 0) {
-                log_progress = optarg;
+                get_logger().auto_progress();
             } else {
                 throw std::runtime_error{
                     "Unknown value for --log-progress option: {}"_format(
@@ -728,11 +726,5 @@ void options_t::check_options()
             throw std::runtime_error{
                 "You have to set the config file with the -S|--style option."};
         }
-    }
-
-    if (log_progress.empty() && !get_logger().show_progress()) {
-        log_info("Progress logging disabled because you are not logging to the "
-                 "console.");
-        log_info("  Use --log-progress=true to override this.");
     }
 }
