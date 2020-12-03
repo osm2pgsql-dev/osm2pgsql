@@ -210,7 +210,8 @@ void table_connection_t::stop(bool updateable, bool append)
 
         sql += " ORDER BY ";
         if (postgis_version.major == 2 && postgis_version.minor < 4) {
-            log_debug("Using GeoHash for clustering");
+            log_debug("Using GeoHash for clustering table '{}'",
+                      table().name());
             if (table().geom_column().srid() == 4326) {
                 sql += "ST_GeoHash({},10)"_format(table().geom_column().name());
             } else {
@@ -220,7 +221,8 @@ void table_connection_t::stop(bool updateable, bool append)
             }
             sql += " COLLATE \"C\"";
         } else {
-            log_debug("Using native order for clustering");
+            log_debug("Using native order for clustering table '{}'",
+                      table().name());
             // Since Postgis 2.4 the order function for geometries gives
             // useful results.
             sql += table().geom_column().name();

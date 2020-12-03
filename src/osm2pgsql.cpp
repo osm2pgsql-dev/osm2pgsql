@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
         // create indexes.
         osmdata.stop();
 
-        log_info("Osm2pgsql took {} overall",
+        log_info("Osm2pgsql took {} overall.",
                  util::human_readable_duration(timer_overall.stop()));
     } catch (std::exception const &e) {
         log_error("{}", e.what());

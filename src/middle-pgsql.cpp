@@ -95,16 +95,16 @@ void middle_pgsql_t::table_desc::stop(std::string const &conninfo,
     pg_conn_t sql_conn{conninfo};
 
     if (droptemp) {
-        log_info("Dropping table: {}", name());
+        log_info("Dropping table '{}'", name());
         auto const qual_name = qualified_name(
             m_copy_target->schema, m_copy_target->name);
         sql_conn.exec("DROP TABLE IF EXISTS {}"_format(qual_name));
     } else if (build_indexes && !m_create_fw_dep_indexes.empty()) {
-        log_info("Building index on table: {}", name());
+        log_info("Building index on table '{}'", name());
         sql_conn.exec(m_create_fw_dep_indexes);
     }
 
-    log_info("Done postprocessing table: {} in {}", name(),
+    log_info("Done postprocessing on table '{}' in {}", name(),
              util::human_readable_duration(timer.stop()));
 }
 
@@ -575,7 +575,7 @@ void middle_pgsql_t::start()
         // (Re)create tables.
         m_db_connection.exec("SET client_min_messages = WARNING");
         for (auto const &table : m_tables) {
-            log_debug("Setting up table: {}", table.name());
+            log_debug("Setting up table '{}'", table.name());
             auto const qual_name = qualified_name(
                 table.m_copy_target->schema, table.m_copy_target->name);
             m_db_connection.exec(
