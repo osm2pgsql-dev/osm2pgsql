@@ -63,14 +63,14 @@ public:
     bool show_progress() const noexcept { return m_show_progress; }
 
     void enable_progress() noexcept { m_show_progress = true; }
-
     void disable_progress() noexcept { m_show_progress = false; }
+    void auto_progress() noexcept { m_show_progress = osmium::util::isatty(2); }
 
 private:
     log_level m_current_level = log_level::info;
     bool m_log_sql = false;
     bool m_log_sql_data = false;
-    bool m_show_progress = osmium::util::isatty(2);
+    bool m_show_progress = true;
 
 }; // class logger
 

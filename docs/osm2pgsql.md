@@ -57,9 +57,9 @@ mandatory for short options too.
 :   Set log level ('debug', 'info' (default), 'warn', or 'error').
 
 \--log-progress=VALUE
-:   Enable (`true`) or disable (`false`) progress logging. The default is
-    `auto` which will enable progress logging on the console and disable it
-    if the output is redirected to a file.
+:   Enable (`true`) or disable (`false`) progress logging. Setting this to
+    `auto` will enable progress logging on the console and disable it
+    if the output is redirected to a file. Default: true.
 
 \--log-sql
 :   Enable logging of SQL commands for debugging.
