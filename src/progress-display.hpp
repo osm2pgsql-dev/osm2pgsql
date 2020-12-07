@@ -29,9 +29,7 @@ class progress_display_t
 
         std::size_t add(osmid_t id) noexcept
         {
-            if (id > max) {
-                max = id;
-            }
+            max = id;
             if (count == 0) {
                 start = std::time(nullptr);
             }
