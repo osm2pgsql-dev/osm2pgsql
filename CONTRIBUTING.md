@@ -116,7 +116,7 @@ This will often be used together with the `-s` option of `pg_virtualenv` which
 drops you into a shell after a failed test where you can still access the
 database created by `pg_virtualenv`.
 
-### Performance Testing
+### Performance testing
 
 If performance testing with a full planet import is required, indicate what
 needs testing in a pull request.
@@ -135,9 +135,13 @@ the report.
 ## Releasing a new version
 
 * Decide on a new version. (See [semantic versioning](https://semver.org/).)
-* Update version in [CMakeLists.txt](CMakeLists.txt), look for `PACKAGE_VERSION`
+* Update version in [CMakeLists.txt](CMakeLists.txt), look for `PACKAGE_VERSION`.
 * Build man page (`make man`) and copy it to `docs/osm2pgsql.1`.
-* ...
+* Tag release with release notes in commit message and upload the tag to Github.
+* Fill out release notes on Github.
+* Copy Windows binaries and source tarball to osm2pgsql.org.
+* Add release info to osm2pgsql.org.
+* Publish release notes as News article on osm2pgsql.org.
 
 ## Maintainers
 
