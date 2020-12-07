@@ -235,9 +235,9 @@ void osmdata_t::node(osmium::Node const &node)
             } else {
                 node_add(node);
             }
-            m_progress.add_node(node.id());
         }
     }
+    m_progress.add_node(node.id());
 }
 
 void osmdata_t::way(osmium::Way &way)
