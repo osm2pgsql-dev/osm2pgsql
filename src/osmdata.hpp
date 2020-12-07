@@ -13,7 +13,9 @@
 #include <vector>
 
 #include <osmium/fwd.hpp>
+#include <osmium/handler.hpp>
 #include <osmium/io/file.hpp>
+#include <osmium/osm/box.hpp>
 
 #include "dependency-manager.hpp"
 #include "osmtypes.hpp"
@@ -45,7 +47,7 @@ type_id_version check_input(type_id_version const &last,
  * stages. It calls upon the major compontents of osm2pgsql, the dependency
  * manager, the middle, and the outputs to do their work.
  */
-class osmdata_t
+class osmdata_t : public osmium::handler::Handler
 {
 public:
     osmdata_t(std::unique_ptr<dependency_manager_t> dependency_manager,
@@ -54,19 +56,24 @@ public:
               options_t const &options);
 
     void start() const;
-    void flush() const;
+
+    void node(osmium::Node const &node);
+    void way(osmium::Way &way);
+    void relation(osmium::Relation const &rel);
 
     /**
      * Process the specified OSM files (stage 1a).
      */
     progress_display_t process_files(std::vector<osmium::io::File> const &files,
-                                     osmium::Box const &bbox) const;
+                                     osmium::Box const &bbox);
 
     /**
      * Rest of the processing (stages 1b, 1c, 2, and database postprocessing).
      * This is called once after process_file() was called for each input file.
      */
     void stop() const;
+
+private:
 
     void node_add(osmium::Node const &node) const;
     void way_add(osmium::Way *way) const;
@@ -80,11 +87,11 @@ public:
     void way_delete(osmid_t id) const;
     void relation_delete(osmid_t id) const;
 
-private:
+    void flush() const;
 
     /// Process a single OSM file (stage 1a).
     progress_display_t process_file(osmium::io::File const &file,
-                                    osmium::Box const &bbox) const;
+                                    osmium::Box const &bbox);
 
     /**
      * Run stage 1b and stage 1c processing: Process dependent objects in
@@ -109,6 +116,17 @@ private:
     std::vector<std::shared_ptr<output_t>> m_outs;
 
     std::string m_conninfo;
+
+    // Bounding box for node import (or invalid Box if everything should be
+    // imported).
+    osmium::Box m_bbox;
+
+    // The progress meter will be updated as we go.
+    progress_display_t m_progress;
+
+    // Current type being parsed.
+    osmium::item_type m_type = osmium::item_type::node;
+
     int m_num_procs;
     bool m_append;
     bool m_droptemp;

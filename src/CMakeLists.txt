@@ -6,7 +6,6 @@ set(osm2pgsql_lib_SOURCES
   expire-tiles.cpp
   gazetteer-style.cpp
   geometry-processor.cpp
-  input-handler.cpp
   logging.cpp
   middle-pgsql.cpp
   middle-ram.cpp
