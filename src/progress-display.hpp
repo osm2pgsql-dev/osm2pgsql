@@ -21,16 +21,13 @@ class progress_display_t
 {
     struct Counter
     {
-        osmid_t count = 0;
+        std::size_t count = 0;
         osmid_t max = 0;
         std::time_t start = 0;
-        int m_frac;
-
-        explicit Counter(int frac) noexcept : m_frac(frac) {}
 
         osmid_t count_k() const noexcept { return count / 1000; }
 
-        bool add(osmid_t id) noexcept
+        std::size_t add(osmid_t id) noexcept
         {
             if (id > max) {
                 max = id;
@@ -38,9 +35,7 @@ class progress_display_t
             if (count == 0) {
                 start = std::time(nullptr);
             }
-            ++count;
-
-            return count % m_frac == 0;
+            return ++count;
         }
 
         Counter &operator+=(Counter const &rhs) noexcept
@@ -67,21 +62,21 @@ public:
 
     void add_node(osmid_t id)
     {
-        if (m_node.add(id)) {
+        if (m_node.add(id) % 10000 == 0) {
             possibly_print_status();
         }
     }
 
     void add_way(osmid_t id)
     {
-        if (m_way.add(id)) {
+        if (m_way.add(id) % 1000 == 0) {
             possibly_print_status();
         }
     }
 
     void add_rel(osmid_t id)
     {
-        if (m_rel.add(id)) {
+        if (m_rel.add(id) % 10 == 0) {
             possibly_print_status();
         }
     }
@@ -124,9 +119,9 @@ private:
         return now - m_rel.start;
     }
 
-    Counter m_node{10000};
-    Counter m_way{1000};
-    Counter m_rel{10};
+    Counter m_node{};
+    Counter m_way{};
+    Counter m_rel{};
     std::time_t m_last_print_time;
 };
 
