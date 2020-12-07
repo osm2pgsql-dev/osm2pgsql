@@ -213,11 +213,6 @@ slim_middle_t &osmdata_t::slim_middle() const noexcept
 
 void osmdata_t::node(osmium::Node const &node)
 {
-    if (m_type != osmium::item_type::node) {
-        m_type = osmium::item_type::node;
-        flush();
-    }
-
     if (node.deleted()) {
         if (!m_append) {
             throw std::runtime_error{"Input file contains deleted objects but "
