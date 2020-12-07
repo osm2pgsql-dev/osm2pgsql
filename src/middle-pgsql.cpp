@@ -96,8 +96,7 @@ void middle_pgsql_t::table_desc::stop(std::string const &conninfo,
 
     if (droptemp) {
         log_info("Dropping table '{}'", name());
-        auto const qual_name = qualified_name(
-            m_copy_target->schema, m_copy_target->name);
+        auto const qual_name = qualified_name(schema(), name());
         sql_conn.exec("DROP TABLE IF EXISTS {}"_format(qual_name));
     } else if (build_indexes && !m_create_fw_dep_indexes.empty()) {
         log_info("Building index on table '{}'", name());
@@ -312,7 +311,7 @@ void middle_pgsql_t::node_set(osmium::Node const &node)
     if (m_options->flat_node_cache_enabled) {
         m_persistent_cache->set(node.id(), node.location());
     } else {
-        m_db_copy.new_line(m_tables[NODE_TABLE].m_copy_target);
+        m_db_copy.new_line(m_tables[NODE_TABLE].copy_target());
 
         m_db_copy.add_columns(node.id(), node.location().y(),
                               node.location().x());
@@ -334,7 +333,7 @@ void middle_pgsql_t::node_delete(osmid_t osm_id)
     if (m_options->flat_node_cache_enabled) {
         m_persistent_cache->set(osm_id, osmium::Location{});
     } else {
-        m_db_copy.new_line(m_tables[NODE_TABLE].m_copy_target);
+        m_db_copy.new_line(m_tables[NODE_TABLE].copy_target());
         m_db_copy.delete_object(osm_id);
     }
 }
@@ -367,7 +366,7 @@ idlist_t middle_pgsql_t::get_rels_by_way(osmid_t osm_id)
 
 void middle_pgsql_t::way_set(osmium::Way const &way)
 {
-    m_db_copy.new_line(m_tables[WAY_TABLE].m_copy_target);
+    m_db_copy.new_line(m_tables[WAY_TABLE].copy_target());
 
     m_db_copy.add_column(way.id());
 
@@ -461,7 +460,7 @@ middle_query_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
 void middle_pgsql_t::way_delete(osmid_t osm_id)
 {
     assert(m_options->append);
-    m_db_copy.new_line(m_tables[WAY_TABLE].m_copy_target);
+    m_db_copy.new_line(m_tables[WAY_TABLE].copy_target());
     m_db_copy.delete_object(osm_id);
 }
 
@@ -474,7 +473,7 @@ void middle_pgsql_t::relation_set(osmium::Relation const &rel)
         parts[osmium::item_type_to_nwr_index(m.type())].push_back(m.ref());
     }
 
-    m_db_copy.new_line(m_tables[REL_TABLE].m_copy_target);
+    m_db_copy.new_line(m_tables[REL_TABLE].copy_target());
 
     // id, way offset, relation offset
     m_db_copy.add_columns(rel.id(), parts[0].size(),
@@ -535,7 +534,7 @@ void middle_pgsql_t::relation_delete(osmid_t osm_id)
 {
     assert(m_options->append);
 
-    m_db_copy.new_line(m_tables[REL_TABLE].m_copy_target);
+    m_db_copy.new_line(m_tables[REL_TABLE].copy_target());
     m_db_copy.delete_object(osm_id);
 }
 
@@ -576,8 +575,7 @@ void middle_pgsql_t::start()
         m_db_connection.exec("SET client_min_messages = WARNING");
         for (auto const &table : m_tables) {
             log_debug("Setting up table '{}'", table.name());
-            auto const qual_name = qualified_name(
-                table.m_copy_target->schema, table.m_copy_target->name);
+            auto const qual_name = qualified_name(table.schema(), table.name());
             m_db_connection.exec(
                 "DROP TABLE IF EXISTS {} CASCADE"_format(qual_name));
             m_db_connection.exec(table.m_create_table);

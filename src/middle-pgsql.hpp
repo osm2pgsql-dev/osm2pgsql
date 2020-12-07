@@ -82,7 +82,17 @@ struct middle_pgsql_t : public slim_middle_t
         table_desc() = default;
         table_desc(options_t const &options, table_sql const &ts);
 
-        char const *name() const { return m_copy_target->name.c_str(); }
+        std::string const &schema() const noexcept
+        {
+            return m_copy_target->schema;
+        }
+
+        std::string const &name() const noexcept { return m_copy_target->name; }
+
+        std::shared_ptr<db_target_descr_t> const &copy_target() const noexcept
+        {
+            return m_copy_target;
+        }
 
         void stop(std::string const &conninfo, bool droptemp,
                   bool build_indexes);
@@ -92,6 +102,7 @@ struct middle_pgsql_t : public slim_middle_t
         std::string m_prepare_fw_dep_lookups;
         std::string m_create_fw_dep_indexes;
 
+    private:
         std::shared_ptr<db_target_descr_t> m_copy_target;
     };
 
