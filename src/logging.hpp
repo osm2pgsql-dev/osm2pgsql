@@ -35,7 +35,7 @@ public:
             return;
         }
 
-        auto const &ts = m_show_progress ? style : fmt::text_style{};
+        auto const &ts = m_use_color ? style : fmt::text_style{};
 
         std::string str =
             "{:%Y-%m-%d %H:%M:%S}  "_format(fmt::localtime(std::time(nullptr)));
@@ -71,6 +71,7 @@ private:
     bool m_log_sql = false;
     bool m_log_sql_data = false;
     bool m_show_progress = true;
+    bool m_use_color = osmium::util::isatty(2);
 
 }; // class logger
 
