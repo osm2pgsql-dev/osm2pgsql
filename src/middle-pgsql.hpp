@@ -94,8 +94,11 @@ struct middle_pgsql_t : public slim_middle_t
             return m_copy_target;
         }
 
-        void stop(std::string const &conninfo, bool droptemp,
-                  bool build_indexes);
+        ///< Drop table from database using existing database connection.
+        void drop_table(pg_conn_t const &db_connection) const;
+
+        ///< Open a new database connection and build index on this table.
+        void build_index(std::string const &conninfo) const;
 
         std::string m_create_table;
         std::string m_prepare_query;

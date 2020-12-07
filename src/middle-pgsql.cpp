@@ -85,23 +85,34 @@ void middle_query_pgsql_t::exec_sql(std::string const &sql_cmd) const
     m_sql_conn.exec(sql_cmd);
 }
 
-void middle_pgsql_t::table_desc::stop(std::string const &conninfo,
-                                      bool droptemp, bool build_indexes)
+void middle_pgsql_t::table_desc::drop_table(
+    pg_conn_t const &db_connection) const
 {
+    util::timer_t timer;
+
+    log_info("Dropping table '{}'", name());
+
+    auto const qual_name = qualified_name(schema(), name());
+    db_connection.exec("DROP TABLE IF EXISTS {}"_format(qual_name));
+
+    log_info("Done postprocessing on table '{}' in {}", name(),
+             util::human_readable_duration(timer.stop()));
+}
+
+void middle_pgsql_t::table_desc::build_index(std::string const &conninfo) const
+{
+    if (m_create_fw_dep_indexes.empty()) {
+        return;
+    }
+
     util::timer_t timer;
 
     // Use a temporary connection here because we might run in a separate
     // thread context.
-    pg_conn_t sql_conn{conninfo};
+    pg_conn_t db_connection{conninfo};
 
-    if (droptemp) {
-        log_info("Dropping table '{}'", name());
-        auto const qual_name = qualified_name(schema(), name());
-        sql_conn.exec("DROP TABLE IF EXISTS {}"_format(qual_name));
-    } else if (build_indexes && !m_create_fw_dep_indexes.empty()) {
-        log_info("Building index on table '{}'", name());
-        sql_conn.exec(m_create_fw_dep_indexes);
-    }
+    log_info("Building index on table '{}'", name());
+    db_connection.exec(m_create_fw_dep_indexes);
 
     log_info("Done postprocessing on table '{}' in {}", name(),
              util::human_readable_duration(timer.stop()));
@@ -571,7 +582,6 @@ void middle_pgsql_t::start()
             }
         }
     } else {
-        // (Re)create tables.
         m_db_connection.exec("SET client_min_messages = WARNING");
         for (auto const &table : m_tables) {
             log_debug("Setting up table '{}'", table.name());
@@ -580,9 +590,6 @@ void middle_pgsql_t::start()
                 "DROP TABLE IF EXISTS {} CASCADE"_format(qual_name));
             m_db_connection.exec(table.m_create_table);
         }
-
-        // The extra query connection is only needed in append mode, so close.
-        m_db_connection.close();
     }
 }
 
@@ -606,14 +613,14 @@ void middle_pgsql_t::stop(thread_pool_t &pool)
         // Dropping the tables is fast, so do it synchronously to guarantee
         // that the space is freed before creating the other indices.
         for (auto &table : m_tables) {
-            table.stop(m_options->database_options.conninfo(),
-                       m_options->droptemp, !m_options->append);
+            table.drop_table(m_db_connection);
         }
-    } else {
+    } else if (!m_options->append) {
+        // Building the indexes takes time, so do it asynchronously.
         for (auto &table : m_tables) {
-            pool.submit(std::bind(&middle_pgsql_t::table_desc::stop, &table,
-                                  m_options->database_options.conninfo(),
-                                  m_options->droptemp, !m_options->append));
+            pool.submit(std::bind(&middle_pgsql_t::table_desc::build_index,
+                                  &table,
+                                  m_options->database_options.conninfo()));
         }
     }
 }
