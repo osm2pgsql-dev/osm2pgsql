@@ -309,7 +309,7 @@ void middle_pgsql_t::node_set(osmium::Node const &node)
 {
     m_cache->set(node.id(), node.location());
 
-    if (m_out_options->flat_node_cache_enabled) {
+    if (m_options->flat_node_cache_enabled) {
         m_persistent_cache->set(node.id(), node.location());
     } else {
         m_db_copy.new_line(m_tables[NODE_TABLE].m_copy_target);
@@ -331,7 +331,7 @@ void middle_pgsql_t::node_delete(osmid_t osm_id)
 {
     assert(m_append);
 
-    if (m_out_options->flat_node_cache_enabled) {
+    if (m_options->flat_node_cache_enabled) {
         m_persistent_cache->set(osm_id, osmium::Location{});
     } else {
         m_db_copy.new_line(m_tables[NODE_TABLE].m_copy_target);
@@ -378,7 +378,7 @@ void middle_pgsql_t::way_set(osmium::Way const &way)
     }
     m_db_copy.finish_array();
 
-    buffer_store_tags(way, m_out_options->extra_attributes);
+    buffer_store_tags(way, m_options->extra_attributes);
 
     m_db_copy.finish_line();
 }
@@ -503,7 +503,7 @@ void middle_pgsql_t::relation_set(osmium::Relation const &rel)
     }
 
     // tags
-    buffer_store_tags(rel, m_out_options->extra_attributes);
+    buffer_store_tags(rel, m_options->extra_attributes);
 
     m_db_copy.finish_line();
 }
@@ -600,22 +600,22 @@ void middle_pgsql_t::flush() { m_db_copy.sync(); }
 void middle_pgsql_t::stop(thread_pool_t &pool)
 {
     m_cache.reset();
-    if (m_out_options->flat_node_cache_enabled) {
+    if (m_options->flat_node_cache_enabled) {
         m_persistent_cache.reset();
     }
 
-    if (m_out_options->droptemp) {
+    if (m_options->droptemp) {
         // Dropping the tables is fast, so do it synchronously to guarantee
         // that the space is freed before creating the other indices.
         for (auto &table : m_tables) {
-            table.stop(m_out_options->database_options.conninfo(),
-                       m_out_options->droptemp, !m_append);
+            table.stop(m_options->database_options.conninfo(),
+                       m_options->droptemp, !m_append);
         }
     } else {
         for (auto &table : m_tables) {
             pool.submit(std::bind(&middle_pgsql_t::table_desc::stop, &table,
-                                  m_out_options->database_options.conninfo(),
-                                  m_out_options->droptemp, !m_append));
+                                  m_options->database_options.conninfo(),
+                                  m_options->droptemp, !m_append));
         }
     }
 }
@@ -743,10 +743,10 @@ static bool check_bucket_index(pg_conn_t *db_connection,
 }
 
 middle_pgsql_t::middle_pgsql_t(options_t const *options)
-: m_append(options->append), m_out_options(options),
+: m_append(options->append), m_options(options),
   m_cache(new node_ram_cache{options->alloc_chunkwise | ALLOC_LOSSY,
                              options->cache}),
-  m_db_connection(m_out_options->database_options.conninfo()),
+  m_db_connection(m_options->database_options.conninfo()),
   m_copy_thread(
       std::make_shared<db_copy_thread_t>(options->database_options.conninfo())),
   m_db_copy(m_copy_thread)
@@ -779,7 +779,7 @@ middle_pgsql_t::get_query_instance()
     // NOTE: this is thread safe for use in pending async processing only because
     // during that process they are only read from
     std::unique_ptr<middle_query_pgsql_t> mid{
-        new middle_query_pgsql_t{m_out_options->database_options.conninfo(),
+        new middle_query_pgsql_t{m_options->database_options.conninfo(),
                                  m_cache, m_persistent_cache}};
 
     // We use a connection per table to enable the use of COPY

@@ -113,7 +113,7 @@ private:
     table_desc m_tables[NUM_TABLES];
 
     bool m_append;
-    options_t const *m_out_options;
+    options_t const *m_options;
 
     std::shared_ptr<node_ram_cache> m_cache;
     std::shared_ptr<node_persistent_cache> m_persistent_cache;
