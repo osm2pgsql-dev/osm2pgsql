@@ -598,8 +598,7 @@ private:
 
 } // anonymous namespace
 
-progress_display_t osmdata_t::process_file(osmium::io::File const &file,
-                                           osmium::Box const &bbox)
+progress_display_t osmdata_t::process_file(osmium::io::File const &file)
 {
     osmium::io::Reader reader{file};
     type_id_version last{osmium::item_type::node, 0, 0};
@@ -618,11 +617,10 @@ progress_display_t osmdata_t::process_file(osmium::io::File const &file,
 }
 
 progress_display_t
-osmdata_t::process_files(std::vector<osmium::io::File> const &files,
-                         osmium::Box const &bbox)
+osmdata_t::process_files(std::vector<osmium::io::File> const &files)
 {
     if (files.size() == 1) {
-        return process_file(files.front(), bbox);
+        return process_file(files.front());
     }
 
     std::vector<data_source_t> data_sources;

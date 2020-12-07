@@ -64,8 +64,8 @@ public:
     /**
      * Process the specified OSM files (stage 1a).
      */
-    progress_display_t process_files(std::vector<osmium::io::File> const &files,
-                                     osmium::Box const &bbox);
+    progress_display_t
+    process_files(std::vector<osmium::io::File> const &files);
 
     /**
      * Rest of the processing (stages 1b, 1c, 2, and database postprocessing).
@@ -90,8 +90,7 @@ private:
     void flush() const;
 
     /// Process a single OSM file (stage 1a).
-    progress_display_t process_file(osmium::io::File const &file,
-                                    osmium::Box const &bbox);
+    progress_display_t process_file(osmium::io::File const &file);
 
     /**
      * Run stage 1b and stage 1c processing: Process dependent objects in
