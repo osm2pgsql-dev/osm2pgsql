@@ -329,7 +329,7 @@ size_t middle_query_pgsql_t::nodes_get_list(osmium::WayNodeList *nodes) const
 
 void middle_pgsql_t::node_delete(osmid_t osm_id)
 {
-    assert(m_append);
+    assert(m_options->append);
 
     if (m_options->flat_node_cache_enabled) {
         m_persistent_cache->set(osm_id, osmium::Location{});
@@ -460,7 +460,7 @@ middle_query_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
 
 void middle_pgsql_t::way_delete(osmid_t osm_id)
 {
-    assert(m_append);
+    assert(m_options->append);
     m_db_copy.new_line(m_tables[WAY_TABLE].m_copy_target);
     m_db_copy.delete_object(osm_id);
 }
@@ -533,7 +533,7 @@ bool middle_query_pgsql_t::relation_get(osmid_t id,
 
 void middle_pgsql_t::relation_delete(osmid_t osm_id)
 {
-    assert(m_append);
+    assert(m_options->append);
 
     m_db_copy.new_line(m_tables[REL_TABLE].m_copy_target);
     m_db_copy.delete_object(osm_id);
@@ -559,7 +559,7 @@ middle_query_pgsql_t::middle_query_pgsql_t(
 
 void middle_pgsql_t::start()
 {
-    if (m_append) {
+    if (m_options->append) {
         // Disable JIT and parallel workers as they are known to cause
         // problems when accessing the intarrays.
         m_db_connection.set_config("jit_above_cost", "-1");
@@ -609,13 +609,13 @@ void middle_pgsql_t::stop(thread_pool_t &pool)
         // that the space is freed before creating the other indices.
         for (auto &table : m_tables) {
             table.stop(m_options->database_options.conninfo(),
-                       m_options->droptemp, !m_append);
+                       m_options->droptemp, !m_options->append);
         }
     } else {
         for (auto &table : m_tables) {
             pool.submit(std::bind(&middle_pgsql_t::table_desc::stop, &table,
                                   m_options->database_options.conninfo(),
-                                  m_options->droptemp, !m_append));
+                                  m_options->droptemp, !m_options->append));
         }
     }
 }
@@ -743,7 +743,7 @@ static bool check_bucket_index(pg_conn_t *db_connection,
 }
 
 middle_pgsql_t::middle_pgsql_t(options_t const *options)
-: m_append(options->append), m_options(options),
+: m_options(options),
   m_cache(new node_ram_cache{options->alloc_chunkwise | ALLOC_LOSSY,
                              options->cache}),
   m_db_connection(m_options->database_options.conninfo()),
