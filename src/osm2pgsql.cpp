@@ -117,11 +117,9 @@ int main(int argc, char *argv[])
 
         // Processing: In this phase the input file(s) are read and parsed,
         // populating some of the tables.
-        progress_display_t progress;
-
         util::timer_t timer_parse;
 
-        progress.update(osmdata.process_files(files, options.bbox));
+        auto const progress = osmdata.process_files(files, options.bbox);
 
         progress.print_status(std::time(nullptr));
         fmt::print(stderr, "  parse time: {}\n",

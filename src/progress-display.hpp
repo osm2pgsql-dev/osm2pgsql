@@ -35,28 +35,13 @@ class progress_display_t
             }
             return ++count;
         }
-
-        Counter &operator+=(Counter const &rhs) noexcept
-        {
-            count += rhs.count;
-            if (rhs.max > max) {
-                max = rhs.max;
-            }
-            if (start == 0) {
-                start = rhs.start;
-            }
-
-            return *this;
-        }
     };
 
 public:
     progress_display_t() noexcept : m_last_print_time(std::time(nullptr)) {}
 
-    void update(progress_display_t const &other) noexcept;
     void print_summary() const;
     void print_status(std::time_t now) const;
-    void possibly_print_status();
 
     void add_node(osmid_t id)
     {
@@ -80,6 +65,8 @@ public:
     }
 
 private:
+    void possibly_print_status();
+
     static double count_per_second(osmid_t count, uint64_t elapsed) noexcept
     {
         if (count == 0) {
