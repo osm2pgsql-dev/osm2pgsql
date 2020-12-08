@@ -1,10 +1,8 @@
 #include <catch.hpp>
 
 #include "node-persistent-cache.hpp"
-#include "options.hpp"
 
 #include "common-cleanup.hpp"
-#include "common-options.hpp"
 
 static void write_and_read_location(node_persistent_cache &cache, osmid_t id,
                                     double x, double y)
@@ -27,12 +25,12 @@ static void delete_location(node_persistent_cache &cache, osmid_t id)
 
 TEST_CASE("Persistent cache", "[NoDB]")
 {
-    options_t const options = testing::opt_t().flatnodes();
-    testing::cleanup::file_t flatnode_cleaner{options.flat_node_file};
+    std::string const flat_node_file = "test_middle_flat.flat.nodes.bin";
+    testing::cleanup::file_t flatnode_cleaner{flat_node_file};
 
     // create a new cache
     {
-        node_persistent_cache cache{options.flat_node_file, false};
+        node_persistent_cache cache{flat_node_file, false};
 
         // write in order
         write_and_read_location(cache, 10, 10.01, -45.3);
@@ -55,7 +53,7 @@ TEST_CASE("Persistent cache", "[NoDB]")
 
     // reopen the cache
     {
-        node_persistent_cache cache{options.flat_node_file, false};
+        node_persistent_cache cache{flat_node_file, false};
 
         // read all previously written locations
         read_location(cache, 10, 10.01, -45.3);
