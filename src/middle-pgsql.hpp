@@ -37,7 +37,8 @@ public:
     void exec_sql(std::string const &sql_cmd) const;
 
 private:
-    size_t local_nodes_get_list(osmium::WayNodeList *nodes) const;
+    std::size_t get_way_node_locations_flatnodes(osmium::WayNodeList *nodes) const;
+    std::size_t get_way_node_locations_db(osmium::WayNodeList *nodes) const;
 
     pg_conn_t m_sql_conn;
     std::shared_ptr<node_ram_cache> m_cache;

@@ -15,28 +15,7 @@ osmium::Location node_persistent_cache::get(osmid_t id) const noexcept
         static_cast<osmium::unsigned_object_id_type>(id));
 }
 
-std::size_t node_persistent_cache::get_list(osmium::WayNodeList *nodes) const
-{
-    std::size_t count = 0;
-
-    for (auto &n : *nodes) {
-        auto loc = m_ram_cache->get(n.ref());
-        if (!loc.valid() && n.ref() >= 0) {
-            loc = m_index->get_noexcept(
-                static_cast<osmium::unsigned_object_id_type>(n.ref()));
-        }
-        n.set_location(loc);
-        if (loc.valid()) {
-            ++count;
-        }
-    }
-
-    return count;
-}
-
-node_persistent_cache::node_persistent_cache(
-    const options_t *options, std::shared_ptr<node_ram_cache> ptr)
-: m_ram_cache(std::move(ptr))
+node_persistent_cache::node_persistent_cache(const options_t *options)
 {
     if (!options->flat_node_file) {
         throw std::runtime_error{"Unable to set up persistent cache: the name "

@@ -271,8 +271,8 @@ private:
 
 }; // class string_id_list
 
-size_t
-middle_query_pgsql_t::local_nodes_get_list(osmium::WayNodeList *nodes) const
+std::size_t middle_query_pgsql_t::get_way_node_locations_db(
+    osmium::WayNodeList *nodes) const
 {
     size_t count = 0;
     string_id_list id_list;
@@ -331,10 +331,29 @@ void middle_pgsql_t::node_set(osmium::Node const &node)
     }
 }
 
+std::size_t middle_query_pgsql_t::get_way_node_locations_flatnodes(
+    osmium::WayNodeList *nodes) const
+{
+    std::size_t count = 0;
+
+    for (auto &n : *nodes) {
+        auto loc = m_cache->get(n.ref());
+        if (!loc.valid() && n.ref() >= 0) {
+            loc = m_persistent_cache->get(n.ref());
+        }
+        n.set_location(loc);
+        if (loc.valid()) {
+            ++count;
+        }
+    }
+
+    return count;
+}
+
 size_t middle_query_pgsql_t::nodes_get_list(osmium::WayNodeList *nodes) const
 {
-    return m_persistent_cache ? m_persistent_cache->get_list(nodes)
-                              : local_nodes_get_list(nodes);
+    return m_persistent_cache ? get_way_node_locations_flatnodes(nodes)
+                              : get_way_node_locations_db(nodes);
 }
 
 void middle_pgsql_t::node_delete(osmid_t osm_id)
@@ -757,7 +776,7 @@ middle_pgsql_t::middle_pgsql_t(options_t const *options)
   m_db_copy(m_copy_thread)
 {
     if (options->flat_node_cache_enabled) {
-        m_persistent_cache.reset(new node_persistent_cache{options, m_cache});
+        m_persistent_cache.reset(new node_persistent_cache{options});
     }
 
     log_debug("Mid: pgsql, cache={}", options->cache);
