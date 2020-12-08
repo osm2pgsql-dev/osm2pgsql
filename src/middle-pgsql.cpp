@@ -26,7 +26,6 @@
 #include "node-ram-cache.hpp"
 #include "options.hpp"
 #include "osmtypes.hpp"
-#include "output-pgsql.hpp"
 #include "util.hpp"
 
 /**
