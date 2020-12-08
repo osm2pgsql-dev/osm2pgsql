@@ -17,12 +17,12 @@ osmium::Location node_persistent_cache::get(osmid_t id) const noexcept
 
 node_persistent_cache::node_persistent_cache(const options_t *options)
 {
-    if (!options->flat_node_file) {
+    if (options->flat_node_file.empty()) {
         throw std::runtime_error{"Unable to set up persistent cache: the name "
                                  "of the flat node file was not set."};
     }
 
-    m_fname = options->flat_node_file->c_str();
+    m_fname = options->flat_node_file.c_str();
     m_remove_file = options->droptemp;
     log_debug("Mid: loading persistent node cache from {}", m_fname);
 

@@ -184,8 +184,7 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
                    options_ram_optimized, options_ram_flatnode)
 {
     options_t const options = TestType::options(db);
-    testing::cleanup::file_t flatnode_cleaner{
-        options.flat_node_file.get_value_or("")};
+    testing::cleanup::file_t flatnode_cleaner{options.flat_node_file};
 
     auto conn = db.connect();
     auto const num_tables =
@@ -373,8 +372,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update node", "",
 {
     options_t options = TestType::options(db);
 
-    testing::cleanup::file_t flatnode_cleaner{
-        options.flat_node_file.get_value_or("")};
+    testing::cleanup::file_t flatnode_cleaner{options.flat_node_file};
 
     // Prepare a buffer with some nodes which we will add and change.
     test_buffer_t buffer;
@@ -573,8 +571,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
 {
     options_t options = TestType::options(db);
 
-    testing::cleanup::file_t flatnode_cleaner{
-        options.flat_node_file.get_value_or("")};
+    testing::cleanup::file_t flatnode_cleaner{options.flat_node_file};
 
     // Create some ways we'll use for the tests.
     test_buffer_t buffer;
@@ -730,8 +727,7 @@ TEMPLATE_TEST_CASE("middle: add way with attributes", "", options_slim_default,
     SECTION("With attributes") { options.extra_attributes = true; }
     SECTION("No attributes") { options.extra_attributes = false; }
 
-    testing::cleanup::file_t flatnode_cleaner{
-        options.flat_node_file.get_value_or("")};
+    testing::cleanup::file_t flatnode_cleaner{options.flat_node_file};
 
     // Create some ways we'll use for the tests.
     test_buffer_t buffer;
@@ -821,8 +817,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
 {
     options_t options = TestType::options(db);
 
-    testing::cleanup::file_t flatnode_cleaner{
-        options.flat_node_file.get_value_or("")};
+    testing::cleanup::file_t flatnode_cleaner{options.flat_node_file};
 
     // Create some relations we'll use for the tests.
     test_buffer_t buffer;
@@ -983,8 +978,7 @@ TEMPLATE_TEST_CASE("middle: add relation with attributes", "",
     SECTION("With attributes") { options.extra_attributes = true; }
     SECTION("No attributes") { options.extra_attributes = false; }
 
-    testing::cleanup::file_t flatnode_cleaner{
-        options.flat_node_file.get_value_or("")};
+    testing::cleanup::file_t flatnode_cleaner{options.flat_node_file};
 
     // Create some relations we'll use for the tests.
     test_buffer_t buffer;
@@ -1046,8 +1040,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
 {
     options_t options = TestType::options(db);
 
-    testing::cleanup::file_t flatnode_cleaner{
-        options.flat_node_file.get_value_or("")};
+    testing::cleanup::file_t flatnode_cleaner{options.flat_node_file};
 
     // create some nodes and ways we'll use for the tests
     test_buffer_t buffer;
@@ -1187,8 +1180,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
 {
     options_t options = TestType::options(db);
 
-    testing::cleanup::file_t flatnode_cleaner{
-        options.flat_node_file.get_value_or("")};
+    testing::cleanup::file_t flatnode_cleaner{options.flat_node_file};
 
     // create some nodes, ways, and relations we'll use for the tests
     test_buffer_t buffer;

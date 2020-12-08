@@ -66,9 +66,7 @@ public:
 
     opt_t &flatnodes()
     {
-        m_opt.flat_node_file =
-            boost::optional<std::string>("test_middle_flat.flat.nodes.bin");
-        m_opt.flat_node_cache_enabled = true;
+        m_opt.flat_node_file = "test_middle_flat.flat.nodes.bin";
         return *this;
     }
 

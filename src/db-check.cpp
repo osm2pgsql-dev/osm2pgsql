@@ -42,7 +42,7 @@ void check_db(options_t const &options)
         // it probably means we used a flat node store when we created this
         // database. Check for that and stop if it looks like we are missing
         // the node location store option.
-        if (options.append && !options.flat_node_cache_enabled) {
+        if (options.append && options.flat_node_file.empty()) {
             if (!has_table(db_connection, options.middle_dbschema,
                            options.prefix + "_nodes")) {
                 throw std::runtime_error{

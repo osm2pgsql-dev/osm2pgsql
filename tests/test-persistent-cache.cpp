@@ -28,7 +28,7 @@ static void delete_location(node_persistent_cache &cache, osmid_t id)
 TEST_CASE("Persistent cache", "[NoDB]")
 {
     options_t const options = testing::opt_t().flatnodes();
-    testing::cleanup::file_t flatnode_cleaner{options.flat_node_file.get()};
+    testing::cleanup::file_t flatnode_cleaner{options.flat_node_file};
 
     // create a new cache
     {
