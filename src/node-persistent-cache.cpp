@@ -6,18 +6,11 @@
 
 void node_persistent_cache::set(osmid_t id, osmium::Location location)
 {
-    if (id < 0) {
-        throw std::runtime_error{"Flatnode store cannot save negative IDs."};
-    }
     m_index->set(static_cast<osmium::unsigned_object_id_type>(id), location);
 }
 
 osmium::Location node_persistent_cache::get(osmid_t id) const noexcept
 {
-    if (id < 0) {
-        return osmium::Location{};
-    }
-
     return m_index->get_noexcept(
         static_cast<osmium::unsigned_object_id_type>(id));
 }

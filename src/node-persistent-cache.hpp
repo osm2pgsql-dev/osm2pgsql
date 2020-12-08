@@ -23,7 +23,6 @@ public:
     std::size_t get_list(osmium::WayNodeList *nodes) const;
 
 private:
-    // Dense node cache for unsigned IDs only
     using index_t =
         osmium::index::map::DenseFileArray<osmium::unsigned_object_id_type,
                                            osmium::Location>;
