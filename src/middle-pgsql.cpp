@@ -775,7 +775,8 @@ middle_pgsql_t::middle_pgsql_t(options_t const *options)
   m_db_copy(m_copy_thread)
 {
     if (!options->flat_node_file.empty()) {
-        m_persistent_cache.reset(new node_persistent_cache{options});
+        m_persistent_cache.reset(new node_persistent_cache{
+            options->flat_node_file, options->droptemp});
     }
 
     log_debug("Mid: pgsql, cache={}", options->cache);

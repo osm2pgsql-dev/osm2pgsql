@@ -32,7 +32,7 @@ TEST_CASE("Persistent cache", "[NoDB]")
 
     // create a new cache
     {
-        node_persistent_cache cache{&options};
+        node_persistent_cache cache{options.flat_node_file, false};
 
         // write in order
         write_and_read_location(cache, 10, 10.01, -45.3);
@@ -55,7 +55,7 @@ TEST_CASE("Persistent cache", "[NoDB]")
 
     // reopen the cache
     {
-        node_persistent_cache cache{&options};
+        node_persistent_cache cache{options.flat_node_file, false};
 
         // read all previously written locations
         read_location(cache, 10, 10.01, -45.3);

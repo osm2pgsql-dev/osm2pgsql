@@ -2,7 +2,6 @@
 
 #include "logging.hpp"
 #include "node-persistent-cache.hpp"
-#include "options.hpp"
 
 #include <cassert>
 
@@ -17,12 +16,12 @@ osmium::Location node_persistent_cache::get(osmid_t id) const noexcept
         static_cast<osmium::unsigned_object_id_type>(id));
 }
 
-node_persistent_cache::node_persistent_cache(const options_t *options)
+node_persistent_cache::node_persistent_cache(std::string const &file_name, bool remove_file)
 {
-    assert(!options->flat_node_file.empty());
+    assert(!file_name.empty());
 
-    m_fname = options->flat_node_file.c_str();
-    m_remove_file = options->droptemp;
+    m_fname = file_name.c_str();
+    m_remove_file = remove_file;
     log_debug("Mid: loading persistent node cache from {}", m_fname);
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-signed-bitwise)

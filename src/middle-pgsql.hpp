@@ -15,6 +15,7 @@
 #include "middle.hpp"
 #include "node-persistent-cache.hpp"
 #include "node-ram-cache.hpp"
+#include "options.hpp"
 #include "pgsql.hpp"
 
 class middle_query_pgsql_t : public middle_query_t

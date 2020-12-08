@@ -8,12 +8,10 @@
 
 #include "osmtypes.hpp"
 
-class options_t;
-
 class node_persistent_cache
 {
 public:
-    node_persistent_cache(options_t const *options);
+    node_persistent_cache(std::string const &file_name, bool remove_file);
     ~node_persistent_cache() noexcept;
 
     void set(osmid_t id, osmium::Location location);
