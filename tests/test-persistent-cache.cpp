@@ -29,11 +29,10 @@ TEST_CASE("Persistent cache", "[NoDB]")
 {
     options_t const options = testing::opt_t().flatnodes();
     testing::cleanup::file_t flatnode_cleaner{options.flat_node_file.get()};
-    auto ram_cache = std::make_shared<node_ram_cache>(); // dummy cache
 
     // create a new cache
     {
-        node_persistent_cache cache{&options, ram_cache};
+        node_persistent_cache cache{&options};
 
         // write in order
         write_and_read_location(cache, 10, 10.01, -45.3);
@@ -56,7 +55,7 @@ TEST_CASE("Persistent cache", "[NoDB]")
 
     // reopen the cache
     {
-        node_persistent_cache cache{&options, ram_cache};
+        node_persistent_cache cache{&options};
 
         // read all previously written locations
         read_location(cache, 10, 10.01, -45.3);
