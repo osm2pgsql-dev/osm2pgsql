@@ -5,7 +5,7 @@
 
 static testing::db::import_t db;
 
-static void require_tables(pg::conn_t const &conn)
+static void require_tables(testing::pg::conn_t const &conn)
 {
     conn.require_has_table("osm2pgsql_test_point");
     conn.require_has_table("osm2pgsql_test_line");

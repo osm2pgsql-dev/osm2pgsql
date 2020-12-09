@@ -191,7 +191,8 @@ public:
         REQUIRE_NOTHROW(db.run_import(opt, opl.c_str()));
     }
 
-    unsigned long obj_count(pg::conn_t const &conn, osmid_t id, char const *cls)
+    unsigned long obj_count(testing::pg::conn_t const &conn, osmid_t id,
+                            char const *cls)
     {
         char const tchar = m_opl_factory.type();
         return conn.get_count("place",
@@ -200,26 +201,26 @@ public:
                               "AND class = '{}'"_format(tchar, id, cls));
     }
 
-    void obj_names(pg::conn_t const &conn, osmid_t id, char const *cls,
+    void obj_names(testing::pg::conn_t const &conn, osmid_t id, char const *cls,
                    hstore_list const &names)
     {
         hstore_compare(conn, id, cls, "name", names);
     }
 
-    void obj_address(pg::conn_t const &conn, osmid_t id, char const *cls,
-                     hstore_list const &names)
+    void obj_address(testing::pg::conn_t const &conn, osmid_t id,
+                     char const *cls, hstore_list const &names)
     {
         hstore_compare(conn, id, cls, "address", names);
     }
 
-    void obj_extratags(pg::conn_t const &conn, osmid_t id, char const *cls,
-                       hstore_list const &names)
+    void obj_extratags(testing::pg::conn_t const &conn, osmid_t id,
+                       char const *cls, hstore_list const &names)
     {
         hstore_compare(conn, id, cls, "extratags", names);
     }
 
-    std::string obj_field(pg::conn_t const &conn, osmid_t id, char const *cls,
-                          char const *column)
+    std::string obj_field(testing::pg::conn_t const &conn, osmid_t id,
+                          char const *cls, char const *column)
     {
         char const tchar = m_opl_factory.type();
         return conn.require_scalar<std::string>(
@@ -228,8 +229,9 @@ public:
     }
 
 private:
-    void hstore_compare(pg::conn_t const &conn, osmid_t id, char const *cls,
-                        char const *column, hstore_list const &names)
+    void hstore_compare(testing::pg::conn_t const &conn, osmid_t id,
+                        char const *cls, char const *column,
+                        hstore_list const &names)
     {
         char const tchar = m_opl_factory.type();
         auto const sql =

@@ -28,7 +28,7 @@ public:
         return *this;
     }
 
-    opt_t &slim(pg::tempdb_t const &db)
+    opt_t &slim(testing::pg::tempdb_t const &db)
     {
         m_opt.slim = true;
         m_opt.database_options = db.db_options();

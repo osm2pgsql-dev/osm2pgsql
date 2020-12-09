@@ -4,9 +4,10 @@
 #include "db-copy.hpp"
 #include "gazetteer-style.hpp"
 
-static pg::tempdb_t db;
+static testing::pg::tempdb_t db;
 
-static int table_count(pg::conn_t const &conn, std::string const &where = "")
+static int table_count(testing::pg::conn_t const &conn,
+                       std::string const &where = "")
 {
     return conn.require_scalar<int>("SELECT count(*) FROM test_copy_thread " +
                                     where);

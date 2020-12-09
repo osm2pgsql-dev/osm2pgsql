@@ -216,12 +216,12 @@ public:
                    {out_test}, file);
     }
 
-    pg::conn_t connect() { return m_db.connect(); }
+    testing::pg::conn_t connect() { return m_db.connect(); }
 
-    pg::tempdb_t const &db() const { return m_db; }
+    testing::pg::tempdb_t const &db() const { return m_db; }
 
 private:
-    pg::tempdb_t m_db;
+    testing::pg::tempdb_t m_db;
 };
 
 } // namespace db
