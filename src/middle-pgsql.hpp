@@ -82,16 +82,30 @@ struct middle_pgsql_t : public slim_middle_t
         table_desc() = default;
         table_desc(options_t const &options, table_sql const &ts);
 
-        char const *name() const { return m_copy_target->name.c_str(); }
+        std::string const &schema() const noexcept
+        {
+            return m_copy_target->schema;
+        }
 
-        void stop(std::string const &conninfo, bool droptemp,
-                  bool build_indexes);
+        std::string const &name() const noexcept { return m_copy_target->name; }
+
+        std::shared_ptr<db_target_descr_t> const &copy_target() const noexcept
+        {
+            return m_copy_target;
+        }
+
+        ///< Drop table from database using existing database connection.
+        void drop_table(pg_conn_t const &db_connection) const;
+
+        ///< Open a new database connection and build index on this table.
+        void build_index(std::string const &conninfo) const;
 
         std::string m_create_table;
         std::string m_prepare_query;
         std::string m_prepare_fw_dep_lookups;
         std::string m_create_fw_dep_indexes;
 
+    private:
         std::shared_ptr<db_target_descr_t> m_copy_target;
     };
 
@@ -112,8 +126,7 @@ private:
 
     table_desc m_tables[NUM_TABLES];
 
-    bool m_append;
-    options_t const *m_out_options;
+    options_t const *m_options;
 
     std::shared_ptr<node_ram_cache> m_cache;
     std::shared_ptr<node_persistent_cache> m_persistent_cache;

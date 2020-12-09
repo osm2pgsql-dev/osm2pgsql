@@ -5,6 +5,7 @@
 #include "util.hpp"
 
 #include <array>
+#include <cassert>
 #include <cstdarg>
 #include <cstdio>
 
@@ -22,11 +23,15 @@ pg_conn_t::pg_conn_t(std::string const &conninfo)
 
 char const *pg_conn_t::error_msg() const noexcept
 {
+    assert(m_conn);
+
     return PQerrorMessage(m_conn.get());
 }
 
 pg_result_t pg_conn_t::query(ExecStatusType expect, char const *sql) const
 {
+    assert(m_conn);
+
     log_sql("{}", sql);
     pg_result_t res{PQexec(m_conn.get(), sql)};
     if (PQresultStatus(res.get()) != expect) {
@@ -69,6 +74,8 @@ void pg_conn_t::exec(std::string const &sql) const
 void pg_conn_t::copy_data(std::string const &sql,
                           std::string const &context) const
 {
+    assert(m_conn);
+
     log_sql_data("Copy data to '{}':\n{}", context, sql);
     int const r = PQputCopyData(m_conn.get(), sql.c_str(), (int)sql.size());
 
@@ -97,6 +104,8 @@ void pg_conn_t::copy_data(std::string const &sql,
 
 void pg_conn_t::end_copy(std::string const &context) const
 {
+    assert(m_conn);
+
     if (PQputCopyEnd(m_conn.get(), nullptr) != 1) {
         throw std::runtime_error{"Ending COPY mode for '{}' failed: {}."_format(
             context, error_msg())};
@@ -113,6 +122,8 @@ pg_result_t
 pg_conn_t::exec_prepared_internal(char const *stmt, int num_params,
                                   char const *const *param_values) const
 {
+    assert(m_conn);
+
     if (get_logger().log_sql()) {
         std::string params;
         for (int i = 0; i < num_params; ++i) {
