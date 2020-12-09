@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
         // populating some of the tables.
         util::timer_t timer_parse;
 
-        auto const progress = osmdata.process_files(files, options.bbox);
+        auto const progress = osmdata.process_files(files);
 
         progress.print_status(std::time(nullptr));
         fmt::print(stderr, "  parse time: {}\n",

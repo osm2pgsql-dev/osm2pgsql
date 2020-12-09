@@ -14,7 +14,6 @@
 
 #include "db-copy.hpp"
 #include "format.hpp"
-#include "input-handler.hpp"
 #include "logging.hpp"
 #include "middle.hpp"
 #include "options.hpp"
@@ -188,8 +187,9 @@ osmdata_t::osmdata_t(std::unique_ptr<dependency_manager_t> dependency_manager,
                      options_t const &options)
 : m_dependency_manager(std::move(dependency_manager)), m_mid(std::move(mid)),
   m_outs(std::move(outs)), m_conninfo(options.database_options.conninfo()),
-  m_num_procs(options.num_procs), m_append(options.append),
-  m_droptemp(options.droptemp), m_parallel_indexing(options.parallel_indexing),
+  m_bbox(options.bbox), m_num_procs(options.num_procs),
+  m_append(options.append), m_droptemp(options.droptemp),
+  m_parallel_indexing(options.parallel_indexing),
   m_with_extra_attrs(options.extra_attributes),
   m_with_forward_dependencies(options.with_forward_dependencies)
 {
@@ -209,6 +209,84 @@ slim_middle_t &osmdata_t::slim_middle() const noexcept
     auto *slim = dynamic_cast<slim_middle_t *>(m_mid.get());
     assert(slim);
     return *slim;
+}
+
+void osmdata_t::node(osmium::Node const &node)
+{
+    if (node.deleted()) {
+        if (!m_append) {
+            throw std::runtime_error{"Input file contains deleted objects but "
+                                     "you are not in append mode."};
+        }
+        node_delete(node.id());
+    } else {
+        // if the node is not valid, then node.location.lat/lon() can throw.
+        // we probably ought to treat invalid locations as if they were
+        // deleted and ignore them.
+        if (!node.location().valid()) {
+            log_warn("Ignored invalid location on node {} (version {})",
+                     node.id(), node.version());
+            return;
+        }
+
+        if (!m_bbox.valid() || m_bbox.contains(node.location())) {
+            if (m_append) {
+                node_modify(node);
+            } else {
+                node_add(node);
+            }
+        }
+    }
+    m_progress.add_node(node.id());
+}
+
+void osmdata_t::way(osmium::Way &way)
+{
+    if (m_type != osmium::item_type::way) {
+        m_type = osmium::item_type::way;
+        flush();
+    }
+
+    if (way.deleted()) {
+        if (!m_append) {
+            throw std::runtime_error{"Input file contains deleted objects but "
+                                     "you are not in append mode."};
+        }
+        way_delete(way.id());
+    } else {
+        if (m_append) {
+            way_modify(&way);
+        } else {
+            way_add(&way);
+        }
+    }
+    m_progress.add_way(way.id());
+}
+
+void osmdata_t::relation(osmium::Relation const &rel)
+{
+    if (m_type != osmium::item_type::relation) {
+        m_type = osmium::item_type::relation;
+        flush();
+    }
+
+    if (rel.deleted()) {
+        if (!m_append) {
+            throw std::runtime_error{"Input file contains deleted objects but "
+                                     "you are not in append mode."};
+        }
+        relation_delete(rel.id());
+    } else {
+        if (rel.members().size() > 32767) {
+            return;
+        }
+        if (m_append) {
+            relation_modify(rel);
+        } else {
+            relation_add(rel);
+        }
+    }
+    m_progress.add_rel(rel.id());
 }
 
 void osmdata_t::node_add(osmium::Node const &node) const
@@ -520,32 +598,29 @@ private:
 
 } // anonymous namespace
 
-progress_display_t osmdata_t::process_file(osmium::io::File const &file,
-                                           osmium::Box const &bbox) const
+progress_display_t osmdata_t::process_file(osmium::io::File const &file)
 {
-    input_handler_t handler{bbox, m_append, this};
     osmium::io::Reader reader{file};
     type_id_version last{osmium::item_type::node, 0, 0};
 
     while (osmium::memory::Buffer buffer = reader.read()) {
         for (auto &object : buffer.select<osmium::OSMObject>()) {
             last = check_input(last, object);
-            osmium::apply_item(object, handler);
+            osmium::apply_item(object, *this);
         }
     }
-    osmium::apply_flush(handler);
+    flush();
 
     reader.close();
 
-    return handler.progress();
+    return m_progress;
 }
 
 progress_display_t
-osmdata_t::process_files(std::vector<osmium::io::File> const &files,
-                         osmium::Box const &bbox) const
+osmdata_t::process_files(std::vector<osmium::io::File> const &files)
 {
     if (files.size() == 1) {
-        return process_file(files.front(), bbox);
+        return process_file(files.front());
     }
 
     std::vector<data_source_t> data_sources;
@@ -561,13 +636,11 @@ osmdata_t::process_files(std::vector<osmium::io::File> const &files,
         }
     }
 
-    input_handler_t handler{bbox, m_append, this};
-
     while (!queue.empty()) {
         auto element = queue.top();
         queue.pop();
         if (queue.empty() || element != queue.top()) {
-            osmium::apply_item(element.object(), handler);
+            osmium::apply_item(element.object(), *this);
         }
 
         auto *source = element.data_source();
@@ -576,13 +649,13 @@ osmdata_t::process_files(std::vector<osmium::io::File> const &files,
         }
     }
 
-    osmium::apply_flush(handler);
+    flush();
 
     for (auto &data_source : data_sources) {
         data_source.close();
     }
 
-    return handler.progress();
+    return m_progress;
 }
 
 void osmdata_t::process_dependents() const
