@@ -2,13 +2,6 @@
 #include "logging.hpp"
 #include "progress-display.hpp"
 
-void progress_display_t::update(progress_display_t const &other) noexcept
-{
-    m_node += other.m_node;
-    m_way += other.m_way;
-    m_rel += other.m_rel;
-}
-
 void progress_display_t::print_summary() const
 {
     std::time_t const now = std::time(nullptr);
