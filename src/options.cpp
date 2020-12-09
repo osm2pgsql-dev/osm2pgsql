@@ -544,7 +544,6 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             droptemp = true;
             break;
         case 'F':
-            flat_node_cache_enabled = true;
             flat_node_file = optarg;
             break;
         case 211:
@@ -702,7 +701,7 @@ void options_t::check_options()
             throw std::runtime_error{
                 "RAM node cache can only be disable in slim mode."};
         }
-        if (!flat_node_cache_enabled) {
+        if (flat_node_file.empty()) {
             log_warn("RAM cache is disabled. This will likely slow down "
                      "processing a lot.");
         }

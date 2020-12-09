@@ -318,7 +318,7 @@ void middle_pgsql_t::node_set(osmium::Node const &node)
 {
     m_cache->set(node.id(), node.location());
 
-    if (m_options->flat_node_cache_enabled) {
+    if (!m_options->flat_node_file.empty()) {
         m_persistent_cache->set(node.id(), node.location());
     } else {
         m_db_copy.new_line(m_tables[NODE_TABLE].copy_target());
@@ -359,7 +359,7 @@ void middle_pgsql_t::node_delete(osmid_t osm_id)
 {
     assert(m_options->append);
 
-    if (m_options->flat_node_cache_enabled) {
+    if (!m_options->flat_node_file.empty()) {
         m_persistent_cache->set(osm_id, osmium::Location{});
     } else {
         m_db_copy.new_line(m_tables[NODE_TABLE].copy_target());
@@ -623,7 +623,7 @@ void middle_pgsql_t::flush() { m_db_copy.sync(); }
 void middle_pgsql_t::stop(thread_pool_t &pool)
 {
     m_cache.reset();
-    if (m_options->flat_node_cache_enabled) {
+    if (!m_options->flat_node_file.empty()) {
         m_persistent_cache.reset();
     }
 
@@ -774,8 +774,9 @@ middle_pgsql_t::middle_pgsql_t(options_t const *options)
       std::make_shared<db_copy_thread_t>(options->database_options.conninfo())),
   m_db_copy(m_copy_thread)
 {
-    if (options->flat_node_cache_enabled) {
-        m_persistent_cache.reset(new node_persistent_cache{options});
+    if (!options->flat_node_file.empty()) {
+        m_persistent_cache.reset(new node_persistent_cache{
+            options->flat_node_file, options->droptemp});
     }
 
     log_debug("Mid: pgsql, cache={}", options->cache);
@@ -789,7 +790,7 @@ middle_pgsql_t::middle_pgsql_t(options_t const *options)
     }
 
     m_tables[NODE_TABLE] =
-        table_desc{*options, sql_for_nodes(!options->flat_node_cache_enabled)};
+        table_desc{*options, sql_for_nodes(options->flat_node_file.empty())};
     m_tables[WAY_TABLE] =
         table_desc{*options, sql_for_ways(has_bucket_index,
                                           options->way_node_index_id_shift)};

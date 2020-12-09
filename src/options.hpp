@@ -114,9 +114,10 @@ public:
     /// only copy rows that match an explicitly listed key
     bool hstore_match_only = false;
 
-    bool flat_node_cache_enabled = false;
     bool reproject_area = false;
-    boost::optional<std::string> flat_node_file{boost::none};
+
+    /// Name of the flat node file used. Empty if flat node file is not enabled.
+    std::string flat_node_file{};
 
     /**
      * these options allow you to control the name of the
