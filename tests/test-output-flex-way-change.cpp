@@ -20,7 +20,7 @@ TEST_CASE("change way from t1")
 {
     options_t options = testing::opt_t().slim().flex(conf_file);
 
-    testing::data_t data{tdata};
+    testing::db::data_t data{tdata};
     data.add({"w10 v1 dV Tt1=yes Nn10,n11",
               "r30 v1 dV Tt=ag Mw10@mark,w11@,w12@mark,w13@,w14@mark"});
 
@@ -63,7 +63,7 @@ TEST_CASE("change way from t2")
 {
     options_t options = testing::opt_t().slim().flex(conf_file);
 
-    testing::data_t data{tdata};
+    testing::db::data_t data{tdata};
     data.add({"w10 v1 dV Tt2=yes Nn10,n11",
               "r30 v1 dV Tt=ag Mw10@mark,w11@,w12@mark,w13@,w14@mark"});
 
@@ -106,7 +106,7 @@ TEST_CASE("change way from t1 and t2")
 {
     options_t options = testing::opt_t().slim().flex(conf_file);
 
-    testing::data_t data{tdata};
+    testing::db::data_t data{tdata};
     data.add({"w10 v1 dV Tt1=yes,t2=yes Nn10,n11",
               "r30 v1 dV Tt=ag Mw10@mark,w11@,w12@mark,w13@,w14@mark"});
 
@@ -149,7 +149,7 @@ TEST_CASE("change valid geom to invalid geom")
 {
     options_t options = testing::opt_t().slim().flex(conf_file);
 
-    testing::data_t data{tdata};
+    testing::db::data_t data{tdata};
     data.add({"w10 v1 dV Tt1=yes,t2=yes,tboth=yes Nn10,n11",
               "r30 v1 dV Tt=ag Mw10@mark,w11@,w12@mark,w13@,w14@mark"});
 
@@ -189,7 +189,7 @@ TEST_CASE("change invalid geom to valid geom")
 {
     options_t options = testing::opt_t().slim().flex(conf_file);
 
-    testing::data_t data{tdata};
+    testing::db::data_t data{tdata};
     data.add({"w10 v1 dV Tt1=yes,t2=yes,tboth=yes Nn10",
               "r30 v1 dV Tt=ag Mw10@mark,w11@,w12@mark,w13@,w14@mark"});
 

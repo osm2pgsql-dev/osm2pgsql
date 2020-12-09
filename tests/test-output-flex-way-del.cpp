@@ -20,7 +20,7 @@ TEST_CASE("delete way: not a member")
 {
     options_t options = testing::opt_t().slim().flex(conf_file);
 
-    testing::data_t data{tdata};
+    testing::db::data_t data{tdata};
 
     unsigned long num_t1 = 0;
     unsigned long num_tboth = 0;
@@ -58,7 +58,7 @@ TEST_CASE("delete way: relation member")
 {
     options_t options = testing::opt_t().slim().flex(conf_file);
 
-    testing::data_t data{tdata};
+    testing::db::data_t data{tdata};
 
     unsigned long num_t1 = 0;
     unsigned long num_t2 = 0;

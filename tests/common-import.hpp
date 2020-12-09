@@ -51,6 +51,8 @@ inline void parse_file(options_t const &options,
     }
 }
 
+namespace db {
+
 /**
  * This is used as a helper to assemble OSM objects into an OPL file which
  * can later be used as input for testing.
@@ -113,8 +115,6 @@ private:
     std::vector<std::string> m_objects;
     std::string m_result;
 };
-
-namespace db {
 
 /**
  * Convenience class around tempdb_t that offers functions for

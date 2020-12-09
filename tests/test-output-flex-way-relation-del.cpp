@@ -29,7 +29,7 @@ TEST_CASE("test way: delete relation with way not in relation")
 {
     options_t options = testing::opt_t().slim().flex(conf_file);
 
-    testing::data_t data{tdata};
+    testing::db::data_t data{tdata};
 
     data.add("w10 v1 dV Tt=ag Nn10,n11");
     data.add("r32 v1 dV Tt=ag Mw11@,w12@,w13@,w14@,w15@");
@@ -61,7 +61,7 @@ TEST_CASE("test way: delete relation with way in t1")
 {
     options_t options = testing::opt_t().slim().flex(conf_file);
 
-    testing::data_t data{tdata};
+    testing::db::data_t data{tdata};
 
     data.add("w10 v1 dV Tt1=yes Nn10,n11");
     data.add("r32 v1 dV Tt=ag Mw11@,w12@,w13@,w14@,w15@");
@@ -93,7 +93,7 @@ TEST_CASE("test way: delete relation with way in t2 (multi)")
 {
     options_t options = testing::opt_t().slim().flex(conf_file);
 
-    testing::data_t data{tdata};
+    testing::db::data_t data{tdata};
 
     data.add("w10 v1 dV Tt2=yes Nn10,n11");
     data.add("r31 v1 dV Tt=ag Mw10@mark");
@@ -137,7 +137,7 @@ TEST_CASE("test way: delete relation with way in t2 (single)")
 {
     options_t options = testing::opt_t().slim().flex(conf_file);
 
-    testing::data_t data{tdata};
+    testing::db::data_t data{tdata};
 
     data.add("w10 v1 dV Tt2=yes Nn10,n11");
     data.add("r32 v1 dV Tt=ag Mw10@mark,w11@,w12@,w13@,w14@,w15@");
@@ -180,7 +180,7 @@ TEST_CASE("test way: delete relation with way in t1 + t2 (multi)")
 {
     options_t options = testing::opt_t().slim().flex(conf_file);
 
-    testing::data_t data{tdata};
+    testing::db::data_t data{tdata};
 
     data.add("w10 v1 dV Tt1=yes,t2=yes Nn10,n11");
     data.add("r31 v1 dV Tt=ag Mw10@mark");
@@ -224,7 +224,7 @@ TEST_CASE("test way: delete relation with way in t1 + t2 (single)")
 {
     options_t options = testing::opt_t().slim().flex(conf_file);
 
-    testing::data_t data{tdata};
+    testing::db::data_t data{tdata};
 
     data.add("w10 v1 dV Tt1=yes,t2=yes Nn10,n11");
     data.add("r32 v1 dV Tt=ag Mw10@mark,w11@,w12@,w13@,w14@,w15@");
@@ -266,7 +266,7 @@ TEST_CASE("test way: delete relation with way in tboth (multi)")
 {
     options_t options = testing::opt_t().slim().flex(conf_file);
 
-    testing::data_t data{tdata};
+    testing::db::data_t data{tdata};
 
     data.add("w10 v1 dV Ttboth=yes Nn10,n11");
     data.add("r31 v1 dV Tt=ag Mw10@mark");
@@ -310,7 +310,7 @@ TEST_CASE("test way: delete relation with way in tboth (single)")
 {
     options_t options = testing::opt_t().slim().flex(conf_file);
 
-    testing::data_t data{tdata};
+    testing::db::data_t data{tdata};
 
     data.add("w10 v1 dV Ttboth=yes Nn10,n11");
     data.add("r32 v1 dV Tt=ag Mw10@mark,w11@,w12@,w13@,w14@,w15@");
