@@ -28,7 +28,7 @@ TEST_CASE("add way")
 {
     options_t options = testing::opt_t().slim().flex(conf_file);
 
-    testing::data_t data{tdata};
+    testing::db::data_t data{tdata};
 
     REQUIRE_NOTHROW(db.run_import(options, data()));
 

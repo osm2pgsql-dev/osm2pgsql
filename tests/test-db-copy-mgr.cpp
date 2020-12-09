@@ -7,7 +7,7 @@
 #include "common-pg.hpp"
 #include "db-copy-mgr.hpp"
 
-static pg::tempdb_t db;
+static testing::pg::tempdb_t db;
 
 using copy_mgr_t = db_copy_mgr_t<db_deleter_by_id_t>;
 

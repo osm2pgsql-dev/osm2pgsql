@@ -13,7 +13,7 @@
 
 #include <algorithm>
 
-static pg::tempdb_t db;
+static testing::pg::tempdb_t db;
 
 namespace {
 
@@ -106,7 +106,7 @@ void expect_location(osmium::Location loc, osmium::Node const &expected)
 
 struct options_slim_default
 {
-    static options_t options(pg::tempdb_t const &tmpdb)
+    static options_t options(testing::pg::tempdb_t const &tmpdb)
     {
         return testing::opt_t().slim(tmpdb);
     }
@@ -114,7 +114,7 @@ struct options_slim_default
 
 struct options_slim_with_schema
 {
-    static options_t options(pg::tempdb_t const &tmpdb)
+    static options_t options(testing::pg::tempdb_t const &tmpdb)
     {
         options_t o = testing::opt_t().slim(tmpdb);
         o.middle_dbschema = "osm";
@@ -124,7 +124,7 @@ struct options_slim_with_schema
 
 struct options_slim_dense_cache
 {
-    static options_t options(pg::tempdb_t const &tmpdb)
+    static options_t options(testing::pg::tempdb_t const &tmpdb)
     {
         options_t o = options_slim_default::options(tmpdb);
         o.alloc_chunkwise = ALLOC_DENSE;
@@ -134,7 +134,7 @@ struct options_slim_dense_cache
 
 struct options_flat_node_cache
 {
-    static options_t options(pg::tempdb_t const &tmpdb)
+    static options_t options(testing::pg::tempdb_t const &tmpdb)
     {
         return testing::opt_t().slim(tmpdb).flatnodes();
     }
@@ -142,7 +142,7 @@ struct options_flat_node_cache
 
 struct options_ram_optimized
 {
-    static options_t options(pg::tempdb_t const &)
+    static options_t options(testing::pg::tempdb_t const &)
     {
         options_t o = testing::opt_t();
         o.alloc_chunkwise = ALLOC_SPARSE | ALLOC_DENSE;
@@ -152,7 +152,7 @@ struct options_ram_optimized
 
 struct options_ram_flatnode
 {
-    static options_t options(pg::tempdb_t const &)
+    static options_t options(testing::pg::tempdb_t const &)
     {
         options_t o = testing::opt_t().flatnodes();
         o.alloc_chunkwise = ALLOC_SPARSE | ALLOC_DENSE;

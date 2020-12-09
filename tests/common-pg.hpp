@@ -19,6 +19,7 @@
 #define getpid _getpid
 #endif
 
+namespace testing {
 /// Helper classes for postgres connections
 namespace pg {
 
@@ -141,5 +142,6 @@ private:
 };
 
 } // namespace pg
+} // namespace testing
 
 #endif // OSM2PGSQL_TEST_COMMON_PG_HPP

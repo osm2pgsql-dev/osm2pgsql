@@ -51,6 +51,8 @@ inline void parse_file(options_t const &options,
     }
 }
 
+namespace db {
+
 /**
  * This is used as a helper to assemble OSM objects into an OPL file which
  * can later be used as input for testing.
@@ -113,8 +115,6 @@ private:
     std::vector<std::string> m_objects;
     std::string m_result;
 };
-
-namespace db {
 
 /**
  * Convenience class around tempdb_t that offers functions for
@@ -216,12 +216,12 @@ public:
                    {out_test}, file);
     }
 
-    pg::conn_t connect() { return m_db.connect(); }
+    testing::pg::conn_t connect() { return m_db.connect(); }
 
-    pg::tempdb_t const &db() const { return m_db; }
+    testing::pg::tempdb_t const &db() const { return m_db; }
 
 private:
-    pg::tempdb_t m_db;
+    testing::pg::tempdb_t m_db;
 };
 
 } // namespace db
