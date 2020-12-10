@@ -52,41 +52,6 @@ static std::shared_ptr<middle_t> create_middle(options_t const &options)
     return std::make_shared<middle_ram_t>(&options);
 }
 
-/**
- * Prepare input file(s). Does format checks as far as this is possible
- * without actually opening the files.
- */
-static std::vector<osmium::io::File>
-prepare_input_files(options_t const &options)
-{
-    std::vector<osmium::io::File> files;
-
-    for (auto const &filename : options.input_files) {
-        osmium::io::File file{filename, options.input_format};
-
-        if (file.format() == osmium::io::file_format::unknown) {
-            if (options.input_format.empty()) {
-                throw std::runtime_error{
-                    "Cannot detect file format for '{}'. Try using -r."_format(
-                        filename)};
-            }
-            throw std::runtime_error{
-                "Unknown file format '{}'."_format(options.input_format)};
-        }
-
-        if (!options.append && file.has_multiple_object_versions()) {
-            throw std::runtime_error{
-                "Reading an OSM change file only works in append mode."};
-        }
-
-        log_debug("Reading file: {}", filename);
-
-        files.emplace_back(file);
-    }
-
-    return files;
-}
-
 int main(int argc, char *argv[])
 {
     try {
@@ -99,7 +64,8 @@ int main(int argc, char *argv[])
 
         check_db(options);
 
-        auto const files = prepare_input_files(options);
+        auto const files = prepare_input_files(
+            options.input_files, options.input_format, options.append);
 
         auto middle = create_middle(options);
         middle->start();

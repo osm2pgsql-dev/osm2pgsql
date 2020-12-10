@@ -9,6 +9,7 @@
 
 #include "format.hpp"
 #include "input.hpp"
+#include "logging.hpp"
 #include "osmdata.hpp"
 #include "progress-display.hpp"
 
@@ -170,6 +171,38 @@ private:
     data_source_t *m_source;
 
 }; // class queue_element_t
+
+std::vector<osmium::io::File>
+prepare_input_files(std::vector<std::string> const &input_files,
+                    std::string const &input_format, bool append)
+{
+    std::vector<osmium::io::File> files;
+
+    for (auto const &filename : input_files) {
+        osmium::io::File file{filename, input_format};
+
+        if (file.format() == osmium::io::file_format::unknown) {
+            if (input_format.empty()) {
+                throw std::runtime_error{
+                    "Cannot detect file format for '{}'. Try using -r."_format(
+                        filename)};
+            }
+            throw std::runtime_error{
+                "Unknown file format '{}'."_format(input_format)};
+        }
+
+        if (!append && file.has_multiple_object_versions()) {
+            throw std::runtime_error{
+                "Reading an OSM change file only works in append mode."};
+        }
+
+        log_debug("Reading file: {}", filename);
+
+        files.emplace_back(file);
+    }
+
+    return files;
+}
 
 void process_file(osmium::io::File const &file, osmdata_t &osmdata,
                   progress_display_t &progress, bool append)

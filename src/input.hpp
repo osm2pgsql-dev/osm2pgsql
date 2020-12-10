@@ -36,6 +36,14 @@ type_id_version check_input(type_id_version const &last,
                             osmium::OSMObject const &object);
 
 /**
+ * Prepare input file(s). Does format checks as far as this is possible
+ * without actually opening the files.
+ */
+std::vector<osmium::io::File>
+prepare_input_files(std::vector<std::string> const &input_files,
+                    std::string const &input_format, bool append);
+
+/**
  * Process the specified OSM files (stage 1a).
  */
 void process_files(std::vector<osmium::io::File> const &files,
