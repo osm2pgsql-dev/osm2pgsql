@@ -16,7 +16,6 @@
 #include "osmdata.hpp"
 #include "output-multi.hpp"
 #include "output.hpp"
-#include "progress-display.hpp"
 #include "taginfo-impl.hpp"
 
 #include "common-pg.hpp"
@@ -46,8 +45,7 @@ inline void parse_file(options_t const &options,
         filepath += options.input_files[0];
     }
     osmium::io::File file{filepath};
-    progress_display_t progress;
-    process_files({file}, osmdata, progress, options.append);
+    process_files({file}, osmdata, options.append, false);
 
     if (do_stop) {
         osmdata.stop();
@@ -158,8 +156,7 @@ public:
         for (auto const &data : input_data) {
             files.emplace_back(data.data(), data.size(), format);
         }
-        progress_display_t progress;
-        process_files(files, osmdata, progress, options.append);
+        process_files(files, osmdata, options.append, false);
 
         osmdata.stop();
     }

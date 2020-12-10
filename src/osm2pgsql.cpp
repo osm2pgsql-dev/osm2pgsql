@@ -32,7 +32,6 @@
 #include "options.hpp"
 #include "osmdata.hpp"
 #include "output.hpp"
-#include "progress-display.hpp"
 #include "reprojection.hpp"
 #include "util.hpp"
 #include "version.hpp"
@@ -83,15 +82,7 @@ int main(int argc, char *argv[])
 
         // Processing: In this phase the input file(s) are read and parsed,
         // populating some of the tables.
-        util::timer_t timer_parse;
-
-        progress_display_t progress{get_logger().show_progress()};
-        process_files(files, osmdata, progress, options.append);
-
-        fmt::print(stderr, "  parse time: {}\n",
-                   util::human_readable_duration(timer_parse.stop()));
-
-        progress.print_summary();
+        process_files(files, osmdata, options.append, get_logger().show_progress());
 
         // Process pending ways and relations. Cluster database tables and
         // create indexes.

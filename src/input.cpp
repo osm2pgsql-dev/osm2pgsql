@@ -212,10 +212,10 @@ static void apply(osmium::OSMObject &object, osmdata_t &osmdata,
     if (last_type != object.type()) {
         if (last_type == osmium::item_type::node) {
             osmdata.after_nodes();
-            progress.after_nodes();
+            progress.start_way_counter();
         } else if (last_type == osmium::item_type::way) {
             osmdata.after_ways();
-            progress.after_ways();
+            progress.start_relation_counter();
         }
         last_type = object.type();
     }
@@ -242,15 +242,16 @@ void process_file(osmium::io::File const &file, osmdata_t &osmdata,
     }
 
     osmdata.after_relations();
-    progress.after_relations();
+    progress.print_summary();
 
     reader.close();
 }
 
 void process_files(std::vector<osmium::io::File> const &files,
-                   osmdata_t &osmdata, progress_display_t &progress,
-                   bool append)
+                   osmdata_t &osmdata, bool append, bool show_progress)
 {
+    progress_display_t progress{show_progress};
+
     if (files.size() == 1) {
         process_file(files.front(), osmdata, progress, append);
         return;
@@ -288,7 +289,7 @@ void process_files(std::vector<osmium::io::File> const &files,
     }
 
     osmdata.after_relations();
-    progress.after_relations();
+    progress.print_summary();
 
     for (auto &data_source : data_sources) {
         data_source.close();

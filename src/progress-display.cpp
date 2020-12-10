@@ -1,18 +1,7 @@
 #include "format.hpp"
 #include "logging.hpp"
 #include "progress-display.hpp"
-
-void progress_display_t::print_summary() const
-{
-    std::time_t const now = std::time(nullptr);
-
-    log_info("Node stats: total({}), max({}) in {}s", m_node.count, m_node.max,
-             nodes_time(now));
-    log_info("Way stats: total({}), max({}) in {}s", m_way.count, m_way.max,
-             ways_time(now));
-    log_info("Relation stats: total({}), max({}) in {}s", m_rel.count,
-             m_rel.max, rels_time(now));
-}
+#include "util.hpp"
 
 static double count_per_second(osmid_t count, uint64_t elapsed) noexcept
 {
@@ -25,6 +14,40 @@ static double count_per_second(osmid_t count, uint64_t elapsed) noexcept
     }
 
     return static_cast<double>(count) / elapsed;
+}
+
+static std::string cps_display(osmid_t count, uint64_t elapsed) noexcept
+{
+    double const cps = count_per_second(count, elapsed);
+
+    if (cps >= 1000.0) {
+        return "{:.0f}k/s"_format(cps / 1000);
+    }
+    return "{:.0f}/s"_format(cps);
+}
+
+void progress_display_t::print_summary() const
+{
+    std::time_t const now = std::time(nullptr);
+
+    if (m_enabled) {
+        fmt::print(stderr, "\r{:78s}\r", "");
+    }
+
+    log_info("Reading input files done in {}.",
+             util::human_readable_duration(overall_time(now)));
+
+    auto const nt = nodes_time(now);
+    log_info("  Processed {} nodes in {} - {}", m_node.count,
+             util::human_readable_duration(nt), cps_display(m_node.count, nt));
+
+    auto const wt = ways_time(now);
+    log_info("  Processed {} ways in {} - {}", m_way.count,
+             util::human_readable_duration(wt), cps_display(m_way.count, wt));
+
+    auto const rt = rels_time(now);
+    log_info("  Processed {} relations in {} - {}", m_rel.count,
+             util::human_readable_duration(rt), cps_display(m_rel.count, rt));
 }
 
 void progress_display_t::print_status(std::time_t now) const
@@ -50,3 +73,33 @@ void progress_display_t::possibly_print_status()
         print_status(now);
     }
 }
+
+uint64_t progress_display_t::nodes_time(std::time_t now) const noexcept
+{
+    if (m_node.count == 0) {
+        return 0;
+    }
+    return (m_way.start > 0 ? m_way.start : now) - m_node.start;
+}
+
+uint64_t progress_display_t::ways_time(std::time_t now) const noexcept
+{
+    if (m_way.count == 0) {
+        return 0;
+    }
+    return (m_rel.start > 0 ? m_rel.start : now) - m_way.start;
+}
+
+uint64_t progress_display_t::rels_time(std::time_t now) const noexcept
+{
+    if (m_rel.count == 0) {
+        return 0;
+    }
+    return now - m_rel.start;
+}
+
+uint64_t progress_display_t::overall_time(std::time_t now) const noexcept
+{
+    return now - m_node.start;
+}
+

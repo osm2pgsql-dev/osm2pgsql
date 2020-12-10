@@ -47,7 +47,6 @@ prepare_input_files(std::vector<std::string> const &input_files,
  * Process the specified OSM files (stage 1a).
  */
 void process_files(std::vector<osmium::io::File> const &files,
-                   osmdata_t &osmdata, progress_display_t &progress,
-                   bool append);
+                   osmdata_t &osmdata, bool append, bool show_progress);
 
 #endif // OSM2PGSQL_INPUT_HPP

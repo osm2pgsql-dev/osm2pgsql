@@ -14,6 +14,7 @@
 
 #include <osmium/handler.hpp>
 
+#include "format.hpp"
 #include "osmtypes.hpp"
 
 /**
@@ -25,16 +26,9 @@ class progress_display_t : public osmium::handler::Handler
     struct Counter
     {
         std::size_t count = 0;
-        osmid_t max = 0;
         std::time_t start = 0;
 
         osmid_t count_k() const noexcept { return count / 1000; }
-
-        std::size_t add(osmid_t id) noexcept
-        {
-            max = id;
-            return ++count;
-        }
     };
 
 public:
@@ -45,60 +39,40 @@ public:
 
     void node(osmium::Node const &node)
     {
-        if (m_node.add(node.id()) % 10000 == 0) {
+        if (++m_node.count % 10000 == 0) {
             possibly_print_status();
         }
     }
-
-    void after_nodes() { m_way.start = std::time(nullptr); }
 
     void way(osmium::Way const &way)
     {
-        if (m_way.add(way.id()) % 1000 == 0) {
+        if (++m_way.count % 1000 == 0) {
             possibly_print_status();
         }
     }
 
-    void after_ways() { m_rel.start = std::time(nullptr); }
 
     void relation(osmium::Relation const &relation)
     {
-        if (m_rel.add(relation.id()) % 10 == 0) {
+        if (++m_rel.count % 10 == 0) {
             possibly_print_status();
         }
     }
 
-    void after_relations() const { print_status(std::time(nullptr)); }
+    void start_way_counter() { m_way.start = std::time(nullptr); }
+
+    void start_relation_counter() { m_rel.start = std::time(nullptr); }
 
     void print_summary() const;
 
 private:
-    void possibly_print_status();
     void print_status(std::time_t now) const;
+    void possibly_print_status();
 
-    uint64_t nodes_time(std::time_t now) const noexcept
-    {
-        if (m_node.count == 0) {
-            return 0;
-        }
-        return (m_way.start > 0 ? m_way.start : now) - m_node.start;
-    }
-
-    uint64_t ways_time(std::time_t now) const noexcept
-    {
-        if (m_way.count == 0) {
-            return 0;
-        }
-        return (m_rel.start > 0 ? m_rel.start : now) - m_way.start;
-    }
-
-    uint64_t rels_time(std::time_t now) const noexcept
-    {
-        if (m_rel.count == 0) {
-            return 0;
-        }
-        return now - m_rel.start;
-    }
+    uint64_t nodes_time(std::time_t now) const noexcept;
+    uint64_t ways_time(std::time_t now) const noexcept;
+    uint64_t rels_time(std::time_t now) const noexcept;
+    uint64_t overall_time(std::time_t now) const noexcept;
 
     Counter m_node{};
     Counter m_way{};
