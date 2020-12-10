@@ -314,6 +314,46 @@ std::size_t middle_query_pgsql_t::get_way_node_locations_db(
     return count;
 }
 
+void middle_pgsql_t::node(osmium::Node const &node)
+{
+    if (node.deleted()) {
+        node_delete(node.id());
+    } else {
+        if (m_options->append) {
+            node_delete(node.id());
+            node_set(node);
+        } else {
+            node_set(node);
+        }
+    }
+}
+
+void middle_pgsql_t::way(osmium::Way const &way) {
+    if (way.deleted()) {
+        way_delete(way.id());
+    } else {
+        if (m_options->append) {
+            way_delete(way.id());
+            way_set(way);
+        } else {
+            way_set(way);
+        }
+    }
+}
+
+void middle_pgsql_t::relation(osmium::Relation const &relation) {
+    if (relation.deleted()) {
+        relation_delete(relation.id());
+    } else {
+        if (m_options->append) {
+            relation_delete(relation.id());
+            relation_set(relation);
+        } else {
+            relation_set(relation);
+        }
+    }
+}
+
 void middle_pgsql_t::node_set(osmium::Node const &node)
 {
     m_cache->set(node.id(), node.location());

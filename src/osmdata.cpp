@@ -34,21 +34,12 @@ osmdata_t::osmdata_t(std::unique_ptr<dependency_manager_t> dependency_manager,
     assert(!m_outs.empty());
 }
 
-/**
- * For modify and delete member functions a middle_t is not enough, an object
- * of the derived class slim_middle_t is needed. This function does the
- * conversion. It should always succeed, because the modify and delete
- * functions are never called for non-slim middles.
- */
-slim_middle_t &osmdata_t::slim_middle() const noexcept
-{
-    auto *slim = dynamic_cast<slim_middle_t *>(m_mid.get());
-    assert(slim);
-    return *slim;
-}
-
 void osmdata_t::node(osmium::Node const &node)
 {
+    if (!m_bbox.valid() || node.deleted() || m_bbox.contains(node.location())) {
+        m_mid->node(node);
+    }
+
     if (node.deleted()) {
         node_delete(node.id());
     } else {
@@ -75,6 +66,8 @@ void osmdata_t::after_nodes() { flush(); }
 
 void osmdata_t::way(osmium::Way &way)
 {
+    m_mid->way(way);
+
     if (way.deleted()) {
         way_delete(way.id());
     } else {
@@ -90,6 +83,14 @@ void osmdata_t::after_ways() { flush(); }
 
 void osmdata_t::relation(osmium::Relation const &rel)
 {
+    if (m_append && !rel.deleted()) {
+        for (auto const &out : m_outs) {
+            out->select_relation_members(rel.id());
+        }
+    }
+
+    m_mid->relation(rel);
+
     if (rel.deleted()) {
         relation_delete(rel.id());
     } else {
@@ -108,8 +109,6 @@ void osmdata_t::after_relations() { flush(); }
 
 void osmdata_t::node_add(osmium::Node const &node) const
 {
-    m_mid->node_set(node);
-
     if (m_with_extra_attrs || !node.tags().empty()) {
         for (auto const &out : m_outs) {
             out->node_add(node);
@@ -119,8 +118,6 @@ void osmdata_t::node_add(osmium::Node const &node) const
 
 void osmdata_t::way_add(osmium::Way *way) const
 {
-    m_mid->way_set(*way);
-
     if (m_with_extra_attrs || !way->tags().empty()) {
         for (auto const &out : m_outs) {
             out->way_add(way);
@@ -130,8 +127,6 @@ void osmdata_t::way_add(osmium::Way *way) const
 
 void osmdata_t::relation_add(osmium::Relation const &rel) const
 {
-    m_mid->relation_set(rel);
-
     if (m_with_extra_attrs || !rel.tags().empty()) {
         for (auto const &out : m_outs) {
             out->relation_add(rel);
@@ -141,11 +136,6 @@ void osmdata_t::relation_add(osmium::Relation const &rel) const
 
 void osmdata_t::node_modify(osmium::Node const &node) const
 {
-    auto &slim = slim_middle();
-
-    slim.node_delete(node.id());
-    slim.node_set(node);
-
     for (auto const &out : m_outs) {
         out->node_modify(node);
     }
@@ -155,11 +145,6 @@ void osmdata_t::node_modify(osmium::Node const &node) const
 
 void osmdata_t::way_modify(osmium::Way *way) const
 {
-    auto &slim = slim_middle();
-
-    slim.way_delete(way->id());
-    slim.way_set(*way);
-
     for (auto const &out : m_outs) {
         out->way_modify(way);
     }
@@ -169,15 +154,6 @@ void osmdata_t::way_modify(osmium::Way *way) const
 
 void osmdata_t::relation_modify(osmium::Relation const &rel) const
 {
-    auto &slim = slim_middle();
-
-    for (auto const &out : m_outs) {
-        out->select_relation_members(rel.id());
-    }
-
-    slim.relation_delete(rel.id());
-    slim.relation_set(rel);
-
     for (auto const &out : m_outs) {
         out->relation_modify(rel);
     }
@@ -188,8 +164,6 @@ void osmdata_t::node_delete(osmid_t id) const
     for (auto const &out : m_outs) {
         out->node_delete(id);
     }
-
-    slim_middle().node_delete(id);
 }
 
 void osmdata_t::way_delete(osmid_t id) const
@@ -197,8 +171,6 @@ void osmdata_t::way_delete(osmid_t id) const
     for (auto const &out : m_outs) {
         out->way_delete(id);
     }
-
-    slim_middle().way_delete(id);
 }
 
 void osmdata_t::relation_delete(osmid_t id) const
@@ -206,8 +178,6 @@ void osmdata_t::relation_delete(osmid_t id) const
     for (auto const &out : m_outs) {
         out->relation_delete(id);
     }
-
-    slim_middle().relation_delete(id);
 }
 
 void osmdata_t::start() const

@@ -184,7 +184,7 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         auto const &node = buffer.add_node("n1234 x98.7654321 y12.3456789");
 
         // set the node
-        mid->node_set(node);
+        mid->node(node);
         mid->flush();
 
         // getting it back works only via a waylist
@@ -211,11 +211,11 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
             nds.push_back(i);
             auto const &node = buffer.add_node(
                 "n{} x{} y{}"_format(i, lon - i * 0.003, lat + i * 0.001));
-            mid->node_set(node);
+            mid->node(node);
         }
 
         // set the way
-        mid->way_set(buffer.add_way(way_id, nds));
+        mid->way(buffer.add_way(way_id, nds));
 
         mid->flush();
 
@@ -244,12 +244,12 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         idlist_t const nds[] = {{4, 5, 13, 14, 342}, {45, 90}, {30, 3, 45}};
 
         // set the node
-        mid->node_set(buffer.add_node("n1 x4.1 y12.8"));
+        mid->node(buffer.add_node("n1 x4.1 y12.8"));
 
         // set the ways
         osmid_t wid = 10;
         for (auto const &n : nds) {
-            mid->way_set(buffer.add_way(wid, n));
+            mid->way(buffer.add_way(wid, n));
             ++wid;
         }
 
@@ -259,7 +259,7 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         osmium::CRC<osmium::CRC_zlib> orig_crc;
         orig_crc.update(relation);
 
-        mid->relation_set(relation);
+        mid->relation(relation);
 
         mid->flush();
 
@@ -346,6 +346,11 @@ TEMPLATE_TEST_CASE("middle: add, delete and update node", "",
 
     auto const &node10a = buffer.add_node("n10 x1.0 y1.0");
 
+    auto const &node5d = buffer.add_node("n5 dD");
+    auto const &node10d = buffer.add_node("n10 dD");
+    auto const &node12d = buffer.add_node("n12 dD");
+    auto const &node42d = buffer.add_node("n42 dD");
+
     // Set up middle in "create" mode to get a cleanly initialized database
     // and add some nodes. Does this in its own scope so that the mid is
     // closed properly.
@@ -354,8 +359,8 @@ TEMPLATE_TEST_CASE("middle: add, delete and update node", "",
 
         mid->start();
 
-        mid->node_set(node10);
-        mid->node_set(node11);
+        mid->node(node10);
+        mid->node(node11);
         mid->flush();
 
         check_node(mid, node10);
@@ -385,9 +390,9 @@ TEMPLATE_TEST_CASE("middle: add, delete and update node", "",
             auto mid = std::make_shared<middle_pgsql_t>(&options);
             mid->start();
 
-            mid->node_delete(5);
-            mid->node_delete(10);
-            mid->node_delete(42);
+            mid->node(node5d);
+            mid->node(node10d);
+            mid->node(node42d);
             mid->flush();
 
             REQUIRE(no_node(mid, 5));
@@ -417,10 +422,10 @@ TEMPLATE_TEST_CASE("middle: add, delete and update node", "",
             auto mid = std::make_shared<middle_pgsql_t>(&options);
             mid->start();
 
-            mid->node_delete(10);
-            mid->node_set(node10a);
-            mid->node_delete(12);
-            mid->node_set(node12);
+            mid->node(node10d);
+            mid->node(node10a);
+            mid->node(node12d);
+            mid->node(node12);
             mid->flush();
 
             check_node(mid, node10a);
@@ -448,7 +453,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update node", "",
             auto mid = std::make_shared<middle_pgsql_t>(&options);
             mid->start();
 
-            mid->node_set(node12);
+            mid->node(node12);
             mid->flush();
 
             REQUIRE(no_node(mid, 5));
@@ -549,6 +554,11 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
     auto const &way20a =
         buffer.add_way("w20 Nn10,n12 Thighway=primary,name=High_Street");
 
+    auto const &way5d = buffer.add_way("w5 dD");
+    auto const &way20d = buffer.add_way("w20 dD");
+    auto const &way22d = buffer.add_way("w22 dD");
+    auto const &way42d = buffer.add_way("w42 dD");
+
     // Set up middle in "create" mode to get a cleanly initialized database and
     // add some ways. Does this in its own scope so that the mid is closed
     // properly.
@@ -556,8 +566,8 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
         auto mid = std::make_shared<middle_pgsql_t>(&options);
         mid->start();
 
-        mid->way_set(way20);
-        mid->way_set(way21);
+        mid->way(way20);
+        mid->way(way21);
         mid->flush();
 
         check_way(mid, way20);
@@ -588,9 +598,9 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
             auto mid = std::make_shared<middle_pgsql_t>(&options);
             mid->start();
 
-            mid->way_delete(5);
-            mid->way_delete(20);
-            mid->way_delete(42);
+            mid->way(way5d);
+            mid->way(way20d);
+            mid->way(way42d);
             mid->flush();
 
             REQUIRE(no_way(mid, 5));
@@ -620,10 +630,10 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
             auto mid = std::make_shared<middle_pgsql_t>(&options);
             mid->start();
 
-            mid->way_delete(20);
-            mid->way_set(way20a);
-            mid->way_delete(22);
-            mid->way_set(way22);
+            mid->way(way20d);
+            mid->way(way20a);
+            mid->way(way22d);
+            mid->way(way22);
             mid->flush();
 
             REQUIRE(no_way(mid, 5));
@@ -655,7 +665,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
             auto mid = std::make_shared<middle_pgsql_t>(&options);
             mid->start();
 
-            mid->way_set(way22);
+            mid->way(way22);
             mid->flush();
 
             REQUIRE(no_way(mid, 5));
@@ -716,7 +726,7 @@ TEMPLATE_TEST_CASE("middle: add way with attributes", "", options_slim_default,
         auto mid = std::make_shared<middle_pgsql_t>(&options);
         mid->start();
 
-        mid->way_set(way20);
+        mid->way(way20);
         mid->flush();
 
         check_way(mid,
@@ -789,6 +799,11 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
     auto const &relation30a = buffer.add_relation(
         "r30 Mw10@outer,w11@outer Ttype=multipolygon,name=Pigeon_Park");
 
+    auto const &relation5d = buffer.add_relation("r5 dD");
+    auto const &relation30d = buffer.add_relation("r30 dD");
+    auto const &relation32d = buffer.add_relation("r32 dD");
+    auto const &relation42d = buffer.add_relation("r42 dD");
+
     // Set up middle in "create" mode to get a cleanly initialized database and
     // add some relations. Does this in its own scope so that the mid is closed
     // properly.
@@ -796,8 +811,8 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
         auto mid = std::make_shared<middle_pgsql_t>(&options);
         mid->start();
 
-        mid->relation_set(relation30);
-        mid->relation_set(relation31);
+        mid->relation(relation30);
+        mid->relation(relation31);
         mid->flush();
 
         check_relation(mid, relation30);
@@ -828,9 +843,9 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
             auto mid = std::make_shared<middle_pgsql_t>(&options);
             mid->start();
 
-            mid->relation_delete(5);
-            mid->relation_delete(30);
-            mid->relation_delete(42);
+            mid->relation(relation5d);
+            mid->relation(relation30d);
+            mid->relation(relation42d);
             mid->flush();
 
             REQUIRE(no_relation(mid, 5));
@@ -860,10 +875,10 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
             auto mid = std::make_shared<middle_pgsql_t>(&options);
             mid->start();
 
-            mid->relation_delete(30);
-            mid->relation_set(relation30a);
-            mid->relation_delete(32);
-            mid->relation_set(relation32);
+            mid->relation(relation30d);
+            mid->relation(relation30a);
+            mid->relation(relation32d);
+            mid->relation(relation32);
             mid->flush();
 
             REQUIRE(no_relation(mid, 5));
@@ -895,7 +910,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
             auto mid = std::make_shared<middle_pgsql_t>(&options);
             mid->start();
 
-            mid->relation_set(relation32);
+            mid->relation(relation32);
             mid->flush();
 
             REQUIRE(no_relation(mid, 5));
@@ -954,7 +969,7 @@ TEMPLATE_TEST_CASE("middle: add relation with attributes", "",
         auto mid = std::make_shared<middle_pgsql_t>(&options);
         mid->start();
 
-        mid->relation_set(relation30);
+        mid->relation(relation30);
         mid->flush();
 
         check_relation(mid, options.extra_attributes ? relation30_attr_tags
@@ -991,10 +1006,14 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
     auto const &node12 = buffer.add_node("n12 x1.2 y0.0");
     auto const &node10a = buffer.add_node("n10 x2.0 y0.0");
 
+    auto const &node10d = buffer.add_node("n10 dD");
+
     auto const &way20 = buffer.add_way("w20 Nn10,n11");
     auto const &way21 = buffer.add_way("w21 Nn11,n12");
     auto const &way22 = buffer.add_way("w22 Nn12,n10");
     auto const &way20a = buffer.add_way("w20 Nn11,n12");
+
+    auto const &way20d = buffer.add_way("w20 dD");
 
     // Set up middle in "create" mode to get a cleanly initialized database and
     // add some nodes and ways. Does this in its own scope so that the mid is
@@ -1004,12 +1023,12 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
         full_dependency_manager_t dependency_manager{mid};
         mid->start();
 
-        mid->node_set(node10);
-        mid->node_set(node11);
-        mid->node_set(node12);
+        mid->node(node10);
+        mid->node(node11);
+        mid->node(node12);
         mid->flush();
-        mid->way_set(way20);
-        mid->way_set(way21);
+        mid->way(way20);
+        mid->way(way21);
         mid->flush();
 
         check_node(mid, node10);
@@ -1034,8 +1053,8 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
         full_dependency_manager_t dependency_manager{mid};
         mid->start();
 
-        mid->node_delete(10);
-        mid->node_set(node10a);
+        mid->node(node10d);
+        mid->node(node10a);
         dependency_manager.node_changed(10);
         mid->flush();
 
@@ -1055,7 +1074,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
             auto mid = std::make_shared<middle_pgsql_t>(&options);
             mid->start();
 
-            mid->way_set(way22);
+            mid->way(way22);
             mid->flush();
             check_way(mid, way22);
 
@@ -1066,8 +1085,8 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
             full_dependency_manager_t dependency_manager{mid};
             mid->start();
 
-            mid->node_delete(10);
-            mid->node_set(node10a);
+            mid->node(node10d);
+            mid->node(node10a);
             dependency_manager.node_changed(10);
             mid->flush();
 
@@ -1090,8 +1109,8 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
             auto mid = std::make_shared<middle_pgsql_t>(&options);
             mid->start();
 
-            mid->way_delete(20);
-            mid->way_set(way20a);
+            mid->way(way20d);
+            mid->way(way20a);
             mid->flush();
 
             check_way(mid, way20a);
@@ -1105,8 +1124,8 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
             full_dependency_manager_t dependency_manager{mid};
             mid->start();
 
-            mid->node_delete(10);
-            mid->node_set(node10a);
+            mid->node(node10d);
+            mid->node(node10a);
             dependency_manager.node_changed(10);
             mid->flush();
 
@@ -1132,6 +1151,9 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
     auto const &node10a = buffer.add_node("n10 x1.0 y1.0");
     auto const &node11a = buffer.add_node("n11 x1.1 y1.0");
 
+    auto const &node10d = buffer.add_node("n10 dD");
+    auto const &node11d = buffer.add_node("n11 dD");
+
     auto const &way20 = buffer.add_way("w20 Nn11,n12");
 
     auto const &rel30 = buffer.add_relation("r30 Mn10@");
@@ -1144,14 +1166,14 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
         auto mid = std::make_shared<middle_pgsql_t>(&options);
         mid->start();
 
-        mid->node_set(node10);
-        mid->node_set(node11);
-        mid->node_set(node12);
+        mid->node(node10);
+        mid->node(node11);
+        mid->node(node12);
         mid->flush();
-        mid->way_set(way20);
+        mid->way(way20);
         mid->flush();
-        mid->relation_set(rel30);
-        mid->relation_set(rel31);
+        mid->relation(rel30);
+        mid->relation(rel31);
         mid->flush();
 
         mid->commit();
@@ -1166,8 +1188,8 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
         full_dependency_manager_t dependency_manager{mid};
         mid->start();
 
-        mid->node_delete(10);
-        mid->node_set(node10a);
+        mid->node(node10d);
+        mid->node(node10a);
         dependency_manager.node_changed(10);
         mid->flush();
 
@@ -1186,8 +1208,8 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
         full_dependency_manager_t dependency_manager{mid};
         mid->start();
 
-        mid->node_delete(11);
-        mid->node_set(node11a);
+        mid->node(node11d);
+        mid->node(node11a);
         dependency_manager.node_changed(11);
         mid->flush();
 

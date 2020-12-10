@@ -1,15 +1,8 @@
 #ifndef OSM2PGSQL_MIDDLE_HPP
 #define OSM2PGSQL_MIDDLE_HPP
 
-/**
- * Common middle layer interface
- * Each middle layer data store must provide methods for
- * storing and retrieving node and way data.
- */
-
 #include <osmium/memory/buffer.hpp>
 
-#include <cstddef>
 #include <memory>
 
 #include "osmtypes.hpp"
@@ -70,10 +63,8 @@ struct middle_query_t : std::enable_shared_from_this<middle_query_t>
 inline middle_query_t::~middle_query_t() = default;
 
 /**
- * Interface for storing raw OSM data in an intermediate object store.
- *
- * This interface only allows for setting OSM data once, not changing it.
- * If you need updates and deletions, look at the derived class slim_middle_t.
+ * Interface for storing "raw" OSM data in an intermediate object store and
+ * getting it back.
  */
 struct middle_t
 {
@@ -84,23 +75,14 @@ struct middle_t
     virtual void analyze() = 0;
     virtual void commit() = 0;
 
-    /**
-     * Add a node to data storage. The node must not already be in the
-     * data storage.
-     */
-    virtual void node_set(osmium::Node const &node) = 0;
+    /// This is called for every added, changed or deleted node.
+    virtual void node(osmium::Node const &node) = 0;
 
-    /**
-     * Add a way to data storage. The way must not already be in the data
-     * storage.
-     */
-    virtual void way_set(osmium::Way const &way) = 0;
+    /// This is called for every added, changed or deleted way.
+    virtual void way(osmium::Way const &way) = 0;
 
-    /**
-     * Add a relation to data storage. The way must not already be in the
-     * data storage.
-     */
-    virtual void relation_set(osmium::Relation const &rel) = 0;
+    /// This is called for every added, changed or deleted relation.
+    virtual void relation(osmium::Relation const &relation) = 0;
 
     /**
      * Ensure all pending data is written to the storage.
@@ -121,33 +103,5 @@ struct middle_t
 };
 
 inline middle_t::~middle_t() = default;
-
-/**
- * Extends the middle_t interface to allow updates and deletions of objects.
- */
-struct slim_middle_t : public middle_t
-{
-    ~slim_middle_t() override = 0;
-
-    /**
-     * Delete a node from data storage. Either because you want it removed
-     * entirely or before you can node_set() a new version of it.
-     */
-    virtual void node_delete(osmid_t id) = 0;
-
-    /**
-     * Delete a way from data storage. Either because you want it removed
-     * entirely or before you can way_set() a new version of it.
-     */
-    virtual void way_delete(osmid_t id) = 0;
-
-    /**
-     * Delete a relation from data storage. Either because you want it removed
-     * entirely or before you can relation_set() a new version of it.
-     */
-    virtual void relation_delete(osmid_t id) = 0;
-};
-
-inline slim_middle_t::~slim_middle_t() = default;
 
 #endif // OSM2PGSQL_MIDDLE_HPP
