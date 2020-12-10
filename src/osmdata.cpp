@@ -214,10 +214,6 @@ slim_middle_t &osmdata_t::slim_middle() const noexcept
 void osmdata_t::node(osmium::Node const &node)
 {
     if (node.deleted()) {
-        if (!m_append) {
-            throw std::runtime_error{"Input file contains deleted objects but "
-                                     "you are not in append mode."};
-        }
         node_delete(node.id());
     } else {
         // if the node is not valid, then node.location.lat/lon() can throw.
@@ -248,10 +244,6 @@ void osmdata_t::way(osmium::Way &way)
     }
 
     if (way.deleted()) {
-        if (!m_append) {
-            throw std::runtime_error{"Input file contains deleted objects but "
-                                     "you are not in append mode."};
-        }
         way_delete(way.id());
     } else {
         if (m_append) {
@@ -271,10 +263,6 @@ void osmdata_t::relation(osmium::Relation const &rel)
     }
 
     if (rel.deleted()) {
-        if (!m_append) {
-            throw std::runtime_error{"Input file contains deleted objects but "
-                                     "you are not in append mode."};
-        }
         relation_delete(rel.id());
     } else {
         if (rel.members().size() > 32767) {
@@ -606,6 +594,11 @@ progress_display_t osmdata_t::process_file(osmium::io::File const &file)
     while (osmium::memory::Buffer buffer = reader.read()) {
         for (auto &object : buffer.select<osmium::OSMObject>()) {
             last = check_input(last, object);
+            if (!m_append && object.deleted()) {
+                throw std::runtime_error{
+                    "Input file contains deleted objects but "
+                    "you are not in append mode."};
+            }
             osmium::apply_item(object, *this);
         }
     }
@@ -640,6 +633,11 @@ osmdata_t::process_files(std::vector<osmium::io::File> const &files)
         auto element = queue.top();
         queue.pop();
         if (queue.empty() || element != queue.top()) {
+            if (!m_append && element.object().deleted()) {
+                throw std::runtime_error{
+                    "Input file contains deleted objects but "
+                    "you are not in append mode."};
+            }
             osmium::apply_item(element.object(), *this);
         }
 
