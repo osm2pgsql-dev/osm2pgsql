@@ -43,7 +43,9 @@ public:
     void way(osmium::Way &way);
     void relation(osmium::Relation const &rel);
 
-    void flush() const;
+    void after_nodes();
+    void after_ways();
+    void after_relations();
 
     /**
      * Rest of the processing (stages 1b, 1c, 2, and database postprocessing).
@@ -63,6 +65,8 @@ private:
     void node_delete(osmid_t id) const;
     void way_delete(osmid_t id) const;
     void relation_delete(osmid_t id) const;
+
+    void flush() const;
 
     /**
      * Run stage 1b and stage 1c processing: Process dependent objects in
@@ -91,9 +95,6 @@ private:
     // Bounding box for node import (or invalid Box if everything should be
     // imported).
     osmium::Box m_bbox;
-
-    // Current type being parsed.
-    osmium::item_type m_type = osmium::item_type::node;
 
     int m_num_procs;
     bool m_append;

@@ -9,6 +9,7 @@
  * It contains the progress_display_t class.
  */
 
+#include <cstddef>
 #include <ctime>
 
 #include <osmium/handler.hpp>
@@ -32,18 +33,15 @@ class progress_display_t : public osmium::handler::Handler
         std::size_t add(osmid_t id) noexcept
         {
             max = id;
-            if (count == 0) {
-                start = std::time(nullptr);
-            }
             return ++count;
         }
     };
 
 public:
-    progress_display_t(bool enabled = false) noexcept : m_enabled(enabled) {}
-
-    void print_summary() const;
-    void print_status(std::time_t now) const;
+    progress_display_t(bool enabled = false) noexcept : m_enabled(enabled)
+    {
+        m_node.start = std::time(nullptr);
+    }
 
     void node(osmium::Node const &node)
     {
@@ -52,12 +50,16 @@ public:
         }
     }
 
+    void after_nodes() { m_way.start = std::time(nullptr); }
+
     void way(osmium::Way const &way)
     {
         if (m_way.add(way.id()) % 1000 == 0) {
             possibly_print_status();
         }
     }
+
+    void after_ways() { m_rel.start = std::time(nullptr); }
 
     void relation(osmium::Relation const &relation)
     {
@@ -66,8 +68,13 @@ public:
         }
     }
 
+    void after_relations() const { print_status(std::time(nullptr)); }
+
+    void print_summary() const;
+
 private:
     void possibly_print_status();
+    void print_status(std::time_t now) const;
 
     static double count_per_second(osmid_t count, uint64_t elapsed) noexcept
     {

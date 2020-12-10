@@ -32,10 +32,8 @@ void progress_display_t::possibly_print_status()
 {
     std::time_t const now = std::time(nullptr);
 
-    if (m_last_print_time >= now) {
-        return;
+    if (m_last_print_time < now) {
+        m_last_print_time = now;
+        print_status(now);
     }
-    m_last_print_time = now;
-
-    print_status(now);
 }

@@ -37,9 +37,6 @@
 #include "util.hpp"
 #include "version.hpp"
 
-#include <osmium/io/file.hpp>
-
-#include <ctime>
 #include <exception>
 #include <memory>
 
@@ -91,7 +88,6 @@ int main(int argc, char *argv[])
         progress_display_t progress{get_logger().show_progress()};
         process_files(files, osmdata, progress, options.append);
 
-        progress.print_status(std::time(nullptr));
         fmt::print(stderr, "  parse time: {}\n",
                    util::human_readable_duration(timer_parse.stop()));
 
