@@ -11,13 +11,15 @@
 
 #include <ctime>
 
+#include <osmium/handler.hpp>
+
 #include "osmtypes.hpp"
 
 /**
  * The progress_display_t class is used to display how far the processing of
  * the input data has progressed.
  */
-class progress_display_t
+class progress_display_t : public osmium::handler::Handler
 {
     struct Counter
     {
@@ -38,28 +40,28 @@ class progress_display_t
     };
 
 public:
-    progress_display_t() noexcept : m_last_print_time(std::time(nullptr)) {}
+    progress_display_t(bool enabled = false) noexcept : m_enabled(enabled) {}
 
     void print_summary() const;
     void print_status(std::time_t now) const;
 
-    void add_node(osmid_t id)
+    void node(osmium::Node const &node)
     {
-        if (m_node.add(id) % 10000 == 0) {
+        if (m_node.add(node.id()) % 10000 == 0) {
             possibly_print_status();
         }
     }
 
-    void add_way(osmid_t id)
+    void way(osmium::Way const &way)
     {
-        if (m_way.add(id) % 1000 == 0) {
+        if (m_way.add(way.id()) % 1000 == 0) {
             possibly_print_status();
         }
     }
 
-    void add_rel(osmid_t id)
+    void relation(osmium::Relation const &relation)
     {
-        if (m_rel.add(id) % 10 == 0) {
+        if (m_rel.add(relation.id()) % 10 == 0) {
             possibly_print_status();
         }
     }
@@ -107,7 +109,8 @@ private:
     Counter m_node{};
     Counter m_way{};
     Counter m_rel{};
-    std::time_t m_last_print_time;
+    std::time_t m_last_print_time{std::time(nullptr)};
+    bool m_enabled;
 };
 
 #endif // OSM2PGSQL_PROGRESS_DISPLAY_HPP

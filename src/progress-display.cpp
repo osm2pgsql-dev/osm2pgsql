@@ -16,7 +16,7 @@ void progress_display_t::print_summary() const
 
 void progress_display_t::print_status(std::time_t now) const
 {
-    if (get_logger().show_progress()) {
+    if (m_enabled) {
         fmt::print(stderr,
                    "\rProcessing: Node({}k {:.1f}k/s) Way({}k {:.2f}k/s)"
                    " Relation({} {:.1f}/s)",

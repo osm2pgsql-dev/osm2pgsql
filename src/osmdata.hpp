@@ -64,8 +64,8 @@ public:
     /**
      * Process the specified OSM files (stage 1a).
      */
-    progress_display_t
-    process_files(std::vector<osmium::io::File> const &files);
+    void process_files(std::vector<osmium::io::File> const &files,
+                       progress_display_t &progress);
 
     /**
      * Rest of the processing (stages 1b, 1c, 2, and database postprocessing).
@@ -90,7 +90,8 @@ private:
     void flush() const;
 
     /// Process a single OSM file (stage 1a).
-    progress_display_t process_file(osmium::io::File const &file);
+    void process_file(osmium::io::File const &file,
+                      progress_display_t &progress);
 
     /**
      * Run stage 1b and stage 1c processing: Process dependent objects in
@@ -119,9 +120,6 @@ private:
     // Bounding box for node import (or invalid Box if everything should be
     // imported).
     osmium::Box m_bbox;
-
-    // The progress meter will be updated as we go.
-    progress_display_t m_progress;
 
     // Current type being parsed.
     osmium::item_type m_type = osmium::item_type::node;

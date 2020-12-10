@@ -233,7 +233,6 @@ void osmdata_t::node(osmium::Node const &node)
             }
         }
     }
-    m_progress.add_node(node.id());
 }
 
 void osmdata_t::way(osmium::Way &way)
@@ -252,7 +251,6 @@ void osmdata_t::way(osmium::Way &way)
             way_add(&way);
         }
     }
-    m_progress.add_way(way.id());
 }
 
 void osmdata_t::relation(osmium::Relation const &rel)
@@ -274,7 +272,6 @@ void osmdata_t::relation(osmium::Relation const &rel)
             relation_add(rel);
         }
     }
-    m_progress.add_rel(rel.id());
 }
 
 void osmdata_t::node_add(osmium::Node const &node) const
@@ -586,7 +583,8 @@ private:
 
 } // anonymous namespace
 
-progress_display_t osmdata_t::process_file(osmium::io::File const &file)
+void osmdata_t::process_file(osmium::io::File const &file,
+                             progress_display_t &progress)
 {
     osmium::io::Reader reader{file};
     type_id_version last{osmium::item_type::node, 0, 0};
@@ -599,21 +597,20 @@ progress_display_t osmdata_t::process_file(osmium::io::File const &file)
                     "Input file contains deleted objects but "
                     "you are not in append mode."};
             }
-            osmium::apply_item(object, *this);
+            osmium::apply_item(object, *this, progress);
         }
     }
     flush();
 
     reader.close();
-
-    return m_progress;
 }
 
-progress_display_t
-osmdata_t::process_files(std::vector<osmium::io::File> const &files)
+void osmdata_t::process_files(std::vector<osmium::io::File> const &files,
+                              progress_display_t &progress)
 {
     if (files.size() == 1) {
-        return process_file(files.front());
+        process_file(files.front(), progress);
+        return;
     }
 
     std::vector<data_source_t> data_sources;
@@ -638,7 +635,7 @@ osmdata_t::process_files(std::vector<osmium::io::File> const &files)
                     "Input file contains deleted objects but "
                     "you are not in append mode."};
             }
-            osmium::apply_item(element.object(), *this);
+            osmium::apply_item(element.object(), *this, progress);
         }
 
         auto *source = element.data_source();
@@ -652,8 +649,6 @@ osmdata_t::process_files(std::vector<osmium::io::File> const &files)
     for (auto &data_source : data_sources) {
         data_source.close();
     }
-
-    return m_progress;
 }
 
 void osmdata_t::process_dependents() const
