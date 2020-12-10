@@ -76,19 +76,6 @@ private:
     void possibly_print_status();
     void print_status(std::time_t now) const;
 
-    static double count_per_second(osmid_t count, uint64_t elapsed) noexcept
-    {
-        if (count == 0) {
-            return 0.0;
-        }
-
-        if (elapsed == 0) {
-            return count;
-        }
-
-        return static_cast<double>(count) / elapsed;
-    }
-
     uint64_t nodes_time(std::time_t now) const noexcept
     {
         if (m_node.count == 0) {

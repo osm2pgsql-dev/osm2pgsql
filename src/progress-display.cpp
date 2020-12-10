@@ -14,6 +14,19 @@ void progress_display_t::print_summary() const
              m_rel.max, rels_time(now));
 }
 
+static double count_per_second(osmid_t count, uint64_t elapsed) noexcept
+{
+    if (count == 0) {
+        return 0.0;
+    }
+
+    if (elapsed == 0) {
+        return count;
+    }
+
+    return static_cast<double>(count) / elapsed;
+}
+
 void progress_display_t::print_status(std::time_t now) const
 {
     if (m_enabled) {
