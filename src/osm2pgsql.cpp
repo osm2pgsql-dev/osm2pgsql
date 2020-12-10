@@ -25,6 +25,7 @@
 
 #include "db-check.hpp"
 #include "format.hpp"
+#include "input.hpp"
 #include "logging.hpp"
 #include "middle-pgsql.hpp"
 #include "middle-ram.hpp"
@@ -35,6 +36,8 @@
 #include "reprojection.hpp"
 #include "util.hpp"
 #include "version.hpp"
+
+#include <osmium/io/file.hpp>
 
 #include <ctime>
 #include <exception>
@@ -120,7 +123,7 @@ int main(int argc, char *argv[])
         util::timer_t timer_parse;
 
         progress_display_t progress{get_logger().show_progress()};
-        osmdata.process_files(files, progress);
+        process_files(files, osmdata, progress, options.append);
 
         progress.print_status(std::time(nullptr));
         fmt::print(stderr, "  parse time: {}\n",

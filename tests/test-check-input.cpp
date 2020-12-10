@@ -1,6 +1,6 @@
 #include <catch.hpp>
 
-#include "osmdata.hpp"
+#include "input.hpp"
 
 TEST_CASE("it's good if input data is ordered")
 {

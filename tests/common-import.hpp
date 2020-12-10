@@ -10,11 +10,13 @@
 
 #include "dependency-manager.hpp"
 #include "geometry-processor.hpp"
+#include "input.hpp"
 #include "middle-pgsql.hpp"
 #include "middle-ram.hpp"
 #include "osmdata.hpp"
 #include "output-multi.hpp"
 #include "output.hpp"
+#include "progress-display.hpp"
 #include "taginfo-impl.hpp"
 
 #include "common-pg.hpp"
@@ -45,7 +47,7 @@ inline void parse_file(options_t const &options,
     }
     osmium::io::File file{filepath};
     progress_display_t progress;
-    osmdata.process_files({file}, progress);
+    process_files({file}, osmdata, progress, options.append);
 
     if (do_stop) {
         osmdata.stop();
@@ -157,7 +159,7 @@ public:
             files.emplace_back(data.data(), data.size(), format);
         }
         progress_display_t progress;
-        osmdata.process_files(files, progress);
+        process_files(files, osmdata, progress, options.append);
 
         osmdata.stop();
     }
