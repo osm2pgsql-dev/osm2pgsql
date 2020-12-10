@@ -237,7 +237,7 @@ if (USE_PROJ_LIB STREQUAL "4" AND NOT HAVE_PROJ4)
 endif()
 
 if (USE_PROJ_LIB STREQUAL "6" AND NOT HAVE_PROJ6)
-    message(FATAL_ERROR "USE_PROJ_LIB was set to '6', but PROJ version 4 API not found")
+    message(FATAL_ERROR "USE_PROJ_LIB was set to '6', but PROJ version 6 API not found")
 endif()
 
 if (LUAJIT_FOUND)
