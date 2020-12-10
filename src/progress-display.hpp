@@ -37,14 +37,14 @@ public:
         m_node.start = std::time(nullptr);
     }
 
-    void node(osmium::Node const &node)
+    void node(osmium::Node const &)
     {
         if (++m_node.count % 10000 == 0) {
             possibly_print_status();
         }
     }
 
-    void way(osmium::Way const &way)
+    void way(osmium::Way const &)
     {
         if (++m_way.count % 1000 == 0) {
             possibly_print_status();
@@ -52,7 +52,7 @@ public:
     }
 
 
-    void relation(osmium::Relation const &relation)
+    void relation(osmium::Relation const &)
     {
         if (++m_rel.count % 10 == 0) {
             possibly_print_status();

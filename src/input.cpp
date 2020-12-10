@@ -223,8 +223,9 @@ static void apply(osmium::OSMObject &object, osmdata_t &osmdata,
     osmium::apply_item(object, osmdata, progress);
 }
 
-void process_file(osmium::io::File const &file, osmdata_t &osmdata,
-                  progress_display_t &progress, bool append)
+static void process_single_file(osmium::io::File const &file,
+                                osmdata_t &osmdata,
+                                progress_display_t &progress, bool append)
 {
     osmium::io::Reader reader{file};
     type_id_version last{osmium::item_type::node, 0, 0};
@@ -241,22 +242,13 @@ void process_file(osmium::io::File const &file, osmdata_t &osmdata,
         }
     }
 
-    osmdata.after_relations();
-    progress.print_summary();
-
     reader.close();
 }
 
-void process_files(std::vector<osmium::io::File> const &files,
-                   osmdata_t &osmdata, bool append, bool show_progress)
+static void process_multiple_files(std::vector<osmium::io::File> const &files,
+                                   osmdata_t &osmdata,
+                                   progress_display_t &progress, bool append)
 {
-    progress_display_t progress{show_progress};
-
-    if (files.size() == 1) {
-        process_file(files.front(), osmdata, progress, append);
-        return;
-    }
-
     std::vector<data_source_t> data_sources;
     data_sources.reserve(files.size());
 
@@ -288,10 +280,22 @@ void process_files(std::vector<osmium::io::File> const &files,
         }
     }
 
-    osmdata.after_relations();
-    progress.print_summary();
-
     for (auto &data_source : data_sources) {
         data_source.close();
     }
+}
+
+void process_files(std::vector<osmium::io::File> const &files,
+                   osmdata_t &osmdata, bool append, bool show_progress)
+{
+    progress_display_t progress{show_progress};
+
+    if (files.size() == 1) {
+        process_single_file(files.front(), osmdata, progress, append);
+    } else {
+        process_multiple_files(files, osmdata, progress, append);
+    }
+
+    osmdata.after_relations();
+    progress.print_summary();
 }

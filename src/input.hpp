@@ -9,6 +9,7 @@
  * It contains the functions reading and checking the input data.
  */
 
+#include <string>
 #include <vector>
 
 #include <osmium/fwd.hpp>
