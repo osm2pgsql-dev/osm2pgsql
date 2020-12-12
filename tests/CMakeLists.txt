@@ -38,7 +38,7 @@ add_definitions(-DOSM2PGSQLDATA_DIR=\"${osm2pgsql_SOURCE_DIR}/\")
 
 add_library(catch_main_lib STATIC catch-main.cpp)
 
-set_test(test-check-input)
+set_test(test-check-input LABELS NoDB)
 set_test(test-db-copy-thread)
 set_test(test-db-copy-mgr)
 set_test(test-domain-matcher LABELS NoDB)
