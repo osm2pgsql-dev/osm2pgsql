@@ -10,6 +10,7 @@
 
 #include "dependency-manager.hpp"
 #include "geometry-processor.hpp"
+#include "input.hpp"
 #include "middle-pgsql.hpp"
 #include "middle-ram.hpp"
 #include "osmdata.hpp"
@@ -44,7 +45,7 @@ inline void parse_file(options_t const &options,
         filepath += options.input_files[0];
     }
     osmium::io::File file{filepath};
-    osmdata.process_files({file});
+    process_files({file}, osmdata, options.append, false);
 
     if (do_stop) {
         osmdata.stop();
@@ -155,7 +156,7 @@ public:
         for (auto const &data : input_data) {
             files.emplace_back(data.data(), data.size(), format);
         }
-        osmdata.process_files(files);
+        process_files(files, osmdata, options.append, false);
 
         osmdata.stop();
     }

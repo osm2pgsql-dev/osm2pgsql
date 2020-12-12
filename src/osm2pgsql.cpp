@@ -25,18 +25,17 @@
 
 #include "db-check.hpp"
 #include "format.hpp"
+#include "input.hpp"
 #include "logging.hpp"
 #include "middle-pgsql.hpp"
 #include "middle-ram.hpp"
 #include "options.hpp"
 #include "osmdata.hpp"
 #include "output.hpp"
-#include "progress-display.hpp"
 #include "reprojection.hpp"
 #include "util.hpp"
 #include "version.hpp"
 
-#include <ctime>
 #include <exception>
 #include <memory>
 
@@ -47,41 +46,6 @@ static std::shared_ptr<middle_t> create_middle(options_t const &options)
     }
 
     return std::make_shared<middle_ram_t>(&options);
-}
-
-/**
- * Prepare input file(s). Does format checks as far as this is possible
- * without actually opening the files.
- */
-static std::vector<osmium::io::File>
-prepare_input_files(options_t const &options)
-{
-    std::vector<osmium::io::File> files;
-
-    for (auto const &filename : options.input_files) {
-        osmium::io::File file{filename, options.input_format};
-
-        if (file.format() == osmium::io::file_format::unknown) {
-            if (options.input_format.empty()) {
-                throw std::runtime_error{
-                    "Cannot detect file format for '{}'. Try using -r."_format(
-                        filename)};
-            }
-            throw std::runtime_error{
-                "Unknown file format '{}'."_format(options.input_format)};
-        }
-
-        if (!options.append && file.has_multiple_object_versions()) {
-            throw std::runtime_error{
-                "Reading an OSM change file only works in append mode."};
-        }
-
-        log_debug("Reading file: {}", filename);
-
-        files.emplace_back(file);
-    }
-
-    return files;
 }
 
 int main(int argc, char *argv[])
@@ -96,7 +60,8 @@ int main(int argc, char *argv[])
 
         check_db(options);
 
-        auto const files = prepare_input_files(options);
+        auto const files = prepare_input_files(
+            options.input_files, options.input_format, options.append);
 
         auto middle = create_middle(options);
         middle->start();
@@ -117,15 +82,7 @@ int main(int argc, char *argv[])
 
         // Processing: In this phase the input file(s) are read and parsed,
         // populating some of the tables.
-        util::timer_t timer_parse;
-
-        auto const progress = osmdata.process_files(files);
-
-        progress.print_status(std::time(nullptr));
-        fmt::print(stderr, "  parse time: {}\n",
-                   util::human_readable_duration(timer_parse.stop()));
-
-        progress.print_summary();
+        process_files(files, osmdata, options.append, get_logger().show_progress());
 
         // Process pending ways and relations. Cluster database tables and
         // create indexes.

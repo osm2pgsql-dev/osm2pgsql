@@ -14,33 +14,15 @@
 
 #include <osmium/fwd.hpp>
 #include <osmium/handler.hpp>
-#include <osmium/io/file.hpp>
 #include <osmium/osm/box.hpp>
 
 #include "dependency-manager.hpp"
 #include "osmtypes.hpp"
-#include "progress-display.hpp"
 
 class options_t;
 class output_t;
 struct middle_t;
 struct slim_middle_t;
-
-struct type_id_version {
-    osmium::item_type type;
-    osmid_t id;
-    osmium::object_version_type version;
-};
-
-/**
- * Compare two tuples (type, id, version) throw a descriptive error if either
- * the curr id is negative or if the data is not ordered.
- */
-type_id_version check_input(type_id_version const &last, type_id_version curr);
-
-type_id_version check_input(type_id_version const &last,
-                            osmium::OSMObject const &object);
-
 
 /**
  * This class guides the processing of the OSM data through its multiple
@@ -61,20 +43,17 @@ public:
     void way(osmium::Way &way);
     void relation(osmium::Relation const &rel);
 
-    /**
-     * Process the specified OSM files (stage 1a).
-     */
-    progress_display_t
-    process_files(std::vector<osmium::io::File> const &files);
+    void after_nodes();
+    void after_ways();
+    void after_relations();
 
     /**
      * Rest of the processing (stages 1b, 1c, 2, and database postprocessing).
-     * This is called once after process_file() was called for each input file.
+     * This is called once after the input files are processed.
      */
     void stop() const;
 
 private:
-
     void node_add(osmium::Node const &node) const;
     void way_add(osmium::Way *way) const;
     void relation_add(osmium::Relation const &rel) const;
@@ -88,9 +67,6 @@ private:
     void relation_delete(osmid_t id) const;
 
     void flush() const;
-
-    /// Process a single OSM file (stage 1a).
-    progress_display_t process_file(osmium::io::File const &file);
 
     /**
      * Run stage 1b and stage 1c processing: Process dependent objects in
@@ -120,19 +96,12 @@ private:
     // imported).
     osmium::Box m_bbox;
 
-    // The progress meter will be updated as we go.
-    progress_display_t m_progress;
-
-    // Current type being parsed.
-    osmium::item_type m_type = osmium::item_type::node;
-
     int m_num_procs;
     bool m_append;
     bool m_droptemp;
     bool m_parallel_indexing;
     bool m_with_extra_attrs;
     bool m_with_forward_dependencies;
-
 };
 
 #endif // OSM2PGSQL_OSMDATA_HPP

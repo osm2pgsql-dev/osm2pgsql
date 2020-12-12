@@ -4,13 +4,8 @@
 #include <future>
 #include <memory>
 #include <mutex>
-#include <queue>
-#include <stdexcept>
 #include <utility>
 #include <vector>
-
-#include <osmium/io/any_input.hpp>
-#include <osmium/visitor.hpp>
 
 #include "db-copy.hpp"
 #include "format.hpp"
@@ -21,165 +16,6 @@
 #include "output.hpp"
 #include "thread-pool.hpp"
 #include "util.hpp"
-
-type_id_version check_input(type_id_version const &last, type_id_version curr)
-{
-    if (curr.id < 0) {
-        throw std::runtime_error{
-            "Negative OSM object ids are not allowed: {} id {}."_format(
-                osmium::item_type_to_name(curr.type), curr.id)};
-    }
-
-    if (last.type == curr.type) {
-        if (last.id < curr.id) {
-            return curr;
-        }
-
-        if (last.id > curr.id) {
-            throw std::runtime_error{
-                "Input data is not ordered: {} id {} after {}."_format(
-                    osmium::item_type_to_name(last.type), curr.id, last.id)};
-        }
-
-        if (last.version < curr.version) {
-            return curr;
-        }
-
-        throw std::runtime_error{
-            "Input data is not ordered: {} id {} version {} after {}."_format(
-                osmium::item_type_to_name(last.type), curr.id, curr.version,
-                last.version)};
-    }
-
-    if (item_type_to_nwr_index(last.type) <=
-        item_type_to_nwr_index(curr.type)) {
-        return curr;
-    }
-
-    throw std::runtime_error{"Input data is not ordered: {} after {}."_format(
-        osmium::item_type_to_name(curr.type),
-        osmium::item_type_to_name(last.type))};
-}
-
-type_id_version check_input(type_id_version const &last,
-                            osmium::OSMObject const &object)
-{
-    return check_input(last, {object.type(), object.id(), object.version()});
-}
-
-/**
- * A data source is where we get the OSM objects from, one at a time. It
- * wraps the osmium::io::Reader.
- */
-class data_source_t
-{
-public:
-    explicit data_source_t(osmium::io::File const &file)
-    : m_reader(new osmium::io::Reader{file})
-    {
-        get_next_nonempty_buffer();
-        m_last = check_input(m_last, *m_it);
-    }
-
-    bool empty() const noexcept { return !m_buffer; }
-
-    bool next()
-    {
-        assert(!empty());
-        ++m_it;
-
-        while (m_it == m_end) {
-            if (!get_next_nonempty_buffer()) {
-                return false;
-            }
-        }
-
-        m_last = check_input(m_last, *m_it);
-        return true;
-    }
-
-    osmium::OSMObject *get() noexcept
-    {
-        assert(!empty());
-        return &*m_it;
-    }
-
-    std::size_t offset() const noexcept { return m_reader->offset(); }
-
-    void close()
-    {
-        m_reader->close();
-        m_reader.reset();
-    }
-
-private:
-    bool get_next_nonempty_buffer()
-    {
-        while ((m_buffer = m_reader->read())) {
-            m_it = m_buffer.begin<osmium::OSMObject>();
-            m_end = m_buffer.end<osmium::OSMObject>();
-            if (m_it != m_end) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    using iterator = osmium::memory::Buffer::t_iterator<osmium::OSMObject>;
-
-    std::unique_ptr<osmium::io::Reader> m_reader;
-    osmium::memory::Buffer m_buffer{};
-    iterator m_it{};
-    iterator m_end{};
-    type_id_version m_last = {osmium::item_type::node, 0, 0};
-
-}; // class data_source_t
-
-/**
- * A element in a priority queue of OSM objects. Holds a pointer to the OSM
- * object as well as a pointer to the source the OSM object came from.
- */
-class queue_element_t
-{
-public:
-    queue_element_t(osmium::OSMObject *object, data_source_t *source) noexcept
-    : m_object(object), m_source(source)
-    {}
-
-    osmium::OSMObject const &object() const noexcept { return *m_object; }
-
-    osmium::OSMObject &object() noexcept { return *m_object; }
-
-    data_source_t *data_source() const noexcept { return m_source; }
-
-    friend bool operator<(queue_element_t const &lhs,
-                          queue_element_t const &rhs) noexcept
-    {
-        // This is needed for the priority queue. We want objects with smaller
-        // id (and earlier versions of the same object) to come first, but
-        // the priority queue expects largest first. So we need to reverse the
-        // comparison here.
-        return lhs.object() > rhs.object();
-    }
-
-    friend bool operator==(queue_element_t const &lhs,
-                           queue_element_t const &rhs) noexcept
-    {
-        return lhs.object().type() == rhs.object().type() &&
-               lhs.object().id() == rhs.object().id();
-    }
-
-    friend bool operator!=(queue_element_t const &lhs,
-                           queue_element_t const &rhs) noexcept
-    {
-        return !(lhs == rhs);
-    }
-
-private:
-    osmium::OSMObject *m_object;
-    data_source_t *m_source;
-
-}; // class queue_element_t
 
 osmdata_t::osmdata_t(std::unique_ptr<dependency_manager_t> dependency_manager,
                      std::shared_ptr<middle_t> mid,
@@ -214,10 +50,6 @@ slim_middle_t &osmdata_t::slim_middle() const noexcept
 void osmdata_t::node(osmium::Node const &node)
 {
     if (node.deleted()) {
-        if (!m_append) {
-            throw std::runtime_error{"Input file contains deleted objects but "
-                                     "you are not in append mode."};
-        }
         node_delete(node.id());
     } else {
         // if the node is not valid, then node.location.lat/lon() can throw.
@@ -237,21 +69,13 @@ void osmdata_t::node(osmium::Node const &node)
             }
         }
     }
-    m_progress.add_node(node.id());
 }
+
+void osmdata_t::after_nodes() { flush(); }
 
 void osmdata_t::way(osmium::Way &way)
 {
-    if (m_type != osmium::item_type::way) {
-        m_type = osmium::item_type::way;
-        flush();
-    }
-
     if (way.deleted()) {
-        if (!m_append) {
-            throw std::runtime_error{"Input file contains deleted objects but "
-                                     "you are not in append mode."};
-        }
         way_delete(way.id());
     } else {
         if (m_append) {
@@ -260,21 +84,13 @@ void osmdata_t::way(osmium::Way &way)
             way_add(&way);
         }
     }
-    m_progress.add_way(way.id());
 }
+
+void osmdata_t::after_ways() { flush(); }
 
 void osmdata_t::relation(osmium::Relation const &rel)
 {
-    if (m_type != osmium::item_type::relation) {
-        m_type = osmium::item_type::relation;
-        flush();
-    }
-
     if (rel.deleted()) {
-        if (!m_append) {
-            throw std::runtime_error{"Input file contains deleted objects but "
-                                     "you are not in append mode."};
-        }
         relation_delete(rel.id());
     } else {
         if (rel.members().size() > 32767) {
@@ -286,8 +102,9 @@ void osmdata_t::relation(osmium::Relation const &rel)
             relation_add(rel);
         }
     }
-    m_progress.add_rel(rel.id());
 }
+
+void osmdata_t::after_relations() { flush(); }
 
 void osmdata_t::node_add(osmium::Node const &node) const
 {
@@ -597,66 +414,6 @@ private:
 };
 
 } // anonymous namespace
-
-progress_display_t osmdata_t::process_file(osmium::io::File const &file)
-{
-    osmium::io::Reader reader{file};
-    type_id_version last{osmium::item_type::node, 0, 0};
-
-    while (osmium::memory::Buffer buffer = reader.read()) {
-        for (auto &object : buffer.select<osmium::OSMObject>()) {
-            last = check_input(last, object);
-            osmium::apply_item(object, *this);
-        }
-    }
-    flush();
-
-    reader.close();
-
-    return m_progress;
-}
-
-progress_display_t
-osmdata_t::process_files(std::vector<osmium::io::File> const &files)
-{
-    if (files.size() == 1) {
-        return process_file(files.front());
-    }
-
-    std::vector<data_source_t> data_sources;
-    data_sources.reserve(files.size());
-
-    std::priority_queue<queue_element_t> queue;
-
-    for (osmium::io::File const &file : files) {
-        data_sources.emplace_back(file);
-
-        if (!data_sources.back().empty()) {
-            queue.emplace(data_sources.back().get(), &data_sources.back());
-        }
-    }
-
-    while (!queue.empty()) {
-        auto element = queue.top();
-        queue.pop();
-        if (queue.empty() || element != queue.top()) {
-            osmium::apply_item(element.object(), *this);
-        }
-
-        auto *source = element.data_source();
-        if (source->next()) {
-            queue.emplace(source->get(), source);
-        }
-    }
-
-    flush();
-
-    for (auto &data_source : data_sources) {
-        data_source.close();
-    }
-
-    return m_progress;
-}
 
 void osmdata_t::process_dependents() const
 {
