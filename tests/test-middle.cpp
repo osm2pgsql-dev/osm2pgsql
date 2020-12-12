@@ -1,5 +1,9 @@
 #include <catch.hpp>
 
+#include <algorithm>
+#include <cassert>
+
+#include <osmium/opl.hpp>
 #include <osmium/osm/crc.hpp>
 #include <osmium/osm/crc_zlib.hpp>
 
@@ -10,8 +14,6 @@
 #include "common-cleanup.hpp"
 #include "common-options.hpp"
 #include "common-pg.hpp"
-
-#include <algorithm>
 
 static testing::pg::tempdb_t db;
 
@@ -24,77 +26,45 @@ namespace {
 class test_buffer_t
 {
 public:
-    size_t add_node(osmid_t id, double lon, double lat)
+    osmium::Node const &add_node(std::string const &data)
     {
-        using namespace osmium::builder::attr;
-        return osmium::builder::add_node(buf, _id(id), _location(lon, lat));
+        return m_buffer.get<osmium::Node>(add_opl(data));
     }
 
-    size_t
-    add_way(osmid_t wid, idlist_t const &ids,
-            std::initializer_list<std::pair<char const *, char const *>> tags)
+    osmium::Way &add_way(std::string const &data)
     {
-        using namespace osmium::builder::attr;
-        return osmium::builder::add_way(buf, _id(wid), _nodes(ids),
-                                        _tags(tags));
+        return m_buffer.get<osmium::Way>(add_opl(data));
     }
 
-    size_t add_relation(
-        osmid_t rid,
-        std::initializer_list<osmium::builder::attr::member_type> members,
-        std::initializer_list<std::pair<char const *, char const *>> tags)
+    osmium::Way &add_way(osmid_t wid, idlist_t const &ids)
     {
-        using namespace osmium::builder::attr;
-        return osmium::builder::add_relation(
-            buf, _id(rid), _members(members.begin(), members.end()),
-            _tags(tags));
+        assert(!ids.empty());
+        std::string nodes;
+
+        for (auto const id : ids) {
+            nodes += "n{},"_format(id);
+        }
+
+        nodes.resize(nodes.size() - 1);
+
+        return add_way("w{} N{}"_format(wid, nodes));
     }
 
-    size_t add_nodes(idlist_t const &ids)
+    osmium::Relation const &add_relation(std::string const &data)
     {
-        using namespace osmium::builder::attr;
-        return osmium::builder::add_way_node_list(buf, _nodes(ids));
-    }
-
-    template <typename T>
-    T const &get(size_t pos) const
-    {
-        return buf.get<T>(pos);
-    }
-
-    template <typename T>
-    T &get(size_t pos)
-    {
-        return buf.get<T>(pos);
-    }
-
-    osmium::Node const &add_node_and_get(osmid_t id, double lon, double lat)
-    {
-        return get<osmium::Node>(add_node(id, lon, lat));
-    }
-
-    osmium::Way &add_way_and_get(
-        osmid_t wid, idlist_t const &ids,
-        std::initializer_list<std::pair<char const *, char const *>> tags = {})
-    {
-        return get<osmium::Way>(add_way(wid, ids, tags));
-    }
-
-    osmium::Relation &add_relation_and_get(
-        osmid_t rid,
-        std::initializer_list<osmium::builder::attr::member_type> members,
-        std::initializer_list<std::pair<char const *, char const *>> tags = {})
-    {
-        return get<osmium::Relation>(add_relation(rid, members, tags));
-    }
-
-    osmium::WayNodeList &add_nodes_and_get(idlist_t const &nodes)
-    {
-        return get<osmium::WayNodeList>(add_nodes(nodes));
+        return m_buffer.get<osmium::Relation>(add_opl(data));
     }
 
 private:
-    osmium::memory::Buffer buf{4096, osmium::memory::Buffer::auto_grow::yes};
+    std::size_t add_opl(std::string const &data)
+    {
+        auto const offset = m_buffer.committed();
+        osmium::opl_parse(data.c_str(), m_buffer);
+        return offset;
+    }
+
+    osmium::memory::Buffer m_buffer{4096,
+                                    osmium::memory::Buffer::auto_grow::yes};
 };
 
 void expect_location(osmium::Location loc, osmium::Node const &expected)
@@ -211,22 +181,21 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
 
     SECTION("Set and retrieve a single node")
     {
-        auto const &node =
-            buffer.add_node_and_get(1234, 98.7654321, 12.3456789);
+        auto const &node = buffer.add_node("n1234 x98.7654321 y12.3456789");
 
         // set the node
         mid->node_set(node);
         mid->flush();
 
         // getting it back works only via a waylist
-        auto &nodes = buffer.add_way_and_get(3, {1234}).nodes();
+        auto &nodes = buffer.add_way("w3 Nn1234").nodes();
 
         // get it back
         REQUIRE(mid_q->nodes_get_list(&nodes) == nodes.size());
         expect_location(nodes[0].location(), node);
 
         // other nodes are not retrievable
-        auto &n2 = buffer.add_way_and_get(3, {1, 2, 1235}).nodes();
+        auto &n2 = buffer.add_way("w3 Nn1,n2,n1235").nodes();
         REQUIRE(mid_q->nodes_get_list(&n2) == 0);
     }
 
@@ -236,18 +205,17 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         double const lon = 98.7654321;
         double const lat = 12.3456789;
         idlist_t nds;
-        std::vector<size_t> nodes;
 
         // set nodes
         for (osmid_t i = 1; i <= 10; ++i) {
             nds.push_back(i);
-            nodes.push_back(
-                buffer.add_node(i, lon - i * 0.003, lat + i * 0.001));
-            mid->node_set(buffer.get<osmium::Node>(nodes.back()));
+            auto const &node = buffer.add_node(
+                "n{} x{} y{}"_format(i, lon - i * 0.003, lat + i * 0.001));
+            mid->node_set(node);
         }
 
         // set the way
-        mid->way_set(buffer.add_way_and_get(way_id, nds));
+        mid->way_set(buffer.add_way(way_id, nds));
 
         mid->flush();
 
@@ -276,22 +244,18 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         idlist_t const nds[] = {{4, 5, 13, 14, 342}, {45, 90}, {30, 3, 45}};
 
         // set the node
-        mid->node_set(buffer.add_node_and_get(1, 4.1, 12.8));
+        mid->node_set(buffer.add_node("n1 x4.1 y12.8"));
 
         // set the ways
         osmid_t wid = 10;
         for (auto const &n : nds) {
-            mid->way_set(buffer.add_way_and_get(wid, n));
+            mid->way_set(buffer.add_way(wid, n));
             ++wid;
         }
 
         // set the relation
-        using otype = osmium::item_type;
         auto const &relation =
-            buffer.add_relation_and_get(123, {{otype::way, 11, ""},
-                                              {otype::way, 10, "outer"},
-                                              {otype::node, 1},
-                                              {otype::way, 12, "inner"}});
+            buffer.add_relation("r123 Mw11@,w10@outer,n1@,w12@inner");
         osmium::CRC<osmium::CRC_zlib> orig_crc;
         orig_crc.update(relation);
 
@@ -350,7 +314,7 @@ static void check_node(std::shared_ptr<middle_pgsql_t> const &mid,
                        osmium::Node const &node)
 {
     test_buffer_t buffer;
-    auto &nodes = buffer.add_nodes_and_get({node.id()});
+    auto &nodes = buffer.add_way(999, {node.id()}).nodes();
     auto const mid_q = mid->get_query_instance();
     REQUIRE(mid_q->nodes_get_list(&nodes) == 1);
     REQUIRE(nodes[0].ref() == node.id());
@@ -361,7 +325,7 @@ static void check_node(std::shared_ptr<middle_pgsql_t> const &mid,
 static bool no_node(std::shared_ptr<middle_pgsql_t> const &mid, osmid_t id)
 {
     test_buffer_t buffer;
-    auto &nodes = buffer.add_nodes_and_get({id});
+    auto &nodes = buffer.add_way(999, {id}).nodes();
     auto const mid_q = mid->get_query_instance();
     return mid_q->nodes_get_list(&nodes) == 0;
 }
@@ -376,11 +340,11 @@ TEMPLATE_TEST_CASE("middle: add, delete and update node", "",
 
     // Prepare a buffer with some nodes which we will add and change.
     test_buffer_t buffer;
-    auto const &node10 = buffer.add_node_and_get(10, 1.0, 0.0);
-    auto const &node11 = buffer.add_node_and_get(11, 1.1, 0.0);
-    auto const &node12 = buffer.add_node_and_get(12, 1.2, 0.0);
+    auto const &node10 = buffer.add_node("n10 x1.0 y0.0");
+    auto const &node11 = buffer.add_node("n11 x1.1 y0.0");
+    auto const &node12 = buffer.add_node("n12 x1.2 y0.0");
 
-    auto const &node10a = buffer.add_node_and_get(10, 1.0, 1.0);
+    auto const &node10a = buffer.add_node("n10 x1.0 y1.0");
 
     // Set up middle in "create" mode to get a cleanly initialized database
     // and add some nodes. Does this in its own scope so that the mid is
@@ -575,16 +539,15 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
 
     // Create some ways we'll use for the tests.
     test_buffer_t buffer;
-    auto const &way20 = buffer.add_way_and_get(
-        20, {10, 11}, {{"highway", "residential"}, {"name", "High Street"}});
+    auto const &way20 =
+        buffer.add_way("w20 Nn10,n11 Thighway=residential,name=High_Street");
 
-    auto const &way21 = buffer.add_way_and_get(21, {11, 12});
+    auto const &way21 = buffer.add_way("w21 Nn11,n12");
 
-    auto const &way22 =
-        buffer.add_way_and_get(22, {12, 10}, {{"power", "line"}});
+    auto const &way22 = buffer.add_way("w22 Nn12,n10 Tpower=line");
 
-    auto const &way20a = buffer.add_way_and_get(
-        20, {10, 12}, {{"highway", "primary"}, {"name", "High Street"}});
+    auto const &way20a =
+        buffer.add_way("w20 Nn10,n12 Thighway=primary,name=High_Street");
 
     // Set up middle in "create" mode to get a cleanly initialized database and
     // add some ways. Does this in its own scope so that the mid is closed
@@ -731,28 +694,23 @@ TEMPLATE_TEST_CASE("middle: add way with attributes", "", options_slim_default,
 
     // Create some ways we'll use for the tests.
     test_buffer_t buffer;
-    auto &way20 = buffer.add_way_and_get(
-        20, {10, 11}, {{"highway", "residential"}, {"name", "High Street"}});
+    auto &way20 =
+        buffer.add_way("w20 Nn10,n11 Thighway=residential,name=High_Street");
     way20.set_version(123);
     way20.set_timestamp(1234567890);
     way20.set_changeset(456);
     way20.set_uid(789);
 
     // The same way but with default attributes.
-    auto &way20_no_attr = buffer.add_way_and_get(
-        20, {10, 11}, {{"highway", "residential"}, {"name", "High Street"}});
+    auto &way20_no_attr =
+        buffer.add_way("w20 Nn10,n11 Thighway=residential,name=High_Street");
 
     // The same way but with attributes in tags.
     // The order of the tags is important here!
-    auto &way20_attr_tags =
-        buffer.add_way_and_get(20, {10, 11},
-                               {{"highway", "residential"},
-                                {"name", "High Street"},
-                                {"osm_user", ""},
-                                {"osm_uid", "789"},
-                                {"osm_version", "123"},
-                                {"osm_timestamp", "2009-02-13T23:31:30Z"},
-                                {"osm_changeset", "456"}});
+    auto &way20_attr_tags = buffer.add_way(
+        "w20 Nn10,n11 "
+        "Thighway=residential,name=High_Street,osm_user=,osm_uid=789,"
+        "osm_version=123,osm_timestamp=2009-02-13T23:31:30Z,osm_changeset=456");
 
     {
         auto mid = std::make_shared<middle_pgsql_t>(&options);
@@ -821,20 +779,15 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
 
     // Create some relations we'll use for the tests.
     test_buffer_t buffer;
-    using otype = osmium::item_type;
-    auto const &relation30 = buffer.add_relation_and_get(
-        30, {{otype::way, 10, "outer"}, {otype::way, 11, "inner"}},
-        {{"type", "multipolygon"}, {"name", "Penguin Park"}});
+    auto const &relation30 = buffer.add_relation(
+        "r30 Mw10@outer,w11@innder Ttype=multipolygon,name=Penguin_Park");
 
-    auto const &relation31 =
-        buffer.add_relation_and_get(31, {{otype::node, 10, ""}});
+    auto const &relation31 = buffer.add_relation("r31 Mn10@");
 
-    auto const &relation32 = buffer.add_relation_and_get(
-        32, {{otype::relation, 39, ""}}, {{"type", "site"}});
+    auto const &relation32 = buffer.add_relation("r32 Mr39@ Ttype=site");
 
-    auto const &relation30a = buffer.add_relation_and_get(
-        30, {{otype::way, 10, "outer"}, {otype::way, 11, "outer"}},
-        {{"type", "multipolygon"}, {"name", "Pigeon Park"}});
+    auto const &relation30a = buffer.add_relation(
+        "r30 Mw10@outer,w11@outer Ttype=multipolygon,name=Pigeon_Park");
 
     // Set up middle in "create" mode to get a cleanly initialized database and
     // add some relations. Does this in its own scope so that the mid is closed
@@ -982,31 +935,20 @@ TEMPLATE_TEST_CASE("middle: add relation with attributes", "",
 
     // Create some relations we'll use for the tests.
     test_buffer_t buffer;
-    using otype = osmium::item_type;
-    auto &relation30 = buffer.add_relation_and_get(
-        30, {{otype::way, 10, "outer"}, {otype::way, 11, "inner"}},
-        {{"type", "multipolygon"}, {"name", "Penguin Park"}});
-    relation30.set_version(123);
-    relation30.set_timestamp(1234567890);
-    relation30.set_changeset(456);
-    relation30.set_uid(789);
+    auto &relation30 = buffer.add_relation(
+        "r30 v123 c456 i789 t2009-02-13T23:31:30Z Mw10@outer,w11@inner "
+        "Ttype=multipolygon,name=Penguin_Park");
 
     // The same relation but with default attributes.
-    auto &relation30_no_attr = buffer.add_relation_and_get(
-        30, {{otype::way, 10, "outer"}, {otype::way, 11, "inner"}},
-        {{"type", "multipolygon"}, {"name", "Penguin Park"}});
+    auto &relation30_no_attr = buffer.add_relation(
+        "r30 Mw10@outer,w11@inner Ttype=multipolygon,name=Penguin_Park");
 
     // The same relation but with attributes in tags.
     // The order of the tags is important here!
-    auto &relation30_attr_tags = buffer.add_relation_and_get(
-        30, {{otype::way, 10, "outer"}, {otype::way, 11, "inner"}},
-        {{"type", "multipolygon"},
-         {"name", "Penguin Park"},
-         {"osm_user", ""},
-         {"osm_uid", "789"},
-         {"osm_version", "123"},
-         {"osm_timestamp", "2009-02-13T23:31:30Z"},
-         {"osm_changeset", "456"}});
+    auto &relation30_attr_tags = buffer.add_relation(
+        "r30 Mw10@outer,w11@inner "
+        "Ttype=multipolygon,name=Penguin_Park,osm_user=,osm_uid=789,"
+        "osm_version=123,osm_timestamp=2009-02-13T23:31:30Z,osm_changeset=456");
 
     {
         auto mid = std::make_shared<middle_pgsql_t>(&options);
@@ -1044,15 +986,15 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
 
     // create some nodes and ways we'll use for the tests
     test_buffer_t buffer;
-    auto const &node10 = buffer.add_node_and_get(10, 1.0, 0.0);
-    auto const &node11 = buffer.add_node_and_get(11, 1.1, 0.0);
-    auto const &node12 = buffer.add_node_and_get(12, 1.2, 0.0);
-    auto const &node10a = buffer.add_node_and_get(10, 2.0, 0.0);
+    auto const &node10 = buffer.add_node("n10 x1.0 y0.0");
+    auto const &node11 = buffer.add_node("n11 x1.1 y0.0");
+    auto const &node12 = buffer.add_node("n12 x1.2 y0.0");
+    auto const &node10a = buffer.add_node("n10 x2.0 y0.0");
 
-    auto const &way20 = buffer.add_way_and_get(20, {10, 11});
-    auto const &way21 = buffer.add_way_and_get(21, {11, 12});
-    auto const &way22 = buffer.add_way_and_get(22, {12, 10});
-    auto const &way20a = buffer.add_way_and_get(20, {11, 12});
+    auto const &way20 = buffer.add_way("w20 Nn10,n11");
+    auto const &way21 = buffer.add_way("w21 Nn11,n12");
+    auto const &way22 = buffer.add_way("w22 Nn12,n10");
+    auto const &way20a = buffer.add_way("w20 Nn11,n12");
 
     // Set up middle in "create" mode to get a cleanly initialized database and
     // add some nodes and ways. Does this in its own scope so that the mid is
@@ -1184,17 +1126,16 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
 
     // create some nodes, ways, and relations we'll use for the tests
     test_buffer_t buffer;
-    auto const &node10 = buffer.add_node_and_get(10, 1.0, 0.0);
-    auto const &node11 = buffer.add_node_and_get(11, 1.1, 0.0);
-    auto const &node12 = buffer.add_node_and_get(12, 1.2, 0.0);
-    auto const &node10a = buffer.add_node_and_get(10, 1.0, 1.0);
-    auto const &node11a = buffer.add_node_and_get(11, 1.1, 1.0);
+    auto const &node10 = buffer.add_node("n10 x1.0 y0.0");
+    auto const &node11 = buffer.add_node("n11 x1.1 y0.0");
+    auto const &node12 = buffer.add_node("n12 x1.2 y0.0");
+    auto const &node10a = buffer.add_node("n10 x1.0 y1.0");
+    auto const &node11a = buffer.add_node("n11 x1.1 y1.0");
 
-    auto const &way20 = buffer.add_way_and_get(20, {11, 12});
+    auto const &way20 = buffer.add_way("w20 Nn11,n12");
 
-    using otype = osmium::item_type;
-    auto const &rel30 = buffer.add_relation_and_get(30, {{otype::node, 10}});
-    auto const &rel31 = buffer.add_relation_and_get(31, {{otype::way, 20}});
+    auto const &rel30 = buffer.add_relation("r30 Mn10@");
+    auto const &rel31 = buffer.add_relation("r31 Mw20@");
 
     // Set up middle in "create" mode to get a cleanly initialized database and
     // add some nodes and ways. Does this in its own scope so that the mid is
