@@ -8,6 +8,7 @@ set(osm2pgsql_lib_SOURCES
   geometry-processor.cpp
   input.cpp
   logging.cpp
+  middle.cpp
   middle-pgsql.cpp
   middle-ram.cpp
   node-persistent-cache.cpp

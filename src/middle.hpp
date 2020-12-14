@@ -8,6 +8,8 @@
 #include "osmtypes.hpp"
 #include "thread-pool.hpp"
 
+class options_t;
+
 /**
  * Interface for returning information about raw OSM input data from a cache.
  */
@@ -103,5 +105,8 @@ struct middle_t
 };
 
 inline middle_t::~middle_t() = default;
+
+/// Factory function: Instantiate the middle based on the command line options.
+std::shared_ptr<middle_t> create_middle(options_t const &options);
 
 #endif // OSM2PGSQL_MIDDLE_HPP

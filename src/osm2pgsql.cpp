@@ -27,8 +27,7 @@
 #include "format.hpp"
 #include "input.hpp"
 #include "logging.hpp"
-#include "middle-pgsql.hpp"
-#include "middle-ram.hpp"
+#include "middle.hpp"
 #include "options.hpp"
 #include "osmdata.hpp"
 #include "output.hpp"
@@ -38,15 +37,6 @@
 
 #include <exception>
 #include <memory>
-
-static std::shared_ptr<middle_t> create_middle(options_t const &options)
-{
-    if (options.slim) {
-        return std::make_shared<middle_pgsql_t>(&options);
-    }
-
-    return std::make_shared<middle_ram_t>(&options);
-}
 
 int main(int argc, char *argv[])
 {
