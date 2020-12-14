@@ -62,7 +62,7 @@ void osmdata_t::node(osmium::Node const &node)
     }
 }
 
-void osmdata_t::after_nodes() { flush(); }
+void osmdata_t::after_nodes() { m_mid->after_nodes(); }
 
 void osmdata_t::way(osmium::Way &way)
 {
@@ -79,7 +79,7 @@ void osmdata_t::way(osmium::Way &way)
     }
 }
 
-void osmdata_t::after_ways() { flush(); }
+void osmdata_t::after_ways() { m_mid->after_ways(); }
 
 void osmdata_t::relation(osmium::Relation const &rel)
 {
@@ -105,7 +105,7 @@ void osmdata_t::relation(osmium::Relation const &rel)
     }
 }
 
-void osmdata_t::after_relations() { flush(); }
+void osmdata_t::after_relations() { m_mid->after_relations(); }
 
 void osmdata_t::node_add(osmium::Node const &node) const
 {
@@ -185,11 +185,6 @@ void osmdata_t::start() const
     for (auto const &out : m_outs) {
         out->start();
     }
-}
-
-void osmdata_t::flush() const
-{
-    m_mid->flush();
 }
 
 namespace {

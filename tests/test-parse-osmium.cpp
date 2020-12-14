@@ -19,9 +19,7 @@ struct counting_middle_t : public middle_t
 
     void start() override {}
     void stop(thread_pool_t &) override {}
-    void flush() override {}
     void cleanup() {}
-    void analyze() override {}
     void commit() override {}
 
     void node(osmium::Node const &node) override {

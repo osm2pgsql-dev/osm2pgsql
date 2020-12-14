@@ -26,6 +26,7 @@
 #include "node-ram-cache.hpp"
 #include "options.hpp"
 #include "osmtypes.hpp"
+#include "pgsql-helper.hpp"
 #include "util.hpp"
 
 /**
@@ -607,11 +608,27 @@ void middle_pgsql_t::relation_delete(osmid_t osm_id)
     m_db_copy.delete_object(osm_id);
 }
 
-void middle_pgsql_t::analyze()
+void middle_pgsql_t::after_nodes()
 {
-    for (auto const &table : m_tables) {
-        m_db_connection.exec("ANALYZE {}"_format(table.name()));
+    m_db_copy.sync();
+    if (m_options->flat_node_file.empty()) {
+        auto const &table = m_tables[NODE_TABLE];
+        analyze_table(m_db_connection, table.schema(), table.name());
     }
+}
+
+void middle_pgsql_t::after_ways()
+{
+    m_db_copy.sync();
+    auto const &table = m_tables[WAY_TABLE];
+    analyze_table(m_db_connection, table.schema(), table.name());
+}
+
+void middle_pgsql_t::after_relations()
+{
+    m_db_copy.sync();
+    auto const &table = m_tables[REL_TABLE];
+    analyze_table(m_db_connection, table.schema(), table.name());
 }
 
 middle_query_pgsql_t::middle_query_pgsql_t(
@@ -657,8 +674,6 @@ void middle_pgsql_t::commit()
     // release the copy thread and its query connection
     m_copy_thread->finish();
 }
-
-void middle_pgsql_t::flush() { m_db_copy.sync(); }
 
 void middle_pgsql_t::stop(thread_pool_t &pool)
 {

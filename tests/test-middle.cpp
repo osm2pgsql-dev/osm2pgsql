@@ -185,7 +185,7 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
 
         // set the node
         mid->node(node);
-        mid->flush();
+        mid->after_nodes();
 
         // getting it back works only via a waylist
         auto &nodes = buffer.add_way("w3 Nn1234").nodes();
@@ -213,11 +213,11 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
                 "n{} x{} y{}"_format(i, lon - i * 0.003, lat + i * 0.001));
             mid->node(node);
         }
+        mid->after_nodes();
 
         // set the way
         mid->way(buffer.add_way(way_id, nds));
-
-        mid->flush();
+        mid->after_ways();
 
         // get it back
         osmium::memory::Buffer outbuf{4096,
@@ -245,6 +245,7 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
 
         // set the node
         mid->node(buffer.add_node("n1 x4.1 y12.8"));
+        mid->after_nodes();
 
         // set the ways
         osmid_t wid = 10;
@@ -252,6 +253,7 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
             mid->way(buffer.add_way(wid, n));
             ++wid;
         }
+        mid->after_ways();
 
         // set the relation
         auto const &relation =
@@ -260,8 +262,7 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         orig_crc.update(relation);
 
         mid->relation(relation);
-
-        mid->flush();
+        mid->after_relations();
 
         // retrieve the relation
         osmium::memory::Buffer outbuf{4096,
@@ -361,7 +362,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update node", "",
 
         mid->node(node10);
         mid->node(node11);
-        mid->flush();
+        mid->after_nodes();
 
         check_node(mid, node10);
         check_node(mid, node11);
@@ -393,7 +394,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update node", "",
             mid->node(node5d);
             mid->node(node10d);
             mid->node(node42d);
-            mid->flush();
+            mid->after_nodes();
 
             REQUIRE(no_node(mid, 5));
             REQUIRE(no_node(mid, 10));
@@ -426,7 +427,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update node", "",
             mid->node(node10a);
             mid->node(node12d);
             mid->node(node12);
-            mid->flush();
+            mid->after_nodes();
 
             check_node(mid, node10a);
             check_node(mid, node11);
@@ -454,7 +455,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update node", "",
             mid->start();
 
             mid->node(node12);
-            mid->flush();
+            mid->after_nodes();
 
             REQUIRE(no_node(mid, 5));
             check_node(mid, node10);
@@ -568,7 +569,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
 
         mid->way(way20);
         mid->way(way21);
-        mid->flush();
+        mid->after_ways();
 
         check_way(mid, way20);
         check_way(mid, way21);
@@ -601,7 +602,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
             mid->way(way5d);
             mid->way(way20d);
             mid->way(way42d);
-            mid->flush();
+            mid->after_ways();
 
             REQUIRE(no_way(mid, 5));
             REQUIRE(no_way(mid, 20));
@@ -634,7 +635,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
             mid->way(way20a);
             mid->way(way22d);
             mid->way(way22);
-            mid->flush();
+            mid->after_ways();
 
             REQUIRE(no_way(mid, 5));
             check_way(mid, way20a);
@@ -666,7 +667,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
             mid->start();
 
             mid->way(way22);
-            mid->flush();
+            mid->after_ways();
 
             REQUIRE(no_way(mid, 5));
             check_way(mid, way20);
@@ -727,7 +728,7 @@ TEMPLATE_TEST_CASE("middle: add way with attributes", "", options_slim_default,
         mid->start();
 
         mid->way(way20);
-        mid->flush();
+        mid->after_ways();
 
         check_way(mid,
                   options.extra_attributes ? way20_attr_tags : way20_no_attr);
@@ -813,7 +814,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
 
         mid->relation(relation30);
         mid->relation(relation31);
-        mid->flush();
+        mid->after_relations();
 
         check_relation(mid, relation30);
         check_relation(mid, relation31);
@@ -846,7 +847,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
             mid->relation(relation5d);
             mid->relation(relation30d);
             mid->relation(relation42d);
-            mid->flush();
+            mid->after_relations();
 
             REQUIRE(no_relation(mid, 5));
             REQUIRE(no_relation(mid, 30));
@@ -879,7 +880,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
             mid->relation(relation30a);
             mid->relation(relation32d);
             mid->relation(relation32);
-            mid->flush();
+            mid->after_relations();
 
             REQUIRE(no_relation(mid, 5));
             check_relation(mid, relation30a);
@@ -911,7 +912,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
             mid->start();
 
             mid->relation(relation32);
-            mid->flush();
+            mid->after_relations();
 
             REQUIRE(no_relation(mid, 5));
             check_relation(mid, relation30);
@@ -970,7 +971,7 @@ TEMPLATE_TEST_CASE("middle: add relation with attributes", "",
         mid->start();
 
         mid->relation(relation30);
-        mid->flush();
+        mid->after_relations();
 
         check_relation(mid, options.extra_attributes ? relation30_attr_tags
                                                      : relation30_no_attr);
@@ -1026,10 +1027,10 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
         mid->node(node10);
         mid->node(node11);
         mid->node(node12);
-        mid->flush();
+        mid->after_nodes();
         mid->way(way20);
         mid->way(way21);
-        mid->flush();
+        mid->after_ways();
 
         check_node(mid, node10);
         check_node(mid, node11);
@@ -1056,7 +1057,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
         mid->node(node10d);
         mid->node(node10a);
         dependency_manager.node_changed(10);
-        mid->flush();
+        mid->after_nodes();
 
         REQUIRE(dependency_manager.has_pending());
         idlist_t const way_ids = dependency_manager.get_pending_way_ids();
@@ -1075,7 +1076,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
             mid->start();
 
             mid->way(way22);
-            mid->flush();
+            mid->after_ways();
             check_way(mid, way22);
 
             mid->commit();
@@ -1088,7 +1089,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
             mid->node(node10d);
             mid->node(node10a);
             dependency_manager.node_changed(10);
-            mid->flush();
+            mid->after_nodes();
 
             REQUIRE(dependency_manager.has_pending());
             idlist_t const way_ids = dependency_manager.get_pending_way_ids();
@@ -1111,7 +1112,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
 
             mid->way(way20d);
             mid->way(way20a);
-            mid->flush();
+            mid->after_ways();
 
             check_way(mid, way20a);
             check_way_nodes(mid, way20.id(), {&node11, &node12});
@@ -1127,7 +1128,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
             mid->node(node10d);
             mid->node(node10a);
             dependency_manager.node_changed(10);
-            mid->flush();
+            mid->after_nodes();
 
             REQUIRE_FALSE(dependency_manager.has_pending());
 
@@ -1169,12 +1170,12 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
         mid->node(node10);
         mid->node(node11);
         mid->node(node12);
-        mid->flush();
+        mid->after_nodes();
         mid->way(way20);
-        mid->flush();
+        mid->after_ways();
         mid->relation(rel30);
         mid->relation(rel31);
-        mid->flush();
+        mid->after_relations();
 
         mid->commit();
     }
@@ -1191,7 +1192,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
         mid->node(node10d);
         mid->node(node10a);
         dependency_manager.node_changed(10);
-        mid->flush();
+        mid->after_nodes();
 
         REQUIRE(dependency_manager.has_pending());
         idlist_t const rel_ids = dependency_manager.get_pending_relation_ids();
@@ -1211,7 +1212,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
         mid->node(node11d);
         mid->node(node11a);
         dependency_manager.node_changed(11);
-        mid->flush();
+        mid->after_nodes();
 
         REQUIRE(dependency_manager.has_pending());
         idlist_t const way_ids = dependency_manager.get_pending_way_ids();

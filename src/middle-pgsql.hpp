@@ -60,14 +60,15 @@ struct middle_pgsql_t : public middle_t
 
     void start() override;
     void stop(thread_pool_t &pool) override;
-    void analyze() override;
     void commit() override;
 
     void node(osmium::Node const &node) override;
     void way(osmium::Way const &way) override;
     void relation(osmium::Relation const &rel) override;
 
-    void flush() override;
+    void after_nodes() override;
+    void after_ways() override;
+    void after_relations() override;
 
     idlist_t get_ways_by_node(osmid_t osm_id) override;
     idlist_t get_rels_by_node(osmid_t osm_id) override;

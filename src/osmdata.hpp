@@ -65,8 +65,6 @@ private:
     void way_delete(osmid_t id) const;
     void relation_delete(osmid_t id) const;
 
-    void flush() const;
-
     /**
      * Run stage 1b and stage 1c processing: Process dependent objects in
      * append mode.

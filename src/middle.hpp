@@ -74,7 +74,6 @@ struct middle_t
 
     virtual void start() = 0;
     virtual void stop(thread_pool_t &pool) = 0;
-    virtual void analyze() = 0;
     virtual void commit() = 0;
 
     /// This is called for every added, changed or deleted node.
@@ -86,16 +85,14 @@ struct middle_t
     /// This is called for every added, changed or deleted relation.
     virtual void relation(osmium::Relation const &relation) = 0;
 
-    /**
-     * Ensure all pending data is written to the storage.
-     *
-     * You can only query objects from the storage after they have been
-     * flushed.
-     *
-     * The function is called after setting all the nodes, then after setting
-     * all the ways, and again after setting all the relations.
-     */
-    virtual void flush() = 0;
+    /// Called after all nodes from the input file(s) have been processed.
+    virtual void after_nodes() {}
+
+    /// Called after all ways from the input file(s) have been processed.
+    virtual void after_ways() {}
+
+    /// Called after all relations from the input file(s) have been processed.
+    virtual void after_relations() {}
 
     virtual idlist_t get_ways_by_node(osmid_t) { return {}; }
     virtual idlist_t get_rels_by_node(osmid_t) { return {}; }
