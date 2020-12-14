@@ -363,10 +363,10 @@ TEMPLATE_TEST_CASE("middle: add, delete and update node", "",
         mid->node(node10);
         mid->node(node11);
         mid->after_nodes();
+        mid->after_relations();
 
         check_node(mid, node10);
         check_node(mid, node11);
-        mid->commit();
     }
 
     // From now on use append mode to not destroy the data we just added.
@@ -381,8 +381,6 @@ TEMPLATE_TEST_CASE("middle: add, delete and update node", "",
         check_node(mid, node11);
         REQUIRE(no_node(mid, 5));
         REQUIRE(no_node(mid, 42));
-
-        mid->commit();
     }
 
     SECTION("Delete existing and non-existing node")
@@ -395,13 +393,12 @@ TEMPLATE_TEST_CASE("middle: add, delete and update node", "",
             mid->node(node10d);
             mid->node(node42d);
             mid->after_nodes();
+            mid->after_relations();
 
             REQUIRE(no_node(mid, 5));
             REQUIRE(no_node(mid, 10));
             check_node(mid, node11);
             REQUIRE(no_node(mid, 42));
-
-            mid->commit();
         }
         {
             // Check with a new mid.
@@ -412,8 +409,6 @@ TEMPLATE_TEST_CASE("middle: add, delete and update node", "",
             REQUIRE(no_node(mid, 10));
             check_node(mid, node11);
             REQUIRE(no_node(mid, 42));
-
-            mid->commit();
         }
     }
 
@@ -428,12 +423,11 @@ TEMPLATE_TEST_CASE("middle: add, delete and update node", "",
             mid->node(node12d);
             mid->node(node12);
             mid->after_nodes();
+            mid->after_relations();
 
             check_node(mid, node10a);
             check_node(mid, node11);
             check_node(mid, node12);
-
-            mid->commit();
         }
         {
             // Check with a new mid.
@@ -443,8 +437,6 @@ TEMPLATE_TEST_CASE("middle: add, delete and update node", "",
             check_node(mid, node10a);
             check_node(mid, node11);
             check_node(mid, node12);
-
-            mid->commit();
         }
     }
 
@@ -456,14 +448,13 @@ TEMPLATE_TEST_CASE("middle: add, delete and update node", "",
 
             mid->node(node12);
             mid->after_nodes();
+            mid->after_relations();
 
             REQUIRE(no_node(mid, 5));
             check_node(mid, node10);
             check_node(mid, node11);
             check_node(mid, node12);
             REQUIRE(no_node(mid, 42));
-
-            mid->commit();
         }
         {
             // Check with a new mid.
@@ -475,8 +466,6 @@ TEMPLATE_TEST_CASE("middle: add, delete and update node", "",
             check_node(mid, node11);
             check_node(mid, node12);
             REQUIRE(no_node(mid, 42));
-
-            mid->commit();
         }
     }
 }
@@ -570,11 +559,10 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
         mid->way(way20);
         mid->way(way21);
         mid->after_ways();
+        mid->after_relations();
 
         check_way(mid, way20);
         check_way(mid, way21);
-
-        mid->commit();
     }
 
     // From now on use append mode to not destroy the data we just added.
@@ -589,8 +577,6 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
         check_way(mid, way20);
         check_way(mid, way21);
         REQUIRE(no_way(mid, 22));
-
-        mid->commit();
     }
 
     SECTION("Delete existing and non-existing way")
@@ -603,13 +589,12 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
             mid->way(way20d);
             mid->way(way42d);
             mid->after_ways();
+            mid->after_relations();
 
             REQUIRE(no_way(mid, 5));
             REQUIRE(no_way(mid, 20));
             check_way(mid, way21);
             REQUIRE(no_way(mid, 42));
-
-            mid->commit();
         }
         {
             // Check with a new mid.
@@ -620,8 +605,6 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
             REQUIRE(no_way(mid, 20));
             check_way(mid, way21);
             REQUIRE(no_way(mid, 42));
-
-            mid->commit();
         }
     }
 
@@ -636,14 +619,13 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
             mid->way(way22d);
             mid->way(way22);
             mid->after_ways();
+            mid->after_relations();
 
             REQUIRE(no_way(mid, 5));
             check_way(mid, way20a);
             check_way(mid, way21);
             check_way(mid, way22);
             REQUIRE(no_way(mid, 42));
-
-            mid->commit();
         }
         {
             // Check with a new mid.
@@ -655,8 +637,6 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
             check_way(mid, way21);
             check_way(mid, way22);
             REQUIRE(no_way(mid, 42));
-
-            mid->commit();
         }
     }
 
@@ -668,14 +648,13 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
 
             mid->way(way22);
             mid->after_ways();
+            mid->after_relations();
 
             REQUIRE(no_way(mid, 5));
             check_way(mid, way20);
             check_way(mid, way21);
             check_way(mid, way22);
             REQUIRE(no_way(mid, 42));
-
-            mid->commit();
         }
         {
             // Check with a new mid.
@@ -687,8 +666,6 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
             check_way(mid, way21);
             check_way(mid, way22);
             REQUIRE(no_way(mid, 42));
-
-            mid->commit();
         }
     }
 }
@@ -729,11 +706,10 @@ TEMPLATE_TEST_CASE("middle: add way with attributes", "", options_slim_default,
 
         mid->way(way20);
         mid->after_ways();
+        mid->after_relations();
 
         check_way(mid,
                   options.extra_attributes ? way20_attr_tags : way20_no_attr);
-
-        mid->commit();
     }
 
     // From now on use append mode to not destroy the data we just added.
@@ -745,8 +721,6 @@ TEMPLATE_TEST_CASE("middle: add way with attributes", "", options_slim_default,
 
         check_way(mid,
                   options.extra_attributes ? way20_attr_tags : way20_no_attr);
-
-        mid->commit();
     }
 }
 
@@ -818,8 +792,6 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
 
         check_relation(mid, relation30);
         check_relation(mid, relation31);
-
-        mid->commit();
     }
 
     // From now on use append mode to not destroy the data we just added.
@@ -834,8 +806,6 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
         check_relation(mid, relation30);
         check_relation(mid, relation31);
         REQUIRE(no_relation(mid, 32));
-
-        mid->commit();
     }
 
     SECTION("Delete existing and non-existing relation")
@@ -853,8 +823,6 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
             REQUIRE(no_relation(mid, 30));
             check_relation(mid, relation31);
             REQUIRE(no_relation(mid, 42));
-
-            mid->commit();
         }
         {
             // Check with a new mid.
@@ -865,8 +833,6 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
             REQUIRE(no_relation(mid, 30));
             check_relation(mid, relation31);
             REQUIRE(no_relation(mid, 42));
-
-            mid->commit();
         }
     }
 
@@ -887,8 +853,6 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
             check_relation(mid, relation31);
             check_relation(mid, relation32);
             REQUIRE(no_relation(mid, 42));
-
-            mid->commit();
         }
         {
             // Check with a new mid.
@@ -900,8 +864,6 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
             check_relation(mid, relation31);
             check_relation(mid, relation32);
             REQUIRE(no_relation(mid, 42));
-
-            mid->commit();
         }
     }
 
@@ -919,8 +881,6 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
             check_relation(mid, relation31);
             check_relation(mid, relation32);
             REQUIRE(no_relation(mid, 42));
-
-            mid->commit();
         }
         {
             // Check with a new mid.
@@ -932,8 +892,6 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
             check_relation(mid, relation31);
             check_relation(mid, relation32);
             REQUIRE(no_relation(mid, 42));
-
-            mid->commit();
         }
     }
 }
@@ -975,8 +933,6 @@ TEMPLATE_TEST_CASE("middle: add relation with attributes", "",
 
         check_relation(mid, options.extra_attributes ? relation30_attr_tags
                                                      : relation30_no_attr);
-
-        mid->commit();
     }
 
     // From now on use append mode to not destroy the data we just added.
@@ -988,8 +944,6 @@ TEMPLATE_TEST_CASE("middle: add relation with attributes", "",
 
         check_relation(mid, options.extra_attributes ? relation30_attr_tags
                                                      : relation30_no_attr);
-
-        mid->commit();
     }
 }
 
@@ -1031,6 +985,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
         mid->way(way20);
         mid->way(way21);
         mid->after_ways();
+        mid->after_relations();
 
         check_node(mid, node10);
         check_node(mid, node11);
@@ -1041,8 +996,6 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
         check_way_nodes(mid, way21.id(), {&node11, &node12});
 
         REQUIRE_FALSE(dependency_manager.has_pending());
-
-        mid->commit();
     }
 
     // From now on use append mode to not destroy the data we just added.
@@ -1065,8 +1018,6 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
 
         check_way(mid, way20);
         check_way_nodes(mid, way20.id(), {&node10a, &node11});
-
-        mid->commit();
     }
 
     SECTION("Two ways affected")
@@ -1077,9 +1028,8 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
 
             mid->way(way22);
             mid->after_ways();
+            mid->after_relations();
             check_way(mid, way22);
-
-            mid->commit();
         }
         {
             auto mid = std::make_shared<middle_pgsql_t>(&options);
@@ -1099,8 +1049,6 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
             check_way_nodes(mid, way20.id(), {&node10a, &node11});
             check_way(mid, way22);
             check_way_nodes(mid, way22.id(), {&node12, &node10a});
-
-            mid->commit();
         }
     }
 
@@ -1113,11 +1061,10 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
             mid->way(way20d);
             mid->way(way20a);
             mid->after_ways();
+            mid->after_relations();
 
             check_way(mid, way20a);
             check_way_nodes(mid, way20.id(), {&node11, &node12});
-
-            mid->commit();
         }
 
         {
@@ -1131,8 +1078,6 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
             mid->after_nodes();
 
             REQUIRE_FALSE(dependency_manager.has_pending());
-
-            mid->commit();
         }
     }
 }
@@ -1176,8 +1121,6 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
         mid->relation(rel30);
         mid->relation(rel31);
         mid->after_relations();
-
-        mid->commit();
     }
 
     // From now on use append mode to not destroy the data we just added.
@@ -1193,14 +1136,13 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
         mid->node(node10a);
         dependency_manager.node_changed(10);
         mid->after_nodes();
+        mid->after_relations();
 
         REQUIRE(dependency_manager.has_pending());
         idlist_t const rel_ids = dependency_manager.get_pending_relation_ids();
 
         REQUIRE_THAT(rel_ids, Catch::Equals<osmid_t>({30}));
         check_relation(mid, rel30);
-
-        mid->commit();
     }
 
     SECTION("Single relation indirectly affected (through way)")
@@ -1213,6 +1155,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
         mid->node(node11a);
         dependency_manager.node_changed(11);
         mid->after_nodes();
+        mid->after_relations();
 
         REQUIRE(dependency_manager.has_pending());
         idlist_t const way_ids = dependency_manager.get_pending_way_ids();

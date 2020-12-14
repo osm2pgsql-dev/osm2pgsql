@@ -629,6 +629,9 @@ void middle_pgsql_t::after_relations()
     m_db_copy.sync();
     auto const &table = m_tables[REL_TABLE];
     analyze_table(m_db_connection, table.schema(), table.name());
+
+    // release the copy thread and its database connection
+    m_copy_thread->finish();
 }
 
 middle_query_pgsql_t::middle_query_pgsql_t(
@@ -666,13 +669,6 @@ void middle_pgsql_t::start()
             m_db_connection.exec(table.m_create_table);
         }
     }
-}
-
-void middle_pgsql_t::commit()
-{
-    m_db_copy.sync();
-    // release the copy thread and its query connection
-    m_copy_thread->finish();
 }
 
 void middle_pgsql_t::stop(thread_pool_t &pool)

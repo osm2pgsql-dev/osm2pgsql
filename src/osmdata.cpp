@@ -445,11 +445,6 @@ void osmdata_t::postprocess_database() const
 
 void osmdata_t::stop() const
 {
-    /* Commit the transactions, so that multiple processes can
-     * access the data simultaneously to process the rest in parallel
-     * as well as see the newly created tables.
-     */
-    m_mid->commit();
     for (auto &out : m_outs) {
         out->sync();
     }

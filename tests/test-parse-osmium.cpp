@@ -20,7 +20,6 @@ struct counting_middle_t : public middle_t
     void start() override {}
     void stop(thread_pool_t &) override {}
     void cleanup() {}
-    void commit() override {}
 
     void node(osmium::Node const &node) override {
         if (m_append) {
