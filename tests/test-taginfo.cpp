@@ -3,7 +3,7 @@
 
 #include "taginfo-impl.hpp"
 
-TEST_CASE("parse_tag_flags")
+TEST_CASE("parse_tag_flags", "[NoDB]")
 {
     CHECK(parse_tag_flags("", 0) == 0);
     CHECK(parse_tag_flags("polygon", 0) == FLAG_POLYGON);

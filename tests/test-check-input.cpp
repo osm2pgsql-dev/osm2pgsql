@@ -2,7 +2,7 @@
 
 #include "input.hpp"
 
-TEST_CASE("it's good if input data is ordered")
+TEST_CASE("it's good if input data is ordered", "[NoDB]")
 {
     type_id_version const tiv1{osmium::item_type::node, 1, 1};
     type_id_version const tiv2{osmium::item_type::node, 1, 2};
@@ -20,7 +20,7 @@ TEST_CASE("it's good if input data is ordered")
     REQUIRE_NOTHROW(check_input(tiv6, tiv7));
 }
 
-TEST_CASE("negative OSM object ids are not allowed")
+TEST_CASE("negative OSM object ids are not allowed", "[NoDB]")
 {
     type_id_version const tivn{osmium::item_type::node, -17, 1};
     type_id_version const tivw{osmium::item_type::way, -1, 1};
@@ -36,7 +36,7 @@ TEST_CASE("negative OSM object ids are not allowed")
         "Negative OSM object ids are not allowed: relation id -999.");
 }
 
-TEST_CASE("objects of the same type must be ordered")
+TEST_CASE("objects of the same type must be ordered", "[NoDB]")
 {
     type_id_version const tiv1{osmium::item_type::node, 42, 1};
     type_id_version const tiv2{osmium::item_type::node, 3, 1};
@@ -45,7 +45,7 @@ TEST_CASE("objects of the same type must be ordered")
                         "Input data is not ordered: node id 3 after 42.");
 }
 
-TEST_CASE("a node after a way or relation is not allowed")
+TEST_CASE("a node after a way or relation is not allowed", "[NoDB]")
 {
     type_id_version const tiv1w{osmium::item_type::way, 42, 1};
     type_id_version const tiv1r{osmium::item_type::relation, 42, 1};
@@ -57,7 +57,7 @@ TEST_CASE("a node after a way or relation is not allowed")
                         "Input data is not ordered: node after relation.");
 }
 
-TEST_CASE("a way after a relation is not allowed")
+TEST_CASE("a way after a relation is not allowed", "[NoDB]")
 {
     type_id_version const tiv1{osmium::item_type::relation, 42, 1};
     type_id_version const tiv2{osmium::item_type::way, 100, 1};
@@ -66,7 +66,7 @@ TEST_CASE("a way after a relation is not allowed")
                         "Input data is not ordered: way after relation.");
 }
 
-TEST_CASE("versions must be ordered")
+TEST_CASE("versions must be ordered", "[NoDB]")
 {
     type_id_version const tiv1{osmium::item_type::way, 42, 2};
     type_id_version const tiv2{osmium::item_type::way, 42, 1};

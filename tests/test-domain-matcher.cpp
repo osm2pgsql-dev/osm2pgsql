@@ -20,7 +20,7 @@ static osmium::Tag &fill_buffer(osmium::memory::Buffer &buffer, char const *key,
     return *buffer.get<osmium::TagList>(0).begin();
 }
 
-TEST_CASE("DomainMatcher: name")
+TEST_CASE("DomainMatcher: name", "[NoDB]")
 {
     osmium::memory::Buffer buffer{1024};
     DomainMatcher matcher{"bridge"};
@@ -32,7 +32,7 @@ TEST_CASE("DomainMatcher: name")
     REQUIRE(std::strcmp(result, "name") == 0);
 }
 
-TEST_CASE("DomainMatcher: name with language")
+TEST_CASE("DomainMatcher: name with language", "[NoDB]")
 {
     osmium::memory::Buffer buffer{1024};
     DomainMatcher matcher{"bridge"};
@@ -45,7 +45,7 @@ TEST_CASE("DomainMatcher: name with language")
     REQUIRE(std::strcmp(result, "name:en") == 0);
 }
 
-TEST_CASE("DomainMatcher: no :name")
+TEST_CASE("DomainMatcher: no :name", "[NoDB]")
 {
     osmium::memory::Buffer buffer{1024};
     DomainMatcher matcher{"bridge"};
@@ -56,7 +56,7 @@ TEST_CASE("DomainMatcher: no :name")
     REQUIRE_FALSE(result);
 }
 
-TEST_CASE("DomainMatcher: empty matcher")
+TEST_CASE("DomainMatcher: empty matcher", "[NoDB]")
 {
     osmium::memory::Buffer buffer{1024};
     DomainMatcher matcher{""};
@@ -68,7 +68,7 @@ TEST_CASE("DomainMatcher: empty matcher")
     REQUIRE_FALSE(result);
 }
 
-TEST_CASE("DomainMatcher: names")
+TEST_CASE("DomainMatcher: names", "[NoDB]")
 {
     osmium::memory::Buffer buffer{1024};
     DomainMatcher matcher{"bridge"};
@@ -80,7 +80,7 @@ TEST_CASE("DomainMatcher: names")
     REQUIRE_FALSE(result);
 }
 
-TEST_CASE("DomainMatcher: not matching")
+TEST_CASE("DomainMatcher: not matching", "[NoDB]")
 {
     osmium::memory::Buffer buffer{1024};
     DomainMatcher matcher{"bridge"};
@@ -91,7 +91,7 @@ TEST_CASE("DomainMatcher: not matching")
     REQUIRE_FALSE(result);
 }
 
-TEST_CASE("DomainMatcher: empty tag")
+TEST_CASE("DomainMatcher: empty tag", "[NoDB]")
 {
     osmium::memory::Buffer buffer{1024};
     DomainMatcher matcher{"bridge"};
