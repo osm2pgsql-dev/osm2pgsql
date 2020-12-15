@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6">
+ <node id="1" visible="true" version="1" changeset="1" timestamp="2018-10-31T10:20:19Z" user="a" uid="1" lon="3.141" lat="200.0">
+   <tag k="amenity" v="restaurant" />
+ </node>
+</osm>

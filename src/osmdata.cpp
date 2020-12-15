@@ -36,28 +36,26 @@ osmdata_t::osmdata_t(std::unique_ptr<dependency_manager_t> dependency_manager,
 
 void osmdata_t::node(osmium::Node const &node)
 {
-    if (!m_bbox.valid() || node.deleted() || m_bbox.contains(node.location())) {
-        m_mid->node(node);
+    if (node.visible()) {
+        if (!node.location().valid()) {
+            log_warn("Ignored node {} (version {}) with invalid location.",
+                     node.id(), node.version());
+            return;
+        }
+        if (m_bbox.valid() && !m_bbox.contains(node.location())) {
+            return;
+        }
     }
+
+    m_mid->node(node);
 
     if (node.deleted()) {
         node_delete(node.id());
     } else {
-        // if the node is not valid, then node.location.lat/lon() can throw.
-        // we probably ought to treat invalid locations as if they were
-        // deleted and ignore them.
-        if (!node.location().valid()) {
-            log_warn("Ignored invalid location on node {} (version {})",
-                     node.id(), node.version());
-            return;
-        }
-
-        if (!m_bbox.valid() || m_bbox.contains(node.location())) {
-            if (m_append) {
-                node_modify(node);
-            } else {
-                node_add(node);
-            }
+        if (m_append) {
+            node_modify(node);
+        } else {
+            node_add(node);
         }
     }
 }

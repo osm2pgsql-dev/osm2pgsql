@@ -257,3 +257,24 @@ TEST_CASE("parse xml file with extra args")
     REQUIRE(counts->nodes_changed == 0);
     REQUIRE(counts->ways_changed == 0);
 }
+
+TEST_CASE("invalid location")
+{
+    options_t options = testing::opt_t();
+
+    auto const middle = std::make_shared<counting_middle_t>(false);
+    std::shared_ptr<output_t> output{new counting_output_t{options}};
+
+    auto counts = std::make_shared<counts_t>();
+    auto dependency_manager = std::unique_ptr<dependency_manager_t>(
+        new counting_dependency_manager_t{counts});
+
+    testing::parse_file(options, std::move(dependency_manager), middle,
+                        {output}, "test_invalid_location.osm", false);
+
+    auto const *out_test = static_cast<counting_output_t *>(output.get());
+    REQUIRE(out_test->node.added == 0);
+    REQUIRE(out_test->way.added == 0);
+    REQUIRE(out_test->relation.added == 0);
+}
+
