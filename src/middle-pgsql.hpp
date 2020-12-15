@@ -41,7 +41,7 @@ public:
 
     bool way_get(osmid_t id, osmium::memory::Buffer *buffer) const override;
 
-    size_t rel_way_members_get(osmium::Relation const &rel, rolelist_t *roles,
+    size_t rel_way_members_get(osmium::Relation const &rel,
                                osmium::memory::Buffer *buffer) const override;
 
     bool relation_get(osmid_t id,

@@ -235,9 +235,7 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         CHECK(orig_crc().checksum() == crc().checksum());
 
         // retrive the supporting ways
-        rolelist_t roles;
-        REQUIRE(mid_q->rel_way_members_get(rel, &roles, &outbuf) == 3);
-        REQUIRE(roles.size() == 3);
+        REQUIRE(mid_q->rel_way_members_get(rel, &outbuf) == 3);
 
         for (auto &w : outbuf.select<osmium::Way>()) {
             REQUIRE(w.id() >= 10);

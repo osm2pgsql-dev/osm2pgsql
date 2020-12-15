@@ -190,8 +190,7 @@ bool output_gazetteer_t::process_relation(osmium::Relation const &rel)
 
     /* get the boundary path (ways) */
     m_osmium_buffer.clear();
-    auto const num_ways =
-        m_mid->rel_way_members_get(rel, nullptr, &m_osmium_buffer);
+    auto const num_ways = m_mid->rel_way_members_get(rel, &m_osmium_buffer);
 
     if (num_ways == 0) {
         return false;

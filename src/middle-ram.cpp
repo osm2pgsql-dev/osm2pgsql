@@ -236,7 +236,6 @@ get_delta_encoded_way_nodes_list(std::string const &data, std::size_t offset,
 
 std::size_t
 middle_ram_t::rel_way_members_get(osmium::Relation const &rel,
-                                  rolelist_t *roles,
                                   osmium::memory::Buffer *buffer) const
 {
     assert(buffer);
@@ -263,9 +262,6 @@ middle_ram_t::rel_way_members_get(osmium::Relation const &rel,
                 if (offset != ordered_index_t::not_found_value()) {
                     buffer->add_item(m_object_buffer.get<osmium::Way>(offset));
                     buffer->commit();
-                    if (roles) {
-                        roles->emplace_back(member.role());
-                    }
                     ++count;
                 }
             } else if (m_store_options.way_nodes) {

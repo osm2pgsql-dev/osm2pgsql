@@ -1004,8 +1004,7 @@ output_flex_t::run_transform(geom::osmium_builder_t *builder,
                              osmium::Relation const &relation)
 {
     m_buffer.clear();
-    auto const num_ways =
-        m_mid->rel_way_members_get(relation, nullptr, &m_buffer);
+    auto const num_ways = m_mid->rel_way_members_get(relation, &m_buffer);
 
     if (num_ways == 0) {
         return {};
