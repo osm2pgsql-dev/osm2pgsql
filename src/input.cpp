@@ -204,58 +204,82 @@ prepare_input_files(std::vector<std::string> const &input_files,
     return files;
 }
 
-static osmium::item_type apply(osmium::OSMObject &object, osmdata_t &osmdata,
-                               progress_display_t &progress)
+class input_context_t
 {
-    static osmium::item_type last_type = osmium::item_type::node;
+public:
+    input_context_t(osmdata_t &osmdata, progress_display_t &progress,
+                    bool append)
+    : m_osmdata(osmdata), m_progress(progress), m_append(append)
+    {}
 
-    if (last_type != object.type()) {
-        if (last_type == osmium::item_type::node) {
-            osmdata.after_nodes();
-            progress.start_way_counter();
+    void apply(osmium::OSMObject &object)
+    {
+        if (!m_append && object.deleted()) {
+            throw std::runtime_error{"Input file contains deleted objects but "
+                                     "you are not in append mode."};
         }
-        if (object.type() == osmium::item_type::relation) {
-            osmdata.after_ways();
-            progress.start_relation_counter();
+
+        if (m_last_type != object.type()) {
+            if (m_last_type == osmium::item_type::node) {
+                m_osmdata.after_nodes();
+                m_progress.start_way_counter();
+            }
+            if (object.type() == osmium::item_type::relation) {
+                m_osmdata.after_ways();
+                m_progress.start_relation_counter();
+            }
+            m_last_type = object.type();
         }
-        last_type = object.type();
+
+        osmium::apply_item(object, m_osmdata, m_progress);
     }
 
-    osmium::apply_item(object, osmdata, progress);
+    void eof()
+    {
+        switch (m_last_type) {
+        case osmium::item_type::node:
+            m_osmdata.after_nodes();
+            // fallthrough
+        case osmium::item_type::way:
+            m_osmdata.after_ways();
+            break;
+        default:
+            break;
+        }
 
-    return last_type;
-}
+        m_osmdata.after_relations();
+        m_progress.print_summary();
+    }
 
-static osmium::item_type process_single_file(osmium::io::File const &file,
-                                             osmdata_t &osmdata,
-                                             progress_display_t &progress,
-                                             bool append)
+private:
+    osmdata_t &m_osmdata;
+    progress_display_t &m_progress;
+    osmium::item_type m_last_type = osmium::item_type::node;
+    bool m_append;
+}; // class input_context_t
+
+static void process_single_file(osmium::io::File const &file,
+                                osmdata_t &osmdata,
+                                progress_display_t &progress, bool append)
 {
     osmium::io::Reader reader{file};
     type_id_version last{osmium::item_type::node, 0, 0};
 
-    osmium::item_type last_type = osmium::item_type::node;
+    input_context_t ctx{osmdata, progress, append};
     while (osmium::memory::Buffer buffer = reader.read()) {
         for (auto &object : buffer.select<osmium::OSMObject>()) {
             last = check_input(last, object);
-            if (!append && object.deleted()) {
-                throw std::runtime_error{
-                    "Input file contains deleted objects but "
-                    "you are not in append mode."};
-            }
-            last_type = apply(object, osmdata, progress);
+            ctx.apply(object);
         }
     }
+    ctx.eof();
 
     reader.close();
-
-    return last_type;
 }
 
-static osmium::item_type
-process_multiple_files(std::vector<osmium::io::File> const &files,
-                       osmdata_t &osmdata, progress_display_t &progress,
-                       bool append)
+static void process_multiple_files(std::vector<osmium::io::File> const &files,
+                                   osmdata_t &osmdata,
+                                   progress_display_t &progress, bool append)
 {
     std::vector<data_source_t> data_sources;
     data_sources.reserve(files.size());
@@ -270,17 +294,12 @@ process_multiple_files(std::vector<osmium::io::File> const &files,
         }
     }
 
-    osmium::item_type last_type = osmium::item_type::node;
+    input_context_t ctx{osmdata, progress, append};
     while (!queue.empty()) {
         auto element = queue.top();
         queue.pop();
         if (queue.empty() || element != queue.top()) {
-            if (!append && element.object().deleted()) {
-                throw std::runtime_error{
-                    "Input file contains deleted objects but "
-                    "you are not in append mode."};
-            }
-            last_type = apply(element.object(), osmdata, progress);
+            ctx.apply(element.object());
         }
 
         auto *source = element.data_source();
@@ -288,12 +307,11 @@ process_multiple_files(std::vector<osmium::io::File> const &files,
             queue.emplace(source->get(), source);
         }
     }
+    ctx.eof();
 
     for (auto &data_source : data_sources) {
         data_source.close();
     }
-
-    return last_type;
 }
 
 void process_files(std::vector<osmium::io::File> const &files,
@@ -301,22 +319,9 @@ void process_files(std::vector<osmium::io::File> const &files,
 {
     progress_display_t progress{show_progress};
 
-    auto const last_type =
-        (files.size() == 1)
-            ? process_single_file(files.front(), osmdata, progress, append)
-            : process_multiple_files(files, osmdata, progress, append);
-
-    switch (last_type) {
-        case osmium::item_type::node:
-            osmdata.after_nodes();
-            // fallthrough
-        case osmium::item_type::way:
-            osmdata.after_ways();
-            break;
-        default:
-            break;
+    if (files.size() == 1) {
+        process_single_file(files.front(), osmdata, progress, append);
+    } else {
+        process_multiple_files(files, osmdata, progress, append);
     }
-
-    osmdata.after_relations();
-    progress.print_summary();
 }
