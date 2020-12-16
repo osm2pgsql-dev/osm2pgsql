@@ -5,6 +5,15 @@
 
 #include "pgsql.hpp"
 
+/**
+ * Iterate over the result from a pgsql query and generate a list of all the
+ * ids from the first column.
+ *
+ * \param result The result to iterate over.
+ * \returns A list of ids.
+ */
+idlist_t get_ids_from_result(pg_result_t const &result);
+
 void create_geom_check_trigger(pg_conn_t *db_connection,
                                std::string const &schema,
                                std::string const &table,

@@ -29,22 +29,6 @@
 #include "pgsql-helper.hpp"
 #include "util.hpp"
 
-/**
- * Iterate over the result from a pgsql query and call the func with all
- * the ids from the first column.
- *
- * \param result The result to iterate over.
- * \param func Lambda taking an osmid_t as only parameter.
- */
-template <typename FUNC>
-void for_each_id(pg_result_t const &result, FUNC &&func)
-{
-    for (int i = 0; i < result.num_tuples(); ++i) {
-        auto const id = osmium::string_to_object_id(result.get_value(i, 0));
-        std::forward<FUNC>(func)(id);
-    }
-}
-
 static std::string build_sql(options_t const &options, char const *templ)
 {
     std::string const using_tablespace{options.tblsslim_index.empty()
@@ -404,13 +388,8 @@ void middle_pgsql_t::node_delete(osmid_t osm_id)
 
 idlist_t middle_pgsql_t::get_ids(const char* stmt, osmid_t osm_id)
 {
-    idlist_t ids;
-
     auto const res = m_db_connection.exec_prepared(stmt, osm_id);
-    ids.reserve(res.num_tuples());
-    for_each_id(res, [&ids](osmid_t id) { ids.push_back(id); });
-
-    return ids;
+    return get_ids_from_result(res);
 }
 
 idlist_t middle_pgsql_t::get_ways_by_node(osmid_t osm_id)
@@ -486,10 +465,7 @@ middle_query_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
     }
 
     auto const res = m_sql_conn.exec_prepared("get_way_list", id_list.get());
-    idlist_t wayidspg;
-    for_each_id(res, [&wayidspg](osmid_t id) {
-        wayidspg.push_back(id);
-    });
+    idlist_t const wayidspg = get_ids_from_result(res);
 
     // Match the list of ways coming from postgres in a different order
     //   back to the list of ways given by the caller */

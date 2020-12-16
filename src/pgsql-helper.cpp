@@ -2,6 +2,17 @@
 #include "format.hpp"
 #include "pgsql-helper.hpp"
 
+idlist_t get_ids_from_result(pg_result_t const &result) {
+    idlist_t ids;
+    ids.reserve(result.num_tuples());
+
+    for (int i = 0; i < result.num_tuples(); ++i) {
+        ids.push_back(osmium::string_to_object_id(result.get_value(i, 0)));
+    }
+
+    return ids;
+}
+
 void create_geom_check_trigger(pg_conn_t *db_connection,
                                std::string const &schema,
                                std::string const &table,
