@@ -340,7 +340,7 @@ void middle_pgsql_t::node_set(osmium::Node const &node)
     if (!m_options->flat_node_file.empty()) {
         m_persistent_cache->set(node.id(), node.location());
     } else {
-        m_db_copy.new_line(m_tables[NODE_TABLE].copy_target());
+        m_db_copy.new_line(m_tables(osmium::item_type::node).copy_target());
 
         m_db_copy.add_columns(node.id(), node.location().y(),
                               node.location().x());
@@ -381,7 +381,7 @@ void middle_pgsql_t::node_delete(osmid_t osm_id)
     if (!m_options->flat_node_file.empty()) {
         m_persistent_cache->set(osm_id, osmium::Location{});
     } else {
-        m_db_copy.new_line(m_tables[NODE_TABLE].copy_target());
+        m_db_copy.new_line(m_tables(osmium::item_type::node).copy_target());
         m_db_copy.delete_object(osm_id);
     }
 }
@@ -403,7 +403,7 @@ idlist_t middle_pgsql_t::get_rels_by_way(osmid_t osm_id)
 
 void middle_pgsql_t::way_set(osmium::Way const &way)
 {
-    m_db_copy.new_line(m_tables[WAY_TABLE].copy_target());
+    m_db_copy.new_line(m_tables(osmium::item_type::way).copy_target());
 
     m_db_copy.add_column(way.id());
 
@@ -494,7 +494,7 @@ middle_query_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
 void middle_pgsql_t::way_delete(osmid_t osm_id)
 {
     assert(m_options->append);
-    m_db_copy.new_line(m_tables[WAY_TABLE].copy_target());
+    m_db_copy.new_line(m_tables(osmium::item_type::way).copy_target());
     m_db_copy.delete_object(osm_id);
 }
 
@@ -507,7 +507,7 @@ void middle_pgsql_t::relation_set(osmium::Relation const &rel)
         parts[osmium::item_type_to_nwr_index(m.type())].push_back(m.ref());
     }
 
-    m_db_copy.new_line(m_tables[REL_TABLE].copy_target());
+    m_db_copy.new_line(m_tables(osmium::item_type::relation).copy_target());
 
     // id, way offset, relation offset
     m_db_copy.add_columns(rel.id(), parts[0].size(),
@@ -568,7 +568,7 @@ void middle_pgsql_t::relation_delete(osmid_t osm_id)
 {
     assert(m_options->append);
 
-    m_db_copy.new_line(m_tables[REL_TABLE].copy_target());
+    m_db_copy.new_line(m_tables(osmium::item_type::relation).copy_target());
     m_db_copy.delete_object(osm_id);
 }
 
@@ -576,7 +576,7 @@ void middle_pgsql_t::after_nodes()
 {
     m_db_copy.sync();
     if (m_options->flat_node_file.empty()) {
-        auto const &table = m_tables[NODE_TABLE];
+        auto const &table = m_tables(osmium::item_type::node);
         analyze_table(m_db_connection, table.schema(), table.name());
     }
 }
@@ -584,14 +584,14 @@ void middle_pgsql_t::after_nodes()
 void middle_pgsql_t::after_ways()
 {
     m_db_copy.sync();
-    auto const &table = m_tables[WAY_TABLE];
+    auto const &table = m_tables(osmium::item_type::way);
     analyze_table(m_db_connection, table.schema(), table.name());
 }
 
 void middle_pgsql_t::after_relations()
 {
     m_db_copy.sync();
-    auto const &table = m_tables[REL_TABLE];
+    auto const &table = m_tables(osmium::item_type::relation);
     analyze_table(m_db_connection, table.schema(), table.name());
 
     // release the copy thread and its database connection
@@ -804,12 +804,13 @@ middle_pgsql_t::middle_pgsql_t(options_t const *options)
         log_debug("You don't have a bucket index. See manual for details.");
     }
 
-    m_tables[NODE_TABLE] =
+    m_tables(osmium::item_type::node) =
         table_desc{*options, sql_for_nodes(options->flat_node_file.empty())};
-    m_tables[WAY_TABLE] =
+    m_tables(osmium::item_type::way) =
         table_desc{*options, sql_for_ways(has_bucket_index,
                                           options->way_node_index_id_shift)};
-    m_tables[REL_TABLE] = table_desc{*options, sql_for_relations()};
+    m_tables(osmium::item_type::relation) =
+        table_desc{*options, sql_for_relations()};
 }
 
 std::shared_ptr<middle_query_t>
