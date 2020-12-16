@@ -256,7 +256,7 @@ void table_connection_t::stop(bool updateable, bool append)
     }
 
     log_info("Analyzing table '{}'...", table().name());
-    m_db_connection->exec("ANALYZE " + table().full_name());
+    analyze_table(*m_db_connection, table().schema(), table().name());
 
     log_info("All postprocessing on table '{}' done in {}.", table().name(),
              util::human_readable_duration(timer.stop()));

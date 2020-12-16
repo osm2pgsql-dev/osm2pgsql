@@ -28,3 +28,10 @@ void create_geom_check_trigger(pg_conn_t *db_connection,
         " {}();"_format(table + "_osm2pgsql_valid",
                         qualified_name(schema, table), func_name));
 }
+
+void analyze_table(pg_conn_t const &db_connection, std::string const &schema,
+                   std::string const &name)
+{
+    auto const qual_name = qualified_name(schema, name);
+    db_connection.exec("ANALYZE {}"_format(qual_name));
+}

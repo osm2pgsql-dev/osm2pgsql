@@ -54,25 +54,20 @@ struct table_sql {
     char const *create_fw_dep_indexes = "";
 };
 
-struct middle_pgsql_t : public slim_middle_t
+struct middle_pgsql_t : public middle_t
 {
     explicit middle_pgsql_t(options_t const *options);
 
     void start() override;
     void stop(thread_pool_t &pool) override;
-    void analyze() override;
-    void commit() override;
 
-    void node_set(osmium::Node const &node) override;
-    void node_delete(osmid_t id) override;
+    void node(osmium::Node const &node) override;
+    void way(osmium::Way const &way) override;
+    void relation(osmium::Relation const &rel) override;
 
-    void way_set(osmium::Way const &way) override;
-    void way_delete(osmid_t id) override;
-
-    void relation_set(osmium::Relation const &rel) override;
-    void relation_delete(osmid_t id) override;
-
-    void flush() override;
+    void after_nodes() override;
+    void after_ways() override;
+    void after_relations() override;
 
     idlist_t get_ways_by_node(osmid_t osm_id) override;
     idlist_t get_rels_by_node(osmid_t osm_id) override;
@@ -121,6 +116,15 @@ private:
         REL_TABLE,
         NUM_TABLES
     };
+
+    void node_set(osmium::Node const &node);
+    void node_delete(osmid_t id);
+
+    void way_set(osmium::Way const &way);
+    void way_delete(osmid_t id);
+
+    void relation_set(osmium::Relation const &rel);
+    void relation_delete(osmid_t id);
 
     void buffer_store_tags(osmium::OSMObject const &obj, bool attrs);
 

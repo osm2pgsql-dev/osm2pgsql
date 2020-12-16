@@ -255,7 +255,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
             }
         }
         log_info("Analyzing table '{}'...", m_target->name);
-        m_sql_conn->exec("ANALYZE {}"_format(qual_name));
+        analyze_table(*m_sql_conn, m_target->schema, m_target->name);
 
         log_info("All postprocessing on table '{}' done in {}.", m_target->name,
                  util::human_readable_duration(timer.stop()));

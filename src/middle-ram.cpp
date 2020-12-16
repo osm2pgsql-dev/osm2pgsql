@@ -30,18 +30,21 @@
  *
  */
 
-void middle_ram_t::node_set(osmium::Node const &node)
+void middle_ram_t::node(osmium::Node const &node)
 {
+    assert(node.visible());
     m_cache->set(node.id(), node.location());
 }
 
-void middle_ram_t::way_set(osmium::Way const &way)
+void middle_ram_t::way(osmium::Way const &way)
 {
+    assert(way.visible());
     m_ways.set(way.id(), new ramWay{way, m_extra_attributes});
 }
 
-void middle_ram_t::relation_set(osmium::Relation const &rel)
+void middle_ram_t::relation(osmium::Relation const &rel)
 {
+    assert(rel.visible());
     m_rels.set(rel.id(), new ramRel{rel, m_extra_attributes});
 }
 

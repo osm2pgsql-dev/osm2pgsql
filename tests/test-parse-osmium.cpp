@@ -13,29 +13,54 @@ struct type_stats_t
     unsigned deleted = 0;
 };
 
-struct counting_slim_middle_t : public slim_middle_t
+struct counting_middle_t : public middle_t
 {
+    counting_middle_t(bool append) : m_append(append) {}
+
     void start() override {}
     void stop(thread_pool_t &) override {}
-    void flush() override {}
     void cleanup() {}
-    void analyze() override {}
-    void commit() override {}
 
-    void node_set(osmium::Node const &) override { ++node.added; }
-    void way_set(osmium::Way const &) override { ++way.added; }
-    void relation_set(osmium::Relation const &) override { ++relation.added; }
+    void node(osmium::Node const &node) override {
+        if (m_append) {
+            ++node_count.deleted;
+            if (!node.deleted()) {
+                ++node_count.added;
+            }
+            return;
+        }
+        ++node_count.added;
+    }
+
+    void way(osmium::Way const &way) override {
+        if (m_append) {
+            ++way_count.deleted;
+            if (!way.deleted()) {
+                ++way_count.added;
+            }
+            return;
+        }
+        ++way_count.added;
+    }
+
+    void relation(osmium::Relation const &relation) override {
+        if (m_append) {
+            ++relation_count.deleted;
+            if (!relation.deleted()) {
+                ++relation_count.added;
+            }
+            return;
+        }
+        ++relation_count.added;
+    }
 
     std::shared_ptr<middle_query_t> get_query_instance() override
     {
         return std::shared_ptr<middle_query_t>{};
     }
 
-    void node_delete(osmid_t) override { ++node.deleted; }
-    void way_delete(osmid_t) override { ++way.deleted; }
-    void relation_delete(osmid_t) override { ++relation.deleted; }
-
-    type_stats_t node, way, relation;
+    type_stats_t node_count, way_count, relation_count;
+    bool m_append;
 };
 
 struct counting_output_t : public output_null_t
@@ -119,7 +144,7 @@ TEST_CASE("parse xml file")
 {
     options_t const options = testing::opt_t().slim();
 
-    auto const middle = std::make_shared<counting_slim_middle_t>();
+    auto const middle = std::make_shared<counting_middle_t>(false);
     std::shared_ptr<output_t> output{new counting_output_t{options}};
 
     auto counts = std::make_shared<counts_t>();
@@ -143,13 +168,13 @@ TEST_CASE("parse xml file")
     REQUIRE(out_test->relation.modified == 0);
     REQUIRE(out_test->relation.deleted == 0);
 
-    auto const *mid_test = static_cast<counting_slim_middle_t *>(middle.get());
-    REQUIRE(mid_test->node.added == 353);
-    REQUIRE(mid_test->node.deleted == 0);
-    REQUIRE(mid_test->way.added == 140);
-    REQUIRE(mid_test->way.deleted == 0);
-    REQUIRE(mid_test->relation.added == 40);
-    REQUIRE(mid_test->relation.deleted == 0);
+    auto const *mid_test = middle.get();
+    REQUIRE(mid_test->node_count.added == 353);
+    REQUIRE(mid_test->node_count.deleted == 0);
+    REQUIRE(mid_test->way_count.added == 140);
+    REQUIRE(mid_test->way_count.deleted == 0);
+    REQUIRE(mid_test->relation_count.added == 40);
+    REQUIRE(mid_test->relation_count.deleted == 0);
 
     REQUIRE(counts->nodes_changed == 0);
     REQUIRE(counts->ways_changed == 0);
@@ -159,7 +184,7 @@ TEST_CASE("parse diff file")
 {
     options_t const options = testing::opt_t().slim().append();
 
-    auto const middle = std::make_shared<counting_slim_middle_t>();
+    auto const middle = std::make_shared<counting_middle_t>(true);
     std::shared_ptr<output_t> output{new counting_output_t{options}};
 
     auto counts = std::make_shared<counts_t>();
@@ -180,13 +205,13 @@ TEST_CASE("parse diff file")
     REQUIRE(out_test->relation.modified == 11);
     REQUIRE(out_test->relation.deleted == 1);
 
-    auto *mid_test = static_cast<counting_slim_middle_t *>(middle.get());
-    REQUIRE(mid_test->node.added == 1176);
-    REQUIRE(mid_test->node.deleted == 17949);
-    REQUIRE(mid_test->way.added == 161);
-    REQUIRE(mid_test->way.deleted == 165);
-    REQUIRE(mid_test->relation.added == 11);
-    REQUIRE(mid_test->relation.deleted == 12);
+    auto *mid_test = middle.get();
+    REQUIRE(mid_test->node_count.added == 1176);
+    REQUIRE(mid_test->node_count.deleted == 17949);
+    REQUIRE(mid_test->way_count.added == 161);
+    REQUIRE(mid_test->way_count.deleted == 165);
+    REQUIRE(mid_test->relation_count.added == 11);
+    REQUIRE(mid_test->relation_count.deleted == 12);
 
     REQUIRE(counts->nodes_changed == 1176);
     REQUIRE(counts->ways_changed == 161);
@@ -197,7 +222,7 @@ TEST_CASE("parse xml file with extra args")
     options_t options = testing::opt_t().slim().srs(PROJ_SPHERE_MERC);
     options.extra_attributes = true;
 
-    auto const middle = std::make_shared<counting_slim_middle_t>();
+    auto const middle = std::make_shared<counting_middle_t>(false);
     std::shared_ptr<output_t> output{new counting_output_t{options}};
 
     auto counts = std::make_shared<counts_t>();
@@ -221,14 +246,35 @@ TEST_CASE("parse xml file with extra args")
     REQUIRE(out_test->relation.modified == 0);
     REQUIRE(out_test->relation.deleted == 0);
 
-    auto const *mid_test = static_cast<counting_slim_middle_t *>(middle.get());
-    REQUIRE(mid_test->node.added == 353);
-    REQUIRE(mid_test->node.deleted == 0);
-    REQUIRE(mid_test->way.added == 140);
-    REQUIRE(mid_test->way.deleted == 0);
-    REQUIRE(mid_test->relation.added == 40);
-    REQUIRE(mid_test->relation.deleted == 0);
+    auto const *mid_test = middle.get();
+    REQUIRE(mid_test->node_count.added == 353);
+    REQUIRE(mid_test->node_count.deleted == 0);
+    REQUIRE(mid_test->way_count.added == 140);
+    REQUIRE(mid_test->way_count.deleted == 0);
+    REQUIRE(mid_test->relation_count.added == 40);
+    REQUIRE(mid_test->relation_count.deleted == 0);
 
     REQUIRE(counts->nodes_changed == 0);
     REQUIRE(counts->ways_changed == 0);
 }
+
+TEST_CASE("invalid location")
+{
+    options_t options = testing::opt_t();
+
+    auto const middle = std::make_shared<counting_middle_t>(false);
+    std::shared_ptr<output_t> output{new counting_output_t{options}};
+
+    auto counts = std::make_shared<counts_t>();
+    auto dependency_manager = std::unique_ptr<dependency_manager_t>(
+        new counting_dependency_manager_t{counts});
+
+    testing::parse_file(options, std::move(dependency_manager), middle,
+                        {output}, "test_invalid_location.osm", false);
+
+    auto const *out_test = static_cast<counting_output_t *>(output.get());
+    REQUIRE(out_test->node.added == 0);
+    REQUIRE(out_test->way.added == 0);
+    REQUIRE(out_test->relation.added == 0);
+}
+

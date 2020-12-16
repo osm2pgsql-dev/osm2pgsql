@@ -26,6 +26,7 @@
 #include "node-ram-cache.hpp"
 #include "options.hpp"
 #include "osmtypes.hpp"
+#include "pgsql-helper.hpp"
 #include "util.hpp"
 
 /**
@@ -314,6 +315,40 @@ std::size_t middle_query_pgsql_t::get_way_node_locations_db(
     return count;
 }
 
+void middle_pgsql_t::node(osmium::Node const &node)
+{
+    if (node.deleted()) {
+        node_delete(node.id());
+    } else {
+        if (m_options->append) {
+            node_delete(node.id());
+        }
+        node_set(node);
+    }
+}
+
+void middle_pgsql_t::way(osmium::Way const &way) {
+    if (way.deleted()) {
+        way_delete(way.id());
+    } else {
+        if (m_options->append) {
+            way_delete(way.id());
+        }
+        way_set(way);
+    }
+}
+
+void middle_pgsql_t::relation(osmium::Relation const &relation) {
+    if (relation.deleted()) {
+        relation_delete(relation.id());
+    } else {
+        if (m_options->append) {
+            relation_delete(relation.id());
+        }
+        relation_set(relation);
+    }
+}
+
 void middle_pgsql_t::node_set(osmium::Node const &node)
 {
     m_cache->set(node.id(), node.location());
@@ -567,11 +602,30 @@ void middle_pgsql_t::relation_delete(osmid_t osm_id)
     m_db_copy.delete_object(osm_id);
 }
 
-void middle_pgsql_t::analyze()
+void middle_pgsql_t::after_nodes()
 {
-    for (auto const &table : m_tables) {
-        m_db_connection.exec("ANALYZE {}"_format(table.name()));
+    m_db_copy.sync();
+    if (m_options->flat_node_file.empty()) {
+        auto const &table = m_tables[NODE_TABLE];
+        analyze_table(m_db_connection, table.schema(), table.name());
     }
+}
+
+void middle_pgsql_t::after_ways()
+{
+    m_db_copy.sync();
+    auto const &table = m_tables[WAY_TABLE];
+    analyze_table(m_db_connection, table.schema(), table.name());
+}
+
+void middle_pgsql_t::after_relations()
+{
+    m_db_copy.sync();
+    auto const &table = m_tables[REL_TABLE];
+    analyze_table(m_db_connection, table.schema(), table.name());
+
+    // release the copy thread and its database connection
+    m_copy_thread->finish();
 }
 
 middle_query_pgsql_t::middle_query_pgsql_t(
@@ -610,15 +664,6 @@ void middle_pgsql_t::start()
         }
     }
 }
-
-void middle_pgsql_t::commit()
-{
-    m_db_copy.sync();
-    // release the copy thread and its query connection
-    m_copy_thread->finish();
-}
-
-void middle_pgsql_t::flush() { m_db_copy.sync(); }
 
 void middle_pgsql_t::stop(thread_pool_t &pool)
 {

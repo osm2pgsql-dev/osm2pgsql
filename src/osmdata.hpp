@@ -22,7 +22,6 @@
 class options_t;
 class output_t;
 struct middle_t;
-struct slim_middle_t;
 
 /**
  * This class guides the processing of the OSM data through its multiple
@@ -66,8 +65,6 @@ private:
     void way_delete(osmid_t id) const;
     void relation_delete(osmid_t id) const;
 
-    void flush() const;
-
     /**
      * Run stage 1b and stage 1c processing: Process dependent objects in
      * append mode.
@@ -83,8 +80,6 @@ private:
      * Run postprocessing on database: Clustering and index creation.
      */
     void postprocess_database() const;
-
-    slim_middle_t &slim_middle() const noexcept;
 
     std::unique_ptr<dependency_manager_t> m_dependency_manager;
     std::shared_ptr<middle_t> m_mid;
