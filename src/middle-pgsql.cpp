@@ -386,25 +386,19 @@ void middle_pgsql_t::node_delete(osmid_t osm_id)
     }
 }
 
-idlist_t middle_pgsql_t::get_ids(const char* stmt, osmid_t osm_id)
-{
-    auto const res = m_db_connection.exec_prepared(stmt, osm_id);
-    return get_ids_from_result(res);
-}
-
 idlist_t middle_pgsql_t::get_ways_by_node(osmid_t osm_id)
 {
-    return get_ids("mark_ways_by_node", osm_id);
+    return get_ids_from_db(&m_db_connection, "mark_ways_by_node", osm_id);
 }
 
 idlist_t middle_pgsql_t::get_rels_by_node(osmid_t osm_id)
 {
-    return get_ids("mark_rels_by_node", osm_id);
+    return get_ids_from_db(&m_db_connection, "mark_rels_by_node", osm_id);
 }
 
 idlist_t middle_pgsql_t::get_rels_by_way(osmid_t osm_id)
 {
-    return get_ids("mark_rels_by_way", osm_id);
+    return get_ids_from_db(&m_db_connection, "mark_rels_by_way", osm_id);
 }
 
 void middle_pgsql_t::way_set(osmium::Way const &way)

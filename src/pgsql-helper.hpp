@@ -14,6 +14,9 @@
  */
 idlist_t get_ids_from_result(pg_result_t const &result);
 
+idlist_t get_ids_from_db(pg_conn_t const *db_connection, char const *stmt,
+                         osmid_t id);
+
 void create_geom_check_trigger(pg_conn_t *db_connection,
                                std::string const &schema,
                                std::string const &table,
