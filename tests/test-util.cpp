@@ -35,6 +35,30 @@ TEST_CASE("double_to_buffer 3.141", "[NoDB]")
     REQUIRE(std::strcmp(buffer.c_str(), "3.141") == 0);
 }
 
+TEST_CASE("string_id_list_t with one element", "[NoDB]")
+{
+    util::string_id_list_t list;
+    REQUIRE(list.empty());
+
+    list.add(17);
+
+    REQUIRE_FALSE(list.empty());
+    REQUIRE(list.get() == "{17}");
+}
+
+TEST_CASE("string_id_list_t with several elements", "[NoDB]")
+{
+    util::string_id_list_t list;
+    REQUIRE(list.empty());
+
+    list.add(17);
+    list.add(3);
+    list.add(99);
+
+    REQUIRE_FALSE(list.empty());
+    REQUIRE(list.get() == "{17,3,99}");
+}
+
 TEST_CASE("human readable time durations", "[NoDB]")
 {
     REQUIRE(util::human_readable_duration(0) == "0s");

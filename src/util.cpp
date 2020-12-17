@@ -3,6 +3,18 @@
 
 namespace util {
 
+void string_id_list_t::add(osmid_t id)
+{
+    fmt::format_to(std::back_inserter(m_list), "{},", id);
+}
+
+std::string const &string_id_list_t::get()
+{
+    assert(!empty());
+    m_list.back() = '}';
+    return m_list;
+}
+
 std::string human_readable_duration(uint64_t seconds)
 {
     if (seconds < 60) {

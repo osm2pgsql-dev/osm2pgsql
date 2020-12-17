@@ -53,6 +53,24 @@ private:
 };
 
 /**
+ * Class for building a stringified list of ids in the format "{id1,id2,id3}"
+ * for use in PostgreSQL queries.
+ */
+class string_id_list_t
+{
+public:
+    void add(osmid_t id);
+
+    bool empty() const noexcept { return m_list.size() == 1; }
+
+    std::string const &get();
+
+private:
+    std::string m_list{"{"};
+
+}; // class string_id_list_t
+
+/**
  * Helper class for timing with a granularity of seconds. The timer will
  * start on construction and is stopped by calling stop().
  */

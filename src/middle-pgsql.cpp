@@ -229,37 +229,11 @@ void middle_pgsql_t::buffer_store_tags(osmium::OSMObject const &obj, bool attrs)
     }
 }
 
-/**
- * Class for building a stringified list of ids in the format "{id1,id2,id3}"
- * for use in PostgreSQL queries.
- */
-class string_id_list
-{
-public:
-    void add(osmid_t id)
-    {
-        fmt::format_to(std::back_inserter(m_list), "{},", id);
-    }
-
-    bool empty() const noexcept { return m_list.size() == 1; }
-
-    std::string const &get()
-    {
-        assert(!empty());
-        m_list.back() = '}';
-        return m_list;
-    }
-
-private:
-    std::string m_list{"{"};
-
-}; // class string_id_list
-
 std::size_t middle_query_pgsql_t::get_way_node_locations_db(
     osmium::WayNodeList *nodes) const
 {
     size_t count = 0;
-    string_id_list id_list;
+    util::string_id_list_t id_list;
 
     // get nodes where possible from cache,
     // at the same time build a list for querying missing nodes from DB
@@ -446,7 +420,7 @@ middle_query_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
                                           rolelist_t *roles,
                                           osmium::memory::Buffer &buffer) const
 {
-    string_id_list id_list;
+    util::string_id_list_t id_list;
 
     for (auto const &m : rel.members()) {
         if (m.type() == osmium::item_type::way) {
