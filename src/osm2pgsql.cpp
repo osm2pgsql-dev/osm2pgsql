@@ -40,6 +40,37 @@
 #include <exception>
 #include <memory>
 
+static void run(options_t const &options)
+{
+    auto const files = prepare_input_files(
+        options.input_files, options.input_format, options.append);
+
+    auto middle = create_middle(options);
+    middle->start();
+
+    auto const outputs =
+        output_t::create_outputs(middle->get_query_instance(), options);
+
+    auto dependency_manager = std::unique_ptr<dependency_manager_t>(
+        options.with_forward_dependencies
+            ? new full_dependency_manager_t{middle}
+            : new dependency_manager_t{});
+
+    osmdata_t osmdata{std::move(dependency_manager), middle, outputs,
+                        options};
+
+    osmdata.start();
+
+    // Processing: In this phase the input file(s) are read and parsed,
+    // populating some of the tables.
+    process_files(files, osmdata, options.append,
+                    get_logger().show_progress());
+
+    // Process pending ways and relations. Cluster database tables and
+    // create indexes.
+    osmdata.stop();
+}
+
 int main(int argc, char *argv[])
 {
     try {
@@ -50,36 +81,11 @@ int main(int argc, char *argv[])
             return 0;
         }
 
+        util::timer_t timer_overall;
+
         check_db(options);
 
-        auto const files = prepare_input_files(
-            options.input_files, options.input_format, options.append);
-
-        auto middle = create_middle(options);
-        middle->start();
-
-        auto const outputs =
-            output_t::create_outputs(middle->get_query_instance(), options);
-
-        auto dependency_manager = std::unique_ptr<dependency_manager_t>(
-            options.with_forward_dependencies
-                ? new full_dependency_manager_t{middle}
-                : new dependency_manager_t{});
-
-        osmdata_t osmdata{std::move(dependency_manager), middle, outputs,
-                          options};
-
-        util::timer_t timer_overall;
-        osmdata.start();
-
-        // Processing: In this phase the input file(s) are read and parsed,
-        // populating some of the tables.
-        process_files(files, osmdata, options.append,
-                      get_logger().show_progress());
-
-        // Process pending ways and relations. Cluster database tables and
-        // create indexes.
-        osmdata.stop();
+        run(options);
 
         // Output overall memory usage. This only works on Linux.
         osmium::MemoryUsage mem;
@@ -88,7 +94,7 @@ int main(int argc, char *argv[])
                       mem.peak(), mem.current());
         }
 
-        log_info("Osm2pgsql took {} overall.",
+        log_info("osm2pgsql took {} overall.",
                  util::human_readable_duration(timer_overall.stop()));
     } catch (std::exception const &e) {
         log_error("{}", e.what());
