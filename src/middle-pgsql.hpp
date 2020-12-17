@@ -128,8 +128,6 @@ private:
 
     void buffer_store_tags(osmium::OSMObject const &obj, bool attrs);
 
-    idlist_t get_ids(const char* stmt, osmid_t osm_id);
-
     table_desc m_tables[NUM_TABLES];
 
     options_t const *m_options;
