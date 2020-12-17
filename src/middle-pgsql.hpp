@@ -11,6 +11,8 @@
 
 #include <memory>
 
+#include <osmium/index/nwr_array.hpp>
+
 #include "db-copy-mgr.hpp"
 #include "middle.hpp"
 #include "node-persistent-cache.hpp"
@@ -109,14 +111,6 @@ struct middle_pgsql_t : public middle_t
     std::shared_ptr<middle_query_t> get_query_instance() override;
 
 private:
-    enum middle_tables
-    {
-        NODE_TABLE = 0,
-        WAY_TABLE,
-        REL_TABLE,
-        NUM_TABLES
-    };
-
     void node_set(osmium::Node const &node);
     void node_delete(osmid_t id);
 
@@ -128,7 +122,7 @@ private:
 
     void buffer_store_tags(osmium::OSMObject const &obj, bool attrs);
 
-    table_desc m_tables[NUM_TABLES];
+    osmium::nwr_array<table_desc> m_tables;
 
     options_t const *m_options;
 
