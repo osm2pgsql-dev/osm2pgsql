@@ -35,6 +35,8 @@
 #include "util.hpp"
 #include "version.hpp"
 
+#include <osmium/util/memory.hpp>
+
 #include <exception>
 #include <memory>
 
@@ -72,11 +74,19 @@ int main(int argc, char *argv[])
 
         // Processing: In this phase the input file(s) are read and parsed,
         // populating some of the tables.
-        process_files(files, osmdata, options.append, get_logger().show_progress());
+        process_files(files, osmdata, options.append,
+                      get_logger().show_progress());
 
         // Process pending ways and relations. Cluster database tables and
         // create indexes.
         osmdata.stop();
+
+        // Output overall memory usage. This only works on Linux.
+        osmium::MemoryUsage mem;
+        if (mem.peak() != 0) {
+            log_debug("Overall memory usage: peak={}MByte current={}MByte",
+                      mem.peak(), mem.current());
+        }
 
         log_info("Osm2pgsql took {} overall.",
                  util::human_readable_duration(timer_overall.stop()));
@@ -84,5 +94,6 @@ int main(int argc, char *argv[])
         log_error("{}", e.what());
         return 1;
     }
+
     return 0;
 }
