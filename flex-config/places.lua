@@ -1,3 +1,4 @@
+-- This config example file is released into the Public Domain.
 
 -- This example shows how you can use JSON and JSONB columns in your database.
 

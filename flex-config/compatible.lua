@@ -1,3 +1,4 @@
+-- This config example file is released into the Public Domain.
 
 -- This configuration for the flex output tries to be compatible with the
 -- original pgsql C transform output. There might be some corner cases but

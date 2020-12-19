@@ -1,3 +1,4 @@
+-- This config example file is released into the Public Domain.
 
 -- This file shows how to use multi-stage processing to bring tags from
 -- relations into ways.
