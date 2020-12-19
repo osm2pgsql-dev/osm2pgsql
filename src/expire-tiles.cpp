@@ -1,7 +1,14 @@
+/**
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * This file is part of osm2pgsql (https://osm2pgsql.org/).
+ *
+ * Copyright (C) 2006-2020 by the osm2pgsql developer community.
+ * For a full list of authors see the git log.
+ */
+
 /*
  * Dirty tile list generation
- *
- * Steve Hill <steve@nexusuk.org>
  *
  * Please refer to the OpenPisteMap expire_tiles.py script for a demonstration
  * of how to make use of the output:
