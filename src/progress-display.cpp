@@ -25,7 +25,7 @@ static double count_per_second(osmid_t count, uint64_t elapsed) noexcept
     return static_cast<double>(count) / elapsed;
 }
 
-static std::string cps_display(osmid_t count, uint64_t elapsed) noexcept
+static std::string cps_display(osmid_t count, uint64_t elapsed)
 {
     double const cps = count_per_second(count, elapsed);
 
