@@ -13,6 +13,6 @@
 #define FMT_HEADER_ONLY
 #include <fmt/format.h>
 
-using namespace fmt::literals;
+using namespace fmt::literals; // NOLINT(google-global-names-in-headers)
 
 #endif // OSM2PGSQL_FORMAT_HPP
