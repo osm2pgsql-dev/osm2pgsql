@@ -35,7 +35,7 @@ struct middle_query_t : std::enable_shared_from_this<middle_query_t>
      *
      * \return true if the way was retrieved
      */
-    virtual bool way_get(osmid_t id, osmium::memory::Buffer &buffer) const = 0;
+    virtual bool way_get(osmid_t id, osmium::memory::Buffer *buffer) const = 0;
 
     /**
      * Retrieves the way members of a relation and stores them in
@@ -47,7 +47,7 @@ struct middle_query_t : std::enable_shared_from_this<middle_query_t>
      */
     virtual size_t
     rel_way_members_get(osmium::Relation const &rel, rolelist_t *roles,
-                        osmium::memory::Buffer &buffer) const = 0;
+                        osmium::memory::Buffer *buffer) const = 0;
 
     /**
      * Retrives a single relation from the relation storage
@@ -59,7 +59,7 @@ struct middle_query_t : std::enable_shared_from_this<middle_query_t>
      * \return true if the relation was retrieved
      */
     virtual bool relation_get(osmid_t id,
-                              osmium::memory::Buffer &buffer) const = 0;
+                              osmium::memory::Buffer *buffer) const = 0;
 };
 
 inline middle_query_t::~middle_query_t() = default;

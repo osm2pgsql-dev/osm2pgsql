@@ -88,7 +88,7 @@ size_t relation_helper::set(osmium::Relation const &rel,
     roles.clear();
 
     // get the nodes and roles of the ways
-    return mid->rel_way_members_get(rel, &roles, data);
+    return mid->rel_way_members_get(rel, &roles, &data);
 }
 
 void relation_helper::add_way_locations(middle_query_t const *mid)

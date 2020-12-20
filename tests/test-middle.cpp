@@ -223,7 +223,7 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         osmium::memory::Buffer outbuf{4096,
                                       osmium::memory::Buffer::auto_grow::yes};
 
-        REQUIRE(mid_q->way_get(way_id, outbuf));
+        REQUIRE(mid_q->way_get(way_id, &outbuf));
 
         auto &way = outbuf.get<osmium::Way>(0);
 
@@ -236,7 +236,7 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         }
 
         // other ways are not retrievable
-        REQUIRE_FALSE(mid_q->way_get(way_id + 1, outbuf));
+        REQUIRE_FALSE(mid_q->way_get(way_id + 1, &outbuf));
     }
 
     SECTION("Set and retrieve a single relation with supporting ways")
@@ -267,7 +267,7 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         // retrieve the relation
         osmium::memory::Buffer outbuf{4096,
                                       osmium::memory::Buffer::auto_grow::yes};
-        REQUIRE(mid_q->relation_get(123, outbuf));
+        REQUIRE(mid_q->relation_get(123, &outbuf));
         auto const &rel = outbuf.get<osmium::Relation>(0);
 
         CHECK(rel.id() == 123);
@@ -279,7 +279,7 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
 
         // retrive the supporting ways
         rolelist_t roles;
-        REQUIRE(mid_q->rel_way_members_get(rel, &roles, outbuf) == 3);
+        REQUIRE(mid_q->rel_way_members_get(rel, &roles, &outbuf) == 3);
         REQUIRE(roles.size() == 3);
 
         for (auto &w : outbuf.select<osmium::Way>()) {
@@ -293,7 +293,7 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         }
 
         // other relations are not retrievable
-        REQUIRE_FALSE(mid_q->relation_get(999, outbuf));
+        REQUIRE_FALSE(mid_q->relation_get(999, &outbuf));
     }
 
     if (!options.middle_dbschema.empty()) {
@@ -480,7 +480,7 @@ static void check_way(std::shared_ptr<middle_pgsql_t> const &mid,
     auto const mid_q = mid->get_query_instance();
 
     osmium::memory::Buffer outbuf{4096, osmium::memory::Buffer::auto_grow::yes};
-    REQUIRE(mid_q->way_get(orig_way.id(), outbuf));
+    REQUIRE(mid_q->way_get(orig_way.id(), &outbuf));
     auto const &way = outbuf.get<osmium::Way>(0);
 
     osmium::CRC<osmium::CRC_zlib> orig_crc;
@@ -503,7 +503,7 @@ static void check_way_nodes(std::shared_ptr<middle_pgsql_t> const &mid,
     auto const mid_q = mid->get_query_instance();
 
     osmium::memory::Buffer outbuf{4096, osmium::memory::Buffer::auto_grow::yes};
-    REQUIRE(mid_q->way_get(way_id, outbuf));
+    REQUIRE(mid_q->way_get(way_id, &outbuf));
     auto &way = outbuf.get<osmium::Way>(0);
 
     REQUIRE(mid_q->nodes_get_list(&way.nodes()) == way.nodes().size());
@@ -521,7 +521,7 @@ static bool no_way(std::shared_ptr<middle_pgsql_t> const &mid, osmid_t id)
 {
     auto const mid_q = mid->get_query_instance();
     osmium::memory::Buffer outbuf{4096, osmium::memory::Buffer::auto_grow::yes};
-    return !mid_q->way_get(id, outbuf);
+    return !mid_q->way_get(id, &outbuf);
 }
 
 TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
@@ -734,7 +734,7 @@ static void check_relation(std::shared_ptr<middle_pgsql_t> const &mid,
     auto const mid_q = mid->get_query_instance();
 
     osmium::memory::Buffer outbuf{4096, osmium::memory::Buffer::auto_grow::yes};
-    REQUIRE(mid_q->relation_get(orig_relation.id(), outbuf));
+    REQUIRE(mid_q->relation_get(orig_relation.id(), &outbuf));
     auto const &relation = outbuf.get<osmium::Relation>(0);
 
     osmium::CRC<osmium::CRC_zlib> orig_crc;
@@ -751,7 +751,7 @@ static bool no_relation(std::shared_ptr<middle_pgsql_t> const &mid, osmid_t id)
 {
     auto const mid_q = mid->get_query_instance();
     osmium::memory::Buffer outbuf{4096, osmium::memory::Buffer::auto_grow::yes};
-    return !mid_q->relation_get(id, outbuf);
+    return !mid_q->relation_get(id, &outbuf);
 }
 
 TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
