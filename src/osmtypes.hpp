@@ -38,13 +38,13 @@ struct member
     osmid_t id;
     std::string role;
 
-    explicit operator osmium::builder::attr::member_type const() const
+    explicit operator osmium::builder::attr::member_type() const
     {
         return osmium::builder::attr::member_type(type, id, role.c_str());
     }
 
-    member(osmium::item_type t, osmid_t i, std::string const &r)
-    : type(t), id(i), role(r)
+    member(osmium::item_type t, osmid_t i, std::string r)
+    : type(t), id(i), role(std::move(r))
     {}
 };
 
@@ -73,13 +73,14 @@ struct tag_t
     std::string key;
     std::string value;
 
-    operator std::pair<char const *, char const *> const() const noexcept
+    operator std::pair<char const *, char const *>() const noexcept
     {
         return std::pair<char const *, char const *>(key.c_str(),
                                                      value.c_str());
     }
 
-    tag_t(std::string const &k, std::string const &v) : key(k), value(v) {}
+    tag_t(std::string k, std::string v) : key(std::move(k)), value(std::move(v))
+    {}
 };
 
 /**
