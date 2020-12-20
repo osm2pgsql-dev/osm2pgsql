@@ -9,6 +9,8 @@
 #include <fmt/color.h>
 
 #include <cstdio>
+#include <sstream>
+#include <thread>
 #include <utility>
 
 enum class log_level
@@ -39,6 +41,13 @@ public:
 
         std::string str =
             "{:%Y-%m-%d %H:%M:%S}  "_format(fmt::localtime(std::time(nullptr)));
+
+        if (m_current_level == log_level::debug) {
+            std::stringstream s;
+            s << std::this_thread::get_id();
+            str += s.str();
+            str += ' ';
+        }
 
         if (prefix) {
             str += fmt::format(ts, "{}: ", prefix);
