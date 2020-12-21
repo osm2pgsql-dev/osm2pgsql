@@ -414,9 +414,12 @@ void osmdata_t::reprocess_marked() const
 
 void osmdata_t::postprocess_database() const
 {
+    auto const num_threads = m_parallel_indexing ? m_num_procs : 1;
+    log_debug("Starting pool with {} threads.", num_threads);
+
     // All the intensive parts of this are long-running PostgreSQL commands.
     // They will be run in a thread pool.
-    thread_pool_t pool{m_parallel_indexing ? m_num_procs : 1};
+    thread_pool_t pool{num_threads};
 
     if (m_droptemp) {
         // When dropping middle tables, make sure they are gone before
