@@ -63,8 +63,8 @@ static void run(options_t const &options)
 
     // Processing: In this phase the input file(s) are read and parsed,
     // populating some of the tables.
-    process_files(files, osmdata, options.append,
-                    get_logger().show_progress());
+    process_files(files, &osmdata, options.append,
+                  get_logger().show_progress());
 
     // Process pending ways and relations. Cluster database tables and
     // create indexes.
