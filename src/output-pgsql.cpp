@@ -71,7 +71,7 @@ void output_pgsql_t::pending_way(osmid_t id)
 {
     // Try to fetch the way from the DB
     buffer.clear();
-    if (m_mid->way_get(id, buffer)) {
+    if (m_mid->way_get(id, &buffer)) {
         pgsql_delete_way_from_output(id);
 
         taglist_t outtags;
@@ -95,7 +95,7 @@ void output_pgsql_t::pending_relation(osmid_t id)
     // we cannot keep a reference to the relation and an autogrow buffer
     // might be relocated when more data is added.
     rels_buffer.clear();
-    if (m_mid->relation_get(id, rels_buffer)) {
+    if (m_mid->relation_get(id, &rels_buffer)) {
         pgsql_delete_relation_from_output(id);
 
         auto const &rel = rels_buffer.get<osmium::Relation>(0);
@@ -166,7 +166,7 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
 
     buffer.clear();
     rolelist_t xrole;
-    auto num_ways = m_mid->rel_way_members_get(rel, &xrole, buffer);
+    auto num_ways = m_mid->rel_way_members_get(rel, &xrole, &buffer);
 
     if (num_ways == 0) {
         return;

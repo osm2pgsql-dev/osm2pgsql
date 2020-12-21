@@ -64,8 +64,10 @@ size_t middle_ram_t::nodes_get_list(osmium::WayNodeList *nodes) const
     return count;
 }
 
-bool middle_ram_t::way_get(osmid_t id, osmium::memory::Buffer &buffer) const
+bool middle_ram_t::way_get(osmid_t id, osmium::memory::Buffer *buffer) const
 {
+    assert(buffer);
+
     auto const *ele = m_ways.get(id);
 
     if (!ele) {
@@ -73,7 +75,7 @@ bool middle_ram_t::way_get(osmid_t id, osmium::memory::Buffer &buffer) const
     }
 
     using namespace osmium::builder::attr;
-    osmium::builder::add_way(buffer, _id(id), _tags(ele->tags),
+    osmium::builder::add_way(*buffer, _id(id), _tags(ele->tags),
                              _nodes(ele->ndids));
 
     return true;
@@ -81,8 +83,10 @@ bool middle_ram_t::way_get(osmid_t id, osmium::memory::Buffer &buffer) const
 
 size_t middle_ram_t::rel_way_members_get(osmium::Relation const &rel,
                                          rolelist_t *roles,
-                                         osmium::memory::Buffer &buffer) const
+                                         osmium::memory::Buffer *buffer) const
 {
+    assert(buffer);
+
     size_t count = 0;
     for (auto const &m : rel.members()) {
         if (m.type() == osmium::item_type::way && way_get(m.ref(), buffer)) {
@@ -97,8 +101,10 @@ size_t middle_ram_t::rel_way_members_get(osmium::Relation const &rel,
 }
 
 bool middle_ram_t::relation_get(osmid_t id,
-                                osmium::memory::Buffer &buffer) const
+                                osmium::memory::Buffer *buffer) const
 {
+    assert(buffer);
+
     auto const *ele = m_rels.get(id);
 
     if (!ele) {
@@ -106,7 +112,7 @@ bool middle_ram_t::relation_get(osmid_t id,
     }
 
     using namespace osmium::builder::attr;
-    osmium::builder::add_relation(buffer, _id(id),
+    osmium::builder::add_relation(*buffer, _id(id),
                                   _members(ele->members.for_builder()),
                                   _tags(ele->tags));
 

@@ -30,12 +30,13 @@ public:
 
     size_t nodes_get_list(osmium::WayNodeList *nodes) const override;
 
-    bool way_get(osmid_t id, osmium::memory::Buffer &buffer) const override;
+    bool way_get(osmid_t id, osmium::memory::Buffer *buffer) const override;
+
     size_t rel_way_members_get(osmium::Relation const &rel, rolelist_t *roles,
-                               osmium::memory::Buffer &buffer) const override;
+                               osmium::memory::Buffer *buffer) const override;
 
     bool relation_get(osmid_t id,
-                      osmium::memory::Buffer &buffer) const override;
+                      osmium::memory::Buffer *buffer) const override;
 
     void exec_sql(std::string const &sql_cmd) const;
 

@@ -992,7 +992,7 @@ output_flex_t::run_transform(geom::osmium_builder_t *builder,
 {
     m_buffer.clear();
     auto const num_ways =
-        m_mid->rel_way_members_get(relation, nullptr, m_buffer);
+        m_mid->rel_way_members_get(relation, nullptr, &m_buffer);
 
     if (num_ways == 0) {
         return {};
@@ -1080,7 +1080,7 @@ void output_flex_t::pending_way(osmid_t id)
     }
 
     m_buffer.clear();
-    if (!m_mid->way_get(id, m_buffer)) {
+    if (!m_mid->way_get(id, &m_buffer)) {
         return;
     }
 
@@ -1164,7 +1164,7 @@ void output_flex_t::select_relation_members(osmid_t id)
         return;
     }
 
-    if (!m_mid->relation_get(id, m_rels_buffer)) {
+    if (!m_mid->relation_get(id, &m_rels_buffer)) {
         return;
     }
 
@@ -1179,7 +1179,7 @@ void output_flex_t::pending_relation(osmid_t id)
         return;
     }
 
-    if (!m_mid->relation_get(id, m_rels_buffer)) {
+    if (!m_mid->relation_get(id, &m_rels_buffer)) {
         return;
     }
     auto const &relation = m_rels_buffer.get<osmium::Relation>(0);
@@ -1202,7 +1202,7 @@ void output_flex_t::pending_relation_stage1c(osmid_t id)
         return;
     }
 
-    if (!m_mid->relation_get(id, m_rels_buffer)) {
+    if (!m_mid->relation_get(id, &m_rels_buffer)) {
         return;
     }
     auto const &relation = m_rels_buffer.get<osmium::Relation>(0);
@@ -1538,7 +1538,7 @@ void output_flex_t::reprocess_marked()
     m_stage2_way_ids->sort_unique();
     for (osmid_t const id : *m_stage2_way_ids) {
         m_buffer.clear();
-        if (!m_mid->way_get(id, m_buffer)) {
+        if (!m_mid->way_get(id, &m_buffer)) {
             continue;
         }
         auto &way = m_buffer.get<osmium::Way>(0);
