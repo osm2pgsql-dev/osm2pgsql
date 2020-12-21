@@ -187,6 +187,18 @@ Lua 5.1.4 (LuaJIT 2.1.0-beta3)
 If you have problems with osm2pgsql or want to report a bug, go to
 https://osm2pgsql.org/support/ .
 
+## License
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
 ## Contributing
 
 We welcome contributions to osm2pgsql. See [CONTRIBUTING.md](CONTRIBUTING.md)

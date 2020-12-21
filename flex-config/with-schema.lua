@@ -1,3 +1,4 @@
+-- This config example file is released into the Public Domain.
 
 -- This configuration for the flex output shows how to define a table in
 -- a PostgreSQL schema.

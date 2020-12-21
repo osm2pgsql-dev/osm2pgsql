@@ -1,3 +1,4 @@
+-- This config example file is released into the Public Domain.
 
 -- This is a very simple Lua config for the Flex Backend not intended for
 -- real-world use. Look at and understand "simple.lua" first, before looking

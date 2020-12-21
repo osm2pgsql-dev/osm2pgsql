@@ -1,6 +1,15 @@
 #ifndef OSM2PGSQL_OUTPUT_MULTI_HPP
 #define OSM2PGSQL_OUTPUT_MULTI_HPP
 
+/**
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * This file is part of osm2pgsql (https://osm2pgsql.org/).
+ *
+ * Copyright (C) 2006-2020 by the osm2pgsql developer community.
+ * For a full list of authors see the git log.
+ */
+
 /* One implementation of output-layer processing for osm2pgsql.
  * Manages a single table, transforming geometry using a
  * variety of algorithms plus tag transformation for the

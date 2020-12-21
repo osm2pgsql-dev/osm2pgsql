@@ -1,3 +1,4 @@
+-- This config example file is released into the Public Domain.
 
 -- Put all OSM data into a single table
 

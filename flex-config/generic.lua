@@ -1,3 +1,4 @@
+-- This config example file is released into the Public Domain.
 
 -- This is a generic configuration that is a good starting point for
 -- real-world projects. Data is split into tables according to geometry type

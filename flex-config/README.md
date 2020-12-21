@@ -1,4 +1,3 @@
-
 # Flex Output Configuration
 
 **The flex output is experimental. Everything in here is subject to change.**
@@ -47,4 +46,9 @@ The library is available from [the
 source](https://github.com/kikito/inspect.lua) or using
 [LuaRocks](https://luarocks.org/modules/kikito/inspect). Debian/Ubuntu users
 can install the `lua-inspect` package.
+
+## Public Domain
+
+All the example config files in this directory are released into the Public
+Domain. You may use them in any way you like.
 
