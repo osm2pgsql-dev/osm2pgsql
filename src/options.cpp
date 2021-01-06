@@ -121,8 +121,6 @@ Common options:\n\
     -O|--output=OUTPUT  Set output. Options are:\n\
                     pgsql - Output to a PostGIS database (default)\n\
                     flex - More flexible output to PostGIS database\n\
-                    multi - Multiple Custom Table Output to a PostGIS \n\
-                            database (deprecated)\n\
                     gazetteer - Output to a PostGIS database for Nominatim\n\
                     null - No output. Used for testing.\n\
     -S|--style=FILE  Location of the style file. Defaults to\n\
@@ -480,7 +478,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
         case 'O':
             output_backend = optarg;
             if (output_backend == "multi") {
-                log_warn("The 'multi' output is deprecated and will be removed."
+        	throw std::runtime_error("The 'multi' output is deprecated and has been removed. "
                          "Please switch to the 'flex' output.");
             }
             break;

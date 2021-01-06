@@ -17,7 +17,6 @@ set(osm2pgsql_lib_SOURCES
   osmdata.cpp
   osmium-builder.cpp
   output-gazetteer.cpp
-  output-multi.cpp
   output-null.cpp
   output-pgsql.cpp
   output.cpp

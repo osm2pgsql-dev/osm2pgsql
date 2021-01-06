@@ -57,14 +57,6 @@ public:
         return *this;
     }
 
-    opt_t &multi(char const *style)
-    {
-        m_opt.output_backend = "multi";
-        m_opt.style = TESTDATA_DIR;
-        m_opt.style += style;
-        return *this;
-    }
-
     opt_t &flex(char const *style)
     {
         m_opt.output_backend = "flex";

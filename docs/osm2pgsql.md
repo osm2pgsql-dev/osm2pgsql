@@ -192,8 +192,8 @@ mandatory for short options too.
     **gazetteer** is intended for geocoding with Nominatim.
     The experimental **flex** backend allows more flexible configuration.
     **null** does not write any output and is only useful for testing or with
-    **\--slim** for creating slim tables. There is also a **multi** backend. This is
-    now deprecated and will be removed in future versions of osm2pgsql.
+    **\--slim** for creating slim tables. The former **multi** backend has
+    been deprecated and is no longer available.
 
 -S, \--style=FILE
 :   The style file. This specifies how the data is imported into the database,
@@ -275,8 +275,7 @@ mandatory for short options too.
 
 \--output-pgsql-schema=SCHEMA
 :   Use PostgreSQL schema SCHEMA for all tables, indexes, and functions in
-    the pgsql and multi outputs (default is no schema, i.e. the `public` schema
-    is used).
+    the pgsql output (default is no schema, i.e. the `public` schema is used).
 
 # EXPIRE OPTIONS
 

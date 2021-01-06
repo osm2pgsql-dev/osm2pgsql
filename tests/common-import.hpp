@@ -23,7 +23,6 @@
 #include "middle-pgsql.hpp"
 #include "middle-ram.hpp"
 #include "osmdata.hpp"
-#include "output-multi.hpp"
 #include "output.hpp"
 #include "taginfo-impl.hpp"
 
@@ -191,39 +190,6 @@ public:
 
         parse_file(options, std::move(dependency_manager), middle, outputs,
                    file);
-    }
-
-    void run_file_multi_output(options_t options,
-                               std::shared_ptr<geometry_processor> const &proc,
-                               char const *table_name, osmium::item_type type,
-                               char const *tag_key, char const *file)
-    {
-        options.database_options = m_db.db_options();
-
-        export_list columns;
-        {
-            taginfo info;
-            info.name = tag_key;
-            info.type = "text";
-            columns.add(type, info);
-        }
-
-        auto mid_pgsql = std::make_shared<middle_pgsql_t>(&options);
-        mid_pgsql->start();
-        auto const midq = mid_pgsql->get_query_instance();
-
-        // This actually uses the multi-backend with C transforms,
-        // not Lua transforms. This is unusual and doesn't reflect real practice.
-        auto const out_test = std::make_shared<output_multi_t>(
-            table_name, proc, columns, midq, options,
-            std::make_shared<db_copy_thread_t>(
-                options.database_options.conninfo()));
-
-        auto dependency_manager = std::unique_ptr<dependency_manager_t>(
-            new full_dependency_manager_t{mid_pgsql});
-
-        parse_file(options, std::move(dependency_manager), mid_pgsql,
-                   {out_test}, file);
     }
 
     testing::pg::conn_t connect() { return m_db.connect(); }
