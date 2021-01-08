@@ -47,6 +47,10 @@ void check_db(options_t const &options)
                     get_minimum_postgresql_server_version())};
         }
 
+        auto const postgis_version = get_postgis_version(db_connection);
+        log_info("PostGIS version: {}.{}", postgis_version.major,
+                 postgis_version.minor);
+
         // If we are in append mode and the middle nodes table isn't there,
         // it probably means we used a flat node store when we created this
         // database. Check for that and stop if it looks like we are missing
