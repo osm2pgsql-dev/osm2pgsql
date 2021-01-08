@@ -80,7 +80,12 @@ private:
     bool m_log_sql = false;
     bool m_log_sql_data = false;
     bool m_show_progress = true;
+
+#ifdef _WIN32
+    bool m_use_color = false;
+#else
     bool m_use_color = osmium::util::isatty(2);
+#endif
 
 }; // class logger
 
