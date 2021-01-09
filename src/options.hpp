@@ -128,17 +128,8 @@ public:
     /// Name of the flat node file used. Empty if flat node file is not enabled.
     std::string flat_node_file{};
 
-    /**
-     * these options allow you to control the name of the
-     * Lua functions which get called in the tag transform
-     * script. this is mostly useful in with the "multi"
-     * output so that a single script file can be used.
-     */
+    /// Name of the Lua script to handle tag filtering and normalisation (pgsql output only)
     boost::optional<std::string> tag_transform_script{boost::none};
-    boost::optional<std::string> tag_transform_node_func{boost::none};
-    boost::optional<std::string> tag_transform_way_func{boost::none};
-    boost::optional<std::string> tag_transform_rel_func{boost::none};
-    boost::optional<std::string> tag_transform_rel_mem_func{boost::none};
 
     bool create = false;
     bool long_usage_bool = false;

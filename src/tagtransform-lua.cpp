@@ -18,13 +18,10 @@ extern "C"
 #include "tagtransform-lua.hpp"
 
 lua_tagtransform_t::lua_tagtransform_t(options_t const *options)
-: m_node_func(
-      options->tag_transform_node_func.get_value_or("filter_tags_node")),
-  m_way_func(options->tag_transform_way_func.get_value_or("filter_tags_way")),
-  m_rel_func(
-      options->tag_transform_rel_func.get_value_or("filter_basic_tags_rel")),
-  m_rel_mem_func(options->tag_transform_rel_mem_func.get_value_or(
-      "filter_tags_relation_member")),
+: m_node_func("filter_tags_node"),
+  m_way_func("filter_tags_way"),
+  m_rel_func("filter_basic_tags_rel"),
+  m_rel_mem_func("filter_tags_relation_member"),
   m_lua_file(options->tag_transform_script.get()),
   m_extra_attributes(options->extra_attributes)
 {
