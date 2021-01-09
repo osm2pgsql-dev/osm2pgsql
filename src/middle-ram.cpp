@@ -83,6 +83,7 @@ bool middle_ram_t::way_get(osmid_t id, osmium::memory::Buffer *buffer) const
         return false;
     }
 
+    // NOLINTNEXTLINE(google-build-using-namespace)
     using namespace osmium::builder::attr;
     osmium::builder::add_way(*buffer, _id(id), _tags(ele->tags),
                              _nodes(ele->ndids));
@@ -120,6 +121,7 @@ bool middle_ram_t::relation_get(osmid_t id,
         return false;
     }
 
+    // NOLINTNEXTLINE(google-build-using-namespace)
     using namespace osmium::builder::attr;
     osmium::builder::add_relation(*buffer, _id(id),
                                   _members(ele->members.for_builder()),

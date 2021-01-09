@@ -41,7 +41,8 @@ class progress_display_t : public osmium::handler::Handler
     };
 
 public:
-    progress_display_t(bool enabled = false) noexcept : m_enabled(enabled)
+    explicit progress_display_t(bool enabled = false) noexcept
+    : m_enabled(enabled)
     {
         m_node.start = std::time(nullptr);
     }
