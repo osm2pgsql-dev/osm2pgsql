@@ -114,7 +114,7 @@ find_library(LUA_LIBRARY
   NAMES ${_lua_library_names} lua
   HINTS
     ENV LUA_DIR
-  PATH_SUFFIXES lib
+  PATH_SUFFIXES lib ${_lua_library_names}
   PATHS
   ~/Library/Frameworks
   /Library/Frameworks
