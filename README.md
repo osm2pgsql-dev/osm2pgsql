@@ -106,15 +106,6 @@ apk --update-cache add cmake make g++ boost-dev expat-dev \
   bzip2-dev zlib-dev libpq proj-dev lua5.3-dev
 ```
 
-Due to Lua installation details, CMake only detects some of the
-required Lua paths on Alpine, but not the library.
-This can be resolved by setting the `LUA_DIR` environment variable,
-or you can modify `CMAKE_PREFIX_PATH` as mentioned below.
-
-```sh
-export LUA_DIR=<path>  # Defaults to /usr/lib/lua5.3/
-```
-
 Once dependencies are installed, use CMake to build the Makefiles in a separate
 folder:
 
