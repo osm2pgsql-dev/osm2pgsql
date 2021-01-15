@@ -40,3 +40,23 @@ TEST_CASE("geom::interpolate", "[NoDB]")
     REQUIRE(i3.y == 10);
 }
 
+TEST_CASE("geom::linestring_t", "[NoDB]")
+{
+    geom::linestring_t ls1;
+
+    REQUIRE(ls1.empty());
+    ls1.add_point(osmium::geom::Coordinates{17, 42});
+    ls1.add_point(osmium::geom::Coordinates{-3, 22});
+    REQUIRE(!ls1.empty());
+    REQUIRE(ls1.size() == 2);
+
+    auto it = ls1.cbegin();
+    REQUIRE(it != ls1.cend());
+    REQUIRE(it->x == 17);
+    ++it;
+    REQUIRE(it != ls1.cend());
+    REQUIRE(it->y == 22);
+    ++it;
+    REQUIRE(it == ls1.cend());
+}
+
