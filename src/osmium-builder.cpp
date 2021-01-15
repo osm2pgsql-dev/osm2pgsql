@@ -14,25 +14,10 @@
 
 #include <osmium/area/geom_assembler.hpp>
 
+#include "geom.hpp"
 #include "osmium-builder.hpp"
 
 namespace {
-
-inline double distance(osmium::geom::Coordinates p1,
-                       osmium::geom::Coordinates p2)
-{
-    double const dx = p1.x - p2.x;
-    double const dy = p1.y - p2.y;
-    return std::sqrt(dx * dx + dy * dy);
-}
-
-inline osmium::geom::Coordinates interpolate(osmium::geom::Coordinates p1,
-                                             osmium::geom::Coordinates p2,
-                                             double frac) noexcept
-{
-    return osmium::geom::Coordinates{frac * (p1.x - p2.x) + p2.x,
-                                     frac * (p1.y - p2.y) + p2.y};
-}
 
 template <typename ITERATOR>
 void add_nodes_to_builder(osmium::builder::WayNodeListBuilder &builder,

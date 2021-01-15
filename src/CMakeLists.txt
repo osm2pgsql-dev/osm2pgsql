@@ -5,6 +5,7 @@ set(osm2pgsql_lib_SOURCES
   dependency-manager.cpp
   expire-tiles.cpp
   gazetteer-style.cpp
+  geom.cpp
   geometry-processor.cpp
   input.cpp
   logging.cpp
