@@ -87,10 +87,15 @@ class writer_t
 public:
     explicit writer_t(int srid) : m_srid(srid) {}
 
-    void add_sub_geometry(std::string const &part) { m_data.append(part); }
+    void add_sub_geometry(std::string const &part)
+    {
+        assert(!m_data.empty());
+        m_data.append(part);
+    }
 
     void add_location(osmium::geom::Coordinates const &xy)
     {
+        assert(!m_data.empty());
         str_push(m_data, xy.x);
         str_push(m_data, xy.y);
     }
@@ -111,6 +116,7 @@ public:
 
     void linestring_start()
     {
+        assert(m_data.empty());
         m_geometry_size_offset = header(m_data, wkb_line, true);
     }
 
@@ -129,6 +135,7 @@ public:
 
     void multilinestring_start()
     {
+        assert(m_data.empty());
         m_multigeometry_size_offset = header(m_data, wkb_multi_line, true);
     }
 
@@ -147,6 +154,7 @@ public:
 
     void polygon_start()
     {
+        assert(m_data.empty());
         m_geometry_size_offset = header(m_data, wkb_polygon, true);
     }
 
@@ -176,6 +184,7 @@ public:
 
     void multipolygon_start()
     {
+        assert(m_data.empty());
         m_multigeometry_size_offset = header(m_data, wkb_multi_polygon, true);
     }
 
