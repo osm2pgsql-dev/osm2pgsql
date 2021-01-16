@@ -11,11 +11,13 @@
 
 #include "geom.hpp"
 
+using Coordinates = osmium::geom::Coordinates;
+
 TEST_CASE("geom::distance", "[NoDB]")
 {
-    osmium::geom::Coordinates const p1{10, 10};
-    osmium::geom::Coordinates const p2{20, 10};
-    osmium::geom::Coordinates const p3{13, 14};
+    Coordinates const p1{10, 10};
+    Coordinates const p2{20, 10};
+    Coordinates const p3{13, 14};
 
     REQUIRE(geom::distance(p1, p1) == Approx(0.0));
     REQUIRE(geom::distance(p1, p2) == Approx(10.0));
@@ -24,8 +26,8 @@ TEST_CASE("geom::distance", "[NoDB]")
 
 TEST_CASE("geom::interpolate", "[NoDB]")
 {
-    osmium::geom::Coordinates const p1{10, 10};
-    osmium::geom::Coordinates const p2{20, 10};
+    Coordinates const p1{10, 10};
+    Coordinates const p2{20, 10};
 
     auto const i1 = geom::interpolate(p1, p1, 0.5);
     REQUIRE(i1.x == 10);
@@ -45,8 +47,8 @@ TEST_CASE("geom::linestring_t", "[NoDB]")
     geom::linestring_t ls1;
 
     REQUIRE(ls1.empty());
-    ls1.add_point(osmium::geom::Coordinates{17, 42});
-    ls1.add_point(osmium::geom::Coordinates{-3, 22});
+    ls1.add_point(Coordinates{17, 42});
+    ls1.add_point(Coordinates{-3, 22});
     REQUIRE(!ls1.empty());
     REQUIRE(ls1.size() == 2);
 
