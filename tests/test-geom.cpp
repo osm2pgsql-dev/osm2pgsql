@@ -62,3 +62,146 @@ TEST_CASE("geom::linestring_t", "[NoDB]")
     REQUIRE(it == ls1.cend());
 }
 
+TEST_CASE("geom::split_linestring w/o split", "[NoDB]")
+{
+    geom::linestring_t const line{Coordinates{0, 0}, Coordinates{1, 2},
+                                  Coordinates{2, 2}};
+
+    std::vector<geom::linestring_t> result;
+
+    geom::split_linestring(line, 10.0, &result);
+
+    REQUIRE(result.size() == 1);
+
+    REQUIRE(result[0].size() == 3);
+    REQUIRE(result[0][0] == Coordinates{0, 0});
+    REQUIRE(result[0][1] == Coordinates{1, 2});
+    REQUIRE(result[0][2] == Coordinates{2, 2});
+}
+
+TEST_CASE("geom::split_linestring with split 0.5", "[NoDB]")
+{
+    geom::linestring_t const line{Coordinates{0, 0}, Coordinates{1, 0}};
+
+    std::vector<geom::linestring_t> result;
+
+    geom::split_linestring(line, 0.5, &result);
+
+    REQUIRE(result.size() == 2);
+
+    REQUIRE(result[0].size() == 2);
+    REQUIRE(result[0][0] == Coordinates{0, 0});
+    REQUIRE(result[0][1] == Coordinates{0.5, 0});
+
+    REQUIRE(result[1].size() == 2);
+    REQUIRE(result[1][0] == Coordinates{0.5, 0});
+    REQUIRE(result[1][1] == Coordinates{1, 0});
+}
+
+TEST_CASE("geom::split_linestring with split 0.4", "[NoDB]")
+{
+    geom::linestring_t const line{Coordinates{0, 0}, Coordinates{1, 0}};
+
+    std::vector<geom::linestring_t> result;
+
+    geom::split_linestring(line, 0.4, &result);
+
+    REQUIRE(result.size() == 3);
+
+    REQUIRE(result[0].size() == 2);
+    REQUIRE(result[0][0] == Coordinates{0, 0});
+    REQUIRE(result[0][1] == Coordinates{0.4, 0});
+
+    REQUIRE(result[1].size() == 2);
+    REQUIRE(result[1][0] == Coordinates{0.4, 0});
+    REQUIRE(result[1][1] == Coordinates{0.8, 0});
+
+    REQUIRE(result[2].size() == 2);
+    REQUIRE(result[2][0] == Coordinates{0.8, 0});
+    REQUIRE(result[2][1] == Coordinates{1, 0});
+}
+
+TEST_CASE("geom::split_linestring with split 1.0 at start", "[NoDB]")
+{
+    geom::linestring_t const line{Coordinates{0, 0}, Coordinates{2, 0},
+                                  Coordinates{3, 0}, Coordinates{4, 0}};
+
+    std::vector<geom::linestring_t> result;
+
+    geom::split_linestring(line, 1.0, &result);
+
+    REQUIRE(result.size() == 4);
+
+    REQUIRE(result[0].size() == 2);
+    REQUIRE(result[0][0] == Coordinates{0, 0});
+    REQUIRE(result[0][1] == Coordinates{1, 0});
+
+    REQUIRE(result[1].size() == 2);
+    REQUIRE(result[1][0] == Coordinates{1, 0});
+    REQUIRE(result[1][1] == Coordinates{2, 0});
+
+    REQUIRE(result[2].size() == 2);
+    REQUIRE(result[2][0] == Coordinates{2, 0});
+    REQUIRE(result[2][1] == Coordinates{3, 0});
+
+    REQUIRE(result[3].size() == 2);
+    REQUIRE(result[3][0] == Coordinates{3, 0});
+    REQUIRE(result[3][1] == Coordinates{4, 0});
+}
+
+TEST_CASE("geom::split_linestring with split 1.0 in middle", "[NoDB]")
+{
+    geom::linestring_t const line{Coordinates{0, 0}, Coordinates{1, 0},
+                                  Coordinates{3, 0}, Coordinates{4, 0}};
+
+    std::vector<geom::linestring_t> result;
+
+    geom::split_linestring(line, 1.0, &result);
+
+    REQUIRE(result.size() == 4);
+
+    REQUIRE(result[0].size() == 2);
+    REQUIRE(result[0][0] == Coordinates{0, 0});
+    REQUIRE(result[0][1] == Coordinates{1, 0});
+
+    REQUIRE(result[1].size() == 2);
+    REQUIRE(result[1][0] == Coordinates{1, 0});
+    REQUIRE(result[1][1] == Coordinates{2, 0});
+
+    REQUIRE(result[2].size() == 2);
+    REQUIRE(result[2][0] == Coordinates{2, 0});
+    REQUIRE(result[2][1] == Coordinates{3, 0});
+
+    REQUIRE(result[3].size() == 2);
+    REQUIRE(result[3][0] == Coordinates{3, 0});
+    REQUIRE(result[3][1] == Coordinates{4, 0});
+}
+
+TEST_CASE("geom::split_linestring with split 1.0 at end", "[NoDB]")
+{
+    geom::linestring_t const line{Coordinates{0, 0}, Coordinates{1, 0},
+                                  Coordinates{2, 0}, Coordinates{4, 0}};
+
+    std::vector<geom::linestring_t> result;
+
+    geom::split_linestring(line, 1.0, &result);
+
+    REQUIRE(result.size() == 4);
+
+    REQUIRE(result[0].size() == 2);
+    REQUIRE(result[0][0] == Coordinates{0, 0});
+    REQUIRE(result[0][1] == Coordinates{1, 0});
+
+    REQUIRE(result[1].size() == 2);
+    REQUIRE(result[1][0] == Coordinates{1, 0});
+    REQUIRE(result[1][1] == Coordinates{2, 0});
+
+    REQUIRE(result[2].size() == 2);
+    REQUIRE(result[2][0] == Coordinates{2, 0});
+    REQUIRE(result[2][1] == Coordinates{3, 0});
+
+    REQUIRE(result[3].size() == 2);
+    REQUIRE(result[3][0] == Coordinates{3, 0});
+    REQUIRE(result[3][1] == Coordinates{4, 0});
+}
+

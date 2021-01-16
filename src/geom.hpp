@@ -118,6 +118,21 @@ operator<<(std::basic_ostream<TChar, TTraits> &out, const linestring_t &line)
     return out << ')';
 }
 
+/**
+ * Possibly split linestring into several linestrings making sure each one
+ * is no longer than split_at.
+ *
+ * \param line The input line string.
+ * \param split_at The maximum length (using Euclidean distance) of each
+ *                 resulting linestring.
+ * \param out Add resulting linestrings to this vector.
+ */
+void split_linestring(linestring_t const &line, double split_at,
+                      std::vector<linestring_t> *out);
+
+void make_line(osmium::NodeRefList const &nodes, reprojection const &proj,
+               double split_at, std::vector<linestring_t> *out);
+
 } // namespace geom
 
 #endif // OSM2PGSQL_GEOM_HPP

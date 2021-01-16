@@ -71,75 +71,17 @@ osmium_builder_t::wkbs_t
 osmium_builder_t::get_wkb_line(osmium::WayNodeList const &nodes,
                                double split_at)
 {
+    std::vector<linestring_t> linestrings;
+    geom::make_line(nodes, *m_proj, split_at, &linestrings);
+
     wkbs_t ret;
 
-    bool const do_split = split_at > 0.0;
-
-    double dist = 0;
-    osmium::geom::Coordinates prev_pt;
-    m_writer.linestring_start();
-    size_t curlen = 0;
-
-    for (auto const &node : nodes) {
-        if (!node.location().valid()) {
-            continue;
+    for (auto const &line : linestrings) {
+        m_writer.linestring_start();
+        for (auto const &coord : line) {
+            m_writer.add_location(coord);
         }
-
-        auto const this_pt = m_proj->reproject(node.location());
-        if (prev_pt.valid()) {
-            if (prev_pt == this_pt) {
-                continue;
-            }
-
-            if (do_split) {
-                double const delta = distance(prev_pt, this_pt);
-
-                // figure out if the addition of this point would take the total
-                // length of the line in `segment` over the `split_at` distance.
-
-                if (dist + delta > split_at) {
-                    auto const splits =
-                        (size_t)std::floor((dist + delta) / split_at);
-                    // use the splitting distance to split the current segment up
-                    // into as many parts as necessary to keep each part below
-                    // the `split_at` distance.
-                    osmium::geom::Coordinates ipoint;
-                    for (size_t j = 0; j < splits; ++j) {
-                        double const frac =
-                            ((double)(j + 1) * split_at - dist) / delta;
-                        ipoint = interpolate(this_pt, prev_pt, frac);
-                        m_writer.add_location(ipoint);
-                        ret.push_back(m_writer.linestring_finish(curlen + 1));
-                        // start a new segment
-                        m_writer.linestring_start();
-                        m_writer.add_location(ipoint);
-                        curlen = 1;
-                    }
-                    // reset the distance based on the final splitting point for
-                    // the next iteration.
-                    if (this_pt == ipoint) {
-                        dist = 0;
-                        m_writer.linestring_finish(0);
-                        m_writer.linestring_start();
-                        curlen = 0;
-                    } else {
-                        dist = distance(this_pt, ipoint);
-                    }
-                } else {
-                    dist += delta;
-                }
-            }
-        }
-
-        m_writer.add_location(this_pt);
-        ++curlen;
-
-        prev_pt = this_pt;
-    }
-
-    auto const wkb = m_writer.linestring_finish(curlen);
-    if (curlen > 1) {
-        ret.push_back(wkb);
+        ret.push_back(m_writer.linestring_finish(line.size()));
     }
 
     return ret;
