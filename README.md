@@ -99,6 +99,13 @@ pkg install devel/cmake devel/boost-libs textproc/expat2 \
   databases/postgresql94-client graphics/proj lang/lua52
 ```
 
+On Alpine, use
+
+```sh
+apk --update-cache add cmake make g++ boost-dev expat-dev \
+  bzip2-dev zlib-dev libpq proj-dev lua5.3-dev
+```
+
 Once dependencies are installed, use CMake to build the Makefiles in a separate
 folder:
 
