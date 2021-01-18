@@ -9,6 +9,10 @@
 
 #include "geom.hpp"
 
+#include "osmtypes.hpp"
+
+#include <osmium/osm/way.hpp>
+
 #include <algorithm>
 #include <iterator>
 
@@ -122,6 +126,184 @@ void make_line(osmium::NodeRefList const &nodes, reprojection const &proj,
         split_linestring(line, split_at, out);
     } else {
         out->emplace_back(std::move(line));
+    }
+}
+
+void make_line(linestring_t const &line, double split_at,
+               std::vector<linestring_t> *out)
+{
+    if (line.empty()) {
+        return;
+    }
+
+    if (split_at > 0.0) {
+        split_linestring(line, split_at, out);
+    } else {
+        out->emplace_back(std::move(line));
+    }
+}
+
+void make_multiline(osmium::memory::Buffer const &ways, double split_at,
+                    reprojection const &proj, std::vector<linestring_t> *out)
+
+{
+    // make a list of all endpoints
+    struct endpoint_t {
+        osmid_t id;
+        std::size_t n;
+        bool is_front;
+
+        endpoint_t(osmid_t ref, std::size_t size, bool front) noexcept
+        : id(ref), n(size), is_front(front)
+        {}
+
+        bool operator==(endpoint_t const &rhs) const noexcept
+        {
+            return id == rhs.id;
+        }
+
+        bool operator<(endpoint_t const &rhs) const noexcept
+        {
+            return std::tuple<osmid_t, std::size_t, bool>(id, n, is_front) <
+                   std::tuple<osmid_t, std::size_t, bool>(rhs.id, rhs.n,
+                                                          rhs.is_front);
+        }
+    };
+
+    std::vector<endpoint_t> endpoints;
+
+    // and a list of way connections
+    enum lmt : size_t
+    {
+        NOCONN = -1UL
+    };
+
+    struct connection_t {
+        std::size_t left = NOCONN;
+        osmium::Way const *way;
+        std::size_t right = NOCONN;
+
+        explicit connection_t(osmium::Way const *w) noexcept : way(w) {}
+    };
+
+    std::vector<connection_t> conns;
+
+    // initialise the two lists
+    for (auto const &w : ways.select<osmium::Way>()) {
+        if (w.nodes().size() > 1) {
+            endpoints.emplace_back(w.nodes().front().ref(), conns.size(), true);
+            endpoints.emplace_back(w.nodes().back().ref(), conns.size(), false);
+            conns.emplace_back(&w);
+        }
+    }
+
+    // sort by node id
+    std::sort(endpoints.begin(), endpoints.end());
+
+    // now fill the connection list based on the sorted list
+    for (auto it = std::adjacent_find(endpoints.cbegin(), endpoints.cend());
+         it != endpoints.cend();
+         it = std::adjacent_find(it + 2, endpoints.cend())) {
+        auto const previd = it->n;
+        auto const ptid = std::next(it)->n;
+        if (it->is_front) {
+            conns[previd].left = ptid;
+        } else {
+            conns[previd].right = ptid;
+        }
+        if (std::next(it)->is_front) {
+            conns[ptid].left = previd;
+        } else {
+            conns[ptid].right = previd;
+        }
+    }
+
+    // First find all open ends and use them as starting points to assemble
+    // linestrings. Mark ways as "done" as we go.
+    std::size_t done_ways = 0;
+    std::size_t const todo_ways = conns.size();
+    for (std::size_t i = 0; i < todo_ways; ++i) {
+        if (!conns[i].way ||
+            (conns[i].left != NOCONN && conns[i].right != NOCONN)) {
+            continue; // way already done or not the beginning of a segment
+        }
+
+        linestring_t linestring;
+        {
+            std::size_t prev = NOCONN;
+            std::size_t cur = i;
+
+            do {
+                auto &conn = conns[cur];
+                assert(conn.way);
+                auto const &nl = conn.way->nodes();
+                bool const forward = conn.left == prev;
+                prev = cur;
+                // add way nodes
+                if (forward) {
+                    add_nodes_to_linestring(linestring, proj, nl.cbegin(),
+                                            nl.cend());
+                    cur = conn.right;
+                } else {
+                    add_nodes_to_linestring(linestring, proj, nl.crbegin(),
+                                            nl.crend());
+                    cur = conn.left;
+                }
+                // mark way as done
+                conns[prev].way = nullptr;
+                ++done_ways;
+            } while (cur != NOCONN);
+        }
+
+        // found a line end, create the wkbs
+        make_line(linestring, split_at, out);
+    }
+
+    // If all ways have been "done", i.e. are part of a linestring now, we
+    // are finished.
+    if (done_ways >= todo_ways) {
+        return;
+    }
+
+    // oh dear, there must be circular ways without an end
+    // need to do the same shebang again
+    for (size_t i = 0; i < todo_ways; ++i) {
+        if (!conns[i].way) {
+            continue; // way already done
+        }
+
+        linestring_t linestring;
+        {
+            size_t prev = conns[i].left;
+            size_t cur = i;
+
+            do {
+                auto &conn = conns[cur];
+                assert(conn.way);
+                auto const &nl = conn.way->nodes();
+                bool const forward =
+                    (conn.left == prev &&
+                     (!conns[conn.left].way ||
+                      conns[conn.left].way->nodes().back() == nl.front()));
+                prev = cur;
+                if (forward) {
+                    // add way forwards
+                    add_nodes_to_linestring(linestring, proj, nl.cbegin(),
+                                            nl.cend());
+                    cur = conn.right;
+                } else {
+                    // add way backwards
+                    add_nodes_to_linestring(linestring, proj, nl.crbegin(),
+                                            nl.crend());
+                    cur = conn.left;
+                }
+                // mark way as done
+                conns[prev].way = nullptr;
+            } while (cur != i);
+        }
+
+        // found a line end, create the wkbs
+        make_line(linestring, split_at, out);
     }
 }
 

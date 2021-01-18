@@ -20,6 +20,7 @@
 
 #include <osmium/geom/coordinates.hpp>
 #include <osmium/osm/node_ref_list.hpp>
+#include <osmium/memory/buffer.hpp>
 
 #include <initializer_list>
 #include <ostream>
@@ -141,6 +142,39 @@ void split_linestring(linestring_t const &line, double split_at,
 
 void make_line(osmium::NodeRefList const &nodes, reprojection const &proj,
                double split_at, std::vector<linestring_t> *out);
+
+void make_line(linestring_t const &line, double split_at,
+               std::vector<linestring_t> *out);
+
+/**
+ * Add nodes specified by iterators to the linestring projecting them in the
+ * process. If linestring is not empty, do not add the first node returned
+ * by *begin.
+ */
+template <typename ITERATOR>
+void add_nodes_to_linestring(geom::linestring_t &linestring,
+                             reprojection const &proj, ITERATOR const &begin,
+                             ITERATOR const &end)
+{
+    auto it = begin;
+    if (!linestring.empty()) {
+        assert(it != end);
+        ++it;
+    }
+
+    osmium::Location last{};
+    while (it != end) {
+        auto const loc = it->location();
+        if (loc.valid() && loc != last) {
+            linestring.add_point(proj.reproject(loc));
+            last = loc;
+        }
+        ++it;
+    }
+}
+
+void make_multiline(osmium::memory::Buffer const &ways, double split_at,
+                    reprojection const &proj, std::vector<linestring_t> *out);
 
 } // namespace geom
 

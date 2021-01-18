@@ -9,7 +9,10 @@
 
 #include <catch.hpp>
 
+#include "common-buffer.hpp"
+
 #include "geom.hpp"
+#include "reprojection.hpp"
 
 #include <array>
 
@@ -177,5 +180,263 @@ TEST_CASE("geom::split_linestring with split 1.0 at end", "[NoDB]")
     REQUIRE(result[1] == expected[1]);
     REQUIRE(result[2] == expected[2]);
     REQUIRE(result[3] == expected[3]);
+}
+
+TEST_CASE("make_multiline with single line", "[NoDB]")
+{
+    geom::linestring_t const expected{Coordinates{1, 1}, Coordinates{2, 1}};
+
+    test_buffer_t buffer;
+    buffer.add_way("w20 Nn10x1y1,n11x2y1");
+
+    std::vector<geom::linestring_t> lines;
+
+    auto const proj = reprojection::create_projection(4326);
+    geom::make_multiline(buffer.buffer(), 0.0, *proj, &lines);
+
+    REQUIRE(lines.size() == 1);
+    REQUIRE(lines[0] == expected);
+}
+
+TEST_CASE("make_multiline with single line forming a ring", "[NoDB]")
+{
+    geom::linestring_t const expected{Coordinates{1, 1}, Coordinates{2, 1},
+                                      Coordinates{2, 2}, Coordinates{1, 1}};
+
+    test_buffer_t buffer;
+    buffer.add_way("w20 Nn10x1y1,n11x2y1,n12x2y2,n10x1y1");
+
+    std::vector<geom::linestring_t> lines;
+
+    auto const proj = reprojection::create_projection(4326);
+    geom::make_multiline(buffer.buffer(), 0.0, *proj, &lines);
+
+    REQUIRE(lines.size() == 1);
+    REQUIRE(lines[0] == expected);
+}
+
+TEST_CASE("make_multiline from two non-joined lines", "[NoDB]")
+{
+    std::array<geom::linestring_t, 2> const expected{
+        geom::linestring_t{Coordinates{1, 1}, Coordinates{2, 1}},
+        geom::linestring_t{Coordinates{2, 2}, Coordinates{3, 2}}};
+
+    test_buffer_t buffer;
+    buffer.add_way("w20 Nn10x1y1,n11x2y1");
+    buffer.add_way("w21 Nn12x2y2,n13x3y2");
+
+    std::vector<geom::linestring_t> lines;
+
+    auto const proj = reprojection::create_projection(4326);
+    geom::make_multiline(buffer.buffer(), 0.0, *proj, &lines);
+
+    REQUIRE(lines.size() == 2);
+    REQUIRE(lines[0] == expected[0]);
+    REQUIRE(lines[1] == expected[1]);
+}
+
+TEST_CASE("make_multiline from two lines end to end", "[NoDB]")
+{
+    geom::linestring_t const expected{Coordinates{1, 1}, Coordinates{2, 1},
+                                      Coordinates{2, 2}};
+
+    test_buffer_t buffer;
+    buffer.add_way("w20 Nn10x1y1,n11x2y1");
+    buffer.add_way("w21 Nn11x2y1,n12x2y2");
+
+    std::vector<geom::linestring_t> lines;
+
+    auto const proj = reprojection::create_projection(4326);
+    geom::make_multiline(buffer.buffer(), 0.0, *proj, &lines);
+
+    REQUIRE(lines.size() == 1);
+    REQUIRE(lines[0] == expected);
+}
+
+TEST_CASE("make_multiline from two lines with same start point", "[NoDB]")
+{
+    geom::linestring_t const expected{Coordinates{2, 1}, Coordinates{1, 1},
+                                      Coordinates{1, 2}};
+
+    test_buffer_t buffer;
+    buffer.add_way("w20 Nn10x1y1,n11x2y1");
+    buffer.add_way("w21 Nn10x1y1,n12x1y2");
+
+    std::vector<geom::linestring_t> lines;
+
+    auto const proj = reprojection::create_projection(4326);
+    geom::make_multiline(buffer.buffer(), 0.0, *proj, &lines);
+
+    REQUIRE(lines.size() == 1);
+    REQUIRE(lines[0] == expected);
+}
+
+TEST_CASE("make_multiline from two lines with same end point", "[NoDB]")
+{
+    geom::linestring_t const expected{Coordinates{1, 2}, Coordinates{1, 1},
+                                      Coordinates{2, 1}};
+
+    test_buffer_t buffer;
+    buffer.add_way("w20 Nn10x1y2,n11x1y1");
+    buffer.add_way("w21 Nn12x2y1,n11x1y1");
+
+    std::vector<geom::linestring_t> lines;
+
+    auto const proj = reprojection::create_projection(4326);
+    geom::make_multiline(buffer.buffer(), 0.0, *proj, &lines);
+
+    REQUIRE(lines.size() == 1);
+    REQUIRE(lines[0] == expected);
+}
+
+TEST_CASE("make_multiline from two lines connected end to end forming a ring", "[NoDB]")
+{
+    geom::linestring_t const expected{Coordinates{1, 1}, Coordinates{2, 1},
+                                      Coordinates{2, 2}, Coordinates{1, 2},
+                                      Coordinates{1, 1}};
+
+    test_buffer_t buffer;
+    buffer.add_way("w20 Nn10x1y1,n11x2y1,n13x2y2");
+    buffer.add_way("w21 Nn13x2y2,n12x1y2,n10x1y1");
+
+    std::vector<geom::linestring_t> lines;
+
+    auto const proj = reprojection::create_projection(4326);
+    geom::make_multiline(buffer.buffer(), 0.0, *proj, &lines);
+
+    REQUIRE(lines.size() == 1);
+    REQUIRE(lines[0] == expected);
+}
+
+TEST_CASE("make_multiline from two lines with same start and end point", "[NoDB]")
+{
+    geom::linestring_t const expected{Coordinates{2, 2}, Coordinates{2, 1},
+                                      Coordinates{1, 1}, Coordinates{1, 2},
+                                      Coordinates{2, 2}};
+
+    test_buffer_t buffer;
+    buffer.add_way("w20 Nn10x1y1,n11x2y1,n13x2y2");
+    buffer.add_way("w21 Nn10x1y1,n12x1y2,n13x2y2");
+
+    std::vector<geom::linestring_t> lines;
+
+    auto const proj = reprojection::create_projection(4326);
+    geom::make_multiline(buffer.buffer(), 0.0, *proj, &lines);
+
+    REQUIRE(lines.size() == 1);
+    REQUIRE(lines[0] == expected);
+}
+
+TEST_CASE("make_multiline from three lines, two with same start and end point", "[NoDB]")
+{
+    geom::linestring_t const expected{Coordinates{2, 2}, Coordinates{2, 1},
+                                      Coordinates{1, 1}, Coordinates{1, 2},
+                                      Coordinates{2, 2}};
+
+    test_buffer_t buffer;
+    buffer.add_way("w20 Nn10x1y1,n11x2y1,n13x2y2");
+    buffer.add_way("w21 Nn10x1y1,n12x1y2");
+    buffer.add_way("w22 Nn12x1y2,n13x2y2");
+
+    std::vector<geom::linestring_t> lines;
+
+    auto const proj = reprojection::create_projection(4326);
+    geom::make_multiline(buffer.buffer(), 0.0, *proj, &lines);
+
+    REQUIRE(lines.size() == 1);
+    REQUIRE(lines[0] == expected);
+}
+
+TEST_CASE("make_multiline from four lines forming two rings", "[NoDB]")
+{
+    std::array<geom::linestring_t, 2> const expected{
+        geom::linestring_t{Coordinates{2, 1}, Coordinates{1, 1},
+                           Coordinates{1, 2}},
+        geom::linestring_t{Coordinates{3, 4}, Coordinates{3, 3},
+                           Coordinates{4, 3}}};
+
+    test_buffer_t buffer;
+    buffer.add_way("w20 Nn10x1y1,n11x2y1");
+    buffer.add_way("w21 Nn10x1y1,n12x1y2");
+    buffer.add_way("w22 Nn13x3y4,n14x3y3");
+    buffer.add_way("w23 Nn15x4y3,n14x3y3");
+
+    std::vector<geom::linestring_t> lines;
+
+    auto const proj = reprojection::create_projection(4326);
+    geom::make_multiline(buffer.buffer(), 0.0, *proj, &lines);
+
+    REQUIRE(lines.size() == 2);
+    REQUIRE(lines[0] == expected[0]);
+    REQUIRE(lines[1] == expected[1]);
+}
+
+TEST_CASE("make_multiline from Y shape", "[NoDB]")
+{
+    std::array<geom::linestring_t, 2> const expected{
+        geom::linestring_t{Coordinates{2, 1}, Coordinates{1, 1},
+                           Coordinates{1, 2}},
+        geom::linestring_t{
+            Coordinates{1, 1},
+            Coordinates{2, 2},
+        }};
+
+    test_buffer_t buffer;
+    buffer.add_way("w20 Nn10x1y1,n11x2y1");
+    buffer.add_way("w21 Nn10x1y1,n12x1y2");
+    buffer.add_way("w22 Nn10x1y1,n13x2y2");
+
+    std::vector<geom::linestring_t> lines;
+
+    auto const proj = reprojection::create_projection(4326);
+    geom::make_multiline(buffer.buffer(), 0.0, *proj, &lines);
+
+    REQUIRE(lines.size() == 2);
+    REQUIRE(lines[0] == expected[0]);
+    REQUIRE(lines[1] == expected[1]);
+}
+
+TEST_CASE("make_multiline from P shape", "[NoDB]")
+{
+    geom::linestring_t const expected{Coordinates{1, 1}, Coordinates{1, 2},
+                                      Coordinates{1, 3}, Coordinates{2, 3},
+                                      Coordinates{1, 2}};
+
+    test_buffer_t buffer;
+    buffer.add_way("w20 Nn10x1y1,n11x1y2,n12x1y3");
+    buffer.add_way("w21 Nn12x1y3,n13x2y3,n11x1y2");
+
+    std::vector<geom::linestring_t> lines;
+
+    auto const proj = reprojection::create_projection(4326);
+    geom::make_multiline(buffer.buffer(), 0.0, *proj, &lines);
+
+    REQUIRE(lines.size() == 1);
+    REQUIRE(lines[0] == expected);
+}
+
+TEST_CASE("make_multiline from P shape with closed way", "[NoDB]")
+{
+    std::array<geom::linestring_t, 2> const expected{
+        geom::linestring_t{Coordinates{1, 2}, Coordinates{1, 1}},
+        geom::linestring_t{
+            Coordinates{1, 2},
+            Coordinates{1, 3},
+            Coordinates{2, 3},
+            Coordinates{1, 2},
+        }};
+
+    test_buffer_t buffer;
+    buffer.add_way("w20 Nn11x1y2,n12x1y3,n13x2y3,n11x1y2");
+    buffer.add_way("w21 Nn11x1y2,n10x1y1");
+
+    std::vector<geom::linestring_t> lines;
+
+    auto const proj = reprojection::create_projection(4326);
+    geom::make_multiline(buffer.buffer(), 0.0, *proj, &lines);
+
+    REQUIRE(lines.size() == 2);
+    REQUIRE(lines[0] == expected[0]);
+    REQUIRE(lines[1] == expected[1]);
 }
 
