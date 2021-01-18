@@ -93,6 +93,15 @@ public:
         return m_coordinates[n];
     }
 
+    friend bool operator==(linestring_t const &a,
+                           linestring_t const &b) noexcept
+    {
+        if (a.size() != b.size()) {
+            return false;
+        }
+        return std::equal(a.cbegin(), a.cend(), b.cbegin());
+    }
+
 private:
     std::vector<osmium::geom::Coordinates> m_coordinates;
 
