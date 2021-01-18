@@ -116,7 +116,7 @@ operator<<(std::basic_ostream<TChar, TTraits> &out, const linestring_t &line)
     out << "LINESTRING(";
 
     bool first = true;
-    for (auto const coord : line) {
+    for (auto const &coord : line) {
         if (first) {
             first = false;
         } else {

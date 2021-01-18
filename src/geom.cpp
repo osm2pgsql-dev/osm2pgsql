@@ -64,7 +64,7 @@ void split_linestring(linestring_t const &line, double split_at,
     osmium::geom::Coordinates prev_pt{};
     out->emplace_back();
 
-    for (auto const this_pt : line) {
+    for (auto const &this_pt : line) {
         if (prev_pt.valid()) {
             double const delta = distance(prev_pt, this_pt);
 
