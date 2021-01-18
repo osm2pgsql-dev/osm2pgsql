@@ -50,8 +50,7 @@ osmium_builder_t::get_wkb_line(osmium::WayNodeList const &nodes,
                                double split_at)
 {
     std::vector<linestring_t> linestrings;
-    geom::make_line(nodes, *m_proj, split_at, &linestrings);
-    // XXX geom::make_line(linestring_t{nodes, *m_proj}, split_at, &linestrings);
+    geom::make_line(linestring_t{nodes, *m_proj}, split_at, &linestrings);
 
     wkbs_t ret;
 

@@ -113,22 +113,6 @@ void split_linestring(linestring_t const &line, double split_at,
     }
 }
 
-void make_line(osmium::NodeRefList const &nodes, reprojection const &proj,
-               double split_at, std::vector<linestring_t> *out)
-{
-    linestring_t line{nodes, proj};
-
-    if (line.empty()) {
-        return;
-    }
-
-    if (split_at > 0.0) {
-        split_linestring(line, split_at, out);
-    } else {
-        out->emplace_back(std::move(line));
-    }
-}
-
 void make_line(linestring_t const &line, double split_at,
                std::vector<linestring_t> *out)
 {
