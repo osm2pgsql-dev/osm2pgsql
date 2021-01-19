@@ -145,13 +145,6 @@ void make_multiline(osmium::memory::Buffer const &ways, double split_at,
         {
             return id == rhs.id;
         }
-
-        bool operator<(endpoint_t const &rhs) const noexcept
-        {
-            return std::tuple<osmid_t, std::size_t, bool>(id, n, is_front) <
-                   std::tuple<osmid_t, std::size_t, bool>(rhs.id, rhs.n,
-                                                          rhs.is_front);
-        }
     };
 
     std::vector<endpoint_t> endpoints;
@@ -182,7 +175,11 @@ void make_multiline(osmium::memory::Buffer const &ways, double split_at,
     }
 
     // sort by node id
-    std::sort(endpoints.begin(), endpoints.end());
+    std::sort(endpoints.begin(), endpoints.end(), [
+    ](endpoint_t const &a, endpoint_t const &b) noexcept {
+        return std::tuple<osmid_t, std::size_t, bool>(a.id, a.n, a.is_front) <
+               std::tuple<osmid_t, std::size_t, bool>(b.id, b.n, b.is_front);
+    });
 
     // now fill the connection list based on the sorted list
     for (auto it = std::adjacent_find(endpoints.cbegin(), endpoints.cend());
