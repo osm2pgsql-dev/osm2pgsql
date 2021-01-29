@@ -231,11 +231,32 @@ get_postgresql_settings(pg_conn_t const &db_connection)
     return settings;
 }
 
+static std::string get_database_name(pg_conn_t const &db_connection)
+{
+    auto const res =
+        db_connection.query(PGRES_TUPLES_OK, "SELECT current_catalog");
+
+    if (res.num_tuples() != 1) {
+        throw std::runtime_error{
+            "Database error: Can not access database name."};
+    }
+
+    return res.get_value_as_string(0, 0);
+}
+
 postgis_version get_postgis_version(pg_conn_t const &db_connection)
 {
     auto const res = db_connection.query(
-        PGRES_TUPLES_OK,
-        "SELECT regexp_split_to_table(postgis_lib_version(), '\\.')");
+        PGRES_TUPLES_OK, "SELECT regexp_split_to_table(extversion, '\\.') FROM"
+                         " pg_extension WHERE extname='postgis'");
+
+    if (res.num_tuples() == 0) {
+        throw std::runtime_error{
+            "The postgis extension is not enabled on the database '{}'."
+            " Are you using the correct database?"
+            " Enable with 'CREATE EXTENSION postgis;'"_format(
+                get_database_name(db_connection))};
+    }
 
     return {std::stoi(res.get_value_as_string(0, 0)),
             std::stoi(res.get_value_as_string(1, 0))};
