@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2020 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2021 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -145,7 +145,7 @@ namespace osmium {
             }
 
             inline uint32_t next_utf8_codepoint(char const** begin, const char* end) {
-                auto it = reinterpret_cast<const uint8_t*>(*begin);
+                const auto* it = reinterpret_cast<const uint8_t*>(*begin);
                 uint32_t cp = 0xffU & *it;
                 const auto length = utf8_sequence_length(cp);
                 if (length == 0) {
@@ -287,19 +287,19 @@ namespace osmium {
             TOutputIterator append_codepoint_as_utf8(uint32_t cp, TOutputIterator out)
             {
                 if (cp < 0x80UL) {
-                    *(out++) = static_cast<uint8_t>(cp);
+                    *(out++) = static_cast<char>(cp);
                 } else if (cp < 0x800UL) {
-                    *(out++) = static_cast<uint8_t>( (cp >>  6U)          | 0xc0U);
-                    *(out++) = static_cast<uint8_t>(( cp         & 0x3fU) | 0x80U);
+                    *(out++) = static_cast<char>( (cp >>  6U)          | 0xc0U);
+                    *(out++) = static_cast<char>(( cp         & 0x3fU) | 0x80U);
                 } else if (cp < 0x10000UL) {
-                    *(out++) = static_cast<uint8_t>( (cp >> 12U)          | 0xe0U);
-                    *(out++) = static_cast<uint8_t>(((cp >>  6U) & 0x3fU) | 0x80U);
-                    *(out++) = static_cast<uint8_t>(( cp         & 0x3fU) | 0x80U);
+                    *(out++) = static_cast<char>( (cp >> 12U)          | 0xe0U);
+                    *(out++) = static_cast<char>(((cp >>  6U) & 0x3fU) | 0x80U);
+                    *(out++) = static_cast<char>(( cp         & 0x3fU) | 0x80U);
                 } else {
-                    *(out++) = static_cast<uint8_t>( (cp >> 18U)          | 0xf0U);
-                    *(out++) = static_cast<uint8_t>(((cp >> 12U) & 0x3fU) | 0x80U);
-                    *(out++) = static_cast<uint8_t>(((cp >>  6U) & 0x3fU) | 0x80U);
-                    *(out++) = static_cast<uint8_t>(( cp         & 0x3fU) | 0x80U);
+                    *(out++) = static_cast<char>( (cp >> 18U)          | 0xf0U);
+                    *(out++) = static_cast<char>(((cp >> 12U) & 0x3fU) | 0x80U);
+                    *(out++) = static_cast<char>(((cp >>  6U) & 0x3fU) | 0x80U);
+                    *(out++) = static_cast<char>(( cp         & 0x3fU) | 0x80U);
                 }
                 return out;
             }

@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2020 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2021 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -58,13 +58,13 @@ namespace osmium {
 
                 queue_wrapper<std::string> m_queue;
                 std::unique_ptr<osmium::io::Compressor> m_compressor;
-                std::promise<bool> m_promise;
+                std::promise<std::size_t> m_promise;
 
             public:
 
                 WriteThread(future_string_queue_type& input_queue,
                             std::unique_ptr<osmium::io::Compressor>&& compressor,
-                            std::promise<bool>&& promise) :
+                            std::promise<std::size_t>&& promise) :
                     m_queue(input_queue),
                     m_compressor(std::move(compressor)),
                     m_promise(std::move(promise)) {
@@ -90,7 +90,7 @@ namespace osmium {
                             m_compressor->write(data);
                         }
                         m_compressor->close();
-                        m_promise.set_value(true);
+                        m_promise.set_value(m_compressor->file_size());
                     } catch (...) {
                         m_promise.set_exception(std::current_exception());
                         m_queue.drain();

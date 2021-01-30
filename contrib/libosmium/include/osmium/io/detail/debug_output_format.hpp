@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2020 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2021 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -519,7 +519,7 @@ namespace osmium {
 
                 debug_output_options m_options;
 
-                void write_fieldname(std::string& out, const char* name) {
+                void write_fieldname(std::string& out, const char* name) const {
                     out += "  ";
                     if (m_options.use_color) {
                         out += color_cyan;

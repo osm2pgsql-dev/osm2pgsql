@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2020 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2021 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -32,6 +32,15 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
 */
+
+#include <cassert>
+#include <cmath>
+#include <cstdint>
+#include <cstdlib>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include <osmium/handler.hpp>
 #include <osmium/io/detail/output_format.hpp>
@@ -62,18 +71,13 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/util/misc.hpp>
 #include <osmium/visitor.hpp>
 
+#ifdef OSMIUM_WITH_LZ4
+# include <osmium/io/detail/lz4.hpp>
+#endif
+
 #include <protozero/pbf_builder.hpp>
 #include <protozero/pbf_writer.hpp>
 #include <protozero/types.hpp>
-
-#include <cassert>
-#include <cmath>
-#include <cstdint>
-#include <cstdlib>
-#include <memory>
-#include <string>
-#include <utility>
-#include <vector>
 
 namespace osmium {
 
@@ -86,18 +90,17 @@ namespace osmium {
                 /// Which metadata of objects should be added?
                 osmium::metadata_options add_metadata;
 
-                /// Should nodes be encoded in DenseNodes?
-                bool use_dense_nodes = true;
+                /// Compression level used for compression
+                int compression_level = 0;
 
                 /**
-                 * Should the PBF blobs contain zlib compressed data?
-                 *
-                 * The zlib compression is optional, it's possible to store the
-                 * blobs in raw format. Disabling the compression can improve
-                 * the writing speed a little but the output will be 2x to 3x
-                 * bigger.
+                 * Which compression (if any) should be used to compress the
+                 * PBF blobs?
                  */
-                bool use_compression = true;
+                pbf_compression use_compression = pbf_compression::zlib;
+
+                /// Should nodes be encoded in DenseNodes?
+                bool use_dense_nodes = true;
 
                 /// Add the "HistoricalInformation" header flag.
                 bool add_historical_information_flag = false;
@@ -146,22 +149,25 @@ namespace osmium {
 
                 std::string m_msg;
 
+                int m_compression_level;
+
                 pbf_blob_type m_blob_type;
 
-                bool m_use_compression;
+                pbf_compression m_use_compression;
 
             public:
 
                 /**
                  * Initialize a blob serializer.
                  *
-                 * @param msg Protobuf-message containing the blob data
+                 * @param msg Protobuf-message containing the blob data.
                  * @param type Type of blob.
-                 * @param use_compression Should the output be compressed using
-                 *        zlib?
+                 * @param use_compression The type of compression to use.
+                 * @param compression_level Compression level.
                  */
-                SerializeBlob(std::string&& msg, pbf_blob_type type, bool use_compression) :
+                SerializeBlob(std::string&& msg, pbf_blob_type type, pbf_compression use_compression, int compression_level) :
                     m_msg(std::move(msg)),
+                    m_compression_level(compression_level),
                     m_blob_type(type),
                     m_use_compression(use_compression) {
                 }
@@ -177,11 +183,22 @@ namespace osmium {
                     std::string blob_data;
                     protozero::pbf_builder<FileFormat::Blob> pbf_blob{blob_data};
 
-                    if (m_use_compression) {
-                        pbf_blob.add_int32(FileFormat::Blob::optional_int32_raw_size, int32_t(m_msg.size()));
-                        pbf_blob.add_bytes(FileFormat::Blob::optional_bytes_zlib_data, osmium::io::detail::zlib_compress(m_msg));
-                    } else {
-                        pbf_blob.add_bytes(FileFormat::Blob::optional_bytes_raw, m_msg);
+                    switch (m_use_compression) {
+                        case pbf_compression::none:
+                            pbf_blob.add_bytes(FileFormat::Blob::optional_bytes_raw, m_msg);
+                            break;
+                        case pbf_compression::zlib:
+                            pbf_blob.add_int32(FileFormat::Blob::optional_int32_raw_size, int32_t(m_msg.size()));
+                            pbf_blob.add_bytes(FileFormat::Blob::optional_bytes_zlib_data, osmium::io::detail::zlib_compress(m_msg, m_compression_level));
+                            break;
+                        case pbf_compression::lz4:
+#ifdef OSMIUM_WITH_LZ4
+                            pbf_blob.add_int32(FileFormat::Blob::optional_int32_raw_size, int32_t(m_msg.size()));
+                            pbf_blob.add_bytes(FileFormat::Blob::optional_bytes_lz4_data, osmium::io::detail::lz4_compress(m_msg, m_compression_level));
+                            break;
+#else
+                            throw osmium::pbf_error{"lz4 blobs not supported"};
+#endif
                     }
 
                     std::string blob_header_data;
@@ -478,7 +495,8 @@ namespace osmium {
                     m_output_queue.push(m_pool.submit(
                         SerializeBlob{std::move(primitive_block_data),
                                       pbf_blob_type::data,
-                                      m_options.use_compression}
+                                      m_options.use_compression,
+                                      m_options.compression_level}
                     ));
                 }
 
@@ -542,11 +560,46 @@ namespace osmium {
                     }
 
                     m_options.use_dense_nodes = file.is_not_false("pbf_dense_nodes");
-                    m_options.use_compression = file.get("pbf_compression") != "none" && file.is_not_false("pbf_compression");
+                    m_options.use_compression = get_compression_type(file.get("pbf_compression"));
                     m_options.add_metadata = osmium::metadata_options{file.get("add_metadata")};
                     m_options.add_historical_information_flag = file.has_multiple_object_versions();
                     m_options.add_visible_flag = file.has_multiple_object_versions();
                     m_options.locations_on_ways = file.is_true("locations_on_ways");
+
+                    const auto pbl = file.get("pbf_compression_level");
+                    if (pbl.empty()) {
+                        switch (m_options.use_compression) {
+                            case pbf_compression::none:
+                                break;
+                            case pbf_compression::zlib:
+                                m_options.compression_level = osmium::io::detail::zlib_default_compression_level();
+                                break;
+                            case pbf_compression::lz4:
+#ifdef OSMIUM_WITH_LZ4
+                                m_options.compression_level = osmium::io::detail::lz4_default_compression_level();
+#endif
+                                break;
+                        }
+                    } else {
+                        char *end = nullptr;
+                        const auto val = std::strtol(pbl.c_str(), &end, 10);
+                        if (*end != '\0') {
+                            throw std::invalid_argument{"The 'pbf_compression_level' option must be an integer."};
+                        }
+                        switch (m_options.use_compression) {
+                            case pbf_compression::none:
+                                throw std::invalid_argument{"The 'pbf_compression_level' option doesn't make sense without 'pbf_compression' set."};
+                            case pbf_compression::zlib:
+                                osmium::io::detail::zlib_check_compression_level(val);
+                                break;
+                            case pbf_compression::lz4:
+#ifdef OSMIUM_WITH_LZ4
+                                osmium::io::detail::lz4_check_compression_level(val);
+#endif
+                                break;
+                        }
+                        m_options.compression_level = static_cast<int>(val);
+                    }
                 }
 
                 void write_header(const osmium::io::Header& header) final {
@@ -602,7 +655,8 @@ namespace osmium {
                     m_output_queue.push(m_pool.submit(
                         SerializeBlob{std::move(data),
                                       pbf_blob_type::header,
-                                      m_options.use_compression}
+                                      m_options.use_compression,
+                                      m_options.compression_level}
                         ));
                 }
 

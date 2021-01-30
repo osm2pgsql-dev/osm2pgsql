@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2020 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2021 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -60,7 +60,7 @@ namespace osmium {
     inline object_id_type string_to_object_id(const char* input) {
         assert(input);
         if (*input != '\0' && !std::isspace(*input)) {
-            char* end;
+            char* end = nullptr;
             const auto id = std::strtoll(input, &end, 10);
             if (id != std::numeric_limits<long long>::min() && // NOLINT(google-runtime-int)
                 id != std::numeric_limits<long long>::max() && // NOLINT(google-runtime-int)
@@ -112,7 +112,7 @@ namespace osmium {
                 return 0;
             }
             if (*input != '\0' && *input != '-' && !std::isspace(*input)) {
-                char* end;
+                char* end = nullptr;
                 const auto value = std::strtoul(input, &end, 10);
                 if (value < std::numeric_limits<uint32_t>::max() && *end == '\0') {
                     return static_cast<uint32_t>(value);

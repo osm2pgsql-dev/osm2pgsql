@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2020 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2021 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -81,6 +81,10 @@ namespace osmium {
             virtual void write(const std::string& data) = 0;
 
             virtual void close() = 0;
+
+            virtual std::size_t file_size() const {
+                return 0;
+            }
 
         }; // class Compressor
 
@@ -218,6 +222,7 @@ namespace osmium {
 
         class NoCompressor final : public Compressor {
 
+            std::size_t m_file_size = 0;
             int m_fd;
 
         public:
@@ -233,7 +238,7 @@ namespace osmium {
             NoCompressor(NoCompressor&&) = delete;
             NoCompressor& operator=(NoCompressor&&) = delete;
 
-            ~NoCompressor() noexcept {
+            ~NoCompressor() noexcept override {
                 try {
                     close();
                 } catch (...) {
@@ -243,6 +248,7 @@ namespace osmium {
 
             void write(const std::string& data) override {
                 osmium::io::detail::reliable_write(m_fd, data.data(), data.size());
+                m_file_size += data.size();
             }
 
             void close() override {
@@ -260,6 +266,10 @@ namespace osmium {
                     }
                     osmium::io::detail::reliable_close(fd);
                 }
+            }
+
+            std::size_t file_size() const override {
+                return m_file_size;
             }
 
         }; // class NoCompressor
@@ -288,7 +298,7 @@ namespace osmium {
             NoDecompressor(NoDecompressor&&) = delete;
             NoDecompressor& operator=(NoDecompressor&&) = delete;
 
-            ~NoDecompressor() noexcept {
+            ~NoDecompressor() noexcept override {
                 try {
                     close();
                 } catch (...) {

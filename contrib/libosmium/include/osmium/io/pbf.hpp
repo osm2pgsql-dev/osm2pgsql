@@ -1,5 +1,5 @@
-#ifndef OSMIUM_INDEX_MULTIMAP_SPARSE_FILE_ARRAY_HPP
-#define OSMIUM_INDEX_MULTIMAP_SPARSE_FILE_ARRAY_HPP
+#ifndef OSMIUM_IO_PBF_HPP
+#define OSMIUM_IO_PBF_HPP
 
 /*
 
@@ -33,22 +33,28 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
-#include <osmium/index/detail/mmap_vector_file.hpp>
-#include <osmium/index/detail/vector_multimap.hpp>
+#include <string>
+#include <vector>
 
 namespace osmium {
 
-    namespace index {
+    namespace io {
 
-        namespace multimap {
+        /**
+         * Get a list of all compression types supported for PBF files.
+         */
+        inline std::vector<std::string> supported_pbf_compression_types() {
+            std::vector<std::string> types{"none", "zlib"};
 
-            template <typename TId, typename TValue>
-            using SparseFileArray = VectorBasedSparseMultimap<TId, TValue, osmium::detail::mmap_vector_file>;
+#if OSMIUM_WITH_LZ4
+            types.push_back("lz4");
+#endif
 
-        } // namespace multimap
+            return types;
+        }
 
-    } // namespace index
+    } // namespace io
 
 } // namespace osmium
 
-#endif // OSMIUM_INDEX_MULTIMAP_SPARSE_FILE_ARRAY_HPP
+#endif // OSMIUM_IO_PBF_HPP

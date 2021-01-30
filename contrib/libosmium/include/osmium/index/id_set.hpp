@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2020 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2021 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -253,7 +253,8 @@ namespace osmium {
             IdSetDense() = default;
 
             IdSetDense(const IdSetDense& other) :
-                IdSet<T>(other) {
+                IdSet<T>(other),
+                m_size(other.m_size) {
                 m_data.reserve(other.m_data.size());
                 for (const auto& ptr: other.m_data) {
                     if (ptr) {
@@ -263,7 +264,6 @@ namespace osmium {
                         m_data.emplace_back();
                     }
                 }
-                m_size = other.m_size;
             }
 
             IdSetDense& operator=(IdSetDense other) {

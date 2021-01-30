@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2020 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2021 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -122,7 +122,7 @@ namespace osmium {
                 OPLParser(OPLParser&&) = delete;
                 OPLParser& operator=(OPLParser&&) = delete;
 
-                ~OPLParser() noexcept = default;
+                ~OPLParser() noexcept override = default;
 
                 void parse_line(const char* data) {
                     if (opl_parse_line(m_line_count, data, m_buffer, read_types())) {

@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2020 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2021 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -177,6 +177,12 @@ namespace osmium {
                 }
             }
 
+            /**
+             * Return a statically created "default pool". This is initialized
+             * the first time you use it.
+             *
+             * Do not use this if your program will fork.
+             */
             static Pool& default_instance() {
                 static Pool pool{};
                 return pool;

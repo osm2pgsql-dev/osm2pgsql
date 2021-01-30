@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2020 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2021 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -33,6 +33,15 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
+#include <cstdint>
+#include <cstring>
+#include <limits>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include <osmium/builder/osm_object_builder.hpp>
 #include <osmium/io/detail/pbf.hpp> // IWYU pragma: export
 #include <osmium/io/detail/protobuf_tags.hpp>
@@ -52,18 +61,13 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/osm/way.hpp>
 #include <osmium/util/delta.hpp>
 
+#ifdef OSMIUM_WITH_LZ4
+# include <osmium/io/detail/lz4.hpp>
+#endif
+
 #include <protozero/iterators.hpp>
 #include <protozero/pbf_message.hpp>
 #include <protozero/types.hpp>
-
-#include <cstdint>
-#include <cstring>
-#include <limits>
-#include <memory>
-#include <stdexcept>
-#include <string>
-#include <utility>
-#include <vector>
 
 namespace osmium {
 
@@ -375,7 +379,7 @@ namespace osmium {
                         osmium::builder::WayNodeListBuilder wnl_builder{builder};
                         osmium::DeltaDecode<int64_t> ref;
                         if (lats.empty()) {
-                            for (const auto& ref_value : refs) {
+                            for (const auto ref_value : refs) {
                                 wnl_builder.add_node_ref(ref.update(ref_value));
                             }
                         } else {
@@ -744,7 +748,8 @@ namespace osmium {
 
             inline data_view decode_blob(const std::string& blob_data, std::string& output) {
                 int32_t raw_size = 0;
-                protozero::data_view zlib_data;
+                protozero::data_view compressed_data;
+                pbf_compression use_compression = pbf_compression::none;
 
                 protozero::pbf_message<FileFormat::Blob> pbf_blob{blob_data};
                 while (pbf_blob.next()) {
@@ -764,22 +769,50 @@ namespace osmium {
                             }
                             break;
                         case protozero::tag_and_type(FileFormat::Blob::optional_bytes_zlib_data, protozero::pbf_wire_type::length_delimited):
-                            zlib_data = pbf_blob.get_view();
+                            use_compression = pbf_compression::zlib;
+                            compressed_data = pbf_blob.get_view();
                             break;
                         case protozero::tag_and_type(FileFormat::Blob::optional_bytes_lzma_data, protozero::pbf_wire_type::length_delimited):
-                            throw osmium::pbf_error{"lzma blobs not implemented"};
+                            throw osmium::pbf_error{"lzma blobs not supported"};
+                        case protozero::tag_and_type(FileFormat::Blob::optional_bytes_lz4_data, protozero::pbf_wire_type::length_delimited):
+#ifdef OSMIUM_WITH_LZ4
+                            use_compression = pbf_compression::lz4;
+                            compressed_data = pbf_blob.get_view();
+                            break;
+#else
+                            throw osmium::pbf_error{"lz4 blobs not supported"};
+#endif
+                        case protozero::tag_and_type(FileFormat::Blob::optional_bytes_zstd_data, protozero::pbf_wire_type::length_delimited):
+                            throw osmium::pbf_error{"zstd blobs not supported"};
                         default:
                             throw osmium::pbf_error{"unknown compression"};
                     }
                 }
 
-                if (!zlib_data.empty() && raw_size != 0) {
-                    return osmium::io::detail::zlib_uncompress_string(
-                        zlib_data.data(),
-                        static_cast<unsigned long>(zlib_data.size()), // NOLINT(google-runtime-int)
-                        static_cast<unsigned long>(raw_size), // NOLINT(google-runtime-int)
-                        output
-                    );
+                if (!compressed_data.empty() && raw_size != 0) {
+                    switch (use_compression) {
+                        case pbf_compression::none:
+                            break;
+                        case pbf_compression::zlib:
+                            return osmium::io::detail::zlib_uncompress_string(
+                                compressed_data.data(),
+                                static_cast<unsigned long>(compressed_data.size()), // NOLINT(google-runtime-int)
+                                static_cast<unsigned long>(raw_size), // NOLINT(google-runtime-int)
+                                output
+                            );
+                        case pbf_compression::lz4:
+#ifdef OSMIUM_WITH_LZ4
+                            return osmium::io::detail::lz4_uncompress_string(
+                                compressed_data.data(),
+                                static_cast<unsigned long>(compressed_data.size()), // NOLINT(google-runtime-int)
+                                static_cast<unsigned long>(raw_size), // NOLINT(google-runtime-int)
+                                output
+                            );
+#else
+                            break;
+#endif
+                    }
+                    std::abort(); // should never be here
                 }
 
                 throw osmium::pbf_error{"blob contains no data"};

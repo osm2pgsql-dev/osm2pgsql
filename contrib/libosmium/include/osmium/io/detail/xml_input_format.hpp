@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2020 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2021 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -768,7 +768,7 @@ namespace osmium {
                 XMLParser(XMLParser&&) = delete;
                 XMLParser& operator=(XMLParser&&) = delete;
 
-                ~XMLParser() noexcept = default;
+                ~XMLParser() noexcept override = default;
 
                 void run() override {
                     osmium::thread::set_thread_name("_osmium_xml_in");

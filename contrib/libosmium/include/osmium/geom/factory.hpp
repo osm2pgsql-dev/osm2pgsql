@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2020 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2021 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -131,11 +131,11 @@ namespace osmium {
                 return Coordinates{location.lon(), location.lat()};
             }
 
-            int epsg() const noexcept {
+            static int epsg() noexcept {
                 return 4326;
             }
 
-            std::string proj_string() const {
+            static std::string proj_string() noexcept {
                 return "+proj=longlat +datum=WGS84 +no_defs";
             }
 
@@ -385,7 +385,7 @@ namespace osmium {
 
                     for (const auto& item : area) {
                         if (item.type() == osmium::item_type::outer_ring) {
-                            auto& ring = static_cast<const osmium::OuterRing&>(item);
+                            const auto& ring = static_cast<const osmium::OuterRing&>(item);
                             if (num_polygons > 0) {
                                 m_impl.multipolygon_polygon_finish();
                             }
@@ -396,7 +396,7 @@ namespace osmium {
                             ++num_rings;
                             ++num_polygons;
                         } else if (item.type() == osmium::item_type::inner_ring) {
-                            auto& ring = static_cast<const osmium::InnerRing&>(item);
+                            const auto& ring = static_cast<const osmium::InnerRing&>(item);
                             m_impl.multipolygon_inner_ring_start();
                             add_points(ring);
                             m_impl.multipolygon_inner_ring_finish();

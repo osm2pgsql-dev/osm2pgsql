@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2020 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2021 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -104,6 +104,7 @@ namespace osmium {
 
         class GzipCompressor final : public Compressor {
 
+            std::size_t m_file_size = 0;
             int m_fd;
             gzFile m_gzfile;
 
@@ -127,7 +128,7 @@ namespace osmium {
             GzipCompressor(GzipCompressor&&) = delete;
             GzipCompressor& operator=(GzipCompressor&&) = delete;
 
-            ~GzipCompressor() noexcept {
+            ~GzipCompressor() noexcept override {
                 try {
                     close();
                 } catch (...) {
@@ -165,11 +166,17 @@ namespace osmium {
                         return;
                     }
 
+                    m_file_size = osmium::file_size(m_fd);
+
                     if (do_fsync()) {
                         osmium::io::detail::reliable_fsync(m_fd);
                     }
                     osmium::io::detail::reliable_close(m_fd);
                 }
+            }
+
+            std::size_t file_size() const override {
+                return m_file_size;
             }
 
         }; // class GzipCompressor
@@ -200,7 +207,7 @@ namespace osmium {
             GzipDecompressor(GzipDecompressor&&) = delete;
             GzipDecompressor& operator=(GzipDecompressor&&) = delete;
 
-            ~GzipDecompressor() noexcept {
+            ~GzipDecompressor() noexcept override {
                 try {
                     close();
                 } catch (...) {
@@ -272,7 +279,7 @@ namespace osmium {
             GzipBufferDecompressor(GzipBufferDecompressor&&) = delete;
             GzipBufferDecompressor& operator=(GzipBufferDecompressor&&) = delete;
 
-            ~GzipBufferDecompressor() noexcept {
+            ~GzipBufferDecompressor() noexcept override {
                 try {
                     close();
                 } catch (...) {
