@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2020 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2021 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -166,7 +166,7 @@ namespace osmium {
 #endif
             }
 
-            int resize_fd(int fd) {
+            int resize_fd(int fd) const {
                 // Anonymous mapping doesn't need resizing.
                 if (fd == -1) {
                     return -1;

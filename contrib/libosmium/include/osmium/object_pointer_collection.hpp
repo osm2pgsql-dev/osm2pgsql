@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2020 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2021 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -74,6 +74,8 @@ namespace osmium {
         using iterator       = boost::indirect_iterator<std::vector<osmium::OSMObject*>::iterator, osmium::OSMObject>;
         using const_iterator = boost::indirect_iterator<std::vector<osmium::OSMObject*>::const_iterator, const osmium::OSMObject>;
 
+        using ptr_iterator = std::vector<osmium::OSMObject*>::iterator;
+
         ObjectPointerCollection() = default;
 
         /**
@@ -84,11 +86,12 @@ namespace osmium {
         }
 
         /**
-         * Sort objects according to the specified order functor.
+         * Sort objects according to the specified order functor. This function
+         * uses a stable sort.
          */
         template <typename TCompare>
         void sort(TCompare&& compare) {
-            std::sort(m_objects.begin(), m_objects.end(), std::forward<TCompare>(compare));
+            std::stable_sort(m_objects.begin(), m_objects.end(), std::forward<TCompare>(compare));
         }
 
         /**
@@ -139,6 +142,16 @@ namespace osmium {
 
         const_iterator cend() const {
             return {m_objects.cend()};
+        }
+
+        /// Access to begin of pointer vector.
+        ptr_iterator ptr_begin() noexcept {
+            return m_objects.begin();
+        }
+
+        /// Access to end of pointer vector.
+        ptr_iterator ptr_end() noexcept {
+            return m_objects.end();
         }
 
     }; // class ObjectPointerCollection

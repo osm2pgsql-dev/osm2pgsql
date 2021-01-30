@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2020 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2021 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -202,7 +202,7 @@ namespace osmium {
                 }
 
                 create_parser_type get_creator_function(const osmium::io::File& file) const {
-                    const auto func = callbacks(file.format());
+                    auto func = callbacks(file.format());
                     if (func) {
                         return func;
                     }

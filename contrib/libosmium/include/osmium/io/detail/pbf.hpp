@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2020 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2021 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -72,6 +72,25 @@ namespace osmium {
             const int64_t lonlat_resolution = 1000 * 1000 * 1000;
 
             const int64_t resolution_convert = lonlat_resolution / osmium::detail::coordinate_precision;
+
+            enum class pbf_compression : uint8_t {
+                none = 0,
+                zlib = 1,
+                lz4 = 2
+            };
+
+            inline pbf_compression get_compression_type(const std::string &val) {
+                if (val.empty() || val == "zlib" || val == "true") {
+                    return pbf_compression::zlib;
+                }
+                if (val == "none" || val == "false") {
+                    return pbf_compression::none;
+                }
+                if (val == "lz4") {
+                    return pbf_compression::lz4;
+                }
+                throw std::invalid_argument{"Unknown value for 'pbf_compression' option."};
+            }
 
         } // namespace detail
 

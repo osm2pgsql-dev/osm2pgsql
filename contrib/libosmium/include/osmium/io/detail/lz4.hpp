@@ -1,5 +1,5 @@
-#ifndef OSMIUM_IO_DETAIL_ZLIB_HPP
-#define OSMIUM_IO_DETAIL_ZLIB_HPP
+#ifndef OSMIUM_IO_DETAIL_LZ4_HPP
+#define OSMIUM_IO_DETAIL_LZ4_HPP
 
 /*
 
@@ -33,6 +33,13 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
+#ifdef OSMIUM_WITH_LZ4
+
+#include <cassert>
+#include <limits>
+#include <stdexcept>
+#include <string>
+
 #include <osmium/io/error.hpp>
 
 #include <protozero/version.hpp>
@@ -43,11 +50,7 @@ DEALINGS IN THE SOFTWARE.
 # include <protozero/types.hpp>
 #endif
 
-#include <zlib.h>
-
-#include <cassert>
-#include <limits>
-#include <string>
+#include <lz4.h>
 
 namespace osmium {
 
@@ -55,72 +58,76 @@ namespace osmium {
 
         namespace detail {
 
-            constexpr inline int zlib_default_compression_level() noexcept {
-                return Z_DEFAULT_COMPRESSION;
+            constexpr inline int lz4_default_compression_level() noexcept {
+                return 1; // LZ4_ACCELERATION_DEFAULT
             }
 
-            inline void zlib_check_compression_level(int value) {
-                if (value < 0 || value > 9) {
-                    throw std::invalid_argument{"The 'pbf_compression_level' for zlib compression must be between 0 and 9."};
+            inline void lz4_check_compression_level(int value) {
+                if (value <= 0 || value > 65537 /* LZ4_ACCELERATION_MAX */) {
+                    throw std::invalid_argument{"The 'pbf_compression_level' for lz4 compression must be between 1 and 65537."};
                 }
             }
 
             /**
-             * Compress data using zlib.
+             * Compress data using lz4.
              *
              * Note that this function can not compress data larger than
-             * what fits in an unsigned long, on Windows this is usually 32bit.
+             * LZ4_MAX_INPUT_SIZE.
              *
              * @param input Data to compress.
              * @param compression_level Compression level.
              * @returns Compressed data.
              */
-            inline std::string zlib_compress(const std::string& input, int compression_level = Z_DEFAULT_COMPRESSION) {
-                assert(input.size() < std::numeric_limits<unsigned long>::max());
-                unsigned long output_size = ::compressBound(static_cast<unsigned long>(input.size())); // NOLINT(google-runtime-int)
+            inline std::string lz4_compress(const std::string& input, int compression_level = lz4_default_compression_level()) { // NOLINT(google-runtime-int)
+                assert(input.size() < LZ4_MAX_INPUT_SIZE);
+                const int output_size = ::LZ4_compressBound(static_cast<int>(input.size())); // NOLINT(google-runtime-int)
 
-                std::string output(output_size, '\0');
+                std::string output(static_cast<std::size_t>(output_size), '\0');
 
-                const auto result = ::compress2(
-                    reinterpret_cast<unsigned char*>(&*output.begin()),
-                    &output_size,
-                    reinterpret_cast<const unsigned char*>(input.data()),
-                    static_cast<unsigned long>(input.size()), // NOLINT(google-runtime-int)
+                const int result = ::LZ4_compress_fast( // NOLINT(google-runtime-int)
+                    input.data(),
+                    &*output.begin(),
+                    static_cast<int>(input.size()),
+                    output_size,
                     compression_level
                 );
 
-                if (result != Z_OK) {
-                    throw io_error{std::string{"failed to compress data: "} + zError(result)};
+                if (result == 0) {
+                    throw io_error{"LZ4 compression failed"};
                 }
 
-                output.resize(output_size);
+                output.resize(result);
 
                 return output;
             }
 
             /**
-             * Uncompress data using zlib.
+             * Uncompress data using lz4.
              *
              * Note that this function can not uncompress data larger than
-             * what fits in an unsigned long, on Windows this is usually 32bit.
+             * LZ4_MAX_INPUT_SIZE.
              *
              * @param input Compressed input data.
              * @param raw_size Size of uncompressed data.
              * @param output Uncompressed result data.
              * @returns Pointer and size to incompressed data.
              */
-            inline protozero::data_view zlib_uncompress_string(const char* input, unsigned long input_size, unsigned long raw_size, std::string& output) { // NOLINT(google-runtime-int)
+            inline protozero::data_view lz4_uncompress_string(const char* input, unsigned long input_size, unsigned long raw_size, std::string& output) { // NOLINT(google-runtime-int)
                 output.resize(raw_size);
 
-                const auto result = ::uncompress(
-                    reinterpret_cast<unsigned char*>(&*output.begin()),
-                    &raw_size,
-                    reinterpret_cast<const unsigned char*>(input),
-                    input_size
+                const int result = ::LZ4_decompress_safe( // NOLINT(google-runtime-int)
+                    input,
+                    &*output.begin(),
+                    static_cast<int>(input_size),
+                    static_cast<int>(raw_size)
                 );
 
-                if (result != Z_OK) {
-                    throw io_error{std::string{"failed to uncompress data: "} + zError(result)};
+                if (result < 0) {
+                    throw io_error{"LZ4 decompression failed: invalid block"};
+                }
+
+                if (result != static_cast<int>(raw_size)) {
+                    throw io_error{"LZ4 decompression failed: data size does not match"};
                 }
 
                 return protozero::data_view{output.data(), output.size()};
@@ -132,4 +139,6 @@ namespace osmium {
 
 } // namespace osmium
 
-#endif // OSMIUM_IO_DETAIL_ZLIB_HPP
+#endif
+
+#endif // OSMIUM_IO_DETAIL_LZ4_HPP

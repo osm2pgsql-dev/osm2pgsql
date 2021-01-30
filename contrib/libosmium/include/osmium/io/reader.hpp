@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2020 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2021 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -249,6 +249,12 @@ namespace osmium {
              *      osmium::io::read_meta::no, meta data (like version, uid,
              *      etc.) is not read possibly speeding up the read. Not all
              *      file formats use this setting.
+             * * osmium::thread::Pool&: Reference to a thread pool that should
+             *      be used for reading instead of the default pool. Usually
+             *      it is okay to use the statically initialized shared
+             *      default pool, but sometimes you want or need your own.
+             *      For instance when your program will fork, using the
+             *      statically initialized pool will not work.
              *
              * @throws osmium::io_error If there was an error.
              * @throws std::system_error If the file could not be opened.
@@ -326,7 +332,7 @@ namespace osmium {
 
 #ifndef _WIN32
                 if (m_childpid) {
-                    int status;
+                    int status = 0;
                     const pid_t pid = ::waitpid(m_childpid, &status, 0);
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wold-style-cast"

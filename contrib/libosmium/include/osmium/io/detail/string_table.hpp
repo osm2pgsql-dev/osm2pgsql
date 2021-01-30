@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2020 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2021 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -134,7 +134,7 @@ namespace osmium {
 
                     const_iterator& operator++() {
                         assert(m_it != m_last);
-                        const auto last_pos = m_it->c_str() + m_it->size();
+                        const auto* const last_pos = m_it->c_str() + m_it->size();
                         while (m_pos != last_pos && *m_pos) {
                             ++m_pos;
                         }
@@ -213,7 +213,7 @@ namespace osmium {
 
                 std::size_t operator()(const char* str) const noexcept {
                     std::size_t hash = 5381;
-                    int c;
+                    int c = 0;
 
                     while ((c = *str++)) {
                         hash = ((hash << 5U) + hash) + c; /* hash * 33 + c */
