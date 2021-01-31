@@ -1,5 +1,5 @@
-#ifndef OSM2PGSQL_TEST_COMMON_IMPORT_HPP
-#define OSM2PGSQL_TEST_COMMON_IMPORT_HPP
+#ifndef OSM2PGSQL_TESTS_COMMON_IMPORT_HPP
+#define OSM2PGSQL_TESTS_COMMON_IMPORT_HPP
 
 /**
  * SPDX-License-Identifier: GPL-2.0-or-later
@@ -237,4 +237,4 @@ private:
 } // namespace db
 } // namespace testing
 
-#endif // OSM2PGSQL_TEST_COMMON_IMPORT_HPP
+#endif // OSM2PGSQL_TESTS_COMMON_IMPORT_HPP

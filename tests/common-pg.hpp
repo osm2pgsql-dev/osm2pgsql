@@ -1,5 +1,5 @@
-#ifndef OSM2PGSQL_TEST_COMMON_PG_HPP
-#define OSM2PGSQL_TEST_COMMON_PG_HPP
+#ifndef OSM2PGSQL_TESTS_COMMON_PG_HPP
+#define OSM2PGSQL_TESTS_COMMON_PG_HPP
 
 /**
  * SPDX-License-Identifier: GPL-2.0-or-later
@@ -153,4 +153,4 @@ private:
 } // namespace pg
 } // namespace testing
 
-#endif // OSM2PGSQL_TEST_COMMON_PG_HPP
+#endif // OSM2PGSQL_TESTS_COMMON_PG_HPP

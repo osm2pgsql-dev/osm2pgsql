@@ -1,5 +1,5 @@
-#ifndef OSM2PGSQL_FLEX_LUA_HPP
-#define OSM2PGSQL_FLEX_LUA_HPP
+#ifndef OSM2PGSQL_LUA_UTILS_HPP
+#define OSM2PGSQL_LUA_UTILS_HPP
 
 /**
  * SPDX-License-Identifier: GPL-2.0-or-later
@@ -60,4 +60,4 @@ bool luaX_get_table_bool(lua_State *lua_state, char const *key, int table_index,
 
 int luaX_pcall(lua_State *lua_state, int narg, int nres);
 
-#endif // OSM2PGSQL_FLEX_LUA_HPP
+#endif // OSM2PGSQL_LUA_UTILS_HPP
