@@ -345,6 +345,13 @@ static osmium::Box parse_bbox(char const *bbox)
 
 options_t::options_t(int argc, char *argv[]) : options_t()
 {
+    // If there are no command line arguments at all, show help.
+    if (argc == 1) {
+        long_usage_bool = true;
+        long_usage(argv[0], false);
+        return;
+    }
+
     bool help_verbose = false; // Will be set when -v/--verbose is set
 
     int c;
