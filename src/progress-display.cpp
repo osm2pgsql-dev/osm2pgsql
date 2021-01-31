@@ -12,7 +12,7 @@
 #include "progress-display.hpp"
 #include "util.hpp"
 
-static double count_per_second(osmid_t count, uint64_t elapsed) noexcept
+static double count_per_second(std::size_t count, uint64_t elapsed) noexcept
 {
     if (count == 0) {
         return 0.0;
@@ -25,7 +25,7 @@ static double count_per_second(osmid_t count, uint64_t elapsed) noexcept
     return static_cast<double>(count) / elapsed;
 }
 
-static std::string cps_display(osmid_t count, uint64_t elapsed)
+static std::string cps_display(std::size_t count, uint64_t elapsed)
 {
     double const cps = count_per_second(count, elapsed);
 
