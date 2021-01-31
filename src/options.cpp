@@ -341,7 +341,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
 {
     // If there are no command line arguments at all, show help.
     if (argc == 1) {
-        long_usage_bool = true;
+        m_print_help = true;
         long_usage(argv[0], false);
         return;
     }
@@ -517,7 +517,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             }
             break;
         case 'h':
-            long_usage_bool = true;
+            m_print_help = true;
             break;
         case 'I':
             parallel_indexing = false;
@@ -641,7 +641,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
     } //end while
 
     //they were looking for usage info
-    if (long_usage_bool) {
+    if (m_print_help) {
         long_usage(argv[0], help_verbose);
         return;
     }

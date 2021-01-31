@@ -61,6 +61,14 @@ public:
      */
     options_t(int argc, char *argv[]);
 
+    /**
+     * Return true if the main program should end directly after the option
+     * parsing. This is true when a help text was printed.
+     */
+    bool early_return() const noexcept {
+        return m_print_help;
+    }
+
     std::string prefix{"planet_osm"};         ///< prefix for table names
     std::shared_ptr<reprojection> projection; ///< SRS of projection
     bool append = false;                      ///< Append to existing data
@@ -141,7 +149,6 @@ public:
     boost::optional<std::string> tag_transform_rel_mem_func{boost::none};
 
     bool create = false;
-    bool long_usage_bool = false;
     bool pass_prompt = false;
 
     database_options_t database_options;
@@ -161,6 +168,9 @@ public:
     uint8_t way_node_index_id_shift = 0;
 
 private:
+
+    bool m_print_help = false;
+
     /**
      * Check input options for sanity
      */
