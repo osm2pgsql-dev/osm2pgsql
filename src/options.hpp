@@ -10,15 +10,14 @@
  * For a full list of authors see the git log.
  */
 
-#include "node-ram-cache.hpp"
-#include "reprojection.hpp"
-
 #include <osmium/osm/box.hpp>
 
 #include <boost/optional.hpp>
 #include <memory>
 #include <string>
 #include <vector>
+
+class reprojection;
 
 /// Variants for generation of hstore column
 enum class hstore_column : char

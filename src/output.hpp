@@ -22,6 +22,7 @@
 #include <osmium/index/id_set.hpp>
 
 #include "options.hpp"
+#include "osmtypes.hpp"
 #include "thread-pool.hpp"
 
 struct middle_query_t;

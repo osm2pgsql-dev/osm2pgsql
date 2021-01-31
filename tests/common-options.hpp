@@ -11,6 +11,7 @@
  */
 
 #include "options.hpp"
+#include "reprojection.hpp"
 
 #include "common-pg.hpp"
 

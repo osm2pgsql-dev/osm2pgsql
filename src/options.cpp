@@ -10,7 +10,9 @@
 #include "config.h"
 #include "format.hpp"
 #include "logging.hpp"
+#include "node-ram-cache.hpp"
 #include "options.hpp"
+#include "reprojection.hpp"
 #include "sprompt.hpp"
 
 #include <algorithm>
