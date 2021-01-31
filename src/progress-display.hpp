@@ -23,9 +23,6 @@
 
 #include <osmium/handler.hpp>
 
-#include "format.hpp"
-#include "osmtypes.hpp"
-
 /**
  * The progress_display_t class is used to display how far the processing of
  * the input data has progressed.
@@ -37,7 +34,7 @@ class progress_display_t : public osmium::handler::Handler
         std::size_t count = 0;
         std::time_t start = 0;
 
-        osmid_t count_k() const noexcept { return count / 1000; }
+        std::size_t count_k() const noexcept { return count / 1000; }
     };
 
 public:
