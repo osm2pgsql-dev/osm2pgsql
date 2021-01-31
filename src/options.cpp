@@ -97,13 +97,7 @@ const struct option long_options[] = {
     {"with-forward-dependencies", required_argument, nullptr, 217},
     {nullptr, 0, nullptr, 0}};
 
-void short_usage(char *arg0)
-{
-    throw std::runtime_error{"Usage error. For further information call:"
-                             " {} --help"_format(program_name(arg0))};
-}
-
-void long_usage(char const *arg0, bool verbose)
+static void long_usage(char const *arg0, bool verbose)
 {
     char const *const name = program_name(arg0);
 
@@ -642,8 +636,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             break;
         case '?':
         default:
-            short_usage(argv[0]);
-            break;
+            throw std::runtime_error{"Usage error. Try 'osm2pgsql --help'."};
         }
     } //end while
 
@@ -654,8 +647,9 @@ options_t::options_t(int argc, char *argv[]) : options_t()
     }
 
     //we require some input files!
-    if (argc == optind) {
-        short_usage(argv[0]);
+    if (optind >= argc) {
+        throw std::runtime_error{
+            "Missing input file(s). Try 'osm2pgsql --help'."};
     }
 
     //get the input files
