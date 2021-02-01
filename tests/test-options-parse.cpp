@@ -36,7 +36,7 @@ TEST_CASE("Insufficient arguments", "[NoDB]")
 {
     std::vector<char const *> opts = {"osm2pgsql", "-a", "-c", "--slim"};
     REQUIRE_THROWS_WITH(options_t((int)opts.size(), (char **)&opts[0]),
-                        Catch::Matchers::Contains("Usage error"));
+                        Catch::Matchers::Contains("Missing input"));
 }
 
 TEST_CASE("Incompatible arguments", "[NoDB]")

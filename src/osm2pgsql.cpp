@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
         log_info("osm2pgsql version {}", get_osm2pgsql_version());
 
         options_t const options{argc, argv};
-        if (options.long_usage_bool) {
+        if (options.early_return()) {
             return 0;
         }
 

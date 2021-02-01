@@ -10,7 +10,9 @@
 #include "config.h"
 #include "format.hpp"
 #include "logging.hpp"
+#include "node-ram-cache.hpp"
 #include "options.hpp"
+#include "reprojection.hpp"
 #include "sprompt.hpp"
 
 #include <algorithm>
@@ -97,13 +99,7 @@ const struct option long_options[] = {
     {"with-forward-dependencies", required_argument, nullptr, 217},
     {nullptr, 0, nullptr, 0}};
 
-void short_usage(char *arg0)
-{
-    throw std::runtime_error{"Usage error. For further information call:"
-                             " {} --help"_format(program_name(arg0))};
-}
-
-void long_usage(char const *arg0, bool verbose)
+static void long_usage(char const *arg0, bool verbose)
 {
     char const *const name = program_name(arg0);
 
@@ -347,7 +343,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
 {
     // If there are no command line arguments at all, show help.
     if (argc == 1) {
-        long_usage_bool = true;
+        m_print_help = true;
         long_usage(argv[0], false);
         return;
     }
@@ -523,7 +519,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             }
             break;
         case 'h':
-            long_usage_bool = true;
+            m_print_help = true;
             break;
         case 'I':
             parallel_indexing = false;
@@ -642,20 +638,20 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             break;
         case '?':
         default:
-            short_usage(argv[0]);
-            break;
+            throw std::runtime_error{"Usage error. Try 'osm2pgsql --help'."};
         }
     } //end while
 
     //they were looking for usage info
-    if (long_usage_bool) {
+    if (m_print_help) {
         long_usage(argv[0], help_verbose);
         return;
     }
 
     //we require some input files!
-    if (argc == optind) {
-        short_usage(argv[0]);
+    if (optind >= argc) {
+        throw std::runtime_error{
+            "Missing input file(s). Try 'osm2pgsql --help'."};
     }
 
     //get the input files
