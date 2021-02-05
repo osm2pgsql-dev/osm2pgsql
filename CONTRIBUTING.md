@@ -59,8 +59,13 @@ User documentation is available on [the website](https://osm2pgsql.org/), some
 is stored in `docs/`. Pages on the OpenStreetMap wiki are known to be
 unreliable and outdated.
 
-The [man page](docs/osm2pgsql.1) can be built from [source](docs/osm2pgsql.md)
-with `make man`. The result should be checked into the repository.
+The [osm2pgsql man page](docs/osm2pgsql.1) can be built from [source](docs/osm2pgsql.md)
+with `make man`. The [osm2pgsql-replication man page](docs/osm2pgsql-replication.1)
+has been built with:
+
+    argparse-manpage --pyfile scripts/osm2pgsql-replication --function get_parser
+
+Results should be checked into the repository.
 
 ## Platforms targeted
 
