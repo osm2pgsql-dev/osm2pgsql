@@ -61,7 +61,7 @@ def compute_database_date(conn, prefix):
             return None
 
     LOG.debug("Using way id %d for timestamp lookup", osmid)
-    # Get the node from the API to find the timestamp when it was created.
+    # Get the way from the API to find the timestamp when it was created.
     url = 'https://www.openstreetmap.org/api/0.6/way/{}/1'.format(osmid)
     headers = {"User-Agent" : "osm2pgsql-update",
                "Accept" : "application/json"}
@@ -70,7 +70,7 @@ def compute_database_date(conn, prefix):
 
     if not data.get('elements') or not 'timestamp' in data['elements'][0]:
         LOG.fatal("The way data downloaded from the API does not contain valid data.\n"
-                  "URL used: %s", node_url)
+                  "URL used: %s", url)
         return None
 
     date = data['elements'][0]['timestamp']
