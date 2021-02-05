@@ -26,6 +26,7 @@ import logging
 import sys
 import subprocess
 import tempfile
+from textwrap import dedent
 import traceback
 from pathlib import Path
 import urllib.request as urlrequest
@@ -117,6 +118,8 @@ def update_replication_state(conn, table, seq, date):
 
 def init(conn, args):
     """\
+    Initialise the replication process.
+
     There are two ways to initialise the replication process: if you have imported
     from a file that contains replication source information, then the
     initialisation process can use this and set up replication from there.
@@ -254,8 +257,9 @@ def update(conn, args):
 
     return 0
 
-def get_args():
+def get_parser():
     parser = ArgumentParser(description=__doc__,
+                            prog='osm2pgsql-replication',
                             formatter_class=RawDescriptionHelpFormatter)
     subs = parser.add_subparsers(title='available commands', dest='subcommand')
 
@@ -283,7 +287,7 @@ def get_args():
     # Arguments for init
     cmd = subs.add_parser('init', parents=[default_args],
                           help=init.__doc__.split('\n', 1)[0],
-                          description=init.__doc__,
+                          description=dedent(init.__doc__),
                           formatter_class=RawDescriptionHelpFormatter,
                           add_help=False)
     grp = cmd.add_argument_group('Replication source arguments')
@@ -299,7 +303,7 @@ def get_args():
     cmd = subs.add_parser('update', parents=[default_args],
                           usage='%(prog)s update [options] [-- param [param ...]]',
                           help=update.__doc__.split('\n', 1)[0],
-                          description=update.__doc__,
+                          description=dedent(update.__doc__),
                           formatter_class=RawDescriptionHelpFormatter,
                           add_help=False)
     cmd.set_defaults(handler=update)
@@ -315,17 +319,15 @@ def get_args():
     cmd.add_argument('--once', action='store_true',
                      help='Run updates only once, even when more data is available.')
 
+    return parser
+
+def main():
+    parser = get_parser()
     args = parser.parse_args()
 
     if args.subcommand is None:
         parser.print_help()
         exit(1)
-
-    return args
-
-
-def main():
-    args = get_args()
 
     logging.basicConfig(stream=sys.stderr,
                         format='{asctime} [{levelname}]: {message}',
