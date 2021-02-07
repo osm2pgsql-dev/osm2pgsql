@@ -1,0 +1,183 @@
+.TH osm2pgsql-replication "1" Manual
+.SH NAME
+osm2pgsql-replication
+.SH SYNOPSIS
+.B osm2pgsql-replication
+[-h] {init,update} ...
+.SH DESCRIPTION
+Update an osm2pgsql database with changes from a OSM replication server.
+.br
+
+.br
+This tool initialises the updating process by looking at the import file
+.br
+or the newest object in the database. The state is then saved in a table
+.br
+in the database. Subsequent runs download newly available data and apply
+.br
+it to the database.
+.br
+
+.br
+See the help of the 'init' and 'update' command for more information on
+.br
+how to use osm2pgsql\-replication.
+.SH OPTIONS
+
+
+.SS
+\fBSub-commands\fR
+.TP
+\fBosm2pgsql-replication\fR \fI\,init\/\fR
+    Initialise the replication process.
+.TP
+\fBosm2pgsql-replication\fR \fI\,update\/\fR
+    Download newly available data and apply it to the database.
+.SH OPTIONS 'osm2pgsql-replication init'
+usage: osm2pgsql-replication init [-h] [-q] [-v] [-d DB] [-U NAME] [-H HOST]
+                                  [-P PORT] [--prefix PREFIX]
+                                  [--osm-file FILE | --server URL]
+
+Initialise the replication process.
+.br
+
+.br
+There are two ways to initialise the replication process: if you have imported
+.br
+from a file that contains replication source information, then the
+.br
+initialisation process can use this and set up replication from there.
+.br
+Use the command '%(prog)s \-\-osm\-file <filename>' for this.
+.br
+
+.br
+If the file has no replication information or you don't have the initial
+.br
+import file anymore then replication can be set up according to
+.br
+the data found in the database. It checks the planet_osm_way table for the
+.br
+newest way in the database and then queries the OSM API when the way was
+.br
+created. The date is used as the start date for replication. In this mode
+.br
+the minutely diffs from the OSM servers are used as a source. You can change
+.br
+this with the '\-\-server' parameter.
+
+
+
+.TP
+\fB\-q\fR, \fB\-\-quiet\fR
+Print only error messages
+
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR
+Increase verboseness of output
+
+.TP
+\fB\-d\fR DB, \fB\-\-database\fR DB
+Name of PostgreSQL database to connect to or conninfo string
+
+.TP
+\fB\-U\fR NAME, \fB\-\-username\fR NAME
+PostgreSQL user name
+
+.TP
+\fB\-H\fR HOST, \fB\-\-host\fR HOST
+Database server host name or socket location
+
+.TP
+\fB\-P\fR PORT, \fB\-\-port\fR PORT
+Database server port
+
+.TP
+\fB\-\-prefix\fR PREFIX
+Prefix for table names (default 'planet_osm')
+
+.TP
+\fB\-\-osm\-file\fR FILE
+Get replication information from the given file.
+
+.TP
+\fB\-\-server\fR URL
+Use replication server at the given URL (default: https://planet.openstreetmap.org/replication/minute)
+
+.SH OPTIONS 'osm2pgsql-replication update'
+usage: osm2pgsql-replication update update [options] [-- param [param ...]]
+
+Download newly available data and apply it to the database.
+.br
+
+.br
+The data is downloaded in chunks of '\-\-max\-diff\-size' MB. Each chunk is
+.br
+saved in a temporary file and imported with osm2pgsql from there. The
+.br
+temporary file is normally deleted afterwards unless you state an explicit
+.br
+location with '\-\-diff\-file'. Once the database is up to date with the
+.br
+replication source, the update process exits with 0.
+.br
+
+.br
+Any additional arguments to osm2pgsql need to be given after '\-\-'. Database
+.br
+and the prefix parameter are handed through to osm2pgsql. They do not need
+.br
+to be repeated. '\-\-append' and '\-\-slim' will always be added as well.
+
+.TP
+\fBparam\fR
+Extra parameters to hand in to osm2pgsql.
+
+.TP
+\fB\-\-diff\-file\fR FILE
+File to save changes before they are applied to osm2pgsql.
+
+.TP
+\fB\-\-max\-diff\-size\fR \fI\,MAX_DIFF_SIZE\/\fR
+Maximum data to load in MB (default: 500MB)
+
+.TP
+\fB\-\-osm2pgsql\-cmd\fR \fI\,OSM2PGSQL_CMD\/\fR
+Path to osm2pgsql command (default: osm2pgsql)
+
+.TP
+\fB\-\-once\fR
+Run updates only once, even when more data is available.
+
+.TP
+\fB\-q\fR, \fB\-\-quiet\fR
+Print only error messages
+
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR
+Increase verboseness of output
+
+.TP
+\fB\-d\fR DB, \fB\-\-database\fR DB
+Name of PostgreSQL database to connect to or conninfo string
+
+.TP
+\fB\-U\fR NAME, \fB\-\-username\fR NAME
+PostgreSQL user name
+
+.TP
+\fB\-H\fR HOST, \fB\-\-host\fR HOST
+Database server host name or socket location
+
+.TP
+\fB\-P\fR PORT, \fB\-\-port\fR PORT
+Database server port
+
+.TP
+\fB\-\-prefix\fR PREFIX
+Prefix for table names (default 'planet_osm')
+
+.SH DISTRIBUTION
+The latest version of osm2pgsql\-replication may be downloaded from
+.UR <<UNSET \-\-url OPTION>>
+.UE
