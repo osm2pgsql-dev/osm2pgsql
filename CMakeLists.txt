@@ -20,6 +20,7 @@ option(BUILD_TESTS    "Build test suite" OFF)
 option(BUILD_COVERAGE "Build with coverage" OFF)
 option(WITH_LUA       "Build with Lua support" ON)
 option(WITH_LUAJIT    "Build with LuaJIT support" OFF)
+option(INSTALL_OSM2PGSQL "Install osm2pgsql binary and data" ON)
 
 if (PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
     message(FATAL_ERROR "In-source builds are not allowed, please use a separate build directory like `mkdir build && cd build && cmake ..`")
@@ -324,5 +325,7 @@ add_subdirectory(docs)
 # Install
 #############################################################
 
-install(TARGETS osm2pgsql DESTINATION bin)
-install(FILES default.style empty.style DESTINATION share/osm2pgsql)
+if (INSTALL_OSM2PGSQL)
+    install(TARGETS osm2pgsql DESTINATION bin)
+    install(FILES default.style empty.style DESTINATION share/osm2pgsql)
+endif()
