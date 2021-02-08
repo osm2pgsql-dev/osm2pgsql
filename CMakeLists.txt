@@ -10,6 +10,15 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+# Do not create install targets when run as a subproject.
+# Currently used by Nominatim which cannot yet rely on installed versions
+# of osm2pgsql.
+if (${PROJECT_NAME} STREQUAL ${CMAKE_PROJECT_NAME})
+    set(ENABLE_INSTALL ON)
+else()
+    set(ENABLE_INSTALL OFF)
+endif()
+
 if (WIN32)
     set(DEFAULT_STYLE "default.style" CACHE STRING "Default style used unless one is given on the command line")
 else()
@@ -324,5 +333,7 @@ add_subdirectory(docs)
 # Install
 #############################################################
 
-install(TARGETS osm2pgsql DESTINATION bin)
-install(FILES default.style empty.style DESTINATION share/osm2pgsql)
+if (ENABLE_INSTALL)
+    install(TARGETS osm2pgsql DESTINATION bin)
+    install(FILES default.style empty.style DESTINATION share/osm2pgsql)
+endif()
