@@ -27,5 +27,6 @@ else()
     message(STATUS "  Manual page can not be built")
 endif()
 
-install(FILES osm2pgsql.1 DESTINATION share/man/man1)
-
+if (ENABLE_INSTALL)
+    install(FILES osm2pgsql.1 DESTINATION share/man/man1)
+endif()
