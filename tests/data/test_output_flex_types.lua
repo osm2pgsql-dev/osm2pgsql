@@ -119,6 +119,7 @@ function osm2pgsql.process_node(object)
                 tint2 = n,
                 tint4 = n,
                 tint8 = n,
+                treal = n,
             }
         end
         return
