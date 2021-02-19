@@ -176,13 +176,13 @@ TEST_CASE("type string (with invalid number)")
     CHECK(7 == conn.get_count("nodes"));
 
     // clang-format off
-    CHECK(1 == conn.get_count("nodes", "ttext = ''     AND tint2 IS NULL AND tint4 IS NULL AND tint8 IS NULL"));
-    CHECK(1 == conn.get_count("nodes", "ttext = 'abc'  AND tint2 IS NULL AND tint4 IS NULL AND tint8 IS NULL"));
-    CHECK(1 == conn.get_count("nodes", "ttext = '0a'   AND tint2 IS NULL AND tint4 IS NULL AND tint8 IS NULL"));
-    CHECK(1 == conn.get_count("nodes", "ttext = '0xa'  AND tint2 IS NULL AND tint4 IS NULL AND tint8 IS NULL"));
-    CHECK(1 == conn.get_count("nodes", "ttext = '--1'  AND tint2 IS NULL AND tint4 IS NULL AND tint8 IS NULL"));
-    CHECK(1 == conn.get_count("nodes", "ttext = '1foo' AND tint2 IS NULL AND tint4 IS NULL AND tint8 IS NULL"));
-    CHECK(1 == conn.get_count("nodes", "ttext = '1.2'  AND tint2 IS NULL AND tint4 IS NULL AND tint8 IS NULL"));
+    CHECK(1 == conn.get_count("nodes", "ttext = ''     AND tint2 IS NULL AND tint4 IS NULL AND tint8 IS NULL AND treal IS NULL"));
+    CHECK(1 == conn.get_count("nodes", "ttext = 'abc'  AND tint2 IS NULL AND tint4 IS NULL AND tint8 IS NULL AND treal IS NULL"));
+    CHECK(1 == conn.get_count("nodes", "ttext = '0a'   AND tint2 IS NULL AND tint4 IS NULL AND tint8 IS NULL AND treal IS NULL"));
+    CHECK(1 == conn.get_count("nodes", "ttext = '0xa'  AND tint2 IS NULL AND tint4 IS NULL AND tint8 IS NULL AND abs(treal - 10) < 0.0000001"));
+    CHECK(1 == conn.get_count("nodes", "ttext = '--1'  AND tint2 IS NULL AND tint4 IS NULL AND tint8 IS NULL AND treal IS NULL"));
+    CHECK(1 == conn.get_count("nodes", "ttext = '1foo' AND tint2 IS NULL AND tint4 IS NULL AND tint8 IS NULL AND treal IS NULL"));
+    CHECK(1 == conn.get_count("nodes", "ttext = '1.2'  AND tint2 IS NULL AND tint4 IS NULL AND tint8 IS NULL AND abs(treal - 1.2) < 0.0000001"));
     // clang-format on
 }
 

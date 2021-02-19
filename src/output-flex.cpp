@@ -302,6 +302,11 @@ void write_integer(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
 static void write_double(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
                          flex_table_column_t const &column, char const *str)
 {
+    if (*str == '\0') {
+        write_null(copy_mgr, column);
+        return;
+    }
+
     char *end = nullptr;
     double const value = std::strtod(str, &end);
 
