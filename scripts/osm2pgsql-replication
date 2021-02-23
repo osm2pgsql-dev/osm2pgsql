@@ -184,6 +184,18 @@ def update(conn, args):
     Any additional arguments to osm2pgsql need to be given after '--'. Database
     and the prefix parameter are handed through to osm2pgsql. They do not need
     to be repeated. '--append' and '--slim' will always be added as well.
+
+    Use the '--post-processing' parameter to execute a script after osm2pgsql has
+    run successfully. If the updates consists of multiple runs because the
+    maximum size of downloaded data was reached, then the script is executed
+    each time that osm2pgsql has run. When the post-processing fails, then
+    the entire update run is considered a failure and the replication information
+    is not updated. That means that when 'update' is run the next time it will
+    recommence with downloading the diffs again and reapplying them to the
+    database. This is usually safe. The script receives two parameters:
+    the sequence ID and timestamp of the last successful run. The timestamp
+    may be missing in the rare case that the replication service stops responding
+    after the updates have been downloaded.
     """
     with conn.cursor() as cur:
         cur.execute('SELECT * FROM pg_tables where tablename = %s', (args.table, ))
@@ -244,6 +256,13 @@ def update(conn, args):
         seq = endseq
 
         nextstate = repl.get_state_info(seq)
+        timestamp = nextstate.timestamp if nextstate else None
+
+        if args.post_processing:
+            cmd = [args.post_processing, str(endseq), str(timestamp or '')]
+            LOG.debug('Calling post-processing script: %s', ' '.join(cmd))
+            subprocess.run(cmd, check=True)
+
         update_replication_state(conn, args.table, seq,
                                  nextstate.timestamp if nextstate else None)
 
@@ -318,6 +337,8 @@ def get_parser():
                      help='Path to osm2pgsql command (default: osm2pgsql)')
     cmd.add_argument('--once', action='store_true',
                      help='Run updates only once, even when more data is available.')
+    cmd.add_argument('--post-processing', metavar='SCRIPT',
+                     help='Post-processing script to run after each execution of osm2pgsql.')
 
     return parser
 
