@@ -225,8 +225,8 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
         m_sql_conn->exec(sql);
 
         m_sql_conn->exec("DROP TABLE {}"_format(qual_name));
-        m_sql_conn->exec(
-            "ALTER TABLE {} RENAME TO {}"_format(qual_tmp_name, m_target->name));
+        m_sql_conn->exec("ALTER TABLE {} RENAME TO \"{}\""_format(
+            qual_tmp_name, m_target->name));
 
         log_info("Creating geometry index on table '{}'...", m_target->name);
 

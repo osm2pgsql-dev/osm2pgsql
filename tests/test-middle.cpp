@@ -44,6 +44,26 @@ struct options_slim_default
     }
 };
 
+struct options_slim_with_lc_prefix
+{
+    static options_t options(testing::pg::tempdb_t const &tmpdb)
+    {
+        options_t o = testing::opt_t().slim(tmpdb);
+        o.prefix = "pre";
+        return o;
+    }
+};
+
+struct options_slim_with_uc_prefix
+{
+    static options_t options(testing::pg::tempdb_t const &tmpdb)
+    {
+        options_t o = testing::opt_t().slim(tmpdb);
+        o.prefix = "PRE";
+        return o;
+    }
+};
+
 struct options_slim_with_schema
 {
     static options_t options(testing::pg::tempdb_t const &tmpdb)
@@ -112,6 +132,7 @@ TEST_CASE("elem_cache_t")
 }
 
 TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
+                   options_slim_with_lc_prefix, options_slim_with_uc_prefix,
                    options_slim_with_schema, options_slim_dense_cache,
                    options_ram_optimized, options_ram_flatnode)
 {

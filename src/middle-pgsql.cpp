@@ -48,7 +48,7 @@ static std::string build_sql(options_t const &options, char const *templ)
         templ, fmt::arg("prefix", options.prefix),
         fmt::arg("schema", options.middle_dbschema.empty()
                                ? ""
-                               : (options.middle_dbschema + ".")),
+                               : ("\"" + options.middle_dbschema + "\".")),
         fmt::arg("unlogged", options.droptemp ? "UNLOGGED" : ""),
         fmt::arg("using_tablespace", using_tablespace),
         fmt::arg("data_tablespace", tablespace_clause(options.tblsslim_data)),
@@ -654,15 +654,17 @@ static table_sql sql_for_nodes(bool create_table) noexcept
     sql.name = "{prefix}_nodes";
 
     if (create_table) {
-        sql.create_table = "CREATE {unlogged} TABLE {schema}{prefix}_nodes ("
-                           "  id int8 PRIMARY KEY {using_tablespace},"
-                           "  lat int4 NOT NULL,"
-                           "  lon int4 NOT NULL"
-                           ") {data_tablespace};\n";
+        sql.create_table =
+            "CREATE {unlogged} TABLE {schema}\"{prefix}_nodes\" ("
+            "  id int8 PRIMARY KEY {using_tablespace},"
+            "  lat int4 NOT NULL,"
+            "  lon int4 NOT NULL"
+            ") {data_tablespace};\n";
 
-        sql.prepare_query = "PREPARE get_node_list(int8[]) AS"
-                            "  SELECT id, lon, lat FROM {schema}{prefix}_nodes"
-                            "  WHERE id = ANY($1::int8[]);\n";
+        sql.prepare_query =
+            "PREPARE get_node_list(int8[]) AS"
+            "  SELECT id, lon, lat FROM {schema}\"{prefix}_nodes\""
+            "  WHERE id = ANY($1::int8[]);\n";
     }
 
     return sql;
@@ -675,7 +677,7 @@ static table_sql sql_for_ways(bool has_bucket_index,
 
     sql.name = "{prefix}_ways";
 
-    sql.create_table = "CREATE {unlogged} TABLE {schema}{prefix}_ways ("
+    sql.create_table = "CREATE {unlogged} TABLE {schema}\"{prefix}_ways\" ("
                        "  id int8 PRIMARY KEY {using_tablespace},"
                        "  nodes int8[] NOT NULL,"
                        "  tags text[]"
@@ -683,40 +685,41 @@ static table_sql sql_for_ways(bool has_bucket_index,
 
     sql.prepare_query = "PREPARE get_way(int8) AS"
                         "  SELECT nodes, tags"
-                        "    FROM {schema}{prefix}_ways WHERE id = $1;\n"
+                        "    FROM {schema}\"{prefix}_ways\" WHERE id = $1;\n"
                         "PREPARE get_way_list(int8[]) AS"
                         "  SELECT id, nodes, tags"
-                        "    FROM {schema}{prefix}_ways"
+                        "    FROM {schema}\"{prefix}_ways\""
                         "      WHERE id = ANY($1::int8[]);\n";
 
     if (has_bucket_index) {
         sql.prepare_fw_dep_lookups =
             "PREPARE mark_ways_by_node(int8) AS"
-            "  SELECT id FROM {schema}{prefix}_ways w"
+            "  SELECT id FROM {schema}\"{prefix}_ways\" w"
             "    WHERE $1 = ANY(nodes)"
-            "      AND {schema}{prefix}_index_bucket(w.nodes)"
-            "       && {schema}{prefix}_index_bucket(ARRAY[$1]);\n";
+            "      AND {schema}\"{prefix}_index_bucket\"(w.nodes)"
+            "       && {schema}\"{prefix}_index_bucket\"(ARRAY[$1]);\n";
     } else {
-        sql.prepare_fw_dep_lookups = "PREPARE mark_ways_by_node(int8) AS"
-                                     "  SELECT id FROM {schema}{prefix}_ways"
-                                     "    WHERE nodes && ARRAY[$1];\n";
+        sql.prepare_fw_dep_lookups =
+            "PREPARE mark_ways_by_node(int8) AS"
+            "  SELECT id FROM {schema}\"{prefix}_ways\""
+            "    WHERE nodes && ARRAY[$1];\n";
     }
 
     if (way_node_index_id_shift == 0) {
         sql.create_fw_dep_indexes =
-            "CREATE INDEX ON {schema}{prefix}_ways USING GIN (nodes)"
+            "CREATE INDEX ON {schema}\"{prefix}_ways\" USING GIN (nodes)"
             "  WITH (fastupdate = off) {index_tablespace};\n";
     } else {
         sql.create_fw_dep_indexes =
             "CREATE OR REPLACE FUNCTION"
-            "    {schema}{prefix}_index_bucket(int8[])"
+            "    {schema}\"{prefix}_index_bucket\"(int8[])"
             "  RETURNS int8[] AS $$\n"
             "  SELECT ARRAY(SELECT DISTINCT"
             "    unnest($1) >> {way_node_index_id_shift})\n"
             "$$ LANGUAGE SQL IMMUTABLE;\n"
-            "CREATE INDEX {schema}{prefix}_ways_nodes_bucket_idx"
-            "  ON {schema}{prefix}_ways"
-            "  USING GIN ({schema}{prefix}_index_bucket(nodes))"
+            "CREATE INDEX {schema}\"{prefix}_ways_nodes_bucket_idx\""
+            "  ON {schema}\"{prefix}_ways\""
+            "  USING GIN ({schema}\"{prefix}_index_bucket\"(nodes))"
             "  WITH (fastupdate = off) {index_tablespace};\n";
     }
 
@@ -729,7 +732,7 @@ static table_sql sql_for_relations() noexcept
 
     sql.name = "{prefix}_rels";
 
-    sql.create_table = "CREATE {unlogged} TABLE {schema}{prefix}_rels ("
+    sql.create_table = "CREATE {unlogged} TABLE {schema}\"{prefix}_rels\" ("
                        "  id int8 PRIMARY KEY {using_tablespace},"
                        "  way_off int2,"
                        "  rel_off int2,"
@@ -740,20 +743,20 @@ static table_sql sql_for_relations() noexcept
 
     sql.prepare_query = "PREPARE get_rel(int8) AS"
                         "  SELECT members, tags"
-                        "    FROM {schema}{prefix}_rels WHERE id = $1;\n";
+                        "    FROM {schema}\"{prefix}_rels\" WHERE id = $1;\n";
 
     sql.prepare_fw_dep_lookups =
         "PREPARE mark_rels_by_node(int8) AS"
-        "  SELECT id FROM {schema}{prefix}_rels"
+        "  SELECT id FROM {schema}\"{prefix}_rels\""
         "    WHERE parts && ARRAY[$1]"
         "      AND parts[1:way_off] && ARRAY[$1];\n"
         "PREPARE mark_rels_by_way(int8) AS"
-        "  SELECT id FROM {schema}{prefix}_rels"
+        "  SELECT id FROM {schema}\"{prefix}_rels\""
         "    WHERE parts && ARRAY[$1]"
         "      AND parts[way_off+1:rel_off] && ARRAY[$1];\n";
 
     sql.create_fw_dep_indexes =
-        "CREATE INDEX ON {schema}{prefix}_rels USING GIN (parts)"
+        "CREATE INDEX ON {schema}\"{prefix}_rels\" USING GIN (parts)"
         "  WITH (fastupdate = off) {index_tablespace};\n";
 
     return sql;
