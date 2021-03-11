@@ -103,7 +103,7 @@ On Alpine, use
 
 ```sh
 apk --update-cache add cmake make g++ boost-dev expat-dev \
-  bzip2-dev zlib-dev libpq proj-dev lua5.3-dev
+  bzip2-dev zlib-dev libpq proj-dev lua5.3-dev postgresql-dev
 ```
 
 Once dependencies are installed, use CMake to build the Makefiles in a separate
