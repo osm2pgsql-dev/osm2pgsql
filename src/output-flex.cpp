@@ -1545,10 +1545,11 @@ void output_flex_t::reprocess_marked()
     lua_setfield(lua_state(), -2, "stage");
     lua_pop(lua_state(), 1); // osm2pgsql
 
+    m_stage2_way_ids->sort_unique();
+
     log_info(
         "There are {} ways to reprocess..."_format(m_stage2_way_ids->size()));
 
-    m_stage2_way_ids->sort_unique();
     for (osmid_t const id : *m_stage2_way_ids) {
         m_buffer.clear();
         if (!m_mid->way_get(id, &m_buffer)) {
