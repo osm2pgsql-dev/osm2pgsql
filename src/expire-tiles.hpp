@@ -60,6 +60,8 @@ struct expire_tiles
     expire_tiles(uint32_t maxzoom, double maxbbox,
                  const std::shared_ptr<reprojection> &projection);
 
+    bool enabled() const noexcept { return maxzoom != 0; }
+
     int from_bbox(double min_lon, double min_lat, double max_lon,
                   double max_lat);
     void from_wkb(char const *wkb, osmid_t osm_id);
