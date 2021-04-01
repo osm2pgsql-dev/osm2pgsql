@@ -40,7 +40,7 @@ void progress_display_t::print_summary() const
     std::time_t const now = std::time(nullptr);
 
     if (m_enabled) {
-        fmt::print(stderr, "\r{:78s}\r", "");
+        fmt::print(stderr, "\r{:90s}\r", "");
     }
 
     log_info("Reading input files done in {}.",
