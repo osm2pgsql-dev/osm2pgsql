@@ -6,7 +6,7 @@ runs:
   steps:
     - name: Remove preinstalled postgresql
       run: |
-        sudo apt update -qq
+        sudo apt-get update -qq
         sudo apt-get remove -yq postgresql*
       shell: bash
 
@@ -20,7 +20,7 @@ runs:
     - name: Install lua
       run: |
         if [ -n "${LUA_VERSION}" ]; then
-          sudo apt install -yq --no-install-suggests --no-install-recommends liblua${LUA_VERSION}-dev lua${LUA_VERSION}
+          sudo apt-get install -yq --no-install-suggests --no-install-recommends liblua${LUA_VERSION}-dev lua${LUA_VERSION}
         fi
       shell: bash
 
