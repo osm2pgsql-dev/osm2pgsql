@@ -127,6 +127,23 @@ void pg_conn_t::end_copy(std::string const &context) const
     }
 }
 
+static std::string concat_params(int num_params,
+                                 char const *const *param_values)
+{
+    std::string params;
+
+    for (int i = 0; i < num_params; ++i) {
+        params += param_values[i] ? param_values[i] : "<NULL>";
+        params += ',';
+    }
+
+    if (!params.empty()) {
+        params.resize(params.size() - 1);
+    }
+
+    return params;
+}
+
 pg_result_t
 pg_conn_t::exec_prepared_internal(char const *stmt, int num_params,
                                   char const *const *param_values) const
@@ -134,28 +151,14 @@ pg_conn_t::exec_prepared_internal(char const *stmt, int num_params,
     assert(m_conn);
 
     if (get_logger().log_sql()) {
-        std::string params;
-        for (int i = 0; i < num_params; ++i) {
-            params += param_values[i] ? param_values[i] : "<NULL>";
-            params += ',';
-        }
-        if (!params.empty()) {
-            params.resize(params.size() - 1);
-        }
-        log_sql("EXECUTE {}({})", stmt, params);
+        log_sql("EXECUTE {}({})", stmt,
+                concat_params(num_params, param_values));
     }
     pg_result_t res{PQexecPrepared(m_conn.get(), stmt, num_params, param_values,
                                    nullptr, nullptr, 0)};
     if (PQresultStatus(res.get()) != PGRES_TUPLES_OK) {
-        std::string params;
-        for (int i = 0; i < num_params; ++i) {
-            params += param_values[i] ? param_values[i] : "<NULL>";
-            params += ',';
-        }
-        if (!params.empty()) {
-            params.resize(params.size() - 1);
-        }
-        log_error("SQL command failed: EXECUTE {}({})", stmt, params);
+        log_error("SQL command failed: EXECUTE {}({})", stmt,
+                  concat_params(num_params, param_values));
         throw std::runtime_error{"Database error: {} ({})"_format(
             error_msg(), PQresultStatus(res.get()))};
     }
