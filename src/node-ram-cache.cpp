@@ -263,6 +263,10 @@ void node_ram_cache::set_dense(osmid_t id, osmium::Location location)
 
 osmium::Location node_ram_cache::get_sparse(osmid_t id) const
 {
+    if (sizeSparseTuples == 0) {
+        return osmium::Location{};
+    }
+
     int64_t pivotPos = sizeSparseTuples >> 1;
     int64_t minPos = 0;
     int64_t maxPos = sizeSparseTuples;
