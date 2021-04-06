@@ -717,7 +717,7 @@ static table_sql sql_for_ways(bool has_bucket_index,
             "  SELECT ARRAY(SELECT DISTINCT"
             "    unnest($1) >> {way_node_index_id_shift})\n"
             "$$ LANGUAGE SQL IMMUTABLE;\n"
-            "CREATE INDEX {schema}\"{prefix}_ways_nodes_bucket_idx\""
+            "CREATE INDEX \"{prefix}_ways_nodes_bucket_idx\""
             "  ON {schema}\"{prefix}_ways\""
             "  USING GIN ({schema}\"{prefix}_index_bucket\"(nodes))"
             "  WITH (fastupdate = off) {index_tablespace};\n";
