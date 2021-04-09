@@ -83,7 +83,7 @@ find_package(Git)
 
 if (GIT_FOUND)
     execute_process(COMMAND "${GIT_EXECUTABLE}" describe --tags --dirty=-changed
-                    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+                    WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
                     OUTPUT_VARIABLE VERSION_FROM_GIT
                     ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
     if (VERSION_FROM_GIT)
