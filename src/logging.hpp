@@ -46,8 +46,8 @@ public:
 
         auto const &ts = m_use_color ? style : fmt::text_style{};
 
-        std::string str =
-            "{:%Y-%m-%d %H:%M:%S}  "_format(fmt::localtime(std::time(nullptr)));
+        std::string str = fmt::format("{:%Y-%m-%d %H:%M:%S}  ",
+                                      fmt::localtime(std::time(nullptr)));
 
         if (prefix) {
             str += fmt::format(ts, "{}: ", prefix);
