@@ -17,7 +17,7 @@
 #include <cassert>
 #include <memory>
 
-struct middle_t;
+class middle_t;
 
 /**
  * The job of the dependency manager is to keep track of the dependencies

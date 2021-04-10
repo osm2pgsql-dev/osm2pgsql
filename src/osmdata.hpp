@@ -27,9 +27,9 @@
 #include "dependency-manager.hpp"
 #include "osmtypes.hpp"
 
+class middle_t;
 class options_t;
 class output_t;
-struct middle_t;
 
 /**
  * This class guides the processing of the OSM data through its multiple
@@ -101,7 +101,6 @@ private:
     unsigned int m_num_procs;
     bool m_append;
     bool m_droptemp;
-    bool m_parallel_indexing;
     bool m_with_extra_attrs;
     bool m_with_forward_dependencies;
 };

@@ -29,11 +29,15 @@ static void run(options_t const &options)
     auto const files = prepare_input_files(
         options.input_files, options.input_format, options.append);
 
-    auto middle = create_middle(options);
+    auto thread_pool = std::make_shared<thread_pool_t>(
+        options.parallel_indexing ? options.num_procs : 1U);
+    log_debug("Started pool with {} threads.", thread_pool->num_threads());
+
+    auto middle = create_middle(thread_pool, options);
     middle->start();
 
-    auto output =
-        output_t::create_output(middle->get_query_instance(), options);
+    auto output = output_t::create_output(middle->get_query_instance(),
+                                          thread_pool, options);
 
     middle->set_requirements(output->get_requirements());
 

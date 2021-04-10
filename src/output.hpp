@@ -33,10 +33,13 @@ class output_t
 public:
     static std::shared_ptr<output_t>
     create_output(std::shared_ptr<middle_query_t> const &mid,
+                  std::shared_ptr<thread_pool_t> thread_pool,
                   options_t const &options);
 
     output_t(std::shared_ptr<middle_query_t> const &mid,
+             std::shared_ptr<thread_pool_t> thread_pool,
              options_t const &options);
+
     virtual ~output_t();
 
     virtual std::shared_ptr<output_t>
@@ -44,7 +47,7 @@ public:
           std::shared_ptr<db_copy_thread_t> const &copy_thread) const = 0;
 
     virtual void start() = 0;
-    virtual void stop(thread_pool_t *pool) = 0;
+    virtual void stop() = 0;
     virtual void sync() = 0;
 
     virtual void wait() {}
@@ -85,6 +88,13 @@ public:
     }
 
 protected:
+    thread_pool_t &thread_pool() const noexcept
+    {
+        assert(m_thread_pool);
+        return *m_thread_pool;
+    }
+
+    std::shared_ptr<thread_pool_t> m_thread_pool;
     std::shared_ptr<middle_query_t> m_mid;
     const options_t m_options;
     output_requirements m_output_requirements{};

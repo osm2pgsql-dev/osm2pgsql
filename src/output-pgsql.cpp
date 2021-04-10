@@ -118,10 +118,10 @@ void output_pgsql_t::sync()
     }
 }
 
-void output_pgsql_t::stop(thread_pool_t *pool)
+void output_pgsql_t::stop()
 {
     for (auto &t : m_tables) {
-        t->task_set(pool->submit([&]() {
+        t->task_set(thread_pool().submit([&]() {
             t->stop(m_options.slim && !m_options.droptemp,
                     m_options.enable_hstore_index, m_options.tblsmain_index);
         }));
@@ -388,9 +388,10 @@ std::shared_ptr<output_t> output_pgsql_t::clone(
 }
 
 output_pgsql_t::output_pgsql_t(
-    std::shared_ptr<middle_query_t> const &mid, options_t const &o,
+    std::shared_ptr<middle_query_t> const &mid,
+    std::shared_ptr<thread_pool_t> thread_pool, options_t const &o,
     std::shared_ptr<db_copy_thread_t> const &copy_thread)
-: output_t(mid, o), m_builder(o.projection),
+: output_t(mid, std::move(thread_pool), o), m_builder(o.projection),
   m_expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection),
   m_buffer(32768, osmium::memory::Buffer::auto_grow::yes),
   m_rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
@@ -447,7 +448,7 @@ output_pgsql_t::output_pgsql_t(
 output_pgsql_t::output_pgsql_t(
     output_pgsql_t const *other, std::shared_ptr<middle_query_t> const &mid,
     std::shared_ptr<db_copy_thread_t> const &copy_thread)
-: output_t(mid, other->m_options),
+: output_t(mid, other->m_thread_pool, other->m_options),
   m_tagtransform(other->m_tagtransform->clone()),
   m_enable_way_area(other->m_enable_way_area), m_builder(m_options.projection),
   m_expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,

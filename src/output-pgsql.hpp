@@ -42,6 +42,7 @@ public:
     };
 
     output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
+                   std::shared_ptr<thread_pool_t> thread_pool,
                    options_t const &options,
                    std::shared_ptr<db_copy_thread_t> const &copy_thread);
 
@@ -52,7 +53,7 @@ public:
           std::shared_ptr<db_copy_thread_t> const &copy_thread) const override;
 
     void start() override;
-    void stop(thread_pool_t *pool) override;
+    void stop() override;
     void sync() override;
 
     void wait() override;

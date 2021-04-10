@@ -25,16 +25,17 @@ class output_gazetteer_t : public output_t
     output_gazetteer_t(output_gazetteer_t const *other,
                        std::shared_ptr<middle_query_t> const &cloned_mid,
                        std::shared_ptr<db_copy_thread_t> const &copy_thread)
-    : output_t(cloned_mid, other->m_options), m_copy(copy_thread),
-      m_builder(other->m_options.projection),
+    : output_t(cloned_mid, other->m_thread_pool, other->m_options),
+      m_copy(copy_thread), m_builder(other->m_options.projection),
       m_osmium_buffer(PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes)
     {}
 
 public:
     output_gazetteer_t(std::shared_ptr<middle_query_t> const &mid,
+                       std::shared_ptr<thread_pool_t> thread_pool,
                        options_t const &options,
                        std::shared_ptr<db_copy_thread_t> const &copy_thread)
-    : output_t(mid, options), m_copy(copy_thread),
+    : output_t(mid, std::move(thread_pool), options), m_copy(copy_thread),
       m_builder(options.projection),
       m_osmium_buffer(PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes)
     {
@@ -50,7 +51,7 @@ public:
     }
 
     void start() override;
-    void stop(thread_pool_t *) noexcept override {}
+    void stop() noexcept override {}
     void sync() override;
 
     void pending_way(osmid_t) noexcept override {}

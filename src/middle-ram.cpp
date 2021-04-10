@@ -27,7 +27,9 @@
 #include <limits>
 #include <memory>
 
-middle_ram_t::middle_ram_t(options_t const *options)
+middle_ram_t::middle_ram_t(std::shared_ptr<thread_pool_t> thread_pool,
+                           options_t const *options)
+: middle_t(std::move(thread_pool))
 {
     assert(options);
 
@@ -60,7 +62,7 @@ void middle_ram_t::set_requirements(output_requirements const &requirements)
     log_debug("  relations: {}", m_store_options.relations);
 }
 
-void middle_ram_t::stop(thread_pool_t &)
+void middle_ram_t::stop()
 {
     auto const mbyte = 1024 * 1024;
 

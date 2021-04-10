@@ -1416,10 +1416,10 @@ void output_flex_t::sync()
     }
 }
 
-void output_flex_t::stop(thread_pool_t *pool)
+void output_flex_t::stop()
 {
     for (auto &table : m_table_connections) {
-        table.task_set(pool->submit([&]() {
+        table.task_set(thread_pool().submit([&]() {
             table.stop(m_options.slim && !m_options.droptemp, m_options.append);
         }));
     }
@@ -1561,13 +1561,14 @@ output_flex_t::clone(std::shared_ptr<middle_query_t> const &mid,
                      std::shared_ptr<db_copy_thread_t> const &copy_thread) const
 {
     return std::make_shared<output_flex_t>(
-        mid, *get_options(), copy_thread, true, m_lua_state, m_process_node,
-        m_process_way, m_process_relation, m_select_relation_members, m_tables,
-        m_stage2_way_ids);
+        mid, m_thread_pool, *get_options(), copy_thread, true, m_lua_state,
+        m_process_node, m_process_way, m_process_relation,
+        m_select_relation_members, m_tables, m_stage2_way_ids);
 }
 
 output_flex_t::output_flex_t(
-    std::shared_ptr<middle_query_t> const &mid, options_t const &o,
+    std::shared_ptr<middle_query_t> const &mid,
+    std::shared_ptr<thread_pool_t> thread_pool, options_t const &o,
     std::shared_ptr<db_copy_thread_t> const &copy_thread, bool is_clone,
     std::shared_ptr<lua_State> lua_state, prepared_lua_function_t process_node,
     prepared_lua_function_t process_way,
@@ -1575,7 +1576,7 @@ output_flex_t::output_flex_t(
     prepared_lua_function_t select_relation_members,
     std::shared_ptr<std::vector<flex_table_t>> tables,
     std::shared_ptr<idset_t> stage2_way_ids)
-: output_t(mid, o), m_tables(std::move(tables)),
+: output_t(mid, std::move(thread_pool), o), m_tables(std::move(tables)),
   m_stage2_way_ids(std::move(stage2_way_ids)), m_copy_thread(copy_thread),
   m_lua_state(std::move(lua_state)),
   m_expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection),
