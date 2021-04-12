@@ -13,6 +13,8 @@
 #include "node-persistent-cache.hpp"
 
 #include <cassert>
+#include <cstring>
+#include <stdexcept>
 
 void node_persistent_cache::set(osmid_t id, osmium::Location location)
 {
@@ -25,20 +27,19 @@ osmium::Location node_persistent_cache::get(osmid_t id) const noexcept
         static_cast<osmium::unsigned_object_id_type>(id));
 }
 
-node_persistent_cache::node_persistent_cache(std::string const &file_name, bool remove_file)
+node_persistent_cache::node_persistent_cache(std::string file_name,
+                                             bool remove_file)
+: m_file_name(std::move(file_name)), m_remove_file(remove_file)
 {
-    assert(!file_name.empty());
+    assert(!m_file_name.empty());
 
-    m_fname = file_name.c_str();
-    m_remove_file = remove_file;
-    log_debug("Mid: loading persistent node cache from {}", m_fname);
+    log_debug("Loading persistent node cache from '{}'.", m_file_name);
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-signed-bitwise)
-    m_fd = open(m_fname, O_RDWR | O_CREAT, 0644);
+    m_fd = open(m_file_name.c_str(), O_RDWR | O_CREAT, 0644);
     if (m_fd < 0) {
-        log_error("Cannot open location cache file '{}': {}", m_fname,
-                  std::strerror(errno));
-        throw std::runtime_error{"Unable to open flatnode file."};
+        throw std::runtime_error{"Unable to open flatnode file '{}': {}"_format(
+            m_file_name, std::strerror(errno))};
     }
 
     m_index.reset(new index_t{m_fd});
@@ -53,9 +54,9 @@ node_persistent_cache::~node_persistent_cache() noexcept
 
     if (m_remove_file) {
         try {
-            log_debug("Mid: removing persistent node cache at {}", m_fname);
+            log_debug("Removing persistent node cache at '{}'.", m_file_name);
         } catch (...) {
         }
-        unlink(m_fname);
+        unlink(m_file_name.c_str());
     }
 }
