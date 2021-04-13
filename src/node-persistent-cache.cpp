@@ -6,8 +6,9 @@
  * Copyright (C) 2006-2021 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
-
-#define _LARGEFILE64_SOURCE /* See feature_test_macros(7) */
+#ifndef _LARGEFILE64_SOURCE
+#  define _LARGEFILE64_SOURCE /* See feature_test_macros(7) */
+#endif
 
 #include "logging.hpp"
 #include "node-persistent-cache.hpp"
