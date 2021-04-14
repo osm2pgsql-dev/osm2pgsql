@@ -6,8 +6,9 @@ runs:
   steps:
     - name: Remove preinstalled postgresql
       run: |
-        sudo apt-get update -qq
         sudo apt-get remove -yq postgresql*
+        sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+        sudo apt-get update -qq
       shell: bash
 
     - name: Install software
