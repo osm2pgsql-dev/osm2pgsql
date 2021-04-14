@@ -114,7 +114,7 @@ jobs:
       LUAJIT_OPTION: OFF
       POSTGRESQL_VERSION: 10
       POSTGIS_VERSION: 3
-      CPPVERSION: 11
+      CPP_VERSION: 11
 
     steps:
       - uses: actions/checkout@v2
@@ -132,7 +132,7 @@ jobs:
       LUAJIT_OPTION: OFF
       POSTGRESQL_VERSION: 11
       POSTGIS_VERSION: 2.5
-      CPPVERSION: 11
+      CPP_VERSION: 11
 
     steps:
       - uses: actions/checkout@v2
@@ -149,7 +149,7 @@ jobs:
       LUAJIT_OPTION: ON
       POSTGRESQL_VERSION: 12
       POSTGIS_VERSION: 2.5
-      CPPVERSION: 14
+      CPP_VERSION: 14
 
     steps:
       - uses: actions/checkout@v2
@@ -167,7 +167,7 @@ jobs:
       LUAJIT_OPTION: ON
       POSTGRESQL_VERSION: 13
       POSTGIS_VERSION: 3
-      CPPVERSION: 14
+      CPP_VERSION: 14
 
     steps:
       - uses: actions/checkout@v2
@@ -184,7 +184,7 @@ jobs:
       LUAJIT_OPTION: OFF
       POSTGRESQL_VERSION: 13
       POSTGIS_VERSION: 3
-      CPPVERSION: 14
+      CPP_VERSION: 14
       USE_PROJ_LIB: 6
 
     steps:
@@ -202,7 +202,7 @@ jobs:
       LUAJIT_OPTION: OFF
       POSTGRESQL_VERSION: 13
       POSTGIS_VERSION: 3
-      CPPVERSION: 14
+      CPP_VERSION: 14
       USE_PROJ_LIB: off
 
     steps:
@@ -220,7 +220,7 @@ jobs:
       LUAJIT_OPTION: ON
       POSTGRESQL_VERSION: 13
       POSTGIS_VERSION: 2.5
-      CPPVERSION: 14
+      CPP_VERSION: 14
       BUILD_TYPE: Release
 
     steps:
