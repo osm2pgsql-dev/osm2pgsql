@@ -1,10 +1,11 @@
 ---
-Checks: '*,-android-cloexec-*,-cppcoreguidelines-avoid-magic-numbers,-cppcoreguidelines-owning-memory,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-cppcoreguidelines-pro-type-cstyle-cast,-cppcoreguidelines-pro-type-reinterpret-cast,-cppcoreguidelines-pro-type-static-cast-downcast,-cppcoreguidelines-pro-type-vararg,-fuchsia-*,-google-readability-casting,-google-readability-todo,-hicpp-no-array-decay,-hicpp-vararg,-llvm-include-order,-llvm-header-guard,-modernize-make-unique,-modernize-use-trailing-return-type,-readability-implicit-bool-conversion,-readability-named-parameter,-readability-magic-numbers'
+Checks: '*,-android-cloexec-*,-cppcoreguidelines-avoid-magic-numbers,-cppcoreguidelines-owning-memory,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-cppcoreguidelines-pro-type-cstyle-cast,-cppcoreguidelines-pro-type-reinterpret-cast,-cppcoreguidelines-pro-type-static-cast-downcast,-cppcoreguidelines-pro-type-vararg,-fuchsia-*,-google-readability-casting,-google-readability-todo,-hicpp-named-parameter,-hicpp-no-array-decay,-hicpp-vararg,-llvm-include-order,-llvm-header-guard,-llvmlibc-*,-misc-no-recursion,-modernize-make-unique,-modernize-use-trailing-return-type,-readability-implicit-bool-conversion,-readability-named-parameter,-readability-magic-numbers'
 #
 #  cppcoreguidelines-pro-type-cstyle-cast
 #  google-build-using-namespace
 #  google-readability-casting
 #  llvm-include-order
+#  hicpp-named-parameter
 #  readability-named-parameter
 #    Differ from our style guidelines
 #
@@ -35,6 +36,12 @@ Checks: '*,-android-cloexec-*,-cppcoreguidelines-avoid-magic-numbers,-cppcoregui
 #  llvm-header-guard
 #    Not our style
 #
+#  llvmlibc-*
+#    Not applicable
+#
+#  misc-no-recursion
+#    Nothing wrong with recursion
+#
 #  modernize-make-unique
 #    Not available in C++11
 #
@@ -46,4 +53,7 @@ Checks: '*,-android-cloexec-*,-cppcoreguidelines-avoid-magic-numbers,-cppcoregui
 #
 #WarningsAsErrors: '*'
 HeaderFilterRegex: '\/src\/'
+CheckOptions:
+    - key: cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor
+      value: true
 ...
