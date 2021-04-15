@@ -7,8 +7,6 @@
  * For a full list of authors see the git log.
  */
 
-#define _LARGEFILE64_SOURCE /* See feature_test_macros(7) */
-
 #include "logging.hpp"
 #include "node-persistent-cache.hpp"
 
