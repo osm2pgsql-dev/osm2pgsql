@@ -81,6 +81,19 @@ inline std::size_t write_header_with_length(std::string *str,
     return offset;
 }
 
+/// Create EWKB Point geometry.
+inline std::string create_point(double x, double y, uint32_t srid = 4326)
+{
+    std::string data;
+    data.reserve(25); // Point geometries are always 25 bytes
+
+    write_header(&data, wkb_point, srid);
+    str_push(&data, x);
+    str_push(&data, y);
+
+    return data;
+}
+
 /**
  *  Writer for EWKB data suitable for postgres.
  *
@@ -124,12 +137,7 @@ public:
 
     std::string make_point(osmium::geom::Coordinates const &xy) const
     {
-        std::string data;
-        write_header(&data, wkb_point, m_srid);
-        str_push(&data, xy.x);
-        str_push(&data, xy.y);
-
-        return data;
+        return create_point(xy.x, xy.y, m_srid);
     }
 
     /* LineString */
