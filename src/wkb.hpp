@@ -101,22 +101,6 @@ inline std::string create_point(double x, double y, uint32_t srid = 4326)
  */
 class writer_t
 {
-
-    std::string m_data;
-    uint32_t m_srid;
-
-    std::size_t m_geometry_size_offset = 0;
-    std::size_t m_multigeometry_size_offset = 0;
-    std::size_t m_ring_size_offset = 0;
-
-    void set_size(std::size_t offset, std::size_t size)
-    {
-        assert(m_data.size() >= offset + sizeof(uint32_t));
-        auto const s = static_cast<uint32_t>(size);
-        std::memcpy(&m_data[offset], reinterpret_cast<char const *>(&s),
-                    sizeof(uint32_t));
-    }
-
 public:
     explicit writer_t(uint32_t srid) : m_srid(srid) {}
 
@@ -230,6 +214,23 @@ public:
 
         return data;
     }
+
+private:
+    void set_size(std::size_t offset, std::size_t size)
+    {
+        assert(m_data.size() >= offset + sizeof(uint32_t));
+        auto const s = static_cast<uint32_t>(size);
+        std::memcpy(&m_data[offset], reinterpret_cast<char const *>(&s),
+                    sizeof(uint32_t));
+    }
+
+    std::string m_data;
+
+    std::size_t m_geometry_size_offset = 0;
+    std::size_t m_multigeometry_size_offset = 0;
+    std::size_t m_ring_size_offset = 0;
+
+    uint32_t m_srid;
 }; // class writer_t
 
 /**
