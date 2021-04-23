@@ -60,7 +60,6 @@ public:
     std::vector<taginfo> const &get(osmium::item_type type) const noexcept;
 
     columns_t normal_columns(osmium::item_type type) const;
-    bool has_column(osmium::item_type type, char const *name) const;
 
 private:
     osmium::nwr_array<std::vector<taginfo>> m_export_list;
