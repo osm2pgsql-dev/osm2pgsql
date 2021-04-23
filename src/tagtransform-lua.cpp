@@ -21,7 +21,7 @@ lua_tagtransform_t::lua_tagtransform_t(options_t const *options)
 : m_node_func("filter_tags_node"), m_way_func("filter_tags_way"),
   m_rel_func("filter_basic_tags_rel"),
   m_rel_mem_func("filter_tags_relation_member"),
-  m_lua_file(options->tag_transform_script.get()),
+  m_lua_file(options->tag_transform_script),
   m_extra_attributes(options->extra_attributes)
 {
     open_style();

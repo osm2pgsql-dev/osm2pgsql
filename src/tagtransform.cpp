@@ -7,11 +7,11 @@
  * For a full list of authors see the git log.
  */
 
-#include "tagtransform.hpp"
 #include "config.h"
 #include "logging.hpp"
 #include "options.hpp"
 #include "tagtransform-c.hpp"
+#include "tagtransform.hpp"
 
 #ifdef HAVE_LUA
 #include "tagtransform-lua.hpp"
@@ -21,10 +21,10 @@ std::unique_ptr<tagtransform_t>
 tagtransform_t::make_tagtransform(options_t const *options,
                                   export_list const &exlist)
 {
-    if (options->tag_transform_script) {
+    if (!options->tag_transform_script.empty()) {
 #ifdef HAVE_LUA
         log_debug("Using lua based tag transformations with script {}",
-                  options->tag_transform_script.get());
+                  options->tag_transform_script);
         return std::unique_ptr<tagtransform_t>(new lua_tagtransform_t{options});
 #else
         throw std::runtime_error{"Error: Could not init lua tag transform, as "
