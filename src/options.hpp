@@ -44,6 +44,31 @@ struct database_options_t
 };
 
 /**
+ * Outputs can signal their requirements to the middle by setting these fields.
+ */
+struct output_requirements
+{
+    /**
+     * Need full node objects with tags, attributes (only if --extra-attributes
+     * is set) and locations. If false, only node locations are needed.
+     */
+    bool full_nodes = false;
+
+    /**
+     * Need full way objects with tags, attributes (only if --extra-attributes
+     * is set) and way nodes. If false, only way nodes are needed.
+     */
+    bool full_ways = false;
+
+    /**
+     * Need full relation objects with tags, attributes (only if
+     * --extra-attributes is set) and members. If false, no data from relations
+     * is needed.
+     */
+    bool full_relations = false;
+};
+
+/**
  * Structure for storing command-line and other options
  */
 class options_t

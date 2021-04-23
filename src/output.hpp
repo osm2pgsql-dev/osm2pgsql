@@ -77,9 +77,15 @@ public:
 
     virtual void merge_expire_trees(output_t *other);
 
+    struct output_requirements const &get_requirements() const noexcept
+    {
+        return m_output_requirements;
+    }
+
 protected:
     std::shared_ptr<middle_query_t> m_mid;
     const options_t m_options;
+    output_requirements m_output_requirements{};
 };
 
 #endif // OSM2PGSQL_OUTPUT_HPP
