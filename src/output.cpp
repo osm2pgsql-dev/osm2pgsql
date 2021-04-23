@@ -27,44 +27,32 @@
 #include <cstring>
 #include <stdexcept>
 
-std::vector<std::shared_ptr<output_t>>
-output_t::create_outputs(std::shared_ptr<middle_query_t> const &mid,
-                         options_t const &options)
+std::shared_ptr<output_t>
+output_t::create_output(std::shared_ptr<middle_query_t> const &mid,
+                        options_t const &options)
 {
-    std::vector<std::shared_ptr<output_t>> outputs;
     auto copy_thread =
         std::make_shared<db_copy_thread_t>(options.database_options.conninfo());
 
     if (options.output_backend == "pgsql") {
-        outputs.push_back(
-            std::make_shared<output_pgsql_t>(mid, options, copy_thread));
+        return std::make_shared<output_pgsql_t>(mid, options, copy_thread);
 
 #ifdef HAVE_LUA
     } else if (options.output_backend == "flex") {
-        outputs.push_back(
-            std::make_shared<output_flex_t>(mid, options, copy_thread));
+        return std::make_shared<output_flex_t>(mid, options, copy_thread);
 #endif
 
     } else if (options.output_backend == "gazetteer") {
-        outputs.push_back(
-            std::make_shared<output_gazetteer_t>(mid, options, copy_thread));
+        return std::make_shared<output_gazetteer_t>(mid, options, copy_thread);
 
     } else if (options.output_backend == "null") {
-        outputs.push_back(std::make_shared<output_null_t>(mid, options));
-
-    } else {
-        throw std::runtime_error{
-            "Output backend `{}' not recognised. Should be one "
-            "of [pgsql, " flex_backend
-            "gazetteer, null].\n"_format(options.output_backend)};
+        return std::make_shared<output_null_t>(mid, options);
     }
 
-    if (outputs.empty()) {
-        throw std::runtime_error{"Must have at least one output, "
-                                 "but none have been configured."};
-    }
-
-    return outputs;
+    throw std::runtime_error{
+        "Output backend '{}' not recognised. Should be one "
+        "of [pgsql, " flex_backend
+        "gazetteer, null]."_format(options.output_backend)};
 }
 
 output_t::output_t(std::shared_ptr<middle_query_t> const &mid,

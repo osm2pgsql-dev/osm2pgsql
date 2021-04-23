@@ -37,11 +37,10 @@ namespace testing {
 inline void parse_file(options_t const &options,
                        std::unique_ptr<dependency_manager_t> dependency_manager,
                        std::shared_ptr<middle_t> const &mid,
-                       std::vector<std::shared_ptr<output_t>> const &outs,
-                       char const *filename = nullptr,
-                       bool do_stop = true)
+                       std::shared_ptr<output_t> const &output,
+                       char const *filename = nullptr, bool do_stop = true)
 {
-    osmdata_t osmdata{std::move(dependency_manager), mid, outs, options};
+    osmdata_t osmdata{std::move(dependency_manager), mid, output, options};
 
     osmdata.start();
 
@@ -146,15 +145,15 @@ public:
         }
         middle->start();
 
-        auto const outputs =
-            output_t::create_outputs(middle->get_query_instance(), options);
+        auto output =
+            output_t::create_output(middle->get_query_instance(), options);
 
         auto dependency_manager = std::unique_ptr<dependency_manager_t>(
             options.with_forward_dependencies
                 ? new full_dependency_manager_t{middle}
                 : new dependency_manager_t{});
 
-        osmdata_t osmdata{std::move(dependency_manager), middle, outputs,
+        osmdata_t osmdata{std::move(dependency_manager), middle, output,
                           options};
 
         osmdata.start();
@@ -181,13 +180,13 @@ public:
         auto middle = std::make_shared<middle_ram_t>(&options);
         middle->start();
 
-        auto const outputs =
-            output_t::create_outputs(middle->get_query_instance(), options);
+        auto output =
+            output_t::create_output(middle->get_query_instance(), options);
 
         auto dependency_manager = std::unique_ptr<dependency_manager_t>(
             new full_dependency_manager_t{middle});
 
-        parse_file(options, std::move(dependency_manager), middle, outputs,
+        parse_file(options, std::move(dependency_manager), middle, output,
                    file);
     }
 
