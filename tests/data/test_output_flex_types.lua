@@ -7,6 +7,7 @@ local test_table = osm2pgsql.define_node_table("nodes", {
     { column = 'tint8', type = 'int8' },
     { column = 'treal', type = 'real' },
     { column = 'thstr', type = 'hstore' },
+    { column = 'tjson', type = 'jsonb' },
     { column = 'tdirn', type = 'direction' },
     { column = 'tsqlt', type = 'varchar' },
 })
@@ -20,11 +21,11 @@ function osm2pgsql.process_node(object)
     end
     if test_type == 'boolean' then
         local row = { tbool = true, tint2 = true, tint4 = true,
-                      tint8 = true, tdirn = true }
+                      tint8 = true, tjson = true, tdirn = true }
         test_table:add_row(row)
 
         row = { tbool = false, tint2 = false, tint4 = false,
-                tint8 = false, tdirn = false }
+                tint8 = false, tjson = false, tdirn = false }
         test_table:add_row(row)
         return
     end
@@ -46,6 +47,7 @@ function osm2pgsql.process_node(object)
                 tint4 = n,
                 tint8 = n,
                 treal = n,
+                tjson = n,
                 tdirn = n,
                 tsqlt = n,
             }
@@ -129,8 +131,9 @@ function osm2pgsql.process_node(object)
         return
     end
     if test_type == 'table' then
-        test_table:add_row{ thstr = {} }
-        test_table:add_row{ thstr = { a = 'b', c = 'd' } }
+        local t = { a = 'b', c = 'd' }
+        test_table:add_row{ thstr = {}, tjson = {} }
+        test_table:add_row{ thstr = t, tjson = t }
         return
     end
     if test_type == 'table-hstore-fail' then
@@ -139,6 +142,25 @@ function osm2pgsql.process_node(object)
     end
     if test_type == 'table-fail' then
         test_table:add_row{ [object.tags.column] = {} }
+        return
+    end
+    if test_type == 'json' then
+        test_table:add_row{ tjson = {
+            astring = '123',
+            aninteger = 124,
+            anumber = 12.5,
+            atrue = true,
+            afalse = false,
+            anull = nil,
+            atable = { a = 'nested', tab = 'le' },
+            anarray = { 4, 3, 7 }
+        }}
+        return
+    end
+    if test_type == 'json-loop' then
+        local atable = { a = 'b' }
+        atable.c = atable
+        test_table:add_row{ tjson = atable }
         return
     end
 end

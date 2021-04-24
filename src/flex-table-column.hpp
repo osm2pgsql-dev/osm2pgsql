@@ -31,6 +31,8 @@ enum class table_column_type : uint8_t
     real,
 
     hstore,
+    json,
+    jsonb,
 
     direction,
 
