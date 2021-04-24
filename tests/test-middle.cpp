@@ -96,45 +96,14 @@ struct options_ram_optimized
 {
     static options_t options(testing::pg::tempdb_t const &)
     {
-        options_t o = testing::opt_t();
-        o.alloc_chunkwise = ALLOC_SPARSE | ALLOC_DENSE;
-        return o;
+        return testing::opt_t();
     }
 };
-
-struct options_ram_flatnode
-{
-    static options_t options(testing::pg::tempdb_t const &)
-    {
-        options_t o = testing::opt_t().flatnodes();
-        o.alloc_chunkwise = ALLOC_SPARSE | ALLOC_DENSE;
-        return o;
-    }
-};
-
-TEST_CASE("elem_cache_t")
-{
-    elem_cache_t<int, 10> cache;
-
-    cache.set(3, new int{23});
-    cache.set(5, new int{42});
-    REQUIRE(*cache.get(3) == 23);
-    REQUIRE(*cache.get(5) == 42);
-    REQUIRE(cache.get(2) == nullptr);
-    cache.set(2, new int{56});
-    REQUIRE(*cache.get(2) == 56);
-    cache.set(3, new int{0});
-    REQUIRE(*cache.get(3) == 0);
-    cache.clear();
-    REQUIRE(cache.get(1) == nullptr);
-    REQUIRE(cache.get(2) == nullptr);
-    REQUIRE(cache.get(3) == nullptr);
-}
 
 TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
                    options_slim_with_lc_prefix, options_slim_with_uc_prefix,
                    options_slim_with_schema, options_slim_dense_cache,
-                   options_ram_optimized, options_ram_flatnode)
+                   options_ram_optimized)
 {
     options_t const options = TestType::options(db);
     testing::cleanup::file_t flatnode_cleaner{options.flat_node_file};
@@ -157,6 +126,11 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
                    : std::shared_ptr<middle_t>(new middle_ram_t{&options});
 
     mid->start();
+
+    output_requirements requirements;
+    requirements.full_ways = true;
+    requirements.full_relations = true;
+    mid->set_requirements(requirements);
 
     auto const mid_q = mid->get_query_instance();
 
