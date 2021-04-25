@@ -30,7 +30,7 @@ public:
     std::unique_ptr<tagtransform_t> clone() const override;
 
     bool filter_tags(osmium::OSMObject const &o, int *polygon, int *roads,
-                     taglist_t &out_tags, bool strict = false) override;
+                     taglist_t &out_tags) override;
 
     bool filter_rel_member_tags(taglist_t const &rel_tags,
                                 osmium::memory::Buffer const &members,

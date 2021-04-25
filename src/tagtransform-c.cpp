@@ -101,8 +101,7 @@ std::unique_ptr<tagtransform_t> c_tagtransform_t::clone() const
 }
 
 bool c_tagtransform_t::check_key(std::vector<taginfo> const &infos,
-                                 char const *k, bool *filter, int *flags,
-                                 bool strict)
+                                 char const *k, bool *filter, int *flags)
 {
     //go through the actual tags found on the item and keep the ones in the export list
     for (auto const &info : infos) {
@@ -119,29 +118,26 @@ bool c_tagtransform_t::check_key(std::vector<taginfo> const &infos,
     }
 
     // if we didn't find any tags that we wanted to export
-    // and we aren't strictly adhering to the list
-    if (!strict) {
-        if (m_options->hstore_mode != hstore_column::none) {
-            /* ... but if hstore_match_only is set then don't take this
+    if (m_options->hstore_mode != hstore_column::none) {
+        /* ... but if hstore_match_only is set then don't take this
                  as a reason for keeping the object */
-            if (!m_options->hstore_match_only) {
-                *filter = false;
-            }
-            /* with hstore, copy all tags... */
-            return true;
+        if (!m_options->hstore_match_only) {
+            *filter = false;
         }
+        /* with hstore, copy all tags... */
+        return true;
+    }
 
-        if (!m_options->hstore_columns.empty()) {
-            /* does this column match any of the hstore column prefixes? */
-            for (auto const &column : m_options->hstore_columns) {
-                if (boost::starts_with(k, column)) {
-                    /* ... but if hstore_match_only is set then don't take this
+    if (!m_options->hstore_columns.empty()) {
+        /* does this column match any of the hstore column prefixes? */
+        for (auto const &column : m_options->hstore_columns) {
+            if (boost::starts_with(k, column)) {
+                /* ... but if hstore_match_only is set then don't take this
                          as a reason for keeping the object */
-                    if (!m_options->hstore_match_only) {
-                        *filter = false;
-                    }
-                    return true;
+                if (!m_options->hstore_match_only) {
+                    *filter = false;
                 }
+                return true;
             }
         }
     }
@@ -150,7 +146,7 @@ bool c_tagtransform_t::check_key(std::vector<taginfo> const &infos,
 }
 
 bool c_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
-                                   int *roads, taglist_t &out_tags, bool strict)
+                                   int *roads, taglist_t &out_tags)
 {
     //assume we dont like this set of tags
     bool filter = true;
@@ -170,27 +166,25 @@ bool c_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
     for (auto const &item : o.tags()) {
         char const *const k = item.key();
         char const *const v = item.value();
-        //if we want to do more than the export list says
-        if (!strict) {
-            if (o.type() == osmium::item_type::relation &&
-                std::strcmp("type", k) == 0) {
-                out_tags.add_tag(k, v);
-                continue;
-            }
-            /* Allow named islands to appear as polygons */
-            if (std::strcmp("natural", k) == 0 &&
-                std::strcmp("coastline", v) == 0) {
-                add_area_tag = 1;
 
-                /* Discard natural=coastline tags (we render these from a shapefile instead) */
-                if (!m_options->keep_coastlines) {
-                    continue;
-                }
+        if (o.type() == osmium::item_type::relation &&
+            std::strcmp("type", k) == 0) {
+            out_tags.add_tag(k, v);
+            continue;
+        }
+        /* Allow named islands to appear as polygons */
+        if (std::strcmp("natural", k) == 0 &&
+            std::strcmp("coastline", v) == 0) {
+            add_area_tag = 1;
+
+            /* Discard natural=coastline tags (we render these from a shapefile instead) */
+            if (!m_options->keep_coastlines) {
+                continue;
             }
         }
 
         //go through the actual tags found on the item and keep the ones in the export list
-        if (check_key(infos, k, &filter, &flags, strict)) {
+        if (check_key(infos, k, &filter, &flags)) {
             out_tags.add_tag(k, v);
         }
     }
