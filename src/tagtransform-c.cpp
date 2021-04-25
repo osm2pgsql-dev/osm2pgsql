@@ -217,26 +217,24 @@ bool c_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
 bool c_tagtransform_t::filter_rel_member_tags(
     taglist_t const &rel_tags, osmium::memory::Buffer const &,
     rolelist_t const &, int *make_boundary, int *make_polygon, int *roads,
-    taglist_t &out_tags, bool allow_typeless)
+    taglist_t &out_tags)
 {
-    //if it has a relation figure out what kind it is
     std::string const *type = rel_tags.get("type");
+    if (!type) {
+        return true;
+    }
+
     bool is_route = false;
     bool is_boundary = false;
     bool is_multipolygon = false;
-    if (type) {
-        //what kind of relation is it
-        if (*type == "route") {
-            is_route = true;
-        } else if (*type == "boundary") {
-            is_boundary = true;
-        } else if (*type == "multipolygon") {
-            is_multipolygon = true;
-        } else if (!allow_typeless) {
-            return true;
-        }
-    } //you didnt have a type and it was required
-    else if (!allow_typeless) {
+
+    if (*type == "route") {
+        is_route = true;
+    } else if (*type == "boundary") {
+        is_boundary = true;
+    } else if (*type == "multipolygon") {
+        is_multipolygon = true;
+    } else {
         return true;
     }
 

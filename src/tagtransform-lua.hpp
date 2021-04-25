@@ -36,8 +36,7 @@ public:
                                 osmium::memory::Buffer const &members,
                                 rolelist_t const &member_roles,
                                 int *make_boundary, int *make_polygon,
-                                int *roads, taglist_t &out_tags,
-                                bool allow_typeless = false) override;
+                                int *roads, taglist_t &out_tags) override;
 
 private:
     void open_style();
