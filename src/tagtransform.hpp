@@ -29,16 +29,14 @@ public:
 
     virtual std::unique_ptr<tagtransform_t> clone() const = 0;
 
-    virtual bool filter_tags(osmium::OSMObject const &o, int *polygon,
-                             int *roads, taglist_t &out_tags,
-                             bool strict = false) = 0;
+    virtual bool filter_tags(osmium::OSMObject const &o, bool *polygon,
+                             bool *roads, taglist_t &out_tags) = 0;
 
     virtual bool filter_rel_member_tags(taglist_t const &rel_tags,
                                         osmium::memory::Buffer const &members,
                                         rolelist_t const &member_roles,
-                                        int *make_boundary, int *make_polygon,
-                                        int *roads, taglist_t &out_tags,
-                                        bool allow_typeless = false) = 0;
+                                        bool *make_boundary, bool *make_polygon,
+                                        bool *roads, taglist_t &out_tags) = 0;
 };
 
 #endif // OSM2PGSQL_TAGTRANSFORM_HPP

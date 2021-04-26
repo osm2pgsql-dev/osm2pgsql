@@ -63,8 +63,8 @@ void lua_tagtransform_t::check_lua_function_exists(std::string const &func_name)
     lua_pop(L, 1);
 }
 
-bool lua_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
-                                     int *roads, taglist_t &out_tags, bool)
+bool lua_tagtransform_t::filter_tags(osmium::OSMObject const &o, bool *polygon,
+                                     bool *roads, taglist_t &out_tags)
 {
     switch (o.type()) {
     case osmium::item_type::node:
@@ -150,8 +150,8 @@ bool lua_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
 
 bool lua_tagtransform_t::filter_rel_member_tags(
     taglist_t const &rel_tags, osmium::memory::Buffer const &members,
-    rolelist_t const &member_roles, int *make_boundary, int *make_polygon,
-    int *roads, taglist_t &out_tags, bool)
+    rolelist_t const &member_roles, bool *make_boundary, bool *make_polygon,
+    bool *roads, taglist_t &out_tags)
 {
     size_t const num_members = member_roles.size();
     lua_getglobal(L, m_rel_mem_func.c_str());

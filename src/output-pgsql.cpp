@@ -84,8 +84,8 @@ void output_pgsql_t::pending_way(osmid_t id)
         pgsql_delete_way_from_output(id);
 
         taglist_t outtags;
-        int polygon = 0;
-        int roads = 0;
+        bool polygon = false;
+        bool roads = false;
         auto &way = buffer.get<osmium::Way>(0);
         if (!m_tagtransform->filter_tags(way, &polygon, &roads, outtags)) {
             auto nnodes = m_mid->nodes_get_list(&(way.nodes()));
@@ -149,8 +149,8 @@ void output_pgsql_t::node_add(osmium::Node const &node)
 
 void output_pgsql_t::way_add(osmium::Way *way)
 {
-    int polygon = 0;
-    int roads = 0;
+    bool polygon = false;
+    bool roads = false;
     taglist_t outtags;
 
     /* Check whether the way is: (1) Exportable, (2) Maybe a polygon */
@@ -181,9 +181,9 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
         return;
     }
 
-    int roads = 0;
-    int make_polygon = 0;
-    int make_boundary = 0;
+    bool roads = false;
+    bool make_polygon = false;
+    bool make_boundary = false;
     taglist_t outtags;
 
     // If it's a route relation make_boundary and make_polygon will be false

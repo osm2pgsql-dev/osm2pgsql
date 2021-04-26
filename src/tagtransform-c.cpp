@@ -23,25 +23,25 @@ static const struct
 {
     int offset;
     char const *highway;
-    int roads;
-} layers[] = {{1, "proposed", 0},       {2, "construction", 0},
-              {10, "steps", 0},         {10, "cycleway", 0},
-              {10, "bridleway", 0},     {10, "footway", 0},
-              {10, "path", 0},          {11, "track", 0},
-              {15, "service", 0},
+    bool roads;
+} layers[] = {{1, "proposed", false},       {2, "construction", false},
+              {10, "steps", false},         {10, "cycleway", false},
+              {10, "bridleway", false},     {10, "footway", false},
+              {10, "path", false},          {11, "track", false},
+              {15, "service", false},
 
-              {24, "tertiary_link", 0}, {25, "secondary_link", 1},
-              {27, "primary_link", 1},  {28, "trunk_link", 1},
-              {29, "motorway_link", 1},
+              {24, "tertiary_link", false}, {25, "secondary_link", true},
+              {27, "primary_link", true},   {28, "trunk_link", true},
+              {29, "motorway_link", true},
 
-              {30, "raceway", 0},       {31, "pedestrian", 0},
-              {32, "living_street", 0}, {33, "road", 0},
-              {33, "unclassified", 0},  {33, "residential", 0},
-              {34, "tertiary", 0},      {36, "secondary", 1},
-              {37, "primary", 1},       {38, "trunk", 1},
-              {39, "motorway", 1}};
+              {30, "raceway", false},       {31, "pedestrian", false},
+              {32, "living_street", false}, {33, "road", false},
+              {33, "unclassified", false},  {33, "residential", false},
+              {34, "tertiary", false},      {36, "secondary", true},
+              {37, "primary", true},        {38, "trunk", true},
+              {39, "motorway", true}};
 
-void add_z_order(taglist_t &tags, int *roads)
+void add_z_order(taglist_t &tags, bool *roads)
 {
     std::string const *const layer = tags.get("layer");
     std::string const *const highway = tags.get("highway");
@@ -54,7 +54,7 @@ void add_z_order(taglist_t &tags, int *roads)
 
     int l = layer ? (int)strtol(layer->c_str(), nullptr, 10) : 0;
     z_order = 100 * l;
-    *roads = 0;
+    *roads = false;
 
     if (highway) {
         for (const auto &layer : layers) {
@@ -68,11 +68,11 @@ void add_z_order(taglist_t &tags, int *roads)
 
     if (railway && !railway->empty()) {
         z_order += 35;
-        *roads = 1;
+        *roads = true;
     }
     /* Administrative boundaries are rendered at low zooms so we prefer to use the roads table */
     if (boundary && *boundary == "administrative") {
-        *roads = 1;
+        *roads = true;
     }
 
     if (bridge) {
@@ -101,8 +101,7 @@ std::unique_ptr<tagtransform_t> c_tagtransform_t::clone() const
 }
 
 bool c_tagtransform_t::check_key(std::vector<taginfo> const &infos,
-                                 char const *k, bool *filter, int *flags,
-                                 bool strict)
+                                 char const *k, bool *filter, int *flags)
 {
     //go through the actual tags found on the item and keep the ones in the export list
     for (auto const &info : infos) {
@@ -119,29 +118,26 @@ bool c_tagtransform_t::check_key(std::vector<taginfo> const &infos,
     }
 
     // if we didn't find any tags that we wanted to export
-    // and we aren't strictly adhering to the list
-    if (!strict) {
-        if (m_options->hstore_mode != hstore_column::none) {
-            /* ... but if hstore_match_only is set then don't take this
+    if (m_options->hstore_mode != hstore_column::none) {
+        /* ... but if hstore_match_only is set then don't take this
                  as a reason for keeping the object */
-            if (!m_options->hstore_match_only) {
-                *filter = false;
-            }
-            /* with hstore, copy all tags... */
-            return true;
+        if (!m_options->hstore_match_only) {
+            *filter = false;
         }
+        /* with hstore, copy all tags... */
+        return true;
+    }
 
-        if (!m_options->hstore_columns.empty()) {
-            /* does this column match any of the hstore column prefixes? */
-            for (auto const &column : m_options->hstore_columns) {
-                if (boost::starts_with(k, column)) {
-                    /* ... but if hstore_match_only is set then don't take this
+    if (!m_options->hstore_columns.empty()) {
+        /* does this column match any of the hstore column prefixes? */
+        for (auto const &column : m_options->hstore_columns) {
+            if (boost::starts_with(k, column)) {
+                /* ... but if hstore_match_only is set then don't take this
                          as a reason for keeping the object */
-                    if (!m_options->hstore_match_only) {
-                        *filter = false;
-                    }
-                    return true;
+                if (!m_options->hstore_match_only) {
+                    *filter = false;
                 }
+                return true;
             }
         }
     }
@@ -149,8 +145,8 @@ bool c_tagtransform_t::check_key(std::vector<taginfo> const &infos,
     return false;
 }
 
-bool c_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
-                                   int *roads, taglist_t &out_tags, bool strict)
+bool c_tagtransform_t::filter_tags(osmium::OSMObject const &o, bool *polygon,
+                                   bool *roads, taglist_t &out_tags)
 {
     //assume we dont like this set of tags
     bool filter = true;
@@ -170,27 +166,25 @@ bool c_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
     for (auto const &item : o.tags()) {
         char const *const k = item.key();
         char const *const v = item.value();
-        //if we want to do more than the export list says
-        if (!strict) {
-            if (o.type() == osmium::item_type::relation &&
-                std::strcmp("type", k) == 0) {
-                out_tags.add_tag(k, v);
-                continue;
-            }
-            /* Allow named islands to appear as polygons */
-            if (std::strcmp("natural", k) == 0 &&
-                std::strcmp("coastline", v) == 0) {
-                add_area_tag = 1;
 
-                /* Discard natural=coastline tags (we render these from a shapefile instead) */
-                if (!m_options->keep_coastlines) {
-                    continue;
-                }
+        if (o.type() == osmium::item_type::relation &&
+            std::strcmp("type", k) == 0) {
+            out_tags.add_tag(k, v);
+            continue;
+        }
+        /* Allow named islands to appear as polygons */
+        if (std::strcmp("natural", k) == 0 &&
+            std::strcmp("coastline", v) == 0) {
+            add_area_tag = 1;
+
+            /* Discard natural=coastline tags (we render these from a shapefile instead) */
+            if (!m_options->keep_coastlines) {
+                continue;
             }
         }
 
         //go through the actual tags found on the item and keep the ones in the export list
-        if (check_key(infos, k, &filter, &flags, strict)) {
+        if (check_key(infos, k, &filter, &flags)) {
             out_tags.add_tag(k, v);
         }
     }
@@ -202,7 +196,7 @@ bool c_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
         if (add_area_tag) {
             /* If we need to force this as a polygon, append an area tag */
             out_tags.add_tag_if_not_exists("area", "yes");
-            *polygon = 1;
+            *polygon = true;
         } else {
             auto const *area = o.tags()["area"];
             if (area) {
@@ -222,27 +216,25 @@ bool c_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
 
 bool c_tagtransform_t::filter_rel_member_tags(
     taglist_t const &rel_tags, osmium::memory::Buffer const &,
-    rolelist_t const &, int *make_boundary, int *make_polygon, int *roads,
-    taglist_t &out_tags, bool allow_typeless)
+    rolelist_t const &, bool *make_boundary, bool *make_polygon, bool *roads,
+    taglist_t &out_tags)
 {
-    //if it has a relation figure out what kind it is
     std::string const *type = rel_tags.get("type");
+    if (!type) {
+        return true;
+    }
+
     bool is_route = false;
     bool is_boundary = false;
     bool is_multipolygon = false;
-    if (type) {
-        //what kind of relation is it
-        if (*type == "route") {
-            is_route = true;
-        } else if (*type == "boundary") {
-            is_boundary = true;
-        } else if (*type == "multipolygon") {
-            is_multipolygon = true;
-        } else if (!allow_typeless) {
-            return true;
-        }
-    } //you didnt have a type and it was required
-    else if (!allow_typeless) {
+
+    if (*type == "route") {
+        is_route = true;
+    } else if (*type == "boundary") {
+        is_boundary = true;
+    } else if (*type == "multipolygon") {
+        is_multipolygon = true;
+    } else {
         return true;
     }
 
@@ -331,12 +323,12 @@ bool c_tagtransform_t::filter_rel_member_tags(
          - Linear features will end up in the line and roads tables (useful for admin boundaries)
          - Polygon features also go into the polygon table (useful for national_forests)
          The edges of the polygon also get treated as linear fetaures allowing these to be rendered seperately. */
-        *make_boundary = 1;
+        *make_boundary = true;
     } else if (is_multipolygon && out_tags.contains("boundary")) {
         /* Treat type=multipolygon exactly like type=boundary if it has a boundary tag. */
-        *make_boundary = 1;
+        *make_boundary = true;
     } else if (is_multipolygon) {
-        *make_polygon = 1;
+        *make_polygon = true;
     }
 
     add_z_order(out_tags, roads);
