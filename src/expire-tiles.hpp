@@ -64,7 +64,7 @@ struct expire_tiles
 
     int from_bbox(double min_lon, double min_lat, double max_lon,
                   double max_lat);
-    void from_wkb(char const *wkb, osmid_t osm_id);
+    void from_wkb(std::string const &wkb, osmid_t osm_id);
     int from_db(table_t *table, osmid_t osm_id);
     int from_result(pg_result_t const &result, osmid_t osm_id);
 
