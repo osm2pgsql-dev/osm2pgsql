@@ -278,20 +278,20 @@ public:
         return out;
     }
 
-    explicit parser_t(char const *wkb) : m_wkb(wkb), m_pos(0) {}
-    explicit parser_t(std::string const &wkb) : m_wkb(wkb.c_str()), m_pos(0) {}
+    explicit parser_t(std::string const &wkb) noexcept : m_wkb(&wkb) {}
 
-    size_t save_pos() const { return m_pos; }
-    void rewind(size_t pos) { m_pos = pos; }
+    std::size_t save_pos() const noexcept { return m_pos; }
 
-    int read_header()
+    void rewind(std::size_t pos) noexcept { m_pos = pos; }
+
+    uint32_t read_header()
     {
-        m_pos += sizeof(uint8_t); // skip endianess
+        m_pos += sizeof(uint8_t); // skip endianess marker
 
         auto const type = read_data<uint32_t>();
 
         if (type & wkb_srid) {
-            m_pos += sizeof(int); // skip srid
+            m_pos += sizeof(uint32_t); // skip SRID
         }
 
         return type & 0xffU;
@@ -307,7 +307,12 @@ public:
         return osmium::geom::Coordinates{x, y};
     }
 
-    void skip_points(size_t num) { m_pos += sizeof(double) * 2 * num; }
+    void skip_points(std::size_t num)
+    {
+        auto const length = sizeof(double) * 2 * num;
+        check_available(length);
+        m_pos += length;
+    }
 
     template <typename PROJ>
     double get_area(PROJ *proj = nullptr)
@@ -388,18 +393,27 @@ private:
         return std::abs(total) * 0.5;
     }
 
+    void check_available(std::size_t length)
+    {
+        if (m_pos + length > m_wkb->size()) {
+            throw std::runtime_error{"Invalid EWKB geometry found"};
+        }
+    }
+
     template <typename T>
     T read_data()
     {
+        check_available(sizeof(T));
+
         T data;
-        memcpy(&data, m_wkb + m_pos, sizeof(T));
+        std::memcpy(&data, m_wkb->data() + m_pos, sizeof(T));
         m_pos += sizeof(T);
 
         return data;
     }
 
-    char const *m_wkb;
-    size_t m_pos;
+    std::string const *m_wkb;
+    std::size_t m_pos = 0;
 };
 
 } // namespace ewkb
