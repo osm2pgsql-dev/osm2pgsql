@@ -148,6 +148,8 @@ public:
         auto output =
             output_t::create_output(middle->get_query_instance(), options);
 
+        middle->set_requirements(output->get_requirements());
+
         auto dependency_manager = std::unique_ptr<dependency_manager_t>(
             options.with_forward_dependencies
                 ? new full_dependency_manager_t{middle}
@@ -182,6 +184,8 @@ public:
 
         auto output =
             output_t::create_output(middle->get_query_instance(), options);
+
+        middle->set_requirements(output->get_requirements());
 
         auto dependency_manager = std::unique_ptr<dependency_manager_t>(
             new full_dependency_manager_t{middle});

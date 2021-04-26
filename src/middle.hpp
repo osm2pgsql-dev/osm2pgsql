@@ -18,6 +18,7 @@
 #include "thread-pool.hpp"
 
 class options_t;
+struct output_requirements;
 
 /**
  * Interface for returning information about raw OSM input data from a cache.
@@ -107,6 +108,8 @@ struct middle_t
     virtual idlist_t get_rels_by_way(osmid_t) { return {}; }
 
     virtual std::shared_ptr<middle_query_t> get_query_instance() = 0;
+
+    virtual void set_requirements(output_requirements const &) {}
 };
 
 inline middle_t::~middle_t() = default;

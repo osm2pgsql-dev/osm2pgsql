@@ -1402,6 +1402,13 @@ output_flex_t::output_flex_t(
 
     if (!is_clone) {
         init_lua(m_options.style);
+
+        // If the osm2pgsql.select_relation_members() Lua function is defined
+        // it means we need two-stage processing which in turn means we need
+        // the full ways stored in the middle.
+        if (m_select_relation_members) {
+            m_output_requirements.full_ways = true;
+        }
     }
 
     if (m_tables->empty()) {

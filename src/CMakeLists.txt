@@ -14,6 +14,7 @@ set(osm2pgsql_lib_SOURCES
   node-persistent-cache.cpp
   node-ram-cache.cpp
   options.cpp
+  ordered-index.cpp
   osmdata.cpp
   osmium-builder.cpp
   output-gazetteer.cpp
