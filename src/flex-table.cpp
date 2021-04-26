@@ -199,8 +199,6 @@ void table_connection_t::stop(bool updateable, bool append)
         return;
     }
 
-    util::timer_t timer;
-
     if (table().has_geom_column()) {
         if (table().geom_column().needs_isvalid()) {
             drop_geom_check_trigger(m_db_connection.get(), table().schema(),
@@ -272,9 +270,6 @@ void table_connection_t::stop(bool updateable, bool append)
     log_info("Analyzing table '{}'...", table().name());
     analyze_table(*m_db_connection, table().schema(), table().name());
 
-    log_info("All postprocessing on table '{}' done in {}.", table().name(),
-             util::human_readable_duration(timer.stop()));
-
     teardown();
 }
 
@@ -318,4 +313,11 @@ void table_connection_t::delete_rows_with(osmium::item_type type, osmid_t id)
         type = osmium::item_type::undefined;
     }
     m_copy_mgr.delete_object(type_to_char(type)[0], id);
+}
+
+void table_connection_t::task_wait()
+{
+    auto const run_time = m_task_result.wait();
+    log_info("All postprocessing on table '{}' done in {}.", table().name(),
+             util::human_readable_duration(run_time));
 }

@@ -1389,14 +1389,21 @@ void output_flex_t::sync()
 void output_flex_t::stop(thread_pool_t *pool)
 {
     for (auto &table : m_table_connections) {
-        pool->submit([&]() {
+        table.task_set(pool->submit([&]() {
             table.stop(m_options.slim && !m_options.droptemp, m_options.append);
-        });
+        }));
     }
 
     if (m_options.expire_tiles_zoom_min > 0) {
         m_expire.output_and_destroy(m_options.expire_tiles_filename.c_str(),
                                     m_options.expire_tiles_zoom_min);
+    }
+}
+
+void output_flex_t::wait()
+{
+    for (auto &table : m_table_connections) {
+        table.task_wait();
     }
 }
 

@@ -31,6 +31,7 @@ set(osm2pgsql_lib_SOURCES
   taginfo.cpp
   tagtransform-c.cpp
   tagtransform.cpp
+  thread-pool.cpp
   util.cpp
   wildcmp.cpp
 )

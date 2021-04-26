@@ -61,8 +61,7 @@ It also requires access to a database server running
 [PostGIS](http://www.postgis.net/) 2.2+.
 
 Make sure you have installed the development packages for the libraries
-mentioned in the requirements section and a C++ compiler which supports C++11.
-GCC 5 and later and Clang 3.5 and later are known to work.
+mentioned in the requirements section and a C++ compiler which supports C++14.
 
 To rebuild the included man page you'll need the [pandoc](https://pandoc.org/)
 tool.

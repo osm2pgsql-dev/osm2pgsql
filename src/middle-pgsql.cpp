@@ -98,17 +98,12 @@ void middle_pgsql_t::table_desc::build_index(std::string const &conninfo) const
         return;
     }
 
-    util::timer_t timer;
-
     // Use a temporary connection here because we might run in a separate
     // thread context.
     pg_conn_t db_connection{conninfo};
 
     log_info("Building index on table '{}'", name());
     db_connection.exec(m_create_fw_dep_indexes);
-
-    log_info("Done postprocessing on table '{}' in {}", name(),
-             util::human_readable_duration(timer.stop()));
 }
 
 namespace {
@@ -644,10 +639,19 @@ void middle_pgsql_t::stop(thread_pool_t &pool)
     } else if (!m_options->append) {
         // Building the indexes takes time, so do it asynchronously.
         for (auto &table : m_tables) {
-            pool.submit(std::bind(&middle_pgsql_t::table_desc::build_index,
-                                  &table,
-                                  m_options->database_options.conninfo()));
+            table.task_set(pool.submit(
+                std::bind(&middle_pgsql_t::table_desc::build_index, &table,
+                          m_options->database_options.conninfo())));
         }
+    }
+}
+
+void middle_pgsql_t::wait()
+{
+    for (auto &table : m_tables) {
+        auto const run_time = table.task_wait();
+        log_info("Done postprocessing on table '{}' in {}", table.name(),
+                 util::human_readable_duration(run_time));
     }
 }
 

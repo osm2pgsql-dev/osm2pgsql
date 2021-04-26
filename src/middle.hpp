@@ -88,6 +88,8 @@ struct middle_t
     virtual void start() = 0;
     virtual void stop(thread_pool_t &pool) = 0;
 
+    virtual void wait() {}
+
     /// This is called for every added, changed or deleted node.
     virtual void node(osmium::Node const &node) = 0;
 

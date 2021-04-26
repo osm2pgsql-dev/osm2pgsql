@@ -47,6 +47,8 @@ public:
     virtual void stop(thread_pool_t *pool) = 0;
     virtual void sync() = 0;
 
+    virtual void wait() {}
+
     virtual osmium::index::IdSetSmall<osmid_t> const &get_marked_way_ids()
     {
         static osmium::index::IdSetSmall<osmid_t> const ids{};

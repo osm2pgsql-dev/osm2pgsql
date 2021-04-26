@@ -20,6 +20,8 @@
 #include <cstdio>
 #include <utility>
 
+extern thread_local unsigned int this_thread_num;
+
 enum class log_level
 {
     debug = 1,
@@ -48,6 +50,10 @@ public:
 
         std::string str = fmt::format("{:%Y-%m-%d %H:%M:%S}  ",
                                       fmt::localtime(std::time(nullptr)));
+
+        if (m_current_level == log_level::debug) {
+            str += fmt::format(ts, "[{}] ", this_thread_num);
+        }
 
         if (prefix) {
             str += fmt::format(ts, "{}: ", prefix);
