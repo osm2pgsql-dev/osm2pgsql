@@ -31,9 +31,9 @@ class db_copy_thread_t;
 class output_t
 {
 public:
-    static std::vector<std::shared_ptr<output_t>>
-    create_outputs(std::shared_ptr<middle_query_t> const &mid,
-                   options_t const &options);
+    static std::shared_ptr<output_t>
+    create_output(std::shared_ptr<middle_query_t> const &mid,
+                  options_t const &options);
 
     output_t(std::shared_ptr<middle_query_t> const &mid,
              options_t const &options);

@@ -13,6 +13,7 @@
 
 #include "common-import.hpp"
 #include "config.h"
+#include "reprojection.hpp"
 
 static testing::db::import_t db;
 

@@ -6,7 +6,6 @@ set(osm2pgsql_lib_SOURCES
   expire-tiles.cpp
   gazetteer-style.cpp
   geom.cpp
-  geometry-processor.cpp
   input.cpp
   logging.cpp
   middle.cpp
@@ -18,15 +17,11 @@ set(osm2pgsql_lib_SOURCES
   osmdata.cpp
   osmium-builder.cpp
   output-gazetteer.cpp
-  output-multi.cpp
   output-null.cpp
   output-pgsql.cpp
   output.cpp
   pgsql.cpp
   pgsql-helper.cpp
-  processor-line.cpp
-  processor-point.cpp
-  processor-polygon.cpp
   progress-display.cpp
   reprojection.cpp
   sprompt.cpp

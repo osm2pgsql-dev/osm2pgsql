@@ -18,12 +18,10 @@
 #include <osmium/visitor.hpp>
 
 #include "dependency-manager.hpp"
-#include "geometry-processor.hpp"
 #include "input.hpp"
 #include "middle-pgsql.hpp"
 #include "middle-ram.hpp"
 #include "osmdata.hpp"
-#include "output-multi.hpp"
 #include "output.hpp"
 #include "taginfo-impl.hpp"
 
@@ -39,11 +37,10 @@ namespace testing {
 inline void parse_file(options_t const &options,
                        std::unique_ptr<dependency_manager_t> dependency_manager,
                        std::shared_ptr<middle_t> const &mid,
-                       std::vector<std::shared_ptr<output_t>> const &outs,
-                       char const *filename = nullptr,
-                       bool do_stop = true)
+                       std::shared_ptr<output_t> const &output,
+                       char const *filename = nullptr, bool do_stop = true)
 {
-    osmdata_t osmdata{std::move(dependency_manager), mid, outs, options};
+    osmdata_t osmdata{std::move(dependency_manager), mid, output, options};
 
     osmdata.start();
 
@@ -148,15 +145,15 @@ public:
         }
         middle->start();
 
-        auto const outputs =
-            output_t::create_outputs(middle->get_query_instance(), options);
+        auto output =
+            output_t::create_output(middle->get_query_instance(), options);
 
         auto dependency_manager = std::unique_ptr<dependency_manager_t>(
             options.with_forward_dependencies
                 ? new full_dependency_manager_t{middle}
                 : new dependency_manager_t{});
 
-        osmdata_t osmdata{std::move(dependency_manager), middle, outputs,
+        osmdata_t osmdata{std::move(dependency_manager), middle, output,
                           options};
 
         osmdata.start();
@@ -183,47 +180,14 @@ public:
         auto middle = std::make_shared<middle_ram_t>(&options);
         middle->start();
 
-        auto const outputs =
-            output_t::create_outputs(middle->get_query_instance(), options);
+        auto output =
+            output_t::create_output(middle->get_query_instance(), options);
 
         auto dependency_manager = std::unique_ptr<dependency_manager_t>(
             new full_dependency_manager_t{middle});
 
-        parse_file(options, std::move(dependency_manager), middle, outputs,
+        parse_file(options, std::move(dependency_manager), middle, output,
                    file);
-    }
-
-    void run_file_multi_output(options_t options,
-                               std::shared_ptr<geometry_processor> const &proc,
-                               char const *table_name, osmium::item_type type,
-                               char const *tag_key, char const *file)
-    {
-        options.database_options = m_db.db_options();
-
-        export_list columns;
-        {
-            taginfo info;
-            info.name = tag_key;
-            info.type = "text";
-            columns.add(type, info);
-        }
-
-        auto mid_pgsql = std::make_shared<middle_pgsql_t>(&options);
-        mid_pgsql->start();
-        auto const midq = mid_pgsql->get_query_instance();
-
-        // This actually uses the multi-backend with C transforms,
-        // not Lua transforms. This is unusual and doesn't reflect real practice.
-        auto const out_test = std::make_shared<output_multi_t>(
-            table_name, proc, columns, midq, options,
-            std::make_shared<db_copy_thread_t>(
-                options.database_options.conninfo()));
-
-        auto dependency_manager = std::unique_ptr<dependency_manager_t>(
-            new full_dependency_manager_t{mid_pgsql});
-
-        parse_file(options, std::move(dependency_manager), mid_pgsql,
-                   {out_test}, file);
     }
 
     testing::pg::conn_t connect() { return m_db.connect(); }

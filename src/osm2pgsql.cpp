@@ -32,16 +32,15 @@ static void run(options_t const &options)
     auto middle = create_middle(options);
     middle->start();
 
-    auto const outputs =
-        output_t::create_outputs(middle->get_query_instance(), options);
+    auto output =
+        output_t::create_output(middle->get_query_instance(), options);
 
     auto dependency_manager = std::unique_ptr<dependency_manager_t>(
         options.with_forward_dependencies
             ? new full_dependency_manager_t{middle}
             : new dependency_manager_t{});
 
-    osmdata_t osmdata{std::move(dependency_manager), middle, outputs,
-                        options};
+    osmdata_t osmdata{std::move(dependency_manager), middle, output, options};
 
     osmdata.start();
 

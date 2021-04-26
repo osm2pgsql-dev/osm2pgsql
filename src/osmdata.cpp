@@ -28,10 +28,9 @@
 
 osmdata_t::osmdata_t(std::unique_ptr<dependency_manager_t> dependency_manager,
                      std::shared_ptr<middle_t> mid,
-                     std::vector<std::shared_ptr<output_t>> outs,
-                     options_t const &options)
+                     std::shared_ptr<output_t> output, options_t const &options)
 : m_dependency_manager(std::move(dependency_manager)), m_mid(std::move(mid)),
-  m_outs(std::move(outs)), m_conninfo(options.database_options.conninfo()),
+  m_output(std::move(output)), m_conninfo(options.database_options.conninfo()),
   m_bbox(options.bbox), m_num_procs(options.num_procs),
   m_append(options.append), m_droptemp(options.droptemp),
   m_parallel_indexing(options.parallel_indexing),
@@ -40,7 +39,7 @@ osmdata_t::osmdata_t(std::unique_ptr<dependency_manager_t> dependency_manager,
 {
     assert(m_dependency_manager);
     assert(m_mid);
-    assert(!m_outs.empty());
+    assert(m_output);
 }
 
 void osmdata_t::node(osmium::Node const &node)
@@ -91,9 +90,7 @@ void osmdata_t::after_ways() { m_mid->after_ways(); }
 void osmdata_t::relation(osmium::Relation const &rel)
 {
     if (m_append && !rel.deleted()) {
-        for (auto const &out : m_outs) {
-            out->select_relation_members(rel.id());
-        }
+        m_output->select_relation_members(rel.id());
     }
 
     m_mid->relation(rel);
@@ -117,81 +114,59 @@ void osmdata_t::after_relations() { m_mid->after_relations(); }
 void osmdata_t::node_add(osmium::Node const &node) const
 {
     if (m_with_extra_attrs || !node.tags().empty()) {
-        for (auto const &out : m_outs) {
-            out->node_add(node);
-        }
+        m_output->node_add(node);
     }
 }
 
 void osmdata_t::way_add(osmium::Way *way) const
 {
     if (m_with_extra_attrs || !way->tags().empty()) {
-        for (auto const &out : m_outs) {
-            out->way_add(way);
-        }
+        m_output->way_add(way);
     }
 }
 
 void osmdata_t::relation_add(osmium::Relation const &rel) const
 {
     if (m_with_extra_attrs || !rel.tags().empty()) {
-        for (auto const &out : m_outs) {
-            out->relation_add(rel);
-        }
+        m_output->relation_add(rel);
     }
 }
 
 void osmdata_t::node_modify(osmium::Node const &node) const
 {
-    for (auto const &out : m_outs) {
-        out->node_modify(node);
-    }
-
+    m_output->node_modify(node);
     m_dependency_manager->node_changed(node.id());
 }
 
 void osmdata_t::way_modify(osmium::Way *way) const
 {
-    for (auto const &out : m_outs) {
-        out->way_modify(way);
-    }
-
+    m_output->way_modify(way);
     m_dependency_manager->way_changed(way->id());
 }
 
 void osmdata_t::relation_modify(osmium::Relation const &rel) const
 {
-    for (auto const &out : m_outs) {
-        out->relation_modify(rel);
-    }
+    m_output->relation_modify(rel);
 }
 
 void osmdata_t::node_delete(osmid_t id) const
 {
-    for (auto const &out : m_outs) {
-        out->node_delete(id);
-    }
+    m_output->node_delete(id);
 }
 
 void osmdata_t::way_delete(osmid_t id) const
 {
-    for (auto const &out : m_outs) {
-        out->way_delete(id);
-    }
+    m_output->way_delete(id);
 }
 
 void osmdata_t::relation_delete(osmid_t id) const
 {
-    for (auto const &out : m_outs) {
-        out->relation_delete(id);
-    }
+    m_output->relation_delete(id);
 }
 
 void osmdata_t::start() const
 {
-    for (auto const &out : m_outs) {
-        out->start();
-    }
+    m_output->start();
 }
 
 namespace {
@@ -205,24 +180,20 @@ namespace {
 class multithreaded_processor
 {
 public:
-    using output_vec_t = std::vector<std::shared_ptr<output_t>>;
-
     multithreaded_processor(std::string const &conninfo,
                             std::shared_ptr<middle_t> const &mid,
-                            output_vec_t outs, size_t thread_count)
-    : m_outputs(std::move(outs))
+                            std::shared_ptr<output_t> output,
+                            std::size_t thread_count)
+    : m_output(std::move(output))
     {
-        assert(!m_outputs.empty());
+        assert(mid);
+        assert(m_output);
 
-        // For each thread we create clones of all the outputs.
-        m_clones.resize(thread_count);
-        for (size_t i = 0; i < thread_count; ++i) {
+        // For each thread we create a clone of the output.
+        for (std::size_t i = 0; i < thread_count; ++i) {
             auto const midq = mid->get_query_instance();
             auto copy_thread = std::make_shared<db_copy_thread_t>(conninfo);
-
-            for (auto const &out : m_outputs) {
-                m_clones[i].push_back(out->clone(midq, copy_thread));
-            }
+            m_clones.push_back(m_output->clone(midq, copy_thread));
         }
     }
 
@@ -262,17 +233,12 @@ public:
 
     /**
      * Collect expiry tree information from all clones and merge it back
-     * into the original outputs.
+     * into the original output.
      */
     void merge_expire_trees()
     {
-        std::size_t n = 0;
-        for (auto const &output : m_outputs) {
-            for (auto const &clone : m_clones) {
-                assert(n < clone.size());
-                output->merge_expire_trees(clone[n].get());
-            }
-            ++n;
+        for (auto const &clone : m_clones) {
+            m_output->merge_expire_trees(clone.get());
         }
     }
 
@@ -296,23 +262,15 @@ private:
 
     /**
      * Runs in the worker threads: As long as there are any, get ids from
-     * the queue and let the outputs process it by calling "func".
+     * the queue and let the output process it by calling "func".
      */
-    static void run(output_vec_t const &outputs, idlist_t *queue,
+    static void run(std::shared_ptr<output_t> output, idlist_t *queue,
                     std::mutex *mutex, output_member_fn_ptr func)
     {
         while (osmid_t const id = pop_id(queue, mutex)) {
-            for (auto const &output : outputs) {
-                if (output) {
-                    (output.get()->*func)(id);
-                }
-            }
+            (output.get()->*func)(id);
         }
-        for (auto const &output : outputs) {
-            if (output) {
-                output->sync();
-            }
-        }
+        output->sync();
     }
 
     /// Runs in a worker thread: Update progress display once per second.
@@ -375,11 +333,11 @@ private:
                  timer.per_second(ids_queued));
     }
 
-    /// Clones of all outputs, one vector of clones per thread.
-    std::vector<output_vec_t> m_clones;
+    /// Clones of output, one clone per thread.
+    std::vector<std::shared_ptr<output_t>> m_clones;
 
-    /// All outputs.
-    output_vec_t m_outputs;
+    /// The output.
+    std::shared_ptr<output_t> m_output;
 
     /// Mutex to make sure worker threads coordinate access to queue.
     std::mutex m_mutex;
@@ -389,7 +347,7 @@ private:
 
 void osmdata_t::process_dependents() const
 {
-    multithreaded_processor proc{m_conninfo, m_mid, m_outs,
+    multithreaded_processor proc{m_conninfo, m_mid, m_output,
                                  (std::size_t)m_num_procs};
 
     // stage 1b processing: process parents of changed objects
@@ -401,10 +359,8 @@ void osmdata_t::process_dependents() const
     }
 
     // stage 1c processing: mark parent relations of marked objects as changed
-    for (auto &out : m_outs) {
-        for (auto const id : out->get_marked_way_ids()) {
-            m_dependency_manager->way_changed(id);
-        }
+    for (auto const id : m_output->get_marked_way_ids()) {
+        m_dependency_manager->way_changed(id);
     }
 
     // process parent relations of marked ways
@@ -414,12 +370,7 @@ void osmdata_t::process_dependents() const
     }
 }
 
-void osmdata_t::reprocess_marked() const
-{
-    for (auto &out : m_outs) {
-        out->reprocess_marked();
-    }
-}
+void osmdata_t::reprocess_marked() const { m_output->reprocess_marked(); }
 
 void osmdata_t::postprocess_database() const
 {
@@ -436,9 +387,7 @@ void osmdata_t::postprocess_database() const
         m_mid->stop(pool);
     }
 
-    for (auto &out : m_outs) {
-        out->stop(&pool);
-    }
+    m_output->stop(&pool);
 
     if (!m_droptemp) {
         // When keeping middle tables, there is quite a large index created
@@ -455,9 +404,7 @@ void osmdata_t::postprocess_database() const
 
 void osmdata_t::stop() const
 {
-    for (auto &out : m_outs) {
-        out->sync();
-    }
+    m_output->sync();
 
     if (m_append && m_with_forward_dependencies) {
         process_dependents();

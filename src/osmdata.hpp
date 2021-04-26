@@ -19,7 +19,6 @@
  */
 
 #include <memory>
-#include <vector>
 
 #include <osmium/fwd.hpp>
 #include <osmium/handler.hpp>
@@ -35,14 +34,13 @@ struct middle_t;
 /**
  * This class guides the processing of the OSM data through its multiple
  * stages. It calls upon the major compontents of osm2pgsql, the dependency
- * manager, the middle, and the outputs to do their work.
+ * manager, the middle, and the output to do their work.
  */
 class osmdata_t : public osmium::handler::Handler
 {
 public:
     osmdata_t(std::unique_ptr<dependency_manager_t> dependency_manager,
-              std::shared_ptr<middle_t> mid,
-              std::vector<std::shared_ptr<output_t>> outs,
+              std::shared_ptr<middle_t> mid, std::shared_ptr<output_t> output,
               options_t const &options);
 
     void start() const;
@@ -92,7 +90,7 @@ private:
 
     std::unique_ptr<dependency_manager_t> m_dependency_manager;
     std::shared_ptr<middle_t> m_mid;
-    std::vector<std::shared_ptr<output_t>> m_outs;
+    std::shared_ptr<output_t> m_output;
 
     std::string m_conninfo;
 

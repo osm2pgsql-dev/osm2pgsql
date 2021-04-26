@@ -12,7 +12,6 @@
 
 #include <osmium/osm/box.hpp>
 
-#include <boost/optional.hpp>
 #include <memory>
 #include <string>
 #include <vector>
@@ -135,17 +134,7 @@ public:
     /// Name of the flat node file used. Empty if flat node file is not enabled.
     std::string flat_node_file{};
 
-    /**
-     * these options allow you to control the name of the
-     * Lua functions which get called in the tag transform
-     * script. this is mostly useful in with the "multi"
-     * output so that a single script file can be used.
-     */
-    boost::optional<std::string> tag_transform_script{boost::none};
-    boost::optional<std::string> tag_transform_node_func{boost::none};
-    boost::optional<std::string> tag_transform_way_func{boost::none};
-    boost::optional<std::string> tag_transform_rel_func{boost::none};
-    boost::optional<std::string> tag_transform_rel_mem_func{boost::none};
+    std::string tag_transform_script;
 
     bool create = false;
     bool pass_prompt = false;

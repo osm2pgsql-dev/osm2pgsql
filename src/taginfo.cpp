@@ -29,17 +29,6 @@ std::vector<taginfo> const &export_list::get(osmium::item_type type) const
     return m_export_list(type);
 }
 
-bool export_list::has_column(osmium::item_type type, char const *name) const
-{
-    for (auto const &info : m_export_list(type)) {
-        if (info.name == name) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 columns_t export_list::normal_columns(osmium::item_type type) const
 {
     columns_t columns;

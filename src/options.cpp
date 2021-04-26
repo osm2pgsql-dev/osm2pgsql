@@ -226,7 +226,7 @@ Pgsql output options:\n\
     -G|--multi-geometry  Generate multi-geometry features in postgresql tables.\n\
     -K|--keep-coastlines  Keep coastline data rather than filtering it out.\n\
                     Default: discard objects tagged natural=coastline.\n\
-       --output-pgsql-schema=SCHEMA Schema to use for pgsql/multi output tables\n\
+       --output-pgsql-schema=SCHEMA Schema to use for pgsql output tables\n\
                     (default: none).\n\
        --reproject-area  Compute area column using web mercator coordinates.\n\
 \n\
@@ -482,10 +482,6 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             break;
         case 'O':
             output_backend = optarg;
-            if (output_backend == "multi") {
-                log_warn("The 'multi' output is deprecated and will be removed."
-                         "Please switch to the 'flex' output.");
-            }
             break;
         case 'x':
             extra_attributes = true;

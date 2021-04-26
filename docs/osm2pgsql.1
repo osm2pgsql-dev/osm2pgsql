@@ -279,9 +279,6 @@ The experimental \f[B]flex\f[] backend allows more flexible
 configuration.
 \f[B]null\f[] does not write any output and is only useful for testing
 or with \f[B]\-\-slim\f[] for creating slim tables.
-There is also a \f[B]multi\f[] backend.
-This is now deprecated and will be removed in future versions of
-osm2pgsql.
 .RS
 .RE
 .TP
@@ -405,8 +402,8 @@ different projection is used for the geometries.
 .TP
 .B \-\-output\-pgsql\-schema=SCHEMA
 Use PostgreSQL schema SCHEMA for all tables, indexes, and functions in
-the pgsql and multi outputs (default is no schema, i.e.\ the
-\f[C]public\f[] schema is used).
+the pgsql output (default is no schema, i.e.\ the \f[C]public\f[] schema
+is used).
 .RS
 .RE
 .SH EXPIRE OPTIONS
