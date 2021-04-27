@@ -24,6 +24,7 @@ After that you can dive into more advanced topics:
 * [unitable.lua](unitable.lua) -- Put all OSM data into a single table
 * [places.lua](places.lua) -- Creating JSON/JSONB columns
 * [with-schema.lua](with-schema.lua) -- Use a database schema
+* [attributes.lua](attributes.lua) -- How to access OSM object attributes
 
 The "generic" configuration is a full-featured but simple configuration that
 is a good starting point for your own real-world configuration:
