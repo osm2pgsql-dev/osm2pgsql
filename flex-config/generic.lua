@@ -248,11 +248,11 @@ function osm2pgsql.process_way(object)
 end
 
 function osm2pgsql.process_relation(object)
+    local type = object:grab_tag('type')
+
     if clean_tags(object.tags) then
         return
     end
-
-    local type = object.tags.type
 
     if type == 'route' then
         tables.routes:add_row({
@@ -270,7 +270,7 @@ function osm2pgsql.process_relation(object)
         return
     end
 
-    if object.tags.type == 'multipolygon' then
+    if type == 'multipolygon' then
         tables.polygons:add_row({
             tags = object.tags,
             geom = { create = 'area' }
