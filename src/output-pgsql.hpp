@@ -87,7 +87,7 @@ protected:
     std::array<std::unique_ptr<table_t>, t_MAX> m_tables;
 
     geom::osmium_builder_t m_builder;
-    expire_tiles expire;
+    expire_tiles m_expire;
 
     osmium::memory::Buffer buffer;
     osmium::memory::Buffer rels_buffer;

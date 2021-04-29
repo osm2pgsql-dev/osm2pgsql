@@ -50,7 +50,7 @@ void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
     if (polygon && way.is_closed()) {
         auto wkb = m_builder.get_wkb_polygon(way);
         if (!wkb.empty()) {
-            expire.from_wkb(wkb, way.id());
+            m_expire.from_wkb(wkb, way.id());
             if (m_enable_way_area) {
                 auto const area =
                     m_options.reproject_area
@@ -67,7 +67,7 @@ void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
         double const split_at =
             m_options.projection->target_latlon() ? 1 : 100 * 1000;
         for (auto const &wkb : m_builder.get_wkb_line(way.nodes(), split_at)) {
-            expire.from_wkb(wkb, way.id());
+            m_expire.from_wkb(wkb, way.id());
             m_tables[t_line]->write_row(way.id(), *tags, wkb);
             if (roads) {
                 m_tables[t_roads]->write_row(way.id(), *tags, wkb);
@@ -130,8 +130,8 @@ void output_pgsql_t::stop(thread_pool_t *pool)
     }
 
     if (m_options.expire_tiles_zoom_min > 0) {
-        expire.output_and_destroy(m_options.expire_tiles_filename.c_str(),
-                                  m_options.expire_tiles_zoom_min);
+        m_expire.output_and_destroy(m_options.expire_tiles_filename.c_str(),
+                                    m_options.expire_tiles_zoom_min);
     }
 }
 
@@ -143,7 +143,7 @@ void output_pgsql_t::node_add(osmium::Node const &node)
     }
 
     auto wkb = m_builder.get_wkb_node(node.location());
-    expire.from_wkb(wkb, node.id());
+    m_expire.from_wkb(wkb, node.id());
     m_tables[t_point]->write_row(node.id(), outtags, wkb);
 }
 
@@ -240,7 +240,7 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
             m_options.projection->target_latlon() ? 1 : 100 * 1000;
         auto wkbs = m_builder.get_wkb_multiline(buffer, split_at);
         for (auto const &wkb : wkbs) {
-            expire.from_wkb(wkb, -rel.id());
+            m_expire.from_wkb(wkb, -rel.id());
             m_tables[t_line]->write_row(-rel.id(), outtags, wkb);
             if (roads) {
                 m_tables[t_roads]->write_row(-rel.id(), outtags, wkb);
@@ -253,7 +253,7 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
         auto wkbs = m_builder.get_wkb_multipolygon(rel, buffer, m_options.enable_multi);
 
         for (auto const &wkb : wkbs) {
-            expire.from_wkb(wkb, -rel.id());
+            m_expire.from_wkb(wkb, -rel.id());
             if (m_enable_way_area) {
                 auto const area =
                     m_options.reproject_area
@@ -293,7 +293,7 @@ void output_pgsql_t::relation_add(osmium::Relation const &rel)
  * contain the change for that also. */
 void output_pgsql_t::node_delete(osmid_t osm_id)
 {
-    if (expire.from_db(m_tables[t_point].get(), osm_id) != 0) {
+    if (m_expire.from_db(m_tables[t_point].get(), osm_id) != 0) {
         m_tables[t_point]->delete_row(osm_id);
     }
 }
@@ -311,10 +311,10 @@ void output_pgsql_t::pgsql_delete_way_from_output(osmid_t osm_id)
     }
 
     m_tables[t_roads]->delete_row(osm_id);
-    if (expire.from_db(m_tables[t_line].get(), osm_id) != 0) {
+    if (m_expire.from_db(m_tables[t_line].get(), osm_id) != 0) {
         m_tables[t_line]->delete_row(osm_id);
     }
-    if (expire.from_db(m_tables[t_poly].get(), osm_id) != 0) {
+    if (m_expire.from_db(m_tables[t_poly].get(), osm_id) != 0) {
         m_tables[t_poly]->delete_row(osm_id);
     }
 }
@@ -328,10 +328,10 @@ void output_pgsql_t::way_delete(osmid_t osm_id)
 void output_pgsql_t::pgsql_delete_relation_from_output(osmid_t osm_id)
 {
     m_tables[t_roads]->delete_row(-osm_id);
-    if (expire.from_db(m_tables[t_line].get(), -osm_id) != 0) {
+    if (m_expire.from_db(m_tables[t_line].get(), -osm_id) != 0) {
         m_tables[t_line]->delete_row(-osm_id);
     }
-    if (expire.from_db(m_tables[t_poly].get(), -osm_id) != 0) {
+    if (m_expire.from_db(m_tables[t_poly].get(), -osm_id) != 0) {
         m_tables[t_poly]->delete_row(-osm_id);
     }
 }
@@ -383,7 +383,7 @@ output_pgsql_t::output_pgsql_t(
     std::shared_ptr<middle_query_t> const &mid, options_t const &o,
     std::shared_ptr<db_copy_thread_t> const &copy_thread)
 : output_t(mid, o), m_builder(o.projection),
-  expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection),
+  m_expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection),
   buffer(32768, osmium::memory::Buffer::auto_grow::yes),
   rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
 {
@@ -441,10 +441,9 @@ output_pgsql_t::output_pgsql_t(
     std::shared_ptr<db_copy_thread_t> const &copy_thread)
 : output_t(mid, other->m_options),
   m_tagtransform(other->m_tagtransform->clone()),
-  m_enable_way_area(other->m_enable_way_area),
-  m_builder(m_options.projection),
-  expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
-         m_options.projection),
+  m_enable_way_area(other->m_enable_way_area), m_builder(m_options.projection),
+  m_expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
+           m_options.projection),
   buffer(1024, osmium::memory::Buffer::auto_grow::yes),
   rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
 {
@@ -461,6 +460,6 @@ void output_pgsql_t::merge_expire_trees(output_t *other)
 {
     auto *const opgsql = dynamic_cast<output_pgsql_t *>(other);
     if (opgsql) {
-        expire.merge_and_destroy(opgsql->expire);
+        m_expire.merge_and_destroy(opgsql->m_expire);
     }
 }
