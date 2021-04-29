@@ -52,11 +52,10 @@ struct middle_query_t : std::enable_shared_from_this<middle_query_t>
      * the given osmium buffer.
      *
      * \param      rel    Relation to get the members for.
-     * \param[out] roles  Roles for the ways that where retrived.
      * \param[out] buffer Buffer where to store the members in.
      */
     virtual size_t
-    rel_way_members_get(osmium::Relation const &rel, rolelist_t *roles,
+    rel_way_members_get(osmium::Relation const &rel,
                         osmium::memory::Buffer *buffer) const = 0;
 
     /**

@@ -428,7 +428,6 @@ bool middle_query_pgsql_t::way_get(osmid_t id,
 
 size_t
 middle_query_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
-                                          rolelist_t *roles,
                                           osmium::memory::Buffer *buffer) const
 {
     assert(buffer);
@@ -466,9 +465,6 @@ middle_query_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
                 }
 
                 buffer->commit();
-                if (roles) {
-                    roles->emplace_back(m.role());
-                }
                 ++outres;
                 break;
             }

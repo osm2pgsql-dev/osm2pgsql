@@ -165,6 +165,35 @@ void output_pgsql_t::way_add(osmium::Way *way)
     }
 }
 
+// The roles of all available member ways of a relation are available in the
+// Lua "filter_tags_relation_member" callback function. This function extracts
+// the roles from all ways in the buffer and returns the list.
+static rolelist_t get_rolelist(osmium::Relation const &rel,
+                               osmium::memory::Buffer const &buffer)
+{
+    rolelist_t roles;
+
+    auto it = buffer.select<osmium::Way>().cbegin();
+    auto const end = buffer.select<osmium::Way>().cend();
+
+    if (it == end) {
+        return roles;
+    }
+
+    for (auto const &member : rel.members()) {
+        if (member.type() == osmium::item_type::way &&
+            member.ref() == it->id()) {
+            roles.emplace_back(member.role());
+            ++it;
+            if (it == end) {
+                break;
+            }
+        }
+    }
+
+    return roles;
+}
+
 /* This is the workhorse of pgsql_add_relation, split out because it is used as the callback for iterate relations */
 void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
 {
@@ -174,8 +203,7 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
     }
 
     buffer.clear();
-    rolelist_t xrole;
-    auto num_ways = m_mid->rel_way_members_get(rel, &xrole, &buffer);
+    auto const num_ways = m_mid->rel_way_members_get(rel, &buffer);
 
     if (num_ways == 0) {
         return;
@@ -185,6 +213,11 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
     bool make_polygon = false;
     bool make_boundary = false;
     taglist_t outtags;
+
+    rolelist_t xrole;
+    if (!m_options.tag_transform_script.empty()) {
+        xrole = get_rolelist(rel, buffer);
+    }
 
     // If it's a route relation make_boundary and make_polygon will be false
     // otherwise one or the other will be true.
