@@ -1053,7 +1053,7 @@ void output_flex_t::add_row(table_connection_t *table_connection,
     auto const wkbs =
         run_transform(builder, transform, table.geom_column().type(), object);
     for (auto const &wkb : wkbs) {
-        m_expire.from_wkb(wkb.c_str(), id);
+        m_expire.from_wkb(wkb, id);
         write_row(table_connection, object.type(), id, wkb,
                   table.geom_column().srid());
     }

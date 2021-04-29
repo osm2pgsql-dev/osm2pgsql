@@ -50,7 +50,7 @@ void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
     if (polygon && way.is_closed()) {
         auto wkb = m_builder.get_wkb_polygon(way);
         if (!wkb.empty()) {
-            expire.from_wkb(wkb.c_str(), way.id());
+            expire.from_wkb(wkb, way.id());
             if (m_enable_way_area) {
                 auto const area =
                     m_options.reproject_area
@@ -67,7 +67,7 @@ void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
         double const split_at =
             m_options.projection->target_latlon() ? 1 : 100 * 1000;
         for (auto const &wkb : m_builder.get_wkb_line(way.nodes(), split_at)) {
-            expire.from_wkb(wkb.c_str(), way.id());
+            expire.from_wkb(wkb, way.id());
             m_tables[t_line]->write_row(way.id(), *tags, wkb);
             if (roads) {
                 m_tables[t_roads]->write_row(way.id(), *tags, wkb);
@@ -143,7 +143,7 @@ void output_pgsql_t::node_add(osmium::Node const &node)
     }
 
     auto wkb = m_builder.get_wkb_node(node.location());
-    expire.from_wkb(wkb.c_str(), node.id());
+    expire.from_wkb(wkb, node.id());
     m_tables[t_point]->write_row(node.id(), outtags, wkb);
 }
 
@@ -206,7 +206,7 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
             m_options.projection->target_latlon() ? 1 : 100 * 1000;
         auto wkbs = m_builder.get_wkb_multiline(buffer, split_at);
         for (auto const &wkb : wkbs) {
-            expire.from_wkb(wkb.c_str(), -rel.id());
+            expire.from_wkb(wkb, -rel.id());
             m_tables[t_line]->write_row(-rel.id(), outtags, wkb);
             if (roads) {
                 m_tables[t_roads]->write_row(-rel.id(), outtags, wkb);
@@ -219,7 +219,7 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
         auto wkbs = m_builder.get_wkb_multipolygon(rel, buffer, m_options.enable_multi);
 
         for (auto const &wkb : wkbs) {
-            expire.from_wkb(wkb.c_str(), -rel.id());
+            expire.from_wkb(wkb, -rel.id());
             if (m_enable_way_area) {
                 auto const area =
                     m_options.reproject_area

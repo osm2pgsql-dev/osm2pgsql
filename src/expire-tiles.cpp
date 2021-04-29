@@ -265,13 +265,13 @@ int expire_tiles::from_bbox(double min_lon, double min_lat, double max_lon,
     return 0;
 }
 
-void expire_tiles::from_wkb(char const *wkb, osmid_t osm_id)
+void expire_tiles::from_wkb(std::string const &wkb, osmid_t osm_id)
 {
     if (maxzoom == 0) {
         return;
     }
 
-    auto parse = ewkb::parser_t(wkb);
+    ewkb::parser_t parse{wkb};
 
     switch (parse.read_header()) {
     case ewkb::wkb_point:
@@ -401,7 +401,7 @@ int expire_tiles::from_db(table_t *table, osmid_t osm_id)
     char const *wkb = nullptr;
     while ((wkb = wkbs.get_next())) {
         auto const binwkb = ewkb::parser_t::wkb_from_hex(wkb);
-        from_wkb(binwkb.c_str(), osm_id);
+        from_wkb(binwkb, osm_id);
     }
 
     //return how many rows were affected
@@ -420,7 +420,7 @@ int expire_tiles::from_result(pg_result_t const &result, osmid_t osm_id)
     for (int i = 0; i < num_tuples; ++i) {
         char const *const wkb = result.get_value(i, 0);
         auto const binwkb = ewkb::parser_t::wkb_from_hex(wkb);
-        from_wkb(binwkb.c_str(), osm_id);
+        from_wkb(binwkb, osm_id);
     }
 
     //return how many rows were affected
