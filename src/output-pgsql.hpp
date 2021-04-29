@@ -89,7 +89,7 @@ protected:
     geom::osmium_builder_t m_builder;
     expire_tiles m_expire;
 
-    osmium::memory::Buffer buffer;
+    osmium::memory::Buffer m_buffer;
     osmium::memory::Buffer rels_buffer;
 };
 

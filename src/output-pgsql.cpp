@@ -79,14 +79,14 @@ void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
 void output_pgsql_t::pending_way(osmid_t id)
 {
     // Try to fetch the way from the DB
-    buffer.clear();
-    if (m_mid->way_get(id, &buffer)) {
+    m_buffer.clear();
+    if (m_mid->way_get(id, &m_buffer)) {
         pgsql_delete_way_from_output(id);
 
         taglist_t outtags;
         bool polygon = false;
         bool roads = false;
-        auto &way = buffer.get<osmium::Way>(0);
+        auto &way = m_buffer.get<osmium::Way>(0);
         if (!m_tagtransform->filter_tags(way, &polygon, &roads, outtags)) {
             auto nnodes = m_mid->nodes_get_list(&(way.nodes()));
             if (nnodes > 1) {
@@ -202,9 +202,9 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
         return;
     }
 
-    buffer.clear();
+    m_buffer.clear();
     auto const num_ways =
-        m_mid->rel_members_get(rel, &buffer, osmium::osm_entity_bits::way);
+        m_mid->rel_members_get(rel, &m_buffer, osmium::osm_entity_bits::way);
 
     if (num_ways == 0) {
         return;
@@ -217,18 +217,18 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
 
     rolelist_t xrole;
     if (!m_options.tag_transform_script.empty()) {
-        xrole = get_rolelist(rel, buffer);
+        xrole = get_rolelist(rel, m_buffer);
     }
 
     // If it's a route relation make_boundary and make_polygon will be false
     // otherwise one or the other will be true.
-    if (m_tagtransform->filter_rel_member_tags(prefiltered_tags, buffer, xrole,
-                                               &make_boundary, &make_polygon,
-                                               &roads, outtags)) {
+    if (m_tagtransform->filter_rel_member_tags(
+            prefiltered_tags, m_buffer, xrole, &make_boundary, &make_polygon,
+            &roads, outtags)) {
         return;
     }
 
-    for (auto &w : buffer.select<osmium::Way>()) {
+    for (auto &w : m_buffer.select<osmium::Way>()) {
         m_mid->nodes_get_list(&(w.nodes()));
     }
 
@@ -238,7 +238,7 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
     if (!make_polygon) {
         double const split_at =
             m_options.projection->target_latlon() ? 1 : 100 * 1000;
-        auto wkbs = m_builder.get_wkb_multiline(buffer, split_at);
+        auto wkbs = m_builder.get_wkb_multiline(m_buffer, split_at);
         for (auto const &wkb : wkbs) {
             m_expire.from_wkb(wkb, -rel.id());
             m_tables[t_line]->write_row(-rel.id(), outtags, wkb);
@@ -250,7 +250,8 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
 
     // multipolygons and boundaries
     if (make_boundary || make_polygon) {
-        auto wkbs = m_builder.get_wkb_multipolygon(rel, buffer, m_options.enable_multi);
+        auto wkbs = m_builder.get_wkb_multipolygon(rel, m_buffer,
+                                                   m_options.enable_multi);
 
         for (auto const &wkb : wkbs) {
             m_expire.from_wkb(wkb, -rel.id());
@@ -384,7 +385,7 @@ output_pgsql_t::output_pgsql_t(
     std::shared_ptr<db_copy_thread_t> const &copy_thread)
 : output_t(mid, o), m_builder(o.projection),
   m_expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection),
-  buffer(32768, osmium::memory::Buffer::auto_grow::yes),
+  m_buffer(32768, osmium::memory::Buffer::auto_grow::yes),
   rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
 {
     log_debug("Using projection SRS {} ({})", o.projection->target_srs(),
@@ -444,7 +445,7 @@ output_pgsql_t::output_pgsql_t(
   m_enable_way_area(other->m_enable_way_area), m_builder(m_options.projection),
   m_expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
            m_options.projection),
-  buffer(1024, osmium::memory::Buffer::auto_grow::yes),
+  m_buffer(1024, osmium::memory::Buffer::auto_grow::yes),
   rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
 {
     for (size_t i = 0; i < t_MAX; ++i) {
