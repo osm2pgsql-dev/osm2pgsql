@@ -10,152 +10,110 @@
  * For a full list of authors see the git log.
  */
 
-/* Implements the mid-layer processing for osm2pgsql
- * using data structures in RAM.
- *
- * This layer stores data read in from the planet.osm file
- * and is then read by the backend processing code to
- * emit the final geometry-enabled output formats
-*/
-
-#include <array>
-#include <memory>
-#include <vector>
-
+#include "logging.hpp"
 #include "middle.hpp"
+#include "node-locations.hpp"
+#include "ordered-index.hpp"
 
-class node_ram_cache;
+#include <osmium/index/nwr_array.hpp>
+#include <osmium/memory/buffer.hpp>
+#include <osmium/osm.hpp>
+
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <utility>
+
 class options_t;
 
-template <typename T, size_t N>
-class cache_block_t
+/**
+ * Implementation of middle for importing small to medium sized files into a
+ * non-updateable database. It works completely in memory, no data is written
+ * to disk.
+ *
+ * The following traits of OSM objects can be stored. All are optional:
+ * - Node locations for building geometries of ways.
+ * - Way node ids for building geometries of relations based on ways.
+ * - Tags and attributes for nodes, ways, and/or relations for full
+ *   2-stage-processing support.
+ * - Attributes for untagged nodes.
+ */
+class middle_ram_t : public middle_t, public middle_query_t
 {
-    std::array<std::unique_ptr<T>, N> m_arr;
-
 public:
-    void set(size_t idx, T *ele) noexcept { m_arr[idx].reset(ele); }
-
-    T const *get(size_t idx) const noexcept { return m_arr[idx].get(); }
-};
-
-template <typename T, size_t BLOCK_SHIFT>
-class elem_cache_t
-{
-    constexpr static size_t per_block() noexcept { return 1ULL << BLOCK_SHIFT; }
-
-    constexpr static size_t num_blocks() noexcept
-    {
-        return 1ULL << (32U - BLOCK_SHIFT);
-    }
-
-    constexpr static size_t id2block(osmid_t id) noexcept
-    {
-        /* + NUM_BLOCKS/2 allows for negative IDs */
-        return (static_cast<size_t>(id) >> BLOCK_SHIFT) + num_blocks() / 2;
-    }
-
-    constexpr static size_t id2offset(osmid_t id) noexcept
-    {
-        return static_cast<size_t>(id) & (per_block() - 1U);
-    }
-
-    using element_t = cache_block_t<T, 1U << BLOCK_SHIFT>;
-
-    std::vector<std::unique_ptr<element_t>> m_blocks;
-
-public:
-    elem_cache_t() : m_blocks(num_blocks()) {}
-
-    void set(osmid_t id, T *ele)
-    {
-        size_t const block = id2block(id);
-        assert(block < m_blocks.size());
-
-        if (!m_blocks[block]) {
-            m_blocks[block].reset(new element_t{});
-        }
-
-        m_blocks[block]->set(id2offset(id), ele);
-    }
-
-    T const *get(osmid_t id) const
-    {
-        size_t const block = id2block(id);
-        assert(block < m_blocks.size());
-
-        if (!m_blocks[block]) {
-            return nullptr;
-        }
-
-        return m_blocks[block]->get(id2offset(id));
-    }
-
-    void clear()
-    {
-        for (auto &ele : m_blocks) {
-            ele.reset();
-        }
-    }
-};
-
-struct middle_ram_t : public middle_t, public middle_query_t
-{
     explicit middle_ram_t(options_t const *options);
+
     ~middle_ram_t() noexcept override = default;
 
     void start() override {}
-    void stop(thread_pool_t &pool) override;
+    void stop(thread_pool_t &) override;
 
     void node(osmium::Node const &node) override;
     void way(osmium::Way const &way) override;
-    void relation(osmium::Relation const &rel) override;
+    void relation(osmium::Relation const &) override;
 
-    size_t nodes_get_list(osmium::WayNodeList *nodes) const override;
+    void after_nodes() override;
+
+    std::size_t nodes_get_list(osmium::WayNodeList *nodes) const override;
 
     bool way_get(osmid_t id, osmium::memory::Buffer *buffer) const override;
 
-    size_t rel_way_members_get(osmium::Relation const &rel, rolelist_t *roles,
-                               osmium::memory::Buffer *buffer) const override;
+    std::size_t
+    rel_way_members_get(osmium::Relation const &rel, rolelist_t *roles,
+                        osmium::memory::Buffer *buffer) const override;
 
     bool relation_get(osmid_t id,
                       osmium::memory::Buffer *buffer) const override;
 
     std::shared_ptr<middle_query_t> get_query_instance() override;
 
+    void set_requirements(output_requirements const &requirements) override;
+
 private:
-    struct ramWay
+    struct middle_ram_options
     {
-        taglist_t tags;
-        idlist_t ndids;
+        // Store node locations in special node location store.
+        bool locations = true;
 
-        ramWay(osmium::Way const &way, bool add_attributes)
-        : tags(way.tags()), ndids(way.nodes())
-        {
-            if (add_attributes) {
-                tags.add_attributes(way);
-            }
-        }
+        // Store way nodes in special way nodes store.
+        bool way_nodes = true;
+
+        // Store nodes (with tags, attributes, and location) in object store.
+        bool nodes = false;
+
+        // Store untagged nodes also (set in addition to nodes=true).
+        bool untagged_nodes = false;
+
+        // Store ways (with tags, attributes, and way nodes) in object store.
+        bool ways = false;
+
+        // Store relations (with tags, attribtes, and members) in object store.
+        bool relations = false;
     };
 
-    struct ramRel
-    {
-        taglist_t tags;
-        memberlist_t members;
+    void store_object(osmium::OSMObject const &object);
 
-        ramRel(osmium::Relation const &rel, bool add_attributes)
-        : tags(rel.tags()), members(rel.members())
-        {
-            if (add_attributes) {
-                tags.add_attributes(rel);
-            }
-        }
-    };
+    bool get_object(osmium::item_type type, osmid_t id,
+                    osmium::memory::Buffer *buffer) const;
 
-    elem_cache_t<ramWay, 10> m_ways;
-    elem_cache_t<ramRel, 10> m_rels;
+    /// For storing the location of all nodes.
+    node_locations_t m_node_locations;
 
-    std::unique_ptr<node_ram_cache> m_cache;
-    bool m_extra_attributes;
-};
+    /// For storing the node lists of all ways.
+    std::string m_way_nodes_data;
+
+    /// The index for accessing way nodes.
+    ordered_index_t m_way_nodes_index;
+
+    /// Buffer for all OSM objects we store.
+    osmium::memory::Buffer m_object_buffer{
+        1024 * 1024, osmium::memory::Buffer::auto_grow::yes};
+
+    /// Indexes into object buffer.
+    osmium::nwr_array<ordered_index_t> m_object_index;
+
+    /// Options for this middle.
+    middle_ram_options m_store_options;
+}; // class middle_ram_t
 
 #endif // OSM2PGSQL_MIDDLE_RAM_HPP
