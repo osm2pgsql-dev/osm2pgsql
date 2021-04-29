@@ -234,8 +234,9 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         crc.update(rel);
         CHECK(orig_crc().checksum() == crc().checksum());
 
-        // retrive the supporting ways
-        REQUIRE(mid_q->rel_way_members_get(rel, &outbuf) == 3);
+        // retrieve the supporting ways
+        REQUIRE(mid_q->rel_members_get(rel, &outbuf,
+                                       osmium::osm_entity_bits::way) == 3);
 
         for (auto &w : outbuf.select<osmium::Way>()) {
             REQUIRE(w.id() >= 10);

@@ -11,6 +11,7 @@
  */
 
 #include <osmium/memory/buffer.hpp>
+#include <osmium/osm/entity_bits.hpp>
 
 #include <memory>
 
@@ -48,15 +49,18 @@ struct middle_query_t : std::enable_shared_from_this<middle_query_t>
     virtual bool way_get(osmid_t id, osmium::memory::Buffer *buffer) const = 0;
 
     /**
-     * Retrieves the way members of a relation and stores them in
-     * the given osmium buffer.
+     * Retrieves the members of a relation and stores them in an Osmium
+     * buffer. If a member is not available that is not an error.
      *
      * \param      rel    Relation to get the members for.
      * \param[out] buffer Buffer where to store the members in.
+     * \param      types  The types of members we are interested in.
+     *
+     * \return The number of members we could get.
      */
     virtual size_t
-    rel_way_members_get(osmium::Relation const &rel,
-                        osmium::memory::Buffer *buffer) const = 0;
+    rel_members_get(osmium::Relation const &rel, osmium::memory::Buffer *buffer,
+                    osmium::osm_entity_bits::type types) const = 0;
 
     /**
      * Retrives a single relation from the relation storage
