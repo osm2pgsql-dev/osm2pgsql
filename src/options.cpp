@@ -715,6 +715,10 @@ void options_t::check_options()
         }
     }
 
+    if (!slim && !flat_node_file.empty()) {
+        log_warn("Ignoring --flat-nodes/-F setting in non-slim mode");
+    }
+
     // zoom level 31 is the technical limit because we use 32-bit integers for the x and y index of a tile ID
     if (expire_tiles_zoom_min > 31) {
         expire_tiles_zoom_min = 31;
