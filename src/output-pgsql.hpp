@@ -90,7 +90,7 @@ protected:
     expire_tiles m_expire;
 
     osmium::memory::Buffer m_buffer;
-    osmium::memory::Buffer rels_buffer;
+    osmium::memory::Buffer m_rels_buffer;
 };
 
 #endif // OSM2PGSQL_OUTPUT_PGSQL_HPP

@@ -103,11 +103,11 @@ void output_pgsql_t::pending_relation(osmid_t id)
     // Note that we cannot use the global buffer here because
     // we cannot keep a reference to the relation and an autogrow buffer
     // might be relocated when more data is added.
-    rels_buffer.clear();
-    if (m_mid->relation_get(id, &rels_buffer)) {
+    m_rels_buffer.clear();
+    if (m_mid->relation_get(id, &m_rels_buffer)) {
         pgsql_delete_relation_from_output(id);
 
-        auto const &rel = rels_buffer.get<osmium::Relation>(0);
+        auto const &rel = m_rels_buffer.get<osmium::Relation>(0);
         pgsql_process_relation(rel);
     }
 }
@@ -386,7 +386,7 @@ output_pgsql_t::output_pgsql_t(
 : output_t(mid, o), m_builder(o.projection),
   m_expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection),
   m_buffer(32768, osmium::memory::Buffer::auto_grow::yes),
-  rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
+  m_rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
 {
     log_debug("Using projection SRS {} ({})", o.projection->target_srs(),
               o.projection->target_desc());
@@ -446,7 +446,7 @@ output_pgsql_t::output_pgsql_t(
   m_expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
            m_options.projection),
   m_buffer(1024, osmium::memory::Buffer::auto_grow::yes),
-  rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
+  m_rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
 {
     for (size_t i = 0; i < t_MAX; ++i) {
         //copy constructor will just connect to the already there table
