@@ -152,7 +152,7 @@ void middle_ram_t::node(osmium::Node const &node)
     assert(node.visible());
 
     if (m_store_options.locations) {
-        m_node_locations.set(node.positive_id(), node.location());
+        m_node_locations.set(node.id(), node.location());
     }
 
     if (m_store_options.nodes &&
@@ -193,7 +193,7 @@ std::size_t middle_ram_t::nodes_get_list(osmium::WayNodeList *nodes) const
 
     if (m_store_options.locations) {
         for (auto &nr : *nodes) {
-            nr.set_location(m_node_locations.get(nr.positive_ref()));
+            nr.set_location(m_node_locations.get(nr.ref()));
             if (nr.location().valid()) {
                 ++count;
             }

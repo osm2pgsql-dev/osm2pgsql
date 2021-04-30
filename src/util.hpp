@@ -93,11 +93,14 @@ public:
     uint64_t stop() noexcept
     {
         m_stop = std::time(nullptr);
-        return m_stop - m_start;
+        return static_cast<uint64_t>(m_stop - m_start);
     }
 
     /// Return elapsed time
-    uint64_t elapsed() const noexcept { return m_stop - m_start; }
+    uint64_t elapsed() const noexcept
+    {
+        return static_cast<uint64_t>(m_stop - m_start);
+    }
 
     /**
      * Calculate ratio: value divided by elapsed time.

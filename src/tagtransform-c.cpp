@@ -100,7 +100,8 @@ std::unique_ptr<tagtransform_t> c_tagtransform_t::clone() const
 }
 
 bool c_tagtransform_t::check_key(std::vector<taginfo> const &infos,
-                                 char const *k, bool *filter, int *flags)
+                                 char const *k, bool *filter,
+                                 unsigned int *flags)
 {
     //go through the actual tags found on the item and keep the ones in the export list
     for (auto const &info : infos) {
@@ -150,7 +151,7 @@ bool c_tagtransform_t::filter_tags(osmium::OSMObject const &o, bool *polygon,
     //assume we dont like this set of tags
     bool filter = true;
 
-    int flags = 0;
+    unsigned int flags = 0;
     int add_area_tag = 0;
 
     auto export_type = o.type();

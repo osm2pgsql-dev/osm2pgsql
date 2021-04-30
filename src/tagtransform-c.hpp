@@ -31,7 +31,7 @@ public:
 
 private:
     bool check_key(std::vector<taginfo> const &infos, char const *k,
-                   bool *filter, int *flags);
+                   bool *filter, unsigned int *flags);
 
     options_t const *m_options;
     export_list m_export_list;
