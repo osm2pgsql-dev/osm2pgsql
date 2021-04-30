@@ -43,6 +43,57 @@ enum wkb_byte_order_type_t : uint8_t
 #endif
 };
 
+template <typename T>
+static void str_push(std::string *str, T data)
+{
+    assert(str);
+    str->append(reinterpret_cast<char const *const>(&data), sizeof(T));
+}
+
+/**
+ * Add a EWKB header to the string.
+ *
+ * \pre \code str != nullptr \endcode
+ */
+inline std::size_t write_header(std::string *str, geometry_type type,
+                                uint32_t srid)
+{
+    assert(str);
+
+    str_push(str, Endian);
+    str_push(str, type | wkb_srid);
+    str_push(str, srid);
+
+    return str->size();
+}
+
+/**
+ * Add a EWKB header to the string and add a dummy placeholder length of 0.
+ * This can later be replaced by the real length.
+ *
+ * \pre \code str != nullptr \endcode
+ */
+inline std::size_t write_header_with_length(std::string *str,
+                                            geometry_type type, uint32_t srid)
+{
+    auto const offset = write_header(str, type, srid);
+    str_push(str, static_cast<uint32_t>(0));
+    return offset;
+}
+
+/// Create EWKB Point geometry.
+inline std::string create_point(double x, double y, uint32_t srid = 4326)
+{
+    std::string data;
+    data.reserve(25); // Point geometries are always 25 bytes
+
+    write_header(&data, wkb_point, srid);
+    str_push(&data, x);
+    str_push(&data, y);
+
+    return data;
+}
+
 /**
  *  Writer for EWKB data suitable for postgres.
  *
@@ -50,42 +101,8 @@ enum wkb_byte_order_type_t : uint8_t
  */
 class writer_t
 {
-
-    std::string m_data;
-    int m_srid;
-
-    size_t m_geometry_size_offset = 0;
-    size_t m_multigeometry_size_offset = 0;
-    size_t m_ring_size_offset = 0;
-
-    size_t header(std::string &str, geometry_type type, bool add_length) const
-    {
-        str_push(str, Endian);
-        str_push(str, type | wkb_srid);
-        str_push(str, m_srid);
-
-        std::size_t const offset = str.size();
-        if (add_length) {
-            str_push(str, static_cast<uint32_t>(0));
-        }
-        return offset;
-    }
-
-    void set_size(size_t const offset, size_t const size)
-    {
-        uint32_t s = static_cast<uint32_t>(size);
-        std::copy_n(reinterpret_cast<char *>(&s), sizeof(uint32_t),
-                    &m_data[offset]);
-    }
-
-    template <typename T>
-    inline static void str_push(std::string &str, T data)
-    {
-        str.append(reinterpret_cast<char const *>(&data), sizeof(T));
-    }
-
 public:
-    explicit writer_t(int srid) : m_srid(srid) {}
+    explicit writer_t(uint32_t srid) : m_srid(srid) {}
 
     void add_sub_geometry(std::string const &part)
     {
@@ -96,20 +113,15 @@ public:
     void add_location(osmium::geom::Coordinates const &xy)
     {
         assert(!m_data.empty());
-        str_push(m_data, xy.x);
-        str_push(m_data, xy.y);
+        str_push(&m_data, xy.x);
+        str_push(&m_data, xy.y);
     }
 
     /* Point */
 
     std::string make_point(osmium::geom::Coordinates const &xy) const
     {
-        std::string data;
-        header(data, wkb_point, false);
-        str_push(data, xy.x);
-        str_push(data, xy.y);
-
-        return data;
+        return create_point(xy.x, xy.y, m_srid);
     }
 
     /* LineString */
@@ -117,10 +129,11 @@ public:
     void linestring_start()
     {
         assert(m_data.empty());
-        m_geometry_size_offset = header(m_data, wkb_line, true);
+        m_geometry_size_offset =
+            write_header_with_length(&m_data, wkb_line, m_srid);
     }
 
-    std::string linestring_finish(size_t num_points)
+    std::string linestring_finish(std::size_t num_points)
     {
         set_size(m_geometry_size_offset, num_points);
         std::string data;
@@ -136,10 +149,11 @@ public:
     void multilinestring_start()
     {
         assert(m_data.empty());
-        m_multigeometry_size_offset = header(m_data, wkb_multi_line, true);
+        m_multigeometry_size_offset =
+            write_header_with_length(&m_data, wkb_multi_line, m_srid);
     }
 
-    std::string multilinestring_finish(size_t num_lines)
+    std::string multilinestring_finish(std::size_t num_lines)
     {
         set_size(m_multigeometry_size_offset, num_lines);
         std::string data;
@@ -155,21 +169,22 @@ public:
     void polygon_start()
     {
         assert(m_data.empty());
-        m_geometry_size_offset = header(m_data, wkb_polygon, true);
+        m_geometry_size_offset =
+            write_header_with_length(&m_data, wkb_polygon, m_srid);
     }
 
     void polygon_ring_start()
     {
         m_ring_size_offset = m_data.size();
-        str_push(m_data, static_cast<uint32_t>(0));
+        str_push(&m_data, static_cast<uint32_t>(0));
     }
 
-    void polygon_ring_finish(size_t num_points)
+    void polygon_ring_finish(std::size_t num_points)
     {
         set_size(m_ring_size_offset, num_points);
     }
 
-    std::string polygon_finish(size_t num_rings)
+    std::string polygon_finish(std::size_t num_rings)
     {
         set_size(m_geometry_size_offset, num_rings);
         std::string data;
@@ -185,10 +200,11 @@ public:
     void multipolygon_start()
     {
         assert(m_data.empty());
-        m_multigeometry_size_offset = header(m_data, wkb_multi_polygon, true);
+        m_multigeometry_size_offset =
+            write_header_with_length(&m_data, wkb_multi_polygon, m_srid);
     }
 
-    std::string multipolygon_finish(size_t num_polygons)
+    std::string multipolygon_finish(std::size_t num_polygons)
     {
         set_size(m_multigeometry_size_offset, num_polygons);
         std::string data;
@@ -198,7 +214,24 @@ public:
 
         return data;
     }
-};
+
+private:
+    void set_size(std::size_t offset, std::size_t size)
+    {
+        assert(m_data.size() >= offset + sizeof(uint32_t));
+        auto const s = static_cast<uint32_t>(size);
+        std::memcpy(&m_data[offset], reinterpret_cast<char const *>(&s),
+                    sizeof(uint32_t));
+    }
+
+    std::string m_data;
+
+    std::size_t m_geometry_size_offset = 0;
+    std::size_t m_multigeometry_size_offset = 0;
+    std::size_t m_ring_size_offset = 0;
+
+    uint32_t m_srid;
+}; // class writer_t
 
 /**
  * Class that allows to iterate over the elements of a ewkb geometry.
@@ -245,20 +278,20 @@ public:
         return out;
     }
 
-    explicit parser_t(char const *wkb) : m_wkb(wkb), m_pos(0) {}
-    explicit parser_t(std::string const &wkb) : m_wkb(wkb.c_str()), m_pos(0) {}
+    explicit parser_t(std::string const &wkb) noexcept : m_wkb(&wkb) {}
 
-    size_t save_pos() const { return m_pos; }
-    void rewind(size_t pos) { m_pos = pos; }
+    std::size_t save_pos() const noexcept { return m_pos; }
 
-    int read_header()
+    void rewind(std::size_t pos) noexcept { m_pos = pos; }
+
+    uint32_t read_header()
     {
-        m_pos += sizeof(uint8_t); // skip endianess
+        m_pos += sizeof(uint8_t); // skip endianess marker
 
         auto const type = read_data<uint32_t>();
 
         if (type & wkb_srid) {
-            m_pos += sizeof(int); // skip srid
+            m_pos += sizeof(uint32_t); // skip SRID
         }
 
         return type & 0xffU;
@@ -274,7 +307,12 @@ public:
         return osmium::geom::Coordinates{x, y};
     }
 
-    void skip_points(size_t num) { m_pos += sizeof(double) * 2 * num; }
+    void skip_points(std::size_t num)
+    {
+        auto const length = sizeof(double) * 2 * num;
+        check_available(length);
+        m_pos += length;
+    }
 
     template <typename PROJ>
     double get_area(PROJ *proj = nullptr)
@@ -355,18 +393,27 @@ private:
         return std::abs(total) * 0.5;
     }
 
+    void check_available(std::size_t length)
+    {
+        if (m_pos + length > m_wkb->size()) {
+            throw std::runtime_error{"Invalid EWKB geometry found"};
+        }
+    }
+
     template <typename T>
     T read_data()
     {
+        check_available(sizeof(T));
+
         T data;
-        memcpy(&data, m_wkb + m_pos, sizeof(T));
+        std::memcpy(&data, m_wkb->data() + m_pos, sizeof(T));
         m_pos += sizeof(T);
 
         return data;
     }
 
-    char const *m_wkb;
-    size_t m_pos;
+    std::string const *m_wkb;
+    std::size_t m_pos = 0;
 };
 
 } // namespace ewkb
