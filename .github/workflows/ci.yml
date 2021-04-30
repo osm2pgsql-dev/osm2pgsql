@@ -115,6 +115,7 @@ jobs:
       POSTGRESQL_VERSION: 10
       POSTGIS_VERSION: 3
       CPP_VERSION: 11
+      BUILD_TYPE: Debug
 
     steps:
       - uses: actions/checkout@v2
@@ -133,6 +134,7 @@ jobs:
       POSTGRESQL_VERSION: 11
       POSTGIS_VERSION: 2.5
       CPP_VERSION: 11
+      BUILD_TYPE: Debug
 
     steps:
       - uses: actions/checkout@v2
@@ -150,6 +152,7 @@ jobs:
       POSTGRESQL_VERSION: 12
       POSTGIS_VERSION: 2.5
       CPP_VERSION: 14
+      BUILD_TYPE: Debug
 
     steps:
       - uses: actions/checkout@v2
@@ -168,6 +171,7 @@ jobs:
       POSTGRESQL_VERSION: 13
       POSTGIS_VERSION: 3
       CPP_VERSION: 14
+      BUILD_TYPE: Debug
 
     steps:
       - uses: actions/checkout@v2
@@ -186,6 +190,7 @@ jobs:
       POSTGIS_VERSION: 3
       CPP_VERSION: 14
       USE_PROJ_LIB: 6
+      BUILD_TYPE: Debug
 
     steps:
       - uses: actions/checkout@v2
@@ -204,6 +209,7 @@ jobs:
       POSTGIS_VERSION: 3
       CPP_VERSION: 14
       USE_PROJ_LIB: off
+      BUILD_TYPE: Debug
 
     steps:
       - uses: actions/checkout@v2
