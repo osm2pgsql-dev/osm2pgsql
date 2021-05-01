@@ -144,6 +144,8 @@ namespace osmium {
              * Returns a pointer to next character that needs to be consumed.
              */
             inline void opl_parse_escaped(const char** data, std::string& result) {
+                assert(data);
+                assert(*data);
                 const char* s = *data;
                 uint32_t value = 0;
                 const int max_length = sizeof(value) * 2 /* hex chars per byte */;
@@ -154,7 +156,11 @@ namespace osmium {
                     }
                     if (*s == '%') {
                         ++s;
-                        append_codepoint_as_utf8(value, std::back_inserter(result));
+                        if (value == 0) {
+                            result += '%';
+                        } else {
+                            append_codepoint_as_utf8(value, std::back_inserter(result));
+                        }
                         *data = s;
                         return;
                     }
@@ -182,6 +188,8 @@ namespace osmium {
              * Returns a pointer to next character that needs to be consumed.
              */
             inline void opl_parse_string(const char** data, std::string& result) {
+                assert(data);
+                assert(*data);
                 const char* s = *data;
                 while (true) {
                     if (*s == '\0' || *s == ' ' || *s == '\t' || *s == ',' || *s == '=') {

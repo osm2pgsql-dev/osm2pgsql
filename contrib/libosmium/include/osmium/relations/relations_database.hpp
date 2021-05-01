@@ -323,7 +323,7 @@ namespace osmium {
         void RelationsDatabase::for_each_relation(TFunc&& func) {
             for (std::size_t pos = 0; pos < m_elements.size(); ++pos) {
                 if (m_elements[pos].handle.valid()) {
-                    std::forward<TFunc>(func)(RelationHandle{this, pos});
+                    func(RelationHandle{this, pos});
                 }
             }
         }

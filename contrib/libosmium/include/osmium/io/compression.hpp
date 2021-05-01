@@ -317,6 +317,7 @@ namespace osmium {
                     }
                 } else {
                     buffer.resize(osmium::io::Decompressor::input_buffer_size);
+                    osmium::io::detail::remove_buffered_pages(m_fd, m_offset);
                     const auto nread = detail::reliable_read(m_fd, &*buffer.begin(), osmium::io::Decompressor::input_buffer_size);
                     buffer.resize(std::string::size_type(nread));
                 }
@@ -329,6 +330,7 @@ namespace osmium {
 
             void close() override {
                 if (m_fd >= 0) {
+                    osmium::io::detail::remove_buffered_pages(m_fd);
                     const int fd = m_fd;
                     m_fd = -1;
                     osmium::io::detail::reliable_close(fd);

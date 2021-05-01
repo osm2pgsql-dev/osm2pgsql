@@ -1,5 +1,5 @@
-#ifndef OSMIUM_VERSION_HPP
-#define OSMIUM_VERSION_HPP
+#ifndef OSMIUM_IO_IDS_OUTPUT_HPP
+#define OSMIUM_IO_IDS_OUTPUT_HPP
 
 /*
 
@@ -33,10 +33,7 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
-#define LIBOSMIUM_VERSION_MAJOR 2
-#define LIBOSMIUM_VERSION_MINOR 17
-#define LIBOSMIUM_VERSION_PATCH 0
+#include <osmium/io/detail/ids_output_format.hpp> // IWYU pragma: export
+#include <osmium/io/writer.hpp> // IWYU pragma: export
 
-#define LIBOSMIUM_VERSION_STRING "2.17.0"
-
-#endif // OSMIUM_VERSION_HPP
+#endif // OSMIUM_IO_IDS_OUTPUT_HPP

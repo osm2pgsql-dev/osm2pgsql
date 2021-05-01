@@ -46,6 +46,7 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/io/any_compression.hpp> // IWYU pragma: export
 
 #include <osmium/io/debug_output.hpp> // IWYU pragma: export
+#include <osmium/io/ids_output.hpp> // IWYU pragma: export
 #include <osmium/io/opl_output.hpp> // IWYU pragma: export
 #include <osmium/io/pbf_output.hpp> // IWYU pragma: export
 #include <osmium/io/xml_output.hpp> // IWYU pragma: export

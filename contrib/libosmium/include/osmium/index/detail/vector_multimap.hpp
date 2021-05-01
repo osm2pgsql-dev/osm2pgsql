@@ -61,7 +61,7 @@ namespace osmium {
 
                 vector_type m_vector;
 
-                static bool is_removed(element_type& element) {
+                static bool is_removed(const element_type& element) {
                     return element.second == osmium::index::empty_value<TValue>();
                 }
 

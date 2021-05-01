@@ -117,6 +117,11 @@ namespace osmium {
 
             osmium::thread::thread_handler m_thread{};
 
+            // Checking the m_write_future is much more expensive then checking
+            // one atomic bool, so we set this bool in the write_thread when
+            // the writer should check the future...
+            std::atomic_bool m_notification{false};
+
             enum class status {
                 okay   = 0, // normal writing
                 error  = 1, // some error occurred while writing
@@ -126,10 +131,12 @@ namespace osmium {
             // This function will run in a separate thread.
             static void write_thread(detail::future_string_queue_type& output_queue,
                                      std::unique_ptr<osmium::io::Compressor>&& compressor,
-                                     std::promise<std::size_t>&& write_promise) {
+                                     std::promise<std::size_t>&& write_promise,
+                                     std::atomic_bool* notification) {
                 detail::WriteThread write_thread{output_queue,
                                                  std::move(compressor),
-                                                 std::move(write_promise)};
+                                                 std::move(write_promise),
+                                                 notification};
                 write_thread();
             }
 
@@ -140,7 +147,9 @@ namespace osmium {
             }
 
             void do_flush() {
-                osmium::thread::check_for_exception(m_write_future);
+                if (m_notification) {
+                    osmium::thread::check_for_exception(m_write_future);
+                }
                 if (m_buffer && m_buffer.committed() > 0) {
                     osmium::memory::Buffer buffer{m_buffer_size,
                                                   osmium::memory::Buffer::auto_grow::no};
@@ -260,7 +269,7 @@ namespace osmium {
 
                 std::promise<std::size_t> write_promise;
                 m_write_future = write_promise.get_future();
-                m_thread = osmium::thread::thread_handler{write_thread, std::ref(m_output_queue), std::move(compressor), std::move(write_promise)};
+                m_thread = osmium::thread::thread_handler{write_thread, std::ref(m_output_queue), std::move(compressor), std::move(write_promise), &m_notification};
 
                 ensure_cleanup([&](){
                     m_output->write_header(options.header);

@@ -411,7 +411,7 @@ namespace osmium {
                 Builder(buffer, parent, sizeof(T) + min_size_for_user) {
                 new (&item()) T{};
                 add_size(min_size_for_user);
-                std::fill_n(object().data() + sizeof(T), min_size_for_user, 0);
+                std::memset(object().data() + sizeof(T), 0, min_size_for_user);
                 object().set_user_size(1);
             }
 
@@ -447,13 +447,13 @@ namespace osmium {
                 const auto size_of_object = sizeof(T) + sizeof(string_size_type);
                 assert(cobject().user_size() == 1 && (size() <= size_of_object + osmium::memory::padded_length(1))
                        && "set_user() must be called at most once and before any sub-builders");
-                const auto available_space = min_size_for_user - sizeof(string_size_type) - 1;
+                constexpr const auto available_space = min_size_for_user - sizeof(string_size_type) - 1;
                 if (length > available_space) {
                     const auto space_needed = osmium::memory::padded_length(length - available_space);
-                    std::fill_n(reserve_space(space_needed), space_needed, 0);
+                    std::memset(reserve_space(space_needed), 0, space_needed);
                     add_size(static_cast<uint32_t>(space_needed));
                 }
-                std::copy_n(user, length, object().data() + size_of_object);
+                std::memcpy(object().data() + size_of_object, user, length);
                 object().set_user_size(length + 1);
 
                 return static_cast<TDerived&>(*this);
@@ -608,7 +608,7 @@ namespace osmium {
                 Builder(buffer, parent, sizeof(Changeset) + min_size_for_user) {
                 new (&item()) Changeset{};
                 add_size(min_size_for_user);
-                std::fill_n(object().data() + sizeof(Changeset), min_size_for_user, 0);
+                std::memset(object().data() + sizeof(Changeset), 0, min_size_for_user);
                 object().set_user_size(1);
             }
 
@@ -663,13 +663,13 @@ namespace osmium {
             ChangesetBuilder& set_user(const char* user, const string_size_type length) {
                 assert(cobject().user_size() == 1 && (size() <= sizeof(Changeset) + osmium::memory::padded_length(1))
                        && "set_user() must be called at most once and before any sub-builders");
-                const auto available_space = min_size_for_user - 1;
+                constexpr const auto available_space = min_size_for_user - 1;
                 if (length > available_space) {
                     const auto space_needed = osmium::memory::padded_length(length - available_space);
-                    std::fill_n(reserve_space(space_needed), space_needed, 0);
+                    std::memset(reserve_space(space_needed), 0, space_needed);
                     add_size(static_cast<uint32_t>(space_needed));
                 }
-                std::copy_n(user, length, object().data() + sizeof(Changeset));
+                std::memcpy(object().data() + sizeof(Changeset), user, length);
                 object().set_user_size(length + 1);
 
                 return *this;

@@ -125,11 +125,7 @@ namespace osmium {
 
         namespace detail {
 
-            class XMLParser final : public Parser {
-
-                enum {
-                    initial_buffer_size = 1024UL * 1024UL
-                };
+            class XMLParser final : public ParserWithBuffer {
 
                 enum class context {
                     osm,
@@ -155,9 +151,6 @@ namespace osmium {
                 std::vector<context> m_context_stack;
 
                 osmium::io::Header m_header{};
-
-                osmium::memory::Buffer m_buffer{initial_buffer_size,
-                                                osmium::memory::Buffer::auto_grow::internal};
 
                 std::unique_ptr<osmium::builder::NodeBuilder>                m_node_builder{};
                 std::unique_ptr<osmium::builder::WayBuilder>                 m_way_builder{};
@@ -186,7 +179,7 @@ namespace osmium {
                             return;
                         }
                         try {
-                            std::forward<TFunc>(func)(xml_parser);
+                            func(xml_parser);
                         } catch (...) {
                             m_exception_ptr = std::current_exception();
                             XML_StopParser(m_parser, 0);
@@ -277,7 +270,7 @@ namespace osmium {
                 template <typename T>
                 static void check_attributes(const XML_Char** attrs, T&& check) {
                     while (*attrs) {
-                        std::forward<T>(check)(attrs[0], attrs[1]);
+                        check(attrs[0], attrs[1]);
                         attrs += 2;
                     }
                 }
@@ -397,7 +390,8 @@ namespace osmium {
                         m_context_stack.push_back(context::node);
                         mark_header_as_done();
                         if (read_types() & osmium::osm_entity_bits::node) {
-                            m_node_builder.reset(new osmium::builder::NodeBuilder{m_buffer});
+                            maybe_new_buffer(osmium::item_type::node);
+                            m_node_builder.reset(new osmium::builder::NodeBuilder{buffer()});
                             m_node_builder->set_user(init_object(m_node_builder->object(), attrs));
                         }
                         return;
@@ -407,7 +401,8 @@ namespace osmium {
                         m_context_stack.push_back(context::way);
                         mark_header_as_done();
                         if (read_types() & osmium::osm_entity_bits::way) {
-                            m_way_builder.reset(new osmium::builder::WayBuilder{m_buffer});
+                            maybe_new_buffer(osmium::item_type::way);
+                            m_way_builder.reset(new osmium::builder::WayBuilder{buffer()});
                             m_way_builder->set_user(init_object(m_way_builder->object(), attrs));
                         }
                         return;
@@ -417,7 +412,8 @@ namespace osmium {
                         m_context_stack.push_back(context::relation);
                         mark_header_as_done();
                         if (read_types() & osmium::osm_entity_bits::relation) {
-                            m_relation_builder.reset(new osmium::builder::RelationBuilder{m_buffer});
+                            maybe_new_buffer(osmium::item_type::relation);
+                            m_relation_builder.reset(new osmium::builder::RelationBuilder{buffer()});
                             m_relation_builder->set_user(init_object(m_relation_builder->object(), attrs));
                         }
                         return;
@@ -431,7 +427,8 @@ namespace osmium {
                         m_context_stack.push_back(context::changeset);
                         mark_header_as_done();
                         if (read_types() & osmium::osm_entity_bits::changeset) {
-                            m_changeset_builder.reset(new osmium::builder::ChangesetBuilder{m_buffer});
+                            maybe_new_buffer(osmium::item_type::changeset);
+                            m_changeset_builder.reset(new osmium::builder::ChangesetBuilder{buffer()});
                             init_changeset(*m_changeset_builder, attrs);
                         }
                     } else if (!std::strcmp(element, "create")) {
@@ -676,8 +673,8 @@ namespace osmium {
                             if (read_types() & osmium::osm_entity_bits::node) {
                                 m_tl_builder.reset();
                                 m_node_builder.reset();
-                                m_buffer.commit();
-                                flush_buffer();
+                                buffer().commit();
+                                flush_nested_buffer();
                             }
                             break;
                         case context::way:
@@ -686,8 +683,8 @@ namespace osmium {
                                 m_tl_builder.reset();
                                 m_wnl_builder.reset();
                                 m_way_builder.reset();
-                                m_buffer.commit();
-                                flush_buffer();
+                                buffer().commit();
+                                flush_nested_buffer();
                             }
                             break;
                         case context::relation:
@@ -696,8 +693,8 @@ namespace osmium {
                                 m_tl_builder.reset();
                                 m_rml_builder.reset();
                                 m_relation_builder.reset();
-                                m_buffer.commit();
-                                flush_buffer();
+                                buffer().commit();
+                                flush_nested_buffer();
                             }
                             break;
                         case context::tag:
@@ -712,8 +709,8 @@ namespace osmium {
                                 m_tl_builder.reset();
                                 m_changeset_discussion_builder.reset();
                                 m_changeset_builder.reset();
-                                m_buffer.commit();
-                                flush_buffer();
+                                buffer().commit();
+                                flush_nested_buffer();
                             }
                             break;
                         case context::discussion:
@@ -749,17 +746,10 @@ namespace osmium {
                     }
                 }
 
-                void flush_buffer() {
-                    if (m_buffer.has_nested_buffers()) {
-                        std::unique_ptr<osmium::memory::Buffer> buffer_ptr{m_buffer.get_last_nested()};
-                        send_to_output_queue(std::move(*buffer_ptr));
-                    }
-                }
-
             public:
 
                 explicit XMLParser(parser_arguments& args) :
-                    Parser(args) {
+                    ParserWithBuffer(args) {
                 }
 
                 XMLParser(const XMLParser&) = delete;
@@ -785,10 +775,7 @@ namespace osmium {
                     }
 
                     mark_header_as_done();
-
-                    if (m_buffer.committed() > 0) {
-                        send_to_output_queue(std::move(m_buffer));
-                    }
+                    flush_final_buffer();
                 }
 
             }; // class XMLParser

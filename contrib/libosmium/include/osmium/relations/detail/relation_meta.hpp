@@ -121,7 +121,7 @@ namespace osmium {
             /**
              * @returns true if this relation is complete, false otherwise.
              */
-            bool operator()(RelationMeta& relation_info) const {
+            bool operator()(const RelationMeta& relation_info) const {
                 return relation_info.has_all_members();
             }
 

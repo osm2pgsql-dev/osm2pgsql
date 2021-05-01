@@ -122,7 +122,6 @@ namespace osmium {
          *
          * @deprecated Only supports the old PROJ API.
          */
-        // cppcheck-suppress passedByValue (because c is small and we want to change it)
         inline OSMIUM_DEPRECATED Coordinates transform(const CRS& src, const CRS& dest, Coordinates c) {
             const int result = pj_transform(src.get(), dest.get(), 1, 1, &c.x, &c.y, nullptr);
             if (result != 0) {

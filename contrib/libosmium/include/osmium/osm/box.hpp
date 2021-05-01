@@ -177,6 +177,46 @@ namespace osmium {
         }
 
         /**
+         * Get left boundary.
+         *
+         * @pre @code valid() == true @encode
+         */
+        double left() const noexcept {
+            assert(valid());
+            return m_bottom_left.lon_without_check();
+        }
+
+        /**
+         * Get right boundary.
+         *
+         * @pre @code valid() == true @encode
+         */
+        double right() const noexcept {
+            assert(valid());
+            return m_top_right.lon_without_check();
+        }
+
+        /**
+         * Get top boundary.
+         *
+         * @pre @code valid() == true @encode
+         */
+        double top() const noexcept {
+            assert(valid());
+            return m_top_right.lat_without_check();
+        }
+
+        /**
+         * Get bottom boundary.
+         *
+         * @pre @code valid() == true @encode
+         */
+        double bottom() const noexcept {
+            assert(valid());
+            return m_bottom_left.lat_without_check();
+        }
+
+        /**
          * Check whether the location is inside the box.
          *
          * @pre Location must be defined.

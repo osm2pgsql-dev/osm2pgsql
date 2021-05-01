@@ -172,7 +172,7 @@ namespace osmium {
                 }
             }
 
-            void complete_relation(osmium::relations::RelationMeta& relation_meta) {
+            void complete_relation(const osmium::relations::RelationMeta& relation_meta) {
                 const osmium::Relation& relation = this->get_relation(relation_meta);
                 const osmium::memory::Buffer& buffer = this->members_buffer();
 

@@ -124,11 +124,11 @@ namespace osmium {
              * Returns an empty, invalid box if there is none.
              */
             osmium::Box joined_boxes() const {
-                osmium::Box box;
+                osmium::Box result_box;
                 for (const auto& b : m_boxes) {
-                    box.extend(b);
+                    result_box.extend(b);
                 }
-                return box;
+                return result_box;
             }
 
             /**

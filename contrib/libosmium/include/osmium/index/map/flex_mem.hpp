@@ -257,8 +257,8 @@ namespace osmium {
                     std::size_t used_blocks = 0;
                     std::size_t empty_blocks = 0;
 
-                    for (const auto& block : m_dense_blocks) {
-                        if (block.empty()) {
+                    for (const auto& dense_block : m_dense_blocks) {
+                        if (dense_block.empty()) {
                             ++empty_blocks;
                         } else {
                             ++used_blocks;

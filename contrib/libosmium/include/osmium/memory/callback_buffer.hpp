@@ -179,10 +179,10 @@ namespace osmium {
              * callback.
              */
             osmium::memory::Buffer read() {
-                osmium::memory::Buffer buffer{m_initial_buffer_size, osmium::memory::Buffer::auto_grow::yes};
+                osmium::memory::Buffer new_buffer{m_initial_buffer_size, osmium::memory::Buffer::auto_grow::yes};
                 using std::swap;
-                swap(buffer, m_buffer);
-                return buffer;
+                swap(new_buffer, m_buffer);
+                return new_buffer;
             }
 
         }; // class CallbackBuffer

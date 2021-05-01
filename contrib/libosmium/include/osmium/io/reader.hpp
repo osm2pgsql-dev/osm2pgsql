@@ -127,6 +127,7 @@ namespace osmium {
 
             osmium::osm_entity_bits::type m_read_which_entities = osmium::osm_entity_bits::all;
             osmium::io::read_meta m_read_metadata = osmium::io::read_meta::yes;
+            osmium::io::buffers_type m_buffers_kind = osmium::io::buffers_type::any;
 
             void set_option(osmium::thread::Pool& pool) noexcept {
                 m_pool = &pool;
@@ -137,7 +138,16 @@ namespace osmium {
             }
 
             void set_option(osmium::io::read_meta value) noexcept {
-                m_read_metadata = value;
+                // Ignore this setting if we have a history/change file,
+                // because if this is set to "no", we don't see the difference
+                // between visible and deleted objects.
+                if (!m_file.has_multiple_object_versions()) {
+                    m_read_metadata = value;
+                }
+            }
+
+            void set_option(osmium::io::buffers_type value) noexcept {
+                m_buffers_kind = value;
             }
 
             // This function will run in a separate thread.
@@ -147,7 +157,8 @@ namespace osmium {
                                       detail::future_buffer_queue_type& osmdata_queue,
                                       std::promise<osmium::io::Header>&& header_promise,
                                       osmium::osm_entity_bits::type read_which_entities,
-                                      osmium::io::read_meta read_metadata) {
+                                      osmium::io::read_meta read_metadata,
+                                      osmium::io::buffers_type buffers_kind) {
                 std::promise<osmium::io::Header> promise{std::move(header_promise)};
                 osmium::io::detail::parser_arguments args = {
                     pool,
@@ -155,7 +166,8 @@ namespace osmium {
                     osmdata_queue,
                     promise,
                     read_which_entities,
-                    read_metadata
+                    read_metadata,
+                    buffers_kind
                 };
                 creator(args)->parse();
             }
@@ -226,7 +238,14 @@ namespace osmium {
                     throw io_error{"Reading OSM files from the network currently not supported on Windows."};
 #endif
                 }
-                return osmium::io::detail::open_for_reading(filename);
+                const int fd = osmium::io::detail::open_for_reading(filename);
+#if __linux__
+                if (fd >= 0) {
+                    // Tell the kernel we are going to read this file sequentially
+                    ::posix_fadvise(fd, 0, 0, POSIX_FADV_SEQUENTIAL);
+                }
+#endif
+                return fd;
             }
 
         public:
@@ -248,7 +267,19 @@ namespace osmium {
              *      is read normally. If you set this to
              *      osmium::io::read_meta::no, meta data (like version, uid,
              *      etc.) is not read possibly speeding up the read. Not all
-             *      file formats use this setting.
+             *      file formats use this setting. Do *not* set this to
+             *      osmium::io::read_meta::no for history or change files
+             *      because you will loose the information whether an object
+             *      is visible!
+             *
+             * * osmium::io::buffers_type: Fill entities into buffers until
+             *      the buffers are full (osmium::io::buffers_type::any) or
+             *      only fill entities of the same type into a buffer
+             *      (osmium::io::buffers_type::single). Every time a new
+             *      entity type is seen a new buffer will be started. Do not
+             *      use in "single" mode if the input file is not sorted by
+             *      type, otherwise this will be rather inefficient.
+             *
              * * osmium::thread::Pool&: Reference to a thread pool that should
              *      be used for reading instead of the default pool. Usually
              *      it is okay to use the statically initialized shared
@@ -282,7 +313,10 @@ namespace osmium {
 
                 std::promise<osmium::io::Header> header_promise;
                 m_header_future = header_promise.get_future();
-                m_thread = osmium::thread::thread_handler{parser_thread, std::ref(*m_pool), std::ref(m_creator), std::ref(m_input_queue), std::ref(m_osmdata_queue), std::move(header_promise), m_read_which_entities, m_read_metadata};
+                m_thread = osmium::thread::thread_handler{parser_thread, std::ref(*m_pool), std::ref(m_creator),
+                                                          std::ref(m_input_queue), std::ref(m_osmdata_queue),
+                                                          std::move(header_promise), m_read_which_entities,
+                                                          m_read_metadata, m_buffers_kind};
             }
 
             template <typename... TArgs>
