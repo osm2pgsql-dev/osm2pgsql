@@ -115,6 +115,14 @@ namespace osmium {
                 m_ignore_errors = true;
             }
 
+            TStoragePosIDs& storage_pos() noexcept {
+                return m_storage_pos;
+            }
+
+            TStorageNegIDs& storage_neg() noexcept {
+                return m_storage_neg;
+            }
+
             /**
              * Store the location of the node in the storage.
              */

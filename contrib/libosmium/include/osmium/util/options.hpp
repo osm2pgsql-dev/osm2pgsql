@@ -139,6 +139,15 @@ namespace osmium {
             }
 
             /**
+             * Is this option set to a false value ("false" or "no")?
+             * Will return false if the value is unset.
+             */
+            bool is_false(const std::string& key) const noexcept {
+                const std::string value{get(key)};
+                return (value == "false" || value == "no");
+            }
+
+            /**
              * Is this option not set to a false value ("false" or "no")?
              * Will return true if the value is unset.
              */

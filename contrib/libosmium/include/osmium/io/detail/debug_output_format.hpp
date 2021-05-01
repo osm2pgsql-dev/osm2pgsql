@@ -125,8 +125,8 @@ namespace osmium {
                 }
 
                 template <typename... TArgs>
-                void output_formatted(const char* format, TArgs&&... args) {
-                    append_printf_formatted_string(*m_out, format, std::forward<TArgs>(args)...);
+                void output_formatted(const char* format, TArgs... args) {
+                    append_printf_formatted_string(*m_out, format, args...);
                 }
 
                 void write_color(const char* color) {

@@ -147,15 +147,15 @@ namespace osmium {
                     osmium::detail::disable_invalid_parameter_handler diph;
 #endif
                     if (m_file) {
-                        FILE* file = m_file;
+                        FILE* wrapped_file = m_file;
                         m_file = nullptr;
 
                         // Do not close stdout
-                        if (fileno(file) == 1) {
+                        if (fileno(wrapped_file) == 1) {
                             return;
                         }
 
-                        if (fclose(file) != 0) {
+                        if (fclose(wrapped_file) != 0) {
                             throw std::system_error{errno, std::system_category(), "fclose failed"};
                         }
                     }
@@ -230,7 +230,7 @@ namespace osmium {
                     if (bzerror != BZ_OK) {
                         throw bzip2_error{"bzip2 error: write close failed", bzerror};
                     }
-                    m_file_size = static_cast<std::size_t>(nbytes_out_hi32) << 32U | nbytes_out_lo32;
+                    m_file_size = static_cast<std::size_t>(static_cast<uint64_t>(nbytes_out_hi32) << 32U | nbytes_out_lo32);
                 }
             }
 
@@ -275,6 +275,10 @@ namespace osmium {
             }
 
             std::string read() override {
+                const auto offset = ftell(m_file.file());
+                if (offset > 0) {
+                    osmium::io::detail::remove_buffered_pages(fileno(m_file.file()), static_cast<std::size_t>(offset));
+                }
 #ifdef _MSC_VER
                 osmium::detail::disable_invalid_parameter_handler diph;
 #endif
@@ -321,6 +325,7 @@ namespace osmium {
 
             void close() override {
                 if (m_bzfile) {
+                    osmium::io::detail::remove_buffered_pages(fileno(m_file.file()));
 #ifdef _MSC_VER
                     osmium::detail::disable_invalid_parameter_handler diph;
 #endif

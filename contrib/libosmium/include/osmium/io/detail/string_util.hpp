@@ -58,13 +58,11 @@ namespace osmium {
                                        const std::size_t old_size,
                                        const std::size_t max_size,
                                        const char* format,
-                                       TArgs&&... args) {
+                                       TArgs... args) {
                 out.resize(old_size + max_size);
 
                 return SNPRINTF(max_size ? &out[old_size] : nullptr,
-                                max_size,
-                                format,
-                                std::forward<TArgs>(args)...);
+                                max_size, format, args...);
             }
 
 #undef SNPRINTF
@@ -82,7 +80,7 @@ namespace osmium {
             template <typename... TArgs>
             inline void append_printf_formatted_string(std::string& out,
                                                        const char* format,
-                                                       TArgs&&... args) {
+                                                       TArgs... args) {
 
                 // First try to write string with the max_size, if that doesn't
                 // work snprintf will tell us how much space it needs. We
@@ -106,7 +104,7 @@ namespace osmium {
                                                 old_size,
                                                 max_size,
                                                 format,
-                                                std::forward<TArgs>(args)...);
+                                                args...);
                 assert(len > 0);
 
                 if (static_cast<std::size_t>(len) >= max_size) {
@@ -117,7 +115,7 @@ namespace osmium {
                                                      old_size,
                                                      std::size_t(len) + 1,
                                                      format,
-                                                     std::forward<TArgs>(args)...);
+                                                     args...);
                     assert(len2 == len);
                 }
 
@@ -205,11 +203,12 @@ namespace osmium {
 
             inline void append_utf8_encoded_string(std::string& out, const char* data) {
                 static const char* lookup_hex = "0123456789abcdef";
-                const char* end = data + std::strlen(data);
+                assert(data);
+                const char* end_ptr = data + std::strlen(data);
 
-                while (data != end) {
+                while (data != end_ptr) {
                     const char* last = data;
-                    const uint32_t c = next_utf8_codepoint(&data, end);
+                    const uint32_t c = next_utf8_codepoint(&data, end_ptr);
 
                     // This is a list of Unicode code points that we let
                     // through instead of escaping them. It is incomplete
@@ -238,6 +237,7 @@ namespace osmium {
             }
 
             inline void append_xml_encoded_string(std::string& out, const char* data) {
+                assert(data);
                 for (; *data != '\0'; ++data) {
                     switch (*data) {
                         case '&':  out += "&amp;";  break;
@@ -255,11 +255,11 @@ namespace osmium {
 
             inline void append_debug_encoded_string(std::string& out, const char* data, const char* prefix, const char* suffix) {
                 static const char* lookup_hex = "0123456789ABCDEF";
-                const char* end = data + std::strlen(data);
+                const char* end_ptr = data + std::strlen(data);
 
-                while (data != end) {
+                while (data != end_ptr) {
                     const char* last = data;
-                    uint32_t c = next_utf8_codepoint(&data, end);
+                    uint32_t c = next_utf8_codepoint(&data, end_ptr);
 
                     // This is a list of Unicode code points that we let
                     // through instead of escaping them. It is incomplete

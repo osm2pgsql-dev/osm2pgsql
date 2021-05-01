@@ -35,6 +35,7 @@ DEALINGS IN THE SOFTWARE.
 
 #include <boost/variant.hpp>
 
+#include <algorithm>
 #include <cstring>
 #include <iosfwd>
 #include <regex>
@@ -250,13 +251,10 @@ namespace osmium {
             }
 
             bool match(const char* test_string) const noexcept {
-                for (const auto& s : m_strings) {
-                    if (!std::strcmp(s.c_str(), test_string)) {
-                        return true;
-                    }
-                }
-                return false;
-
+                return std::any_of(m_strings.cbegin(), m_strings.cend(),
+                                   [&test_string](const std::string& s){
+                    return s == test_string;
+                });
             }
 
             template <typename TChar, typename TTraits>
@@ -336,6 +334,7 @@ namespace osmium {
          * or
          * @code StringMatcher{StringMatcher::always_false}; @endcode
          */
+        // cppcheck-suppress noExplicitConstructor
         StringMatcher(bool result) : // NOLINT(google-explicit-constructor, hicpp-explicit-conversions)
             m_matcher(always_false{}) {
             if (result) {
@@ -348,6 +347,7 @@ namespace osmium {
          * Shortcut for
          * @code StringMatcher{StringMatcher::equal{str}}; @endcode
          */
+        // cppcheck-suppress noExplicitConstructor
         StringMatcher(const char* str) : // NOLINT(google-explicit-constructor, hicpp-explicit-conversions)
             m_matcher(equal{str}) {
         }
@@ -357,6 +357,7 @@ namespace osmium {
          * Shortcut for
          * @code StringMatcher{StringMatcher::equal{str}}; @endcode
          */
+        // cppcheck-suppress noExplicitConstructor
         StringMatcher(const std::string& str) : // NOLINT(google-explicit-constructor, hicpp-explicit-conversions)
             m_matcher(equal{str}) {
         }
@@ -367,6 +368,7 @@ namespace osmium {
          * Shortcut for
          * @code StringMatcher{StringMatcher::regex{aregex}}; @endcode
          */
+        // cppcheck-suppress noExplicitConstructor
         StringMatcher(const std::regex& aregex) : // NOLINT(google-explicit-constructor, hicpp-explicit-conversions)
             m_matcher(regex{aregex}) {
         }
@@ -378,6 +380,7 @@ namespace osmium {
          * Shortcut for
          * @code StringMatcher{StringMatcher::list{strings}}; @endcode
          */
+        // cppcheck-suppress noExplicitConstructor
         StringMatcher(const std::vector<std::string>& strings) : // NOLINT(google-explicit-constructor, hicpp-explicit-conversions)
             m_matcher(list{strings}) {
         }
@@ -389,6 +392,7 @@ namespace osmium {
          *                  osmium::StringMatcher::always_false, always_true,
          *                  equal, prefix, substring, regex or list.
          */
+        // cppcheck-suppress noExplicitConstructor
         template <typename TMatcher, typename X = typename std::enable_if<
             std::is_base_of<matcher, TMatcher>::value, void>::type>
         StringMatcher(TMatcher&& matcher) : // NOLINT(google-explicit-constructor, hicpp-explicit-conversions)

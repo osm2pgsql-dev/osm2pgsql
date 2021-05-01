@@ -129,6 +129,10 @@ namespace osmium {
                 return m_value;
             }
 
+            TValue value() const noexcept {
+                return m_value;
+            }
+
         }; // class DeltaDecode
 
     } // namespace util

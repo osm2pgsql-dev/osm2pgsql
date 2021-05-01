@@ -36,6 +36,7 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/osm/tag.hpp>
 #include <osmium/util/string_matcher.hpp>
 
+#include <algorithm>
 #include <type_traits>
 #include <utility>
 
@@ -121,12 +122,9 @@ namespace osmium {
          * @returns true if any of the tags in the TagList matches.
          */
         bool operator()(const osmium::TagList& tags) const noexcept {
-            for (const auto& tag : tags) {
-                if (operator()(tag)) {
-                    return true;
-                }
-            }
-            return false;
+            return std::any_of(tags.begin(), tags.end(), [this](const osmium::Tag& tag){
+                return operator()(tag);
+            });
         }
 
     }; // class TagMatcher

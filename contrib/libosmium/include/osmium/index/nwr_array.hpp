@@ -67,6 +67,30 @@ namespace osmium {
             return m_data[osmium::item_type_to_nwr_index(type)];
         }
 
+        T& nodes() noexcept {
+            return m_data[0];
+        }
+
+        const T& nodes() const noexcept {
+            return m_data[0];
+        }
+
+        T& ways() noexcept {
+            return m_data[1];
+        }
+
+        const T& ways() const noexcept {
+            return m_data[1];
+        }
+
+        T& relations() noexcept {
+            return m_data[2];
+        }
+
+        const T& relations() const noexcept {
+            return m_data[2];
+        }
+
         iterator begin() noexcept {
             return m_data.begin();
         }

@@ -59,15 +59,18 @@ namespace osmium {
                 queue_wrapper<std::string> m_queue;
                 std::unique_ptr<osmium::io::Compressor> m_compressor;
                 std::promise<std::size_t> m_promise;
+                std::atomic_bool* m_notification;
 
             public:
 
                 WriteThread(future_string_queue_type& input_queue,
                             std::unique_ptr<osmium::io::Compressor>&& compressor,
-                            std::promise<std::size_t>&& promise) :
+                            std::promise<std::size_t>&& promise,
+                            std::atomic_bool* notification) :
                     m_queue(input_queue),
                     m_compressor(std::move(compressor)),
-                    m_promise(std::move(promise)) {
+                    m_promise(std::move(promise)),
+                    m_notification(notification) {
                 }
 
                 WriteThread(const WriteThread&) = delete;
@@ -92,6 +95,7 @@ namespace osmium {
                         m_compressor->close();
                         m_promise.set_value(m_compressor->file_size());
                     } catch (...) {
+                        m_notification->store(true);
                         m_promise.set_exception(std::current_exception());
                         m_queue.drain();
                     }

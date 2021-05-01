@@ -403,7 +403,7 @@ namespace osmium {
         /**
          * Get longitude without checking the validity.
          */
-        double lon_without_check() const {
+        double lon_without_check() const noexcept {
             return fix_to_double(m_x);
         }
 
@@ -422,7 +422,7 @@ namespace osmium {
         /**
          * Get latitude without checking the validity.
          */
-        double lat_without_check() const {
+        double lat_without_check() const noexcept {
             return fix_to_double(m_y);
         }
 

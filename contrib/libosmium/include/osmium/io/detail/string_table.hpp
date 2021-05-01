@@ -215,7 +215,7 @@ namespace osmium {
                     std::size_t hash = 5381;
                     int c = 0;
 
-                    while ((c = *str++)) {
+                    while ((c = static_cast<signed char>(*str++))) {
                         hash = ((hash << 5U) + hash) + c; /* hash * 33 + c */
                     }
 
@@ -235,6 +235,12 @@ namespace osmium {
                     max_entries = static_cast<int32_t>(max_uncompressed_blob_size)
                 };
 
+                StringStore m_strings;
+                std::unordered_map<const char*, int32_t, djb2_hash, str_equal> m_index;
+                int32_t m_size = 0;
+
+            public:
+
                 // There is one string table per PBF primitive block. Most of
                 // them are really small, because most blocks are full of nodes
                 // with no tags. But string tables can get really large for
@@ -246,26 +252,23 @@ namespace osmium {
                     default_stringtable_chunk_size = 100U * 1024U
                 };
 
-                StringStore m_strings;
-                std::unordered_map<const char*, int32_t, djb2_hash, str_equal> m_index;
-                int32_t m_size = 0;
+                // Minimum bucket count for hash.
+                enum {
+                    min_bucket_count = 1
+                };
 
-            public:
-
-                explicit StringTable(size_t size = default_stringtable_chunk_size) :
-                    m_strings(size) {
-                    m_strings.add("");
-                }
-
-                void clear() {
-                    m_strings.clear();
-                    m_index.clear();
-                    m_size = 0;
+                explicit StringTable(size_t size = default_stringtable_chunk_size, size_t bucket_count = min_bucket_count) :
+                    m_strings(size),
+                    m_index(bucket_count) {
                     m_strings.add("");
                 }
 
                 int32_t size() const noexcept {
                     return m_size + 1;
+                }
+
+                std::size_t get_bucket_count() const noexcept {
+                    return m_index.bucket_count();
                 }
 
                 int32_t add(const char* s) {

@@ -210,6 +210,7 @@ namespace osmium {
              * For backwards compatibility only. Use the constructor taking
              * a mapping_mode as second argument instead.
              */
+            // cppcheck-suppress noExplicitConstructor
             OSMIUM_DEPRECATED MemoryMapping(std::size_t size, bool writable = true, int fd = -1, off_t offset = 0) : // NOLINT(google-explicit-constructor, hicpp-explicit-conversions)
                 MemoryMapping(size, writable ? mapping_mode::write_shared : mapping_mode::readonly, fd, offset)  {
             }
@@ -781,7 +782,12 @@ inline osmium::util::MemoryMapping::MemoryMapping(MemoryMapping&& other) noexcep
 }
 
 inline osmium::util::MemoryMapping& osmium::util::MemoryMapping::operator=(osmium::util::MemoryMapping&& other) noexcept {
-    unmap();
+    try {
+        unmap();
+    } catch (const std::system_error&) {
+        // Ignore unmap error. It should never happen anyway and we can't do
+        // anything about it here.
+    }
     m_size         = other.m_size;
     m_offset       = other.m_offset;
     m_fd           = other.m_fd;

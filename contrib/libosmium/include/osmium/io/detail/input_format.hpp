@@ -63,6 +63,7 @@ namespace osmium {
                 std::promise<osmium::io::Header>& header_promise;
                 osmium::osm_entity_bits::type read_which_entities;
                 osmium::io::read_meta read_metadata;
+                osmium::io::buffers_type buffers_kind;
             };
 
             class Parser {
@@ -161,6 +162,72 @@ namespace osmium {
                 }
 
             }; // class Parser
+
+            class ParserWithBuffer : public Parser {
+
+                enum {
+                    initial_buffer_size = 1024UL * 1024UL
+                };
+
+                osmium::memory::Buffer m_buffer{initial_buffer_size,
+                                                osmium::memory::Buffer::auto_grow::internal};
+
+                osmium::io::buffers_type m_buffers_kind;
+                osmium::item_type m_last_type = osmium::item_type::undefined;
+
+                bool is_different_type(osmium::item_type current_type) noexcept {
+                    if (m_last_type == current_type) {
+                        return false;
+                    }
+
+                    if (m_last_type == osmium::item_type::undefined) {
+                        m_last_type = current_type;
+                        return false;
+                    }
+
+                    m_last_type = current_type;
+                    return true;
+                }
+
+            protected:
+
+                explicit ParserWithBuffer(parser_arguments& args) :
+                    Parser(args),
+                    m_buffers_kind(args.buffers_kind) {
+                }
+
+                osmium::memory::Buffer& buffer() noexcept {
+                    return m_buffer;
+                }
+
+                void flush_nested_buffer() {
+                    if (m_buffer.has_nested_buffers()) {
+                        std::unique_ptr<osmium::memory::Buffer> buffer_ptr{m_buffer.get_last_nested()};
+                        send_to_output_queue(std::move(*buffer_ptr));
+                    }
+                }
+
+                void flush_final_buffer() {
+                    if (m_buffer.committed() > 0) {
+                        send_to_output_queue(std::move(m_buffer));
+                    }
+                }
+
+                void maybe_new_buffer(osmium::item_type current_type) {
+                    if (m_buffers_kind == buffers_type::any) {
+                        return;
+                    }
+
+                    if (is_different_type(current_type) && m_buffer.committed() > 0) {
+                        osmium::memory::Buffer new_buffer{initial_buffer_size,
+                                                          osmium::memory::Buffer::auto_grow::internal};
+                        using std::swap;
+                        swap(new_buffer, m_buffer);
+                        send_to_output_queue(std::move(new_buffer));
+                    }
+                }
+
+            }; // class ParserWithBuffer
 
             /**
              * This factory class is used to create objects that decode OSM

@@ -201,6 +201,34 @@ namespace osmium {
                     return data;
                 }
 
+                /* Polygon */
+
+                void polygon_start() {
+                    m_data.clear();
+                    set_size(header(m_data, wkbPolygon, true), 1);
+                    m_ring_size_offset = m_data.size();
+                    str_push(m_data, static_cast<uint32_t>(0));
+                }
+
+                void polygon_add_location(const osmium::geom::Coordinates& xy) {
+                    str_push(m_data, xy.x);
+                    str_push(m_data, xy.y);
+                }
+
+                polygon_type polygon_finish(std::size_t num_points) {
+                    set_size(m_ring_size_offset, num_points);
+                    std::string data;
+
+                    using std::swap;
+                    swap(data, m_data);
+
+                    if (m_out_type == out_type::hex) {
+                        return convert_to_hex(data);
+                    }
+
+                    return data;
+                }
+
                 /* MultiPolygon */
 
                 void multipolygon_start() {
