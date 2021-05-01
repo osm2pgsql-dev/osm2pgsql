@@ -334,6 +334,7 @@ static bool is_lua_array(lua_State *lua_state)
     lua_pushnil(lua_state);
     while (lua_next(lua_state, -2) != 0) {
         lua_pop(lua_state, 1); // remove value from stack
+#if LUA_VERSION_NUM >= 503
         if (!lua_isinteger(lua_state, -1)) {
             lua_pop(lua_state, 1);
             return false;
@@ -344,6 +345,19 @@ static bool is_lua_array(lua_State *lua_state)
             lua_pop(lua_state, 1);
             return false;
         }
+#else
+        if (!lua_isnumber(lua_state, -1)) {
+            lua_pop(lua_state, 1);
+            return false;
+        }
+        double const num = lua_tonumber(lua_state, -1);
+        double intpart = 0.0;
+        if (std::modf(num, &intpart) != 0.0 || intpart < 0 ||
+            static_cast<uint32_t>(num) != n++) {
+            lua_pop(lua_state, 1);
+            return false;
+        }
+#endif
     }
 
     // An empty lua table could be both, we decide here that it is not stored
@@ -398,6 +412,7 @@ static void write_json_table(json_writer_type *writer, lua_State *lua_state,
 
 static void write_json_number(json_writer_type *writer, lua_State *lua_state)
 {
+#if LUA_VERSION_NUM >= 503
     int okay = 0;
     auto const num = lua_tointegerx(lua_state, -1, &okay);
     if (okay) {
@@ -405,6 +420,15 @@ static void write_json_number(json_writer_type *writer, lua_State *lua_state)
     } else {
         writer->Double(lua_tonumber(lua_state, -1));
     }
+#else
+    double const num = lua_tonumber(lua_state, -1);
+    double intpart = 0.0;
+    if (std::modf(num, &intpart) == 0.0) {
+        writer->Int64(static_cast<int64_t>(num));
+    } else {
+        writer->Double(num);
+    }
+#endif
 }
 
 static void write_json(json_writer_type *writer, lua_State *lua_state,
