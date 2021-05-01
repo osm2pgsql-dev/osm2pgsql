@@ -36,7 +36,7 @@ jobs:
           PGHOST: /tmp
 
 
-  ubuntu16-pg93-gcc5:
+  ubuntu16-pg95-gcc5:
     runs-on: ubuntu-16.04
 
     env:
@@ -44,8 +44,8 @@ jobs:
       CXX: g++-5
       LUA_VERSION: 5.1
       LUAJIT_OPTION: OFF
-      POSTGRESQL_VERSION: 9.3
-      POSTGIS_VERSION: 2.2
+      POSTGRESQL_VERSION: 9.5
+      POSTGIS_VERSION: 2.3
       BUILD_TYPE: Release
 
     steps:
@@ -53,7 +53,7 @@ jobs:
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
-  ubuntu16-pg94-clang6:
+  ubuntu16-pg95-clang6:
     runs-on: ubuntu-16.04
 
     env:
@@ -61,7 +61,7 @@ jobs:
       CXX: clang++-6.0
       LUA_VERSION: 5.2
       LUAJIT_OPTION: OFF
-      POSTGRESQL_VERSION: 9.4
+      POSTGRESQL_VERSION: 9.5
       POSTGIS_VERSION: 2.3
       BUILD_TYPE: Release
 
