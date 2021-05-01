@@ -235,14 +235,21 @@ get_delta_encoded_way_nodes_list(std::string const &data, std::size_t offset,
 }
 
 std::size_t
-middle_ram_t::rel_way_members_get(osmium::Relation const &rel,
-                                  osmium::memory::Buffer *buffer) const
+middle_ram_t::rel_members_get(osmium::Relation const &rel,
+                              osmium::memory::Buffer *buffer,
+                              osmium::osm_entity_bits::type types) const
 {
     assert(buffer);
 
     std::size_t count = 0;
 
     for (auto const &member : rel.members()) {
+        auto const member_entity_type =
+            osmium::osm_entity_bits::from_item_type(member.type());
+        if ((member_entity_type & types) == 0) {
+            continue;
+        }
+
         switch (member.type()) {
         case osmium::item_type::node:
             if (m_store_options.nodes) {

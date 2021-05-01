@@ -203,7 +203,8 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
     }
 
     buffer.clear();
-    auto const num_ways = m_mid->rel_way_members_get(rel, &buffer);
+    auto const num_ways =
+        m_mid->rel_members_get(rel, &buffer, osmium::osm_entity_bits::way);
 
     if (num_ways == 0) {
         return;

@@ -427,10 +427,18 @@ bool middle_query_pgsql_t::way_get(osmid_t id,
 }
 
 size_t
-middle_query_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
-                                          osmium::memory::Buffer *buffer) const
+middle_query_pgsql_t::rel_members_get(osmium::Relation const &rel,
+                                      osmium::memory::Buffer *buffer,
+                                      osmium::osm_entity_bits::type types) const
 {
     assert(buffer);
+
+    // Only way members are supported by this middle.
+    if (types != osmium::osm_entity_bits::way) {
+        // Not using assert() here because the "types" variable would then
+        // be detected as unused by the compiler generating a warning.
+        std::abort();
+    }
 
     util::string_id_list_t id_list;
 
