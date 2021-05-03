@@ -34,8 +34,9 @@ public:
     table_t(table_t const &other,
             std::shared_ptr<db_copy_thread_t> const &copy_thread);
 
-    void start(std::string const &conninfo, std::string const &table_space);
-    void stop(bool updateable, bool enable_hstore_index,
+    void start(std::string const &conninfo, bool skip_clustering,
+               std::string const &table_space);
+    void stop(bool updateable, bool enable_hstore_index, bool skip_clustering,
               std::string const &table_space_index);
 
     void sync();

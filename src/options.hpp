@@ -179,6 +179,7 @@ public:
      * earlier versions.
      */
     uint8_t way_node_index_id_shift = 0;
+    bool skip_clustering = false;
 
 private:
 

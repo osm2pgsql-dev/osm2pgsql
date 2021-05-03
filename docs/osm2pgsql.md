@@ -277,6 +277,9 @@ mandatory for short options too.
     the pgsql output (default is no schema, i.e. the `public` schema
     is used).
 
+\--skip-clustering
+:   Do not cluster tables after importing them.
+
 # EXPIRE OPTIONS
 
 -e, \--expire-tiles=[MIN_ZOOM-]MAX-ZOOM

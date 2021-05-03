@@ -125,7 +125,7 @@ void output_pgsql_t::stop(thread_pool_t *pool)
     for (auto &t : m_tables) {
         pool->submit([&]() {
             t->stop(m_options.slim & !m_options.droptemp,
-                    m_options.enable_hstore_index, m_options.tblsmain_index);
+                    m_options.enable_hstore_index, m_options.skip_clustering, m_options.tblsmain_index);
         });
     }
 
@@ -367,7 +367,7 @@ void output_pgsql_t::start()
     for (auto &t : m_tables) {
         //setup the table in postgres
         t->start(m_options.database_options.conninfo(),
-                 m_options.tblsmain_data);
+                 m_options.skip_clustering, m_options.tblsmain_data);
     }
 }
 

@@ -73,7 +73,7 @@ void table_t::connect()
     m_sql_conn->exec("SET synchronous_commit = off");
 }
 
-void table_t::start(std::string const &conninfo, std::string const &table_space)
+void table_t::start(std::string const &conninfo, bool skip_clustering, std::string const &table_space)
 {
     if (m_sql_conn) {
         throw std::runtime_error{m_target->name +
@@ -104,7 +104,8 @@ void table_t::start(std::string const &conninfo, std::string const &table_space)
     if (!m_append) {
         //define the new table
         auto sql =
-            "CREATE UNLOGGED TABLE {} (osm_id int8,"_format(qual_name);
+            "CREATE {} TABLE {} (osm_id int8,"_format(
+              skip_clustering ? "" : "UNLOGGED", qual_name);
 
         //first with the regular columns
         for (auto const &column : m_columns) {
@@ -123,10 +124,12 @@ void table_t::start(std::string const &conninfo, std::string const &table_space)
 
         sql += "way geometry({},{}) )"_format(m_type, m_srid);
 
-        // The final tables are created with CREATE TABLE AS ... SELECT * FROM ...
-        // This means that they won't get this autovacuum setting, so it doesn't
-        // doesn't need to be RESET on these tables
-        sql += " WITH (autovacuum_enabled = off)";
+        if (!skip_clustering) {
+            // The final tables are created with CREATE TABLE AS ... SELECT * FROM ...
+            // This means that they won't get this autovacuum setting, so it doesn't
+            // doesn't need to be RESET on these tables
+            sql += " WITH (autovacuum_enabled = off)";
+        }
         //add the main table space
         sql += m_table_space;
 
@@ -172,7 +175,7 @@ void table_t::generate_copy_column_list()
     }
 }
 
-void table_t::stop(bool updateable, bool enable_hstore_index,
+void table_t::stop(bool updateable, bool enable_hstore_index, bool skip_clustering,
                    std::string const &table_space_index)
 {
     // make sure that all data is written to the DB before continuing
@@ -185,48 +188,50 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
     if (!m_append) {
         util::timer_t timer;
 
-        log_info("Clustering table '{}' by geometry...", m_target->name);
+        if (!skip_clustering) 
+        {
+            log_info("Clustering table '{}' by geometry...", m_target->name);
 
-        // Notices about invalid geometries are expected and can be ignored
-        // because they say nothing about the validity of the geometry in OSM.
-        m_sql_conn->exec("SET client_min_messages = WARNING");
+            // Notices about invalid geometries are expected and can be ignored
+            // because they say nothing about the validity of the geometry in OSM.
+            m_sql_conn->exec("SET client_min_messages = WARNING");
 
-        std::string sql =
-            "CREATE TABLE {} {} AS SELECT * FROM {}"_format(
+            std::string sql = "CREATE TABLE {} {} AS SELECT * FROM {}"_format(
                 qual_tmp_name, m_table_space, qual_name);
 
-        if (m_srid != "4326") {
-            // libosmium assures validity of geometries in 4326.
-            // Transformation to another projection could make the geometry
-            // invalid. Therefore add a filter to drop those.
-            sql += " WHERE ST_IsValid(way)";
-        }
-
-        auto const postgis_version = get_postgis_version(*m_sql_conn);
-
-        sql += " ORDER BY ";
-        if (postgis_version.major == 2 && postgis_version.minor < 4) {
-            log_debug("Using GeoHash for clustering table '{}'",
-                      m_target->name);
-            if (m_srid == "4326") {
-                sql += "ST_GeoHash(way,10)";
-            } else {
-                sql += "ST_GeoHash(ST_Transform(ST_Envelope(way),4326),10)";
+            if (m_srid != "4326") {
+                // libosmium assures validity of geometries in 4326.
+                // Transformation to another projection could make the geometry
+                // invalid. Therefore add a filter to drop those.
+                sql += " WHERE ST_IsValid(way)";
             }
-            sql += " COLLATE \"C\"";
-        } else {
-            log_debug("Using native order for clustering table '{}'",
-                      m_target->name);
-            // Since Postgis 2.4 the order function for geometries gives
-            // useful results.
-            sql += "way";
+
+            auto const postgis_version = get_postgis_version(*m_sql_conn);
+
+            sql += " ORDER BY ";
+            if (postgis_version.major == 2 && postgis_version.minor < 4) {
+                log_debug("Using GeoHash for clustering table '{}'",
+                          m_target->name);
+                if (m_srid == "4326") {
+                    sql += "ST_GeoHash(way,10)";
+                } else {
+                    sql += "ST_GeoHash(ST_Transform(ST_Envelope(way),4326),10)";
+                }
+                sql += " COLLATE \"C\"";
+            } else {
+                log_debug("Using native order for clustering table '{}'",
+                          m_target->name);
+                // Since Postgis 2.4 the order function for geometries gives
+                // useful results.
+                sql += "way";
+            }
+
+            m_sql_conn->exec(sql);
+
+            m_sql_conn->exec("DROP TABLE {}"_format(qual_name));
+            m_sql_conn->exec("ALTER TABLE {} RENAME TO \"{}\""_format(
+                qual_tmp_name, m_target->name));
         }
-
-        m_sql_conn->exec(sql);
-
-        m_sql_conn->exec("DROP TABLE {}"_format(qual_name));
-        m_sql_conn->exec("ALTER TABLE {} RENAME TO \"{}\""_format(
-            qual_tmp_name, m_target->name));
 
         log_info("Creating geometry index on table '{}'...", m_target->name);
 
