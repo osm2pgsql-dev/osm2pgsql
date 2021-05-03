@@ -57,7 +57,7 @@ Required libraries are
 * [Psycopg](http://initd.org/psycopg/) (only for running tests)
 
 It also requires access to a database server running
-[PostgreSQL](https://www.postgresql.org/) 9.3+ and
+[PostgreSQL](https://www.postgresql.org/) 9.5+ and
 [PostGIS](http://www.postgis.net/) 2.2+.
 
 Make sure you have installed the development packages for the libraries
