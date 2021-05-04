@@ -22,7 +22,7 @@ struct column_type_lookup
     table_column_type type;
 };
 
-static std::array<column_type_lookup, 24> const column_types = {
+static std::array<column_type_lookup, 26> const column_types = {
     {{"sql", table_column_type::sql},
      {"text", table_column_type::text},
      {"boolean", table_column_type::boolean},
@@ -36,6 +36,8 @@ static std::array<column_type_lookup, 24> const column_types = {
      {"bigint", table_column_type::int8},
      {"real", table_column_type::real},
      {"hstore", table_column_type::hstore},
+     {"json", table_column_type::json},
+     {"jsonb", table_column_type::jsonb},
      {"direction", table_column_type::direction},
      {"geometry", table_column_type::geometry},
      {"point", table_column_type::point},
@@ -130,6 +132,10 @@ std::string flex_table_column_t::sql_type_name() const
         return "real";
     case table_column_type::hstore:
         return "hstore";
+    case table_column_type::json:
+        return "json";
+    case table_column_type::jsonb:
+        return "jsonb";
     case table_column_type::direction:
         return "int2";
     case table_column_type::geometry:

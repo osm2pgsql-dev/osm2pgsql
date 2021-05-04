@@ -30,6 +30,9 @@ extern "C"
 #include <lualib.h>
 }
 
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
+
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
@@ -318,6 +321,146 @@ static void write_double(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
     copy_mgr->add_column(value);
 }
 
+using json_writer_type = rapidjson::Writer<rapidjson::StringBuffer>;
+using table_register_type = std::vector<void const *>;
+
+/**
+ * Check that the value on the top of the Lua stack is a simple array.
+ * This means that all keys must be consecutive integers starting from 1.
+ */
+static bool is_lua_array(lua_State *lua_state)
+{
+    uint32_t n = 1;
+    lua_pushnil(lua_state);
+    while (lua_next(lua_state, -2) != 0) {
+        lua_pop(lua_state, 1); // remove value from stack
+#if LUA_VERSION_NUM >= 503
+        if (!lua_isinteger(lua_state, -1)) {
+            lua_pop(lua_state, 1);
+            return false;
+        }
+        int okay = 0;
+        auto const num = lua_tointegerx(lua_state, -1, &okay);
+        if (!okay || num != n++) {
+            lua_pop(lua_state, 1);
+            return false;
+        }
+#else
+        if (!lua_isnumber(lua_state, -1)) {
+            lua_pop(lua_state, 1);
+            return false;
+        }
+        double const num = lua_tonumber(lua_state, -1);
+        double intpart = 0.0;
+        if (std::modf(num, &intpart) != 0.0 || intpart < 0 ||
+            static_cast<uint32_t>(num) != n++) {
+            lua_pop(lua_state, 1);
+            return false;
+        }
+#endif
+    }
+
+    // An empty lua table could be both, we decide here that it is not stored
+    // as a JSON array but as a JSON object.
+    if (n == 1) {
+        return false;
+    }
+
+    return true;
+}
+
+static void write_json(json_writer_type *writer, lua_State *lua_state,
+                       table_register_type *tables);
+
+static void write_json_table(json_writer_type *writer, lua_State *lua_state,
+                             table_register_type *tables)
+{
+    void const *table_ptr = lua_topointer(lua_state, -1);
+    assert(table_ptr);
+    auto const it = std::find(tables->cbegin(), tables->cend(), table_ptr);
+    if (it != tables->cend()) {
+        throw std::runtime_error{"Loop detected in table"};
+    }
+    tables->push_back(table_ptr);
+
+    if (is_lua_array(lua_state)) {
+        writer->StartArray();
+        lua_pushnil(lua_state);
+        while (lua_next(lua_state, -2) != 0) {
+            write_json(writer, lua_state, tables);
+            lua_pop(lua_state, 1);
+        }
+        writer->EndArray();
+    } else {
+        writer->StartObject();
+        lua_pushnil(lua_state);
+        while (lua_next(lua_state, -2) != 0) {
+            int const ltype_key = lua_type(lua_state, -2);
+            if (ltype_key != LUA_TSTRING) {
+                throw std::runtime_error{
+                    "Incorrect data type '{}' as key."_format(
+                        lua_typename(lua_state, ltype_key))};
+            }
+            char const *const key = lua_tostring(lua_state, -2);
+            writer->Key(key);
+            write_json(writer, lua_state, tables);
+            lua_pop(lua_state, 1);
+        }
+        writer->EndObject();
+    }
+}
+
+static void write_json_number(json_writer_type *writer, lua_State *lua_state)
+{
+#if LUA_VERSION_NUM >= 503
+    int okay = 0;
+    auto const num = lua_tointegerx(lua_state, -1, &okay);
+    if (okay) {
+        writer->Int64(num);
+    } else {
+        writer->Double(lua_tonumber(lua_state, -1));
+    }
+#else
+    double const num = lua_tonumber(lua_state, -1);
+    double intpart = 0.0;
+    if (std::modf(num, &intpart) == 0.0) {
+        writer->Int64(static_cast<int64_t>(num));
+    } else {
+        writer->Double(num);
+    }
+#endif
+}
+
+static void write_json(json_writer_type *writer, lua_State *lua_state,
+                       table_register_type *tables)
+{
+    assert(writer);
+    assert(lua_state);
+
+    int const ltype = lua_type(lua_state, -1);
+    switch (ltype) {
+    case LUA_TNIL:
+        writer->Null();
+        break;
+    case LUA_TBOOLEAN:
+        writer->Bool(lua_toboolean(lua_state, -1) != 0);
+        break;
+    case LUA_TNUMBER:
+        write_json_number(writer, lua_state);
+        break;
+    case LUA_TSTRING:
+        writer->String(lua_tostring(lua_state, -1));
+        break;
+    case LUA_TTABLE:
+        write_json_table(writer, lua_state, tables);
+        break;
+    default:
+        throw std::runtime_error{
+            "Invalid type '{}' for json/jsonb column."_format(
+                lua_typename(lua_state, ltype))};
+    }
+}
+
 void output_flex_t::write_column(
     db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
     flex_table_column_t const &column)
@@ -467,6 +610,13 @@ void output_flex_t::write_column(
                 "Invalid type '{}' for hstore column."_format(
                     lua_typename(lua_state(), ltype))};
         }
+    } else if ((column.type() == table_column_type::json) ||
+               (column.type() == table_column_type::jsonb)) {
+        rapidjson::StringBuffer stream;
+        json_writer_type writer{stream};
+        table_register_type tables;
+        write_json(&writer, lua_state(), &tables);
+        copy_mgr->add_column(stream.GetString());
     } else if (column.type() == table_column_type::direction) {
         switch (ltype) {
         case LUA_TBOOLEAN:
