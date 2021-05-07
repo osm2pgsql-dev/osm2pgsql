@@ -1390,7 +1390,7 @@ void output_flex_t::stop(thread_pool_t *pool)
 {
     for (auto &table : m_table_connections) {
         pool->submit([&]() {
-            table.stop(m_options.slim & !m_options.droptemp, m_options.append);
+            table.stop(m_options.slim && !m_options.droptemp, m_options.append);
         });
     }
 
