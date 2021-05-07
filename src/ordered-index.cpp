@@ -10,15 +10,6 @@
 #include "ordered-index.hpp"
 
 #include <algorithm>
-#include <numeric>
-
-std::size_t ordered_index_t::capacity() const noexcept
-{
-    return std::accumulate(m_ranges.cbegin(), m_ranges.cend(), 0ULL,
-                           [](std::size_t sum, range_entry const &range) {
-                               return sum + range.index.capacity();
-                           });
-}
 
 void ordered_index_t::add(osmid_t id, std::size_t offset)
 {
@@ -32,6 +23,7 @@ void ordered_index_t::add(osmid_t id, std::size_t offset)
             m_ranges.back().to = id - 1;
         }
         m_ranges.emplace_back(id, offset, m_block_size);
+        m_capacity += m_block_size;
         if (m_block_size < max_block_size) {
             m_block_size <<= 1U;
         }

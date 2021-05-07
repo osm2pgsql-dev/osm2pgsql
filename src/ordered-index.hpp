@@ -82,7 +82,7 @@ public:
      * is accurate for normal operations, but if there are huge gaps between
      * consecutive ids (> 2^32), less entries than this will fit.
      */
-    std::size_t capacity() const noexcept;
+    std::size_t capacity() const noexcept { return m_capacity; }
 
     /// The number of entries in the index.
     std::size_t size() const noexcept { return m_size; }
@@ -135,7 +135,7 @@ public:
     std::size_t used_memory() const noexcept
     {
         return m_ranges.capacity() * sizeof(range_entry) +
-               capacity() * sizeof(second_level_index_entry);
+               m_capacity * sizeof(second_level_index_entry);
     }
 
     /**
@@ -146,6 +146,7 @@ public:
     {
         m_ranges.clear();
         m_ranges.shrink_to_fit();
+        m_capacity = 0;
         m_size = 0;
     }
 
@@ -185,6 +186,7 @@ private:
 
     std::vector<range_entry> m_ranges;
     std::size_t m_block_size;
+    std::size_t m_capacity = 0;
     std::size_t m_size = 0;
 }; // class ordered_index_t
 
