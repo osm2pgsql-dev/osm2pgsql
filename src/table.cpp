@@ -442,8 +442,8 @@ void table_t::escape_type(std::string const &value, ColumnType flags)
     }
 }
 
-table_t::wkb_reader table_t::get_wkb_reader(osmid_t id)
+pg_result_t table_t::get_wkb(osmid_t id)
 {
-    auto res = m_sql_conn->exec_prepared("get_wkb", id);
-    return wkb_reader{std::move(res)};
+    return m_sql_conn->exec_prepared("get_wkb", id);
 }
+

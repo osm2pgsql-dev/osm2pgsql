@@ -377,37 +377,6 @@ void expire_tiles::from_wkb_polygon(ewkb::parser_t *wkb, osmid_t osm_id)
     }
 }
 
-/*
- * Expire tiles based on an osm element.
- * What type of element (node, line, polygon) osm_id refers to depends on
- * sql_conn. Each type of table has its own sql_conn and the prepared statement
- * get_wkb refers to the appropriate table.
- *
- * The function returns -1 if expiry is not enabled. Otherwise it returns the number
- * of elements that refer to the osm_id.
-
- */
-int expire_tiles::from_db(table_t *table, osmid_t osm_id)
-{
-    //bail if we dont care about expiry
-    if (maxzoom == 0) {
-        return -1;
-    }
-
-    //grab the geom for this id
-    auto wkbs = table->get_wkb_reader(osm_id);
-
-    //dirty the stuff
-    char const *wkb = nullptr;
-    while ((wkb = wkbs.get_next())) {
-        auto const binwkb = ewkb::parser_t::wkb_from_hex(wkb);
-        from_wkb(binwkb, osm_id);
-    }
-
-    //return how many rows were affected
-    return wkbs.get_count();
-}
-
 int expire_tiles::from_result(pg_result_t const &result, osmid_t osm_id)
 {
     //bail if we dont care about expiry
