@@ -156,15 +156,15 @@ geom_transform_area_t::run(geom::osmium_builder_t *builder,
 std::unique_ptr<geom_transform_t> create_geom_transform(char const *type)
 {
     if (std::strcmp(type, "point") == 0) {
-        return std::unique_ptr<geom_transform_t>{new geom_transform_point_t{}};
+        return std::make_unique<geom_transform_point_t>();
     }
 
     if (std::strcmp(type, "line") == 0) {
-        return std::unique_ptr<geom_transform_t>{new geom_transform_line_t{}};
+        return std::make_unique<geom_transform_line_t>();
     }
 
     if (std::strcmp(type, "area") == 0) {
-        return std::unique_ptr<geom_transform_t>{new geom_transform_area_t{}};
+        return std::make_unique<geom_transform_area_t>();
     }
 
     throw std::runtime_error{

@@ -150,10 +150,10 @@ public:
 
         middle->set_requirements(output->get_requirements());
 
-        auto dependency_manager = std::unique_ptr<dependency_manager_t>(
+        auto dependency_manager =
             options.with_forward_dependencies
-                ? new full_dependency_manager_t{middle}
-                : new dependency_manager_t{});
+                ? std::make_unique<full_dependency_manager_t>(middle)
+                : std::make_unique<dependency_manager_t>();
 
         osmdata_t osmdata{std::move(dependency_manager), middle, output,
                           options};
@@ -187,8 +187,8 @@ public:
 
         middle->set_requirements(output->get_requirements());
 
-        auto dependency_manager = std::unique_ptr<dependency_manager_t>(
-            new full_dependency_manager_t{middle});
+        auto dependency_manager =
+            std::make_unique<full_dependency_manager_t>(middle);
 
         parse_file(options, std::move(dependency_manager), middle, output,
                    file);

@@ -817,9 +817,8 @@ middle_pgsql_t::get_query_instance()
 {
     // NOTE: this is thread safe for use in pending async processing only because
     // during that process they are only read from
-    std::unique_ptr<middle_query_pgsql_t> mid{
-        new middle_query_pgsql_t{m_options->database_options.conninfo(),
-                                 m_cache, m_persistent_cache}};
+    auto mid = std::make_unique<middle_query_pgsql_t>(
+        m_options->database_options.conninfo(), m_cache, m_persistent_cache);
 
     // We use a connection per table to enable the use of COPY
     for (auto &table : m_tables) {

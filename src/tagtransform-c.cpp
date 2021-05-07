@@ -96,8 +96,7 @@ c_tagtransform_t::c_tagtransform_t(options_t const *options,
 
 std::unique_ptr<tagtransform_t> c_tagtransform_t::clone() const
 {
-    return std::unique_ptr<tagtransform_t>(
-        new c_tagtransform_t{m_options, m_export_list});
+    return std::make_unique<c_tagtransform_t>(m_options, m_export_list);
 }
 
 bool c_tagtransform_t::check_key(std::vector<taginfo> const &infos,
