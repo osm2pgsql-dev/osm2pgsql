@@ -177,7 +177,8 @@ void table_connection_t::start(bool append)
                                       : flex_table_t::table_type::permanent,
             table().full_name()));
 
-        if (table().has_geom_column() && table().geom_column().srid() != 4326) {
+        if (table().has_geom_column() &&
+            table().geom_column().needs_isvalid()) {
             create_geom_check_trigger(m_db_connection.get(), table().schema(),
                                       table().name(),
                                       table().geom_column().name());
@@ -260,7 +261,8 @@ void table_connection_t::stop(bool updateable, bool append)
     if (updateable && table().has_id_column()) {
         create_id_index();
 
-        if (table().has_geom_column() && table().geom_column().srid() != 4326) {
+        if (table().has_geom_column() &&
+            table().geom_column().needs_isvalid()) {
             create_geom_check_trigger(m_db_connection.get(), table().schema(),
                                       table().name(),
                                       table().geom_column().name());
