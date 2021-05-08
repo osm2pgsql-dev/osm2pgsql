@@ -176,6 +176,12 @@ void table_connection_t::start(bool append)
             table().has_geom_column() ? flex_table_t::table_type::interim
                                       : flex_table_t::table_type::permanent,
             table().full_name()));
+
+        if (table().has_geom_column() && table().geom_column().srid() != 4326) {
+            create_geom_check_trigger(m_db_connection.get(), table().schema(),
+                                      table().name(),
+                                      table().geom_column().name());
+        }
     }
 
     prepare();
@@ -195,6 +201,11 @@ void table_connection_t::stop(bool updateable, bool append)
     util::timer_t timer;
 
     if (table().has_geom_column()) {
+        if (table().geom_column().needs_isvalid()) {
+            drop_geom_check_trigger(m_db_connection.get(), table().schema(),
+                                    table().name());
+        }
+
         log_info("Clustering table '{}' by geometry...", table().name());
 
         // Notices about invalid geometries are expected and can be ignored
@@ -206,14 +217,6 @@ void table_connection_t::stop(bool updateable, bool append)
 
         std::string sql = "INSERT INTO {} SELECT * FROM {}"_format(
             table().full_tmp_name(), table().full_name());
-
-        if (table().geom_column().srid() != 4326) {
-            // libosmium assures validity of geometries in 4326.
-            // Transformation to another projection could make the geometry
-            // invalid. Therefore add a filter to drop those.
-            sql += " WHERE ST_IsValid(\"{}\")"_format(
-                table().geom_column().name());
-        }
 
         auto const postgis_version = get_postgis_version(*m_db_connection);
 
