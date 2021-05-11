@@ -144,19 +144,7 @@ mandatory for short options too.
     Defaults to 800.
 
 \--cache-strategy=STRATEGY
-:   There are a number of different modes in which osm2pgsql can organize its
-    node cache in RAM. These are optimized for different assumptions of the data
-    and the hardware resources available. Currently available strategies are
-    **dense**, **chunked**, **sparse** and **optimized**. **dense** assumes
-    that the node id numbers are densely packed, i.e. only a few IDs in the range are
-    missing / deleted. For planet extracts this is usually not the case, making the cache
-    very inefficient and wasteful of RAM. **sparse** assumes node IDs in the data
-    are not densely packed, greatly increasing caching efficiency in these cases.
-    If node IDs are densely packed, like in the full planet, this strategy has a higher
-    overhead for indexing the cache. **optimized** uses both dense and sparse strategies
-    for different ranges of the ID space. On a block by block basis it tries to determine
-    if it is more effective to store the block of IDs in sparse or dense mode. This is the
-    default and should be typically used.
+:   This deprecated option will be ignored.
 
 -x, \--extra-attributes
 :   Include attributes of each object in the middle tables and make them

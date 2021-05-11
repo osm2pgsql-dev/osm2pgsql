@@ -141,7 +141,6 @@ public:
 
     bool keep_coastlines = false;
     bool parallel_indexing = true;
-    int alloc_chunkwise;
     unsigned int num_procs;
     bool droptemp = false; ///< drop slim mode temp tables after act
 

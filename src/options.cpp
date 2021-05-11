@@ -10,7 +10,6 @@
 #include "config.h"
 #include "format.hpp"
 #include "logging.hpp"
-#include "node-ram-cache.hpp"
 #include "options.hpp"
 #include "reprojection.hpp"
 #include "sprompt.hpp"
@@ -180,22 +179,7 @@ Middle options:\n\
                     (if unset, use db's default; -i is equivalent to setting\n\
                     --tablespace-main-index and --tablespace-slim-index).\n\
     -p|--prefix=PREFIX  Prefix for table names (default 'planet_osm')\n\
-       --cache-strategy=STRATEGY  Specifies the method used to cache nodes in\n\
-                    RAM. Available options are:\n\
-                    dense: caching strategy optimised for full planet import\n\
-                    chunk: caching strategy optimised for non-contiguous\n\
-                           memory allocation\n\
-                    sparse: caching strategy optimised for small imports\n\
-                    optimized: automatically combines dense and sparse \n\
-                           strategies for optimal storage efficiency. This may\n\
-                           us twice as much virtual memory, but no more physical\n\
-                           memory.\n"
-#ifdef __amd64__
-                   "                    The default is 'optimized'.\n"
-#else
-                   "                    The default is 'sparse'.\n"
-#endif
-                   "\
+       --cache-strategy=STRATEGY  Deprecated. Not used any more.\n\
     -x|--extra-attributes  Include attributes (user name, user id, changeset\n\
                     id, timestamp and version) for each object in the database.\n\
        --middle-schema=SCHEMA  Schema to use for middle tables (default: none).\n\
@@ -297,13 +281,7 @@ std::string database_options_t::conninfo() const
 }
 
 options_t::options_t()
-:
-#ifdef __amd64__
-  alloc_chunkwise(ALLOC_SPARSE | ALLOC_DENSE),
-#else
-  alloc_chunkwise(ALLOC_SPARSE),
-#endif
-  num_procs(std::min(4U, std::thread::hardware_concurrency()))
+: num_procs(std::min(4U, std::thread::hardware_concurrency()))
 {
     if (num_procs < 1) {
         log_warn("Unable to detect number of hardware threads supported!"
@@ -522,18 +500,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             parallel_indexing = false;
             break;
         case 204:
-            if (std::strcmp(optarg, "dense") == 0) {
-                alloc_chunkwise = ALLOC_DENSE;
-            } else if (std::strcmp(optarg, "chunk") == 0) {
-                alloc_chunkwise = ALLOC_DENSE | ALLOC_DENSE_CHUNK;
-            } else if (std::strcmp(optarg, "sparse") == 0) {
-                alloc_chunkwise = ALLOC_SPARSE;
-            } else if (std::strcmp(optarg, "optimized") == 0) {
-                alloc_chunkwise = ALLOC_DENSE | ALLOC_SPARSE;
-            } else {
-                throw std::runtime_error{
-                    "Unrecognized cache strategy {}."_format(optarg)};
-            }
+            log_warn("Deprecated option --cache-strategy ignored");
             break;
         case 205:
             num_procs = atoi(optarg);
