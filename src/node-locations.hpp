@@ -13,6 +13,8 @@
 #include "ordered-index.hpp"
 #include "osmtypes.hpp"
 
+#include <osmium/util/delta.hpp>
+
 #include <array>
 #include <cstddef>
 #include <string>
@@ -25,18 +27,14 @@
  *
  * Internally nodes are stored in blocks of `block_size` (id, location) pairs.
  * Ids inside a block and the x and y coordinates of each location are first
- * delta encoded and then stored as varints. To access a stored location a
- * full block must be decoded.
+ * delta encoded and then stored as varints. To access a stored location the
+ * block must be decoded until the id is found.
  *
- * Ids must be added in strictly ascending order. After all ids are stored,
- * the `freeze()` function must be called. Only after that can the store
- * be queried.
+ * Ids must be added in strictly ascending order.
  */
 class node_locations_t
 {
 public:
-    node_locations_t() { clear_block(); }
-
     /**
      * Store a node location.
      *
@@ -60,22 +58,16 @@ public:
     }
 
     /**
-     * Freeze storage. Muste be called after set()ing all the ids and before
-     * get()ing the first one.
-     */
-    void freeze();
-
-    /**
-     * Clear the memory used by this object. The object can not be reused
-     * after that.
+     * Clear the memory used by this object. The object can be reused after
+     * that.
      */
     void clear();
 
 private:
-    std::size_t block_index() const noexcept { return m_count % block_size; }
-
-    void encode_block();
-    void clear_block();
+    bool first_entry_in_block() const noexcept
+    {
+        return m_count % block_size == 0;
+    }
 
     /**
      * The block size used for internal blocks. The larger the block size
@@ -83,12 +75,15 @@ private:
      */
     static constexpr const std::size_t block_size = 32;
 
-    std::array<std::pair<osmid_t, osmium::Location>, block_size> m_block;
     ordered_index_t m_index;
     std::string m_data;
 
     /// The number of (id, location) pairs stored.
     std::size_t m_count = 0;
+
+    osmium::DeltaEncode<osmid_t> m_did;
+    osmium::DeltaEncode<int64_t> m_dx;
+    osmium::DeltaEncode<int64_t> m_dy;
 }; // class node_locations_t
 
 #endif // OSM2PGSQL_NODE_LOCATIONS_HPP
