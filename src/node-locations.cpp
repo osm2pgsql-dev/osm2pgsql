@@ -21,8 +21,12 @@
 #include <cassert>
 #include <limits>
 
-void node_locations_t::set(osmid_t id, osmium::Location location)
+bool node_locations_t::set(osmid_t id, osmium::Location location)
 {
+    if (used_memory() >= m_max_size && will_resize()) {
+        return false;
+    }
+
     if (first_entry_in_block()) {
         m_did.clear();
         m_dx.clear();
@@ -37,6 +41,8 @@ void node_locations_t::set(osmid_t id, osmium::Location location)
         &m_data, protozero::encode_zigzag64(m_dy.update(location.y())));
 
     ++m_count;
+
+    return true;
 }
 
 osmium::Location node_locations_t::get(osmid_t id) const

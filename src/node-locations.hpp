@@ -17,6 +17,7 @@
 
 #include <array>
 #include <cstddef>
+#include <limits>
 #include <string>
 #include <utility>
 
@@ -36,11 +37,24 @@ class node_locations_t
 {
 public:
     /**
+     * Construct a node locations store. Takes a single optional argument
+     * which gives the maximum number of bytes this store should be allowed
+     * to use. If this is not specified, the size is only limited by available
+     * memory. The store will try to keep the memory used under what's
+     * specified here.
+     */
+    explicit node_locations_t(
+        std::size_t max_size = std::numeric_limits<std::size_t>::max())
+    : m_max_size(max_size)
+    {}
+
+    /**
      * Store a node location.
      *
      * \pre id must be strictly larger than all ids stored before.
+     * \return True if the entry was added, false if the index is full.
      */
-    void set(osmid_t id, osmium::Location location);
+    bool set(osmid_t id, osmium::Location location);
 
     /**
      * Retrieve a node location. If the location wasn't stored before, an
@@ -69,6 +83,17 @@ private:
         return m_count % block_size == 0;
     }
 
+    /// The maximum number of bytes an entry will need in storage.
+    constexpr static std::size_t max_bytes_per_entry() noexcept {
+        return 10U /*max varint length*/ * 3U /*id, x, y*/;
+    }
+
+    bool will_resize() const noexcept
+    {
+        return m_index.will_resize() ||
+               (m_data.size() + max_bytes_per_entry() >= m_data.capacity());
+    }
+
     /**
      * The block size used for internal blocks. The larger the block size
      * the less memory is consumed but the more expensive the access is.
@@ -77,6 +102,9 @@ private:
 
     ordered_index_t m_index;
     std::string m_data;
+
+    /// Maximum size in bytes this object may allocate.
+    std::size_t m_max_size;
 
     /// The number of (id, location) pairs stored.
     std::size_t m_count = 0;
