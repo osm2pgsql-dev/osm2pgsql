@@ -140,7 +140,7 @@ operator<<(std::basic_ostream<TChar, TTraits> &out, const linestring_t &line)
 void split_linestring(linestring_t const &line, double split_at,
                       std::vector<linestring_t> *out);
 
-void make_line(linestring_t const &line, double split_at,
+void make_line(linestring_t &&line, double split_at,
                std::vector<linestring_t> *out);
 
 /**

@@ -113,9 +113,11 @@ void split_linestring(linestring_t const &line, double split_at,
     }
 }
 
-void make_line(linestring_t const &line, double split_at,
+void make_line(linestring_t &&line, double split_at,
                std::vector<linestring_t> *out)
 {
+    assert(out);
+
     if (line.empty()) {
         return;
     }
@@ -237,7 +239,7 @@ void make_multiline(osmium::memory::Buffer const &ways, double split_at,
         }
 
         // found a line end, create the wkbs
-        make_line(linestring, split_at, out);
+        make_line(std::move(linestring), split_at, out);
     }
 
     // If all ways have been "done", i.e. are part of a linestring now, we
@@ -284,7 +286,7 @@ void make_multiline(osmium::memory::Buffer const &ways, double split_at,
         }
 
         // found a line end, create the wkbs
-        make_line(linestring, split_at, out);
+        make_line(std::move(linestring), split_at, out);
     }
 }
 
