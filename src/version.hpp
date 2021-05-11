@@ -10,6 +10,7 @@
  * For a full list of authors see the git log.
  */
 
+char const *get_build_type() noexcept;
 char const *get_osm2pgsql_version() noexcept;
 char const *get_osm2pgsql_short_version() noexcept;
 char const *get_minimum_postgresql_server_version() noexcept;
