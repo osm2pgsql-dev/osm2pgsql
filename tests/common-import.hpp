@@ -192,6 +192,9 @@ public:
 
         parse_file(options, std::move(dependency_manager), middle, output,
                    file);
+
+        middle->wait();
+        output->wait();
     }
 
     testing::pg::conn_t connect() { return m_db.connect(); }

@@ -374,7 +374,7 @@ void osmdata_t::reprocess_marked() const { m_output->reprocess_marked(); }
 
 void osmdata_t::postprocess_database() const
 {
-    auto const num_threads = m_parallel_indexing ? m_num_procs : 1;
+    unsigned int const num_threads = m_parallel_indexing ? m_num_procs : 1U;
     log_debug("Starting pool with {} threads.", num_threads);
 
     // All the intensive parts of this are long-running PostgreSQL commands.
@@ -397,9 +397,9 @@ void osmdata_t::postprocess_database() const
         m_mid->stop(pool);
     }
 
-    // Waiting here for pool to execute all tasks. If one of them throws an
-    // exception, this will throw.
-    pool.check_for_exceptions();
+    // Waiting here for pool to execute all tasks.
+    m_mid->wait();
+    m_output->wait();
 }
 
 void osmdata_t::stop() const

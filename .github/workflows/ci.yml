@@ -114,7 +114,7 @@ jobs:
       LUAJIT_OPTION: OFF
       POSTGRESQL_VERSION: 10
       POSTGIS_VERSION: 3
-      CPP_VERSION: 11
+      CPP_VERSION: 14
       BUILD_TYPE: Debug
 
     steps:
@@ -133,7 +133,7 @@ jobs:
       LUAJIT_OPTION: OFF
       POSTGRESQL_VERSION: 11
       POSTGIS_VERSION: 2.5
-      CPP_VERSION: 11
+      CPP_VERSION: 14
       BUILD_TYPE: Debug
 
     steps:

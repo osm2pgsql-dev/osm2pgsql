@@ -126,6 +126,8 @@ public:
     void stop(thread_pool_t *pool) override;
     void sync() override;
 
+    void wait() override;
+
     idset_t const &get_marked_way_ids() override;
     void reprocess_marked() override;
 

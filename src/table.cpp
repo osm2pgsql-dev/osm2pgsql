@@ -188,8 +188,6 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
         m_target->schema, m_target->name + "_tmp");
 
     if (!m_append) {
-        util::timer_t timer;
-
         if (m_srid != "4326") {
             drop_geom_check_trigger(m_sql_conn.get(), m_target->schema,
                                     m_target->name);
@@ -268,9 +266,6 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
         }
         log_info("Analyzing table '{}'...", m_target->name);
         analyze_table(*m_sql_conn, m_target->schema, m_target->name);
-
-        log_info("All postprocessing on table '{}' done in {}.", m_target->name,
-                 util::human_readable_duration(timer.stop()));
     }
     teardown();
 }
@@ -376,6 +371,13 @@ void table_t::write_hstore_columns(taglist_t const &tags)
             m_copy.add_null_column();
         }
     }
+}
+
+void table_t::task_wait()
+{
+    auto const run_time = m_task_result.wait();
+    log_info("All postprocessing on table '{}' done in {}.", m_target->name,
+             util::human_readable_duration(run_time));
 }
 
 /* Escape data appropriate to the type */

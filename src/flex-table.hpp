@@ -14,6 +14,7 @@
 #include "flex-table-column.hpp"
 #include "osmium-builder.hpp"
 #include "pgsql.hpp"
+#include "thread-pool.hpp"
 
 #include <osmium/osm/item_type.hpp>
 
@@ -255,6 +256,13 @@ public:
 
     geom::osmium_builder_t *get_builder() { return &m_builder; }
 
+    void task_set(std::future<std::chrono::milliseconds> &&future)
+    {
+        m_task_result.set(std::move(future));
+    }
+
+    void task_wait();
+
 private:
     geom::osmium_builder_t m_builder;
 
@@ -270,6 +278,8 @@ private:
 
     /// The connection to the database server.
     std::unique_ptr<pg_conn_t> m_db_connection;
+
+    task_result_t m_task_result;
 
     /// Has the Id index already been created?
     bool m_id_index_created = false;

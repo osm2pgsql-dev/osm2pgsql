@@ -9,6 +9,8 @@
 
 #include "logging.hpp"
 
+thread_local unsigned int this_thread_num = 0;
+
 /// Global logger singleton
 logger the_logger{};
 

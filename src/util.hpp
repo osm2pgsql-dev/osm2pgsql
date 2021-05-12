@@ -14,6 +14,7 @@
 #include "osmtypes.hpp"
 
 #include <array>
+#include <chrono>
 #include <cstdint>
 #include <cstdlib>
 #include <ctime>
@@ -119,6 +120,8 @@ private:
 }; // class timer_t
 
 std::string human_readable_duration(uint64_t seconds);
+
+std::string human_readable_duration(std::chrono::milliseconds ms);
 
 } // namespace util
 

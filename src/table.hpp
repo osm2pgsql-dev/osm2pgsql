@@ -14,6 +14,7 @@
 #include "osmtypes.hpp"
 #include "pgsql.hpp"
 #include "taginfo.hpp"
+#include "thread-pool.hpp"
 
 #include <cstddef>
 #include <memory>
@@ -40,10 +41,19 @@ public:
 
     void sync();
 
+    void task_set(std::future<std::chrono::milliseconds> &&future)
+    {
+        m_task_result.set(std::move(future));
+    }
+
+    void task_wait();
+
     void write_row(osmid_t id, taglist_t const &tags, std::string const &geom);
     void delete_row(osmid_t id);
 
     pg_result_t get_wkb(osmid_t id);
+
+    task_result_t m_task_result;
 
 protected:
     void connect();

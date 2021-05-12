@@ -121,17 +121,23 @@ void output_pgsql_t::sync()
 
 void output_pgsql_t::stop(thread_pool_t *pool)
 {
-    // attempt to stop tables in parallel
     for (auto &t : m_tables) {
-        pool->submit([&]() {
+        t->task_set(pool->submit([&]() {
             t->stop(m_options.slim && !m_options.droptemp,
                     m_options.enable_hstore_index, m_options.tblsmain_index);
-        });
+        }));
     }
 
     if (m_options.expire_tiles_zoom_min > 0) {
         m_expire.output_and_destroy(m_options.expire_tiles_filename.c_str(),
                                     m_options.expire_tiles_zoom_min);
+    }
+}
+
+void output_pgsql_t::wait()
+{
+    for (auto &t : m_tables) {
+        t->task_wait();
     }
 }
 

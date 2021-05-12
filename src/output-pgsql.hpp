@@ -55,6 +55,8 @@ public:
     void stop(thread_pool_t *pool) override;
     void sync() override;
 
+    void wait() override;
+
     void pending_way(osmid_t id) override;
     void pending_relation(osmid_t id) override;
 
