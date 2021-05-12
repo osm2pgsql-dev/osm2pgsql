@@ -87,6 +87,18 @@ public:
                (m_type <= table_column_type::multipolygon);
     }
 
+    /**
+     * Do we need an ST_IsValid() check in the database for this geometry
+     * column? If the SRID is 4326 the geometry validity is already assured
+     * by libosmium, so we don't need it. And Point geometries are always
+     * valid.
+     */
+    bool needs_isvalid() const noexcept
+    {
+        assert(is_geometry_column());
+        return m_srid != 4326 && m_type != table_column_type::point;
+    }
+
     std::string const &type_name() const noexcept { return m_type_name; }
 
     bool not_null() const noexcept { return m_not_null; }

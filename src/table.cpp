@@ -132,6 +132,11 @@ void table_t::start(std::string const &conninfo, std::string const &table_space)
 
         //create the table
         m_sql_conn->exec(sql);
+
+        if (m_srid != "4326") {
+            create_geom_check_trigger(m_sql_conn.get(), m_target->schema,
+                                      m_target->name, "way");
+        }
     }
 
     prepare();
@@ -185,6 +190,11 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
     if (!m_append) {
         util::timer_t timer;
 
+        if (m_srid != "4326") {
+            drop_geom_check_trigger(m_sql_conn.get(), m_target->schema,
+                                    m_target->name);
+        }
+
         log_info("Clustering table '{}' by geometry...", m_target->name);
 
         // Notices about invalid geometries are expected and can be ignored
@@ -194,13 +204,6 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
         std::string sql =
             "CREATE TABLE {} {} AS SELECT * FROM {}"_format(
                 qual_tmp_name, m_table_space, qual_name);
-
-        if (m_srid != "4326") {
-            // libosmium assures validity of geometries in 4326.
-            // Transformation to another projection could make the geometry
-            // invalid. Therefore add a filter to drop those.
-            sql += " WHERE ST_IsValid(way)";
-        }
 
         auto const postgis_version = get_postgis_version(*m_sql_conn);
 
