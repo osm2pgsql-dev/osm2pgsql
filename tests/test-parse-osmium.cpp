@@ -157,8 +157,8 @@ TEST_CASE("parse xml file")
     std::shared_ptr<output_t> output{new counting_output_t{options}};
 
     auto counts = std::make_shared<counts_t>();
-    auto dependency_manager = std::unique_ptr<dependency_manager_t>(
-        new counting_dependency_manager_t{counts});
+    auto dependency_manager =
+        std::make_unique<counting_dependency_manager_t>(counts);
 
     testing::parse_file(options, std::move(dependency_manager), middle,
                         {output}, "test_multipolygon.osm", false);
@@ -197,8 +197,8 @@ TEST_CASE("parse diff file")
     std::shared_ptr<output_t> output{new counting_output_t{options}};
 
     auto counts = std::make_shared<counts_t>();
-    auto dependency_manager = std::unique_ptr<dependency_manager_t>(
-        new counting_dependency_manager_t{counts});
+    auto dependency_manager =
+        std::make_unique<counting_dependency_manager_t>(counts);
 
     testing::parse_file(options, std::move(dependency_manager), middle,
                         {output}, "008-ch.osc.gz", false);
@@ -235,8 +235,8 @@ TEST_CASE("parse xml file with extra args")
     std::shared_ptr<output_t> output{new counting_output_t{options}};
 
     auto counts = std::make_shared<counts_t>();
-    auto dependency_manager = std::unique_ptr<dependency_manager_t>(
-        new counting_dependency_manager_t{counts});
+    auto dependency_manager =
+        std::make_unique<counting_dependency_manager_t>(counts);
 
     testing::parse_file(options, std::move(dependency_manager), middle,
                         {output}, "test_multipolygon.osm", false);
@@ -275,8 +275,8 @@ TEST_CASE("invalid location")
     std::shared_ptr<output_t> output{new counting_output_t{options}};
 
     auto counts = std::make_shared<counts_t>();
-    auto dependency_manager = std::unique_ptr<dependency_manager_t>(
-        new counting_dependency_manager_t{counts});
+    auto dependency_manager =
+        std::make_unique<counting_dependency_manager_t>(counts);
 
     testing::parse_file(options, std::move(dependency_manager), middle,
                         {output}, "test_invalid_location.osm", false);
