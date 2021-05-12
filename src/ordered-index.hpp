@@ -1,5 +1,5 @@
-#ifndef OSM2PSGQL_ORDERED_INDEX_HPP
-#define OSM2PSGQL_ORDERED_INDEX_HPP
+#ifndef OSM2PGSQL_ORDERED_INDEX_HPP
+#define OSM2PGSQL_ORDERED_INDEX_HPP
 
 /**
  * SPDX-License-Identifier: GPL-2.0-or-later
@@ -190,4 +190,4 @@ private:
     std::size_t m_size = 0;
 }; // class ordered_index_t
 
-#endif // OSM2PSGQL_ORDERED_INDEX_HPP
+#endif // OSM2PGSQL_ORDERED_INDEX_HPP
