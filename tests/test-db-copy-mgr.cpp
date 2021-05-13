@@ -167,16 +167,13 @@ TEST_CASE("copy_mgr_t")
                         "\"rr\rrr\",\"s\\\\l\"}"});
 
         auto c = db.connect();
-        CHECK(c.require_scalar<std::string>("SELECT a[4] FROM test_copy_mgr") ==
+        CHECK(c.result_as_string("SELECT a[4] FROM test_copy_mgr") ==
               "with \"quote\"");
-        CHECK(c.require_scalar<std::string>("SELECT a[5] FROM test_copy_mgr") ==
-              "the\t");
-        CHECK(c.require_scalar<std::string>("SELECT a[6] FROM test_copy_mgr") ==
+        CHECK(c.result_as_string("SELECT a[5] FROM test_copy_mgr") == "the\t");
+        CHECK(c.result_as_string("SELECT a[6] FROM test_copy_mgr") ==
               "line\nbreak");
-        CHECK(c.require_scalar<std::string>("SELECT a[7] FROM test_copy_mgr") ==
-              "rr\rrr");
-        CHECK(c.require_scalar<std::string>("SELECT a[8] FROM test_copy_mgr") ==
-              "s\\l");
+        CHECK(c.result_as_string("SELECT a[7] FROM test_copy_mgr") == "rr\rrr");
+        CHECK(c.result_as_string("SELECT a[8] FROM test_copy_mgr") == "s\\l");
     }
 
     SECTION("Insert hashes")
@@ -194,7 +191,7 @@ TEST_CASE("copy_mgr_t")
         auto c = db.connect();
 
         for (auto const &v : values) {
-            auto const res = c.require_scalar<std::string>(
+            auto const res = c.result_as_string(
                 "SELECT h->'{}' FROM test_copy_mgr"_format(v.first));
             CHECK(res == v.second);
         }

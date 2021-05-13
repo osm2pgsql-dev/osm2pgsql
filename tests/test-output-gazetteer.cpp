@@ -232,7 +232,7 @@ public:
                           char const *cls, char const *column)
     {
         char const tchar = m_opl_factory.type();
-        return conn.require_scalar<std::string>(
+        return conn.result_as_string(
             "SELECT {} FROM place WHERE osm_type = '{}' AND osm_id = {}"
             " AND class = '{}'"_format(column, tchar, id, cls));
     }

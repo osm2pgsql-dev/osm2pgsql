@@ -84,6 +84,6 @@ TEST_CASE("Projection setup")
 
     auto conn = db.connect();
 
-    CHECK(conn.require_scalar<std::string>(
+    CHECK(conn.result_as_string(
               "SELECT Find_SRID('public', 'planet_osm_roads', 'way')") == srid);
 }
