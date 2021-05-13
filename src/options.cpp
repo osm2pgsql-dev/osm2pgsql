@@ -14,6 +14,7 @@
 #include "options.hpp"
 #include "reprojection.hpp"
 #include "sprompt.hpp"
+#include "version.hpp"
 
 #include <algorithm>
 #include <cstdio>
@@ -564,6 +565,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             reproject_area = true;
             break;
         case 'V':
+            fmt::print(stderr, "Build: {}\n", get_build_type());
             fmt::print(stderr, "Compiled using the following library versions:\n");
             fmt::print(stderr, "Libosmium {}\n", LIBOSMIUM_VERSION_STRING);
             fmt::print(stderr, "Proj {}\n", get_proj_version());

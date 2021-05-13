@@ -7,6 +7,11 @@
  * For a full list of authors see the git log.
  */
 
+char const *get_build_type() noexcept
+{
+    return "@CMAKE_BUILD_TYPE@";
+}
+
 char const *get_osm2pgsql_version() noexcept
 {
     return "@PACKAGE_VERSION@@VERSION_FROM_GIT@";
