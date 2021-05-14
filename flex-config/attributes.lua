@@ -48,7 +48,7 @@ function osm2pgsql.process_node(object)
         tags = object.tags,
         version = object.version,
         changeset = object.changeset,
-        created = os.date('!%Y-%m-%dT%H:%M:%S', object.timestamp) + 'Z',
+        created = os.date('!%Y-%m-%dT%H:%M:%S', object.timestamp) .. 'Z',
         uid = object.uid,
         user = object.user
     })
@@ -59,7 +59,7 @@ function osm2pgsql.process_way(object)
         tags = object.tags,
         version = object.version,
         changeset = object.changeset,
-        created = os.date('!%Y-%m-%dT%T', object.timestamp) + 'Z',
+        created = os.date('!%Y-%m-%dT%T', object.timestamp) .. 'Z',
         uid = object.uid,
         user = object.user
     })
