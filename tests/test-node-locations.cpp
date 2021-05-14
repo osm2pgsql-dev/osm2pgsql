@@ -76,6 +76,20 @@ TEST_CASE("node locations in more than one block", "[NoDB]")
     }
 }
 
+TEST_CASE("huge ids should work", "[NoDB]")
+{
+    node_locations_t nl;
+
+    REQUIRE(nl.set(1ULL, {1.0, 9.9}));
+    REQUIRE(nl.set(1ULL << 16U, {1.1, 9.8}));
+    REQUIRE(nl.set(1ULL << 32U, {1.2, 9.7}));
+    REQUIRE(nl.set(1ULL << 48U, {1.3, 9.6}));
+
+    REQUIRE(nl.size() == 4);
+
+    REQUIRE(nl.get(1ULL << 48U) == osmium::Location{1.3, 9.6});
+}
+
 TEST_CASE("full node locations store", "[NoDB]")
 {
     node_locations_t nl{30};
