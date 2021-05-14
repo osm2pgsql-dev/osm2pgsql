@@ -37,7 +37,7 @@ TEST_CASE("node locations in more than one block", "[NoDB]")
 {
     node_locations_t nl;
 
-    std::size_t max_id = 0;
+    osmid_t max_id = 0;
 
     SECTION("max_id 0") {
         max_id = 0;
@@ -63,13 +63,13 @@ TEST_CASE("node locations in more than one block", "[NoDB]")
         max_id = 80;
     }
 
-    for (std::size_t id = 1; id <= max_id; ++id) {
+    for (osmid_t id = 1; id <= max_id; ++id) {
         nl.set(id, {id + 0.1, id + 0.2});
     }
 
-    REQUIRE(nl.size() == max_id);
+    REQUIRE(static_cast<osmid_t>(nl.size()) == max_id);
 
-    for (std::size_t id = 1; id <= max_id; ++id) {
+    for (osmid_t id = 1; id <= max_id; ++id) {
         auto const location = nl.get(id);
         REQUIRE(location.lon() == id + 0.1);
         REQUIRE(location.lat() == id + 0.2);
