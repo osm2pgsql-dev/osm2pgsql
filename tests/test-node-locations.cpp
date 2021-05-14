@@ -16,12 +16,9 @@ TEST_CASE("node locations basics", "[NoDB]")
     node_locations_t nl;
     REQUIRE(nl.size() == 0);
 
-    nl.set(3, {1.2, 3.4});
-    nl.set(5, {5.6, 7.8});
+    REQUIRE(nl.set(3, {1.2, 3.4}));
+    REQUIRE(nl.set(5, {5.6, 7.8}));
 
-    REQUIRE(nl.size() == 2);
-
-    nl.freeze();
     REQUIRE(nl.size() == 2);
 
     REQUIRE(nl.get(1) == osmium::Location{});
@@ -70,7 +67,6 @@ TEST_CASE("node locations in more than one block", "[NoDB]")
         nl.set(id, {id + 0.1, id + 0.2});
     }
 
-    nl.freeze();
     REQUIRE(nl.size() == max_id);
 
     for (std::size_t id = 1; id <= max_id; ++id) {
@@ -78,5 +74,16 @@ TEST_CASE("node locations in more than one block", "[NoDB]")
         REQUIRE(location.lon() == id + 0.1);
         REQUIRE(location.lat() == id + 0.2);
     }
+}
+
+TEST_CASE("full node locations store", "[NoDB]")
+{
+    node_locations_t nl{30};
+    REQUIRE(nl.size() == 0);
+
+    REQUIRE(nl.set(3, {1.2, 3.4}));
+    REQUIRE_FALSE(nl.set(5, {5.6, 7.8}));
+
+    REQUIRE(nl.size() == 1);
 }
 

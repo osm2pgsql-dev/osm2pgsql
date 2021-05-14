@@ -52,8 +52,6 @@ public:
     void way(osmium::Way const &way) override;
     void relation(osmium::Relation const &) override;
 
-    void after_nodes() override;
-
     std::size_t nodes_get_list(osmium::WayNodeList *nodes) const override;
 
     bool way_get(osmid_t id, osmium::memory::Buffer *buffer) const override;

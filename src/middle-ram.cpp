@@ -184,8 +184,6 @@ void middle_ram_t::relation(osmium::Relation const &relation)
     }
 }
 
-void middle_ram_t::after_nodes() { m_node_locations.freeze(); }
-
 std::size_t middle_ram_t::nodes_get_list(osmium::WayNodeList *nodes) const
 {
     assert(nodes);

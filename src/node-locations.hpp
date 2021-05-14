@@ -13,8 +13,11 @@
 #include "ordered-index.hpp"
 #include "osmtypes.hpp"
 
+#include <osmium/util/delta.hpp>
+
 #include <array>
 #include <cstddef>
+#include <limits>
 #include <string>
 #include <utility>
 
@@ -25,24 +28,33 @@
  *
  * Internally nodes are stored in blocks of `block_size` (id, location) pairs.
  * Ids inside a block and the x and y coordinates of each location are first
- * delta encoded and then stored as varints. To access a stored location a
- * full block must be decoded.
+ * delta encoded and then stored as varints. To access a stored location the
+ * block must be decoded until the id is found.
  *
- * Ids must be added in strictly ascending order. After all ids are stored,
- * the `freeze()` function must be called. Only after that can the store
- * be queried.
+ * Ids must be added in strictly ascending order.
  */
 class node_locations_t
 {
 public:
-    node_locations_t() { clear_block(); }
+    /**
+     * Construct a node locations store. Takes a single optional argument
+     * which gives the maximum number of bytes this store should be allowed
+     * to use. If this is not specified, the size is only limited by available
+     * memory. The store will try to keep the memory used under what's
+     * specified here.
+     */
+    explicit node_locations_t(
+        std::size_t max_size = std::numeric_limits<std::size_t>::max())
+    : m_max_size(max_size)
+    {}
 
     /**
      * Store a node location.
      *
      * \pre id must be strictly larger than all ids stored before.
+     * \return True if the entry was added, false if the index is full.
      */
-    void set(osmid_t id, osmium::Location location);
+    bool set(osmid_t id, osmium::Location location);
 
     /**
      * Retrieve a node location. If the location wasn't stored before, an
@@ -60,22 +72,27 @@ public:
     }
 
     /**
-     * Freeze storage. Muste be called after set()ing all the ids and before
-     * get()ing the first one.
-     */
-    void freeze();
-
-    /**
-     * Clear the memory used by this object. The object can not be reused
-     * after that.
+     * Clear the memory used by this object. The object can be reused after
+     * that.
      */
     void clear();
 
 private:
-    std::size_t block_index() const noexcept { return m_count % block_size; }
+    bool first_entry_in_block() const noexcept
+    {
+        return m_count % block_size == 0;
+    }
 
-    void encode_block();
-    void clear_block();
+    /// The maximum number of bytes an entry will need in storage.
+    constexpr static std::size_t max_bytes_per_entry() noexcept {
+        return 10U /*max varint length*/ * 3U /*id, x, y*/;
+    }
+
+    bool will_resize() const noexcept
+    {
+        return m_index.will_resize() ||
+               (m_data.size() + max_bytes_per_entry() >= m_data.capacity());
+    }
 
     /**
      * The block size used for internal blocks. The larger the block size
@@ -83,12 +100,18 @@ private:
      */
     static constexpr const std::size_t block_size = 32;
 
-    std::array<std::pair<osmid_t, osmium::Location>, block_size> m_block;
     ordered_index_t m_index;
     std::string m_data;
 
+    /// Maximum size in bytes this object may allocate.
+    std::size_t m_max_size;
+
     /// The number of (id, location) pairs stored.
     std::size_t m_count = 0;
+
+    osmium::DeltaEncode<osmid_t> m_did;
+    osmium::DeltaEncode<int64_t> m_dx;
+    osmium::DeltaEncode<int64_t> m_dy;
 }; // class node_locations_t
 
 #endif // OSM2PGSQL_NODE_LOCATIONS_HPP

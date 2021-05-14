@@ -150,6 +150,9 @@ public:
         m_size = 0;
     }
 
+    /// Return true if adding an entry to the index will make it resize.
+    bool will_resize() const noexcept { return m_size + 1 >= m_capacity; }
+
 private:
     struct second_level_index_entry
     {
