@@ -11,7 +11,7 @@ local srid = 4326
 local tables = {}
 
 tables.points = osm2pgsql.define_node_table('points', {
-    { column = 'tags', type = 'hstore' },
+    { column = 'tags', type = 'jsonb' },
     { column = 'geom', type = 'point', projection = srid },
     { column = 'version', type = 'int' },
     { column = 'changeset', type = 'int' },
@@ -21,7 +21,7 @@ tables.points = osm2pgsql.define_node_table('points', {
 })
 
 tables.lines = osm2pgsql.define_way_table('lines', {
-    { column = 'tags', type = 'hstore' },
+    { column = 'tags', type = 'jsonb' },
     { column = 'geom', type = 'linestring', projection = srid },
     { column = 'version', type = 'int' },
     { column = 'changeset', type = 'int' },
@@ -31,7 +31,7 @@ tables.lines = osm2pgsql.define_way_table('lines', {
 })
 
 tables.relations = osm2pgsql.define_relation_table('relations', {
-    { column = 'tags', type = 'hstore' },
+    { column = 'tags', type = 'jsonb' },
     { column = 'version', type = 'int' },
     { column = 'changeset', type = 'int' },
     { column = 'created', type = 'timestamp' },

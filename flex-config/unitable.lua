@@ -12,8 +12,8 @@ local dtable = osm2pgsql.define_table{
     -- "osm_type CHAR(1)" for the type of object: N(ode), W(way), R(relation)
     ids = { type = 'any', id_column = 'osm_id', type_column = 'osm_type' },
     columns = {
-        { column = 'attrs', type = 'hstore' },
-        { column = 'tags',  type = 'hstore' },
+        { column = 'attrs', type = 'jsonb' },
+        { column = 'tags',  type = 'jsonb' },
         { column = 'geom',  type = 'geometry' },
     }
 }

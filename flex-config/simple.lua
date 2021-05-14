@@ -1,6 +1,6 @@
 -- This config example file is released into the Public Domain.
 
--- This is a very simple Lua config for the Flex Backend not intended for
+-- This is a very simple Lua config for the Flex output not intended for
 -- real-world use. Use it do understand the basic principles of the
 -- configuration. After reading and understanding this, have a look at
 -- "geometries.lua".
@@ -24,7 +24,7 @@ local tables = {}
 -- "append" mode, osm2pgsql will automatically update this table using the node
 -- ids.
 tables.pois = osm2pgsql.define_node_table('pois', {
-    { column = 'tags', type = 'hstore' },
+    { column = 'tags', type = 'jsonb' },
     { column = 'geom', type = 'point' }, -- will be something like `GEOMETRY(Point, 4326)` in SQL
 })
 
@@ -40,7 +40,7 @@ tables.restaurants = osm2pgsql.define_node_table('restaurants', {
 -- contain a "way_id" column. When running in "append" mode, osm2pgsql will
 -- automatically update this table using the way ids.
 tables.ways = osm2pgsql.define_way_table('ways', {
-    { column = 'tags', type = 'hstore' },
+    { column = 'tags', type = 'jsonb' },
     { column = 'geom', type = 'linestring' },
 })
 
@@ -50,7 +50,7 @@ tables.ways = osm2pgsql.define_way_table('ways', {
 -- running in "append" mode, osm2pgsql will automatically update this table
 -- using the way/relation ids.
 tables.polygons = osm2pgsql.define_area_table('polygons', {
-    { column = 'tags', type = 'hstore' },
+    { column = 'tags', type = 'jsonb' },
     -- The type of the `geom` column is `geometry`, because we need to store
     -- polygons AND multipolygons
     { column = 'geom', type = 'geometry' },
@@ -95,7 +95,7 @@ function osm2pgsql.process_node(object)
         })
     else
         tables.pois:add_row({
-            -- We know `tags` is of type `hstore` so this will do the
+            -- We know `tags` is of type `jsonb` so this will do the
             -- right thing.
             tags = object.tags
         })

@@ -2,7 +2,7 @@
 
 -- This is a generic configuration that is a good starting point for
 -- real-world projects. Data is split into tables according to geometry type
--- and most tags are stored in hstore columns.
+-- and most tags are stored in jsonb columns.
 
 -- Set this to the projection you want to use
 local srid = 3857
@@ -10,28 +10,28 @@ local srid = 3857
 local tables = {}
 
 tables.points = osm2pgsql.define_node_table('points', {
-    { column = 'tags', type = 'hstore' },
+    { column = 'tags', type = 'jsonb' },
     { column = 'geom', type = 'point', projection = srid },
 })
 
 tables.lines = osm2pgsql.define_way_table('lines', {
-    { column = 'tags', type = 'hstore' },
+    { column = 'tags', type = 'jsonb' },
     { column = 'geom', type = 'linestring', projection = srid },
 })
 
 tables.polygons = osm2pgsql.define_area_table('polygons', {
-    { column = 'tags', type = 'hstore' },
+    { column = 'tags', type = 'jsonb' },
     { column = 'geom', type = 'geometry', projection = srid },
     { column = 'area', type = 'area' },
 })
 
 tables.routes = osm2pgsql.define_relation_table('routes', {
-    { column = 'tags', type = 'hstore' },
+    { column = 'tags', type = 'jsonb' },
     { column = 'geom', type = 'multilinestring', projection = srid },
 })
 
 tables.boundaries = osm2pgsql.define_relation_table('boundaries', {
-    { column = 'tags', type = 'hstore' },
+    { column = 'tags', type = 'jsonb' },
     { column = 'geom', type = 'multilinestring', projection = srid },
 })
 

@@ -1,6 +1,6 @@
 -- This config example file is released into the Public Domain.
 
--- This is a very simple Lua config for the Flex Backend not intended for
+-- This is a very simple Lua config for the Flex output not intended for
 -- real-world use. Look at and understand "simple.lua" first, before looking
 -- at this file. This file will show some options around geometry processing.
 -- After you have understood this file, go on to "data-types.lua".
@@ -8,21 +8,21 @@
 local tables = {}
 
 tables.pois = osm2pgsql.define_node_table('pois', {
-    { column = 'tags', type = 'hstore' },
+    { column = 'tags', type = 'jsonb' },
     -- Create a geometry column for point geometries. The geometry will be
     -- in web mercator, EPSG 3857.
     { column = 'geom', type = 'point' },
 })
 
 tables.ways = osm2pgsql.define_way_table('ways', {
-    { column = 'tags', type = 'hstore' },
+    { column = 'tags', type = 'jsonb' },
     -- Create a geometry column for linestring geometries. The geometry will
     -- be in latlong (WGS84), EPSG 4326.
     { column = 'geom', type = 'linestring', projection = 4326 },
 })
 
 tables.polygons = osm2pgsql.define_area_table('polygons', {
-    { column = 'tags', type = 'hstore' },
+    { column = 'tags', type = 'jsonb' },
     { column = 'geom', type = 'geometry' },
     -- The 'area' type is used to store the calculated area of a polygon
     -- feature. This can be used in style sheets to only render larger polygons
@@ -34,7 +34,7 @@ tables.polygons = osm2pgsql.define_area_table('polygons', {
 
 tables.boundaries = osm2pgsql.define_relation_table('boundaries', {
     { column = 'type', type = 'text' },
-    { column = 'tags', type = 'hstore' },
+    { column = 'tags', type = 'jsonb' },
     -- Boundaries will be stitched together from relation members into long
     -- linestrings. This is a multilinestring column because sometimes the
     -- boundaries are not contiguous.
