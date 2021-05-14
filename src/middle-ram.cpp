@@ -142,7 +142,8 @@ static void add_delta_encoded_way_node_list(std::string *data,
     // Add delta encoded node ids
     osmium::DeltaEncode<osmid_t> delta;
     for (auto const &nr : wnl) {
-        protozero::add_varint_to_buffer(data, delta.update(nr.ref()));
+        protozero::add_varint_to_buffer(
+            data, protozero::encode_zigzag64(delta.update(nr.ref())));
     }
 }
 
@@ -226,7 +227,8 @@ get_delta_encoded_way_nodes_list(std::string const &data, std::size_t offset,
     osmium::DeltaDecode<osmid_t> delta;
     osmium::builder::WayNodeListBuilder wnl_builder{*builder};
     while (count > 0) {
-        auto const val = protozero::decode_varint(&begin, end);
+        auto const val =
+            protozero::decode_zigzag64(protozero::decode_varint(&begin, end));
         wnl_builder.add_node_ref(delta.update(val));
         --count;
     }
