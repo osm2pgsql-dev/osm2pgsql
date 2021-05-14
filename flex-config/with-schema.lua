@@ -2,6 +2,9 @@
 
 -- This configuration for the flex output shows how to define a table in
 -- a PostgreSQL schema.
+--
+-- This config file expects that you have a schema called `myschema` in
+-- your database (created with something like `CREATE SCHEMA myschema;`).
 
 local dtable = osm2pgsql.define_way_table('data', {
         { column = 'tags',  type = 'hstore' },
