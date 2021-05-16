@@ -98,8 +98,8 @@ if (HAVE_LUA)
     set_test(test-output-flex-way-relation-del)
 
     set_test(test-output-flex-example-configs)
-    set(FLEX_EXAMPLE_CONFIGS "compatible,data-types,generic,geometries,route-relations,simple,unitable")
-    # places.lua not tested because it needs dkjson package
+    set(FLEX_EXAMPLE_CONFIGS "attributes,compatible,data-types,generic,geometries,places,route-relations,simple,unitable")
+    # with-schema.lua is not tested because it needs the schema created in the database
     set_tests_properties(test-output-flex-example-configs PROPERTIES ENVIRONMENT "EXAMPLE_FILES=${FLEX_EXAMPLE_CONFIGS}")
 endif()
 

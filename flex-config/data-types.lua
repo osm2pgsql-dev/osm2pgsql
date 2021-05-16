@@ -1,6 +1,6 @@
 -- This config example file is released into the Public Domain.
 
--- This is a very simple Lua config for the Flex Backend not intended for
+-- This is a very simple Lua config for the Flex output not intended for
 -- real-world use. Look at and understand "simple.lua" first, before looking
 -- at this file. This file demonstrates some column data type options.
 
@@ -19,7 +19,7 @@ local highways = osm2pgsql.define_way_table('highways', {
 
     -- type "bool" is special, see below
     { column = 'lit',      type = 'bool' },
-    { column = 'tags',     type = 'hstore' },
+    { column = 'tags',     type = 'jsonb' }, -- also available: 'json', 'hstore'
 
     -- an PostgreSQL array type, not specially handled by osm2pgsql, see below
     { column = 'nodes',    type = 'int8[]' },

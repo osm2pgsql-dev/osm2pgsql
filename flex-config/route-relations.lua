@@ -12,7 +12,7 @@
 local tables = {}
 
 tables.highways = osm2pgsql.define_way_table('highways', {
-    { column = 'tags',     type = 'hstore' },
+    { column = 'tags',     type = 'jsonb' },
     { column = 'rel_refs', type = 'text' }, -- for the refs from the relations
     { column = 'rel_ids',  type = 'int8[]' }, -- array with integers (for relation IDs)
     { column = 'geom',     type = 'linestring' },
@@ -20,7 +20,7 @@ tables.highways = osm2pgsql.define_way_table('highways', {
 
 -- Tables don't have to have a geometry column
 tables.routes = osm2pgsql.define_relation_table('routes', {
-    { column = 'tags', type = 'hstore' },
+    { column = 'tags', type = 'jsonb' },
 })
 
 -- This will be used to store information about relations queryable by member
