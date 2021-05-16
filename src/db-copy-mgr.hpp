@@ -250,9 +250,10 @@ public:
     {
         char const *const lookup_hex = "0123456789ABCDEF";
 
-        for (char c : wkb) {
-            m_current->buffer += lookup_hex[(c >> 4U) & 0xfU];
-            m_current->buffer += lookup_hex[c & 0xfU];
+        for (auto c : wkb) {
+            auto const num = static_cast<unsigned int>(c);
+            m_current->buffer += lookup_hex[(num >> 4U) & 0xfU];
+            m_current->buffer += lookup_hex[num & 0xfU];
         }
         m_current->buffer += '\t';
     }

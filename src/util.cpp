@@ -40,8 +40,8 @@ std::string human_readable_duration(uint64_t seconds)
 
 std::string human_readable_duration(std::chrono::milliseconds ms)
 {
-    return human_readable_duration(
-        std::chrono::duration_cast<std::chrono::seconds>(ms).count());
+    return human_readable_duration(static_cast<uint64_t>(
+        std::chrono::duration_cast<std::chrono::seconds>(ms).count()));
 }
 
 } // namespace util

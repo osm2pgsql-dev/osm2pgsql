@@ -88,7 +88,8 @@ uint64_t progress_display_t::nodes_time(std::time_t now) const noexcept
     if (m_node.count == 0) {
         return 0;
     }
-    return (m_way.start > 0 ? m_way.start : now) - m_node.start;
+    return static_cast<uint64_t>((m_way.start > 0 ? m_way.start : now) -
+                                 m_node.start);
 }
 
 uint64_t progress_display_t::ways_time(std::time_t now) const noexcept
@@ -96,7 +97,8 @@ uint64_t progress_display_t::ways_time(std::time_t now) const noexcept
     if (m_way.count == 0) {
         return 0;
     }
-    return (m_rel.start > 0 ? m_rel.start : now) - m_way.start;
+    return static_cast<uint64_t>((m_rel.start > 0 ? m_rel.start : now) -
+                                 m_way.start);
 }
 
 uint64_t progress_display_t::rels_time(std::time_t now) const noexcept
@@ -104,11 +106,11 @@ uint64_t progress_display_t::rels_time(std::time_t now) const noexcept
     if (m_rel.count == 0) {
         return 0;
     }
-    return now - m_rel.start;
+    return static_cast<uint64_t>(now - m_rel.start);
 }
 
 uint64_t progress_display_t::overall_time(std::time_t now) const noexcept
 {
-    return now - m_node.start;
+    return static_cast<uint64_t>(now - m_node.start);
 }
 

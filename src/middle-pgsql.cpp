@@ -458,7 +458,7 @@ middle_query_pgsql_t::rel_members_get(osmium::Relation const &rel,
             continue;
         }
         for (int j = 0; j < res.num_tuples(); ++j) {
-            if (m.ref() == wayidspg[j]) {
+            if (m.ref() == wayidspg[static_cast<std::size_t>(j)]) {
                 {
                     osmium::builder::WayBuilder builder{*buffer};
                     builder.set_id(m.ref());
