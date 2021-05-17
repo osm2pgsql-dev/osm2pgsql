@@ -347,8 +347,7 @@ private:
 
 void osmdata_t::process_dependents() const
 {
-    multithreaded_processor proc{m_conninfo, m_mid, m_output,
-                                 (std::size_t)m_num_procs};
+    multithreaded_processor proc{m_conninfo, m_mid, m_output, m_num_procs};
 
     // stage 1b processing: process parents of changed objects
     if (m_dependency_manager->has_pending()) {

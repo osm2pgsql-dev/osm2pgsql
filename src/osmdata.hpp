@@ -98,7 +98,7 @@ private:
     // imported).
     osmium::Box m_bbox;
 
-    int m_num_procs;
+    unsigned int m_num_procs;
     bool m_append;
     bool m_droptemp;
     bool m_parallel_indexing;
