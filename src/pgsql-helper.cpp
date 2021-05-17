@@ -10,9 +10,12 @@
 #include "format.hpp"
 #include "pgsql-helper.hpp"
 
+#include <cassert>
+
 idlist_t get_ids_from_result(pg_result_t const &result) {
     idlist_t ids;
-    ids.reserve(result.num_tuples());
+    assert(result.num_tuples() >= 0);
+    ids.reserve(static_cast<std::size_t>(result.num_tuples()));
 
     for (int i = 0; i < result.num_tuples(); ++i) {
         ids.push_back(osmium::string_to_object_id(result.get_value(i, 0)));
