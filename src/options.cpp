@@ -12,7 +12,7 @@
 #include "logging.hpp"
 #include "options.hpp"
 #include "reprojection.hpp"
-#include "sprompt.hpp"
+#include "util.hpp"
 #include "version.hpp"
 
 #include <algorithm>
@@ -639,10 +639,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
     check_options();
 
     if (pass_prompt) {
-        char const *prompt = simple_prompt("Password:", 100, 0);
-        if (prompt != nullptr) {
-            database_options.password = prompt;
-        }
+        database_options.password = util::get_password();
     }
 }
 

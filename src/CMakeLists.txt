@@ -25,7 +25,6 @@ set(osm2pgsql_lib_SOURCES
   pgsql-helper.cpp
   progress-display.cpp
   reprojection.cpp
-  sprompt.cpp
   table.cpp
   taginfo.cpp
   tagtransform-c.cpp

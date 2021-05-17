@@ -126,6 +126,8 @@ std::string human_readable_duration(uint64_t seconds);
 
 std::string human_readable_duration(std::chrono::milliseconds ms);
 
+std::string get_password();
+
 } // namespace util
 
 #endif // OSM2PGSQL_UTIL_HPP

@@ -7,7 +7,18 @@
  * For a full list of authors see the git log.
  */
 
+#include "config.h"
+
 #include "util.hpp"
+
+#include <iostream>
+
+#ifdef _WIN32
+#include <windows.h>
+#elif defined(HAVE_TERMIOS_H)
+#include <termios.h>
+#include <unistd.h>
+#endif
 
 namespace util {
 
@@ -42,6 +53,35 @@ std::string human_readable_duration(std::chrono::milliseconds ms)
 {
     return human_readable_duration(static_cast<uint64_t>(
         std::chrono::duration_cast<std::chrono::seconds>(ms).count()));
+}
+
+std::string get_password()
+{
+#ifdef _WIN32
+    HANDLE const handle_stdin = GetStdHandle(STD_INPUT_HANDLE);
+    DWORD mode = 0;
+    GetConsoleMode(handle_stdin, &mode);
+    SetConsoleMode(handle_stdin, mode & (~ENABLE_ECHO_INPUT));
+#elif defined(HAVE_TERMIOS_H)
+    termios orig_flags;
+    tcgetattr(STDIN_FILENO, &orig_flags);
+    termios flags = orig_flags;
+    flags.c_lflag &= ~static_cast<unsigned int>(ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &flags);
+#endif
+
+    std::string password;
+    std::cout << "Password:";
+    std::getline(std::cin, password);
+    std::cout << "\n";
+
+#ifdef _WIN32
+    SetConsoleMode(handle_stdin, mode);
+#elif defined(HAVE_TERMIOS_H)
+    tcsetattr(STDIN_FILENO, TCSANOW, &orig_flags);
+#endif
+
+    return password;
 }
 
 } // namespace util
