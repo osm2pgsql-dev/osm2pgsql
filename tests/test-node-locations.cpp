@@ -37,7 +37,7 @@ TEST_CASE("node locations in more than one block", "[NoDB]")
 {
     node_locations_t nl;
 
-    std::size_t max_id = 0;
+    osmid_t max_id = 0;
 
     SECTION("max_id 0") {
         max_id = 0;
@@ -63,17 +63,31 @@ TEST_CASE("node locations in more than one block", "[NoDB]")
         max_id = 80;
     }
 
-    for (std::size_t id = 1; id <= max_id; ++id) {
+    for (osmid_t id = 1; id <= max_id; ++id) {
         nl.set(id, {id + 0.1, id + 0.2});
     }
 
-    REQUIRE(nl.size() == max_id);
+    REQUIRE(static_cast<osmid_t>(nl.size()) == max_id);
 
-    for (std::size_t id = 1; id <= max_id; ++id) {
+    for (osmid_t id = 1; id <= max_id; ++id) {
         auto const location = nl.get(id);
         REQUIRE(location.lon() == id + 0.1);
         REQUIRE(location.lat() == id + 0.2);
     }
+}
+
+TEST_CASE("huge ids should work", "[NoDB]")
+{
+    node_locations_t nl;
+
+    REQUIRE(nl.set(1ULL, {1.0, 9.9}));
+    REQUIRE(nl.set(1ULL << 16U, {1.1, 9.8}));
+    REQUIRE(nl.set(1ULL << 32U, {1.2, 9.7}));
+    REQUIRE(nl.set(1ULL << 48U, {1.3, 9.6}));
+
+    REQUIRE(nl.size() == 4);
+
+    REQUIRE(nl.get(1ULL << 48U) == osmium::Location{1.3, 9.6});
 }
 
 TEST_CASE("full node locations store", "[NoDB]")
