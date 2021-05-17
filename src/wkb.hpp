@@ -102,7 +102,10 @@ inline std::string create_point(double x, double y, uint32_t srid = 4326)
 class writer_t
 {
 public:
-    explicit writer_t(uint32_t srid) : m_srid(srid) {}
+    explicit writer_t(int srid) : m_srid(static_cast<uint32_t>(srid))
+    {
+        assert(srid > 0);
+    }
 
     void add_sub_geometry(std::string const &part)
     {
