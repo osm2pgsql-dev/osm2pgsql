@@ -74,16 +74,6 @@ struct options_slim_with_schema
     }
 };
 
-struct options_slim_dense_cache
-{
-    static options_t options(testing::pg::tempdb_t const &tmpdb)
-    {
-        options_t o = options_slim_default::options(tmpdb);
-        o.alloc_chunkwise = ALLOC_DENSE;
-        return o;
-    }
-};
-
 struct options_flat_node_cache
 {
     static options_t options(testing::pg::tempdb_t const &tmpdb)
@@ -102,8 +92,7 @@ struct options_ram_optimized
 
 TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
                    options_slim_with_lc_prefix, options_slim_with_uc_prefix,
-                   options_slim_with_schema, options_slim_dense_cache,
-                   options_ram_optimized)
+                   options_slim_with_schema, options_ram_optimized)
 {
     options_t const options = TestType::options(db);
     testing::cleanup::file_t flatnode_cleaner{options.flat_node_file};
@@ -288,8 +277,7 @@ static bool no_node(std::shared_ptr<middle_pgsql_t> const &mid, osmid_t id)
 }
 
 TEMPLATE_TEST_CASE("middle: add, delete and update node", "",
-                   options_slim_default, options_slim_dense_cache,
-                   options_flat_node_cache)
+                   options_slim_default, options_flat_node_cache)
 {
     options_t options = TestType::options(db);
 
@@ -481,8 +469,7 @@ static bool no_way(std::shared_ptr<middle_pgsql_t> const &mid, osmid_t id)
 }
 
 TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
-                   options_slim_default, options_slim_dense_cache,
-                   options_flat_node_cache)
+                   options_slim_default, options_flat_node_cache)
 {
     options_t options = TestType::options(db);
 
@@ -627,7 +614,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
 }
 
 TEMPLATE_TEST_CASE("middle: add way with attributes", "", options_slim_default,
-                   options_slim_dense_cache, options_flat_node_cache)
+                   options_flat_node_cache)
 {
     options_t options = TestType::options(db);
 
@@ -711,8 +698,7 @@ static bool no_relation(std::shared_ptr<middle_pgsql_t> const &mid, osmid_t id)
 }
 
 TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
-                   options_slim_default, options_slim_dense_cache,
-                   options_flat_node_cache)
+                   options_slim_default, options_flat_node_cache)
 {
     options_t options = TestType::options(db);
 
@@ -853,8 +839,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
 }
 
 TEMPLATE_TEST_CASE("middle: add relation with attributes", "",
-                   options_slim_default, options_slim_dense_cache,
-                   options_flat_node_cache)
+                   options_slim_default, options_flat_node_cache)
 {
     options_t options = TestType::options(db);
 
@@ -904,7 +889,7 @@ TEMPLATE_TEST_CASE("middle: add relation with attributes", "",
 }
 
 TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
-                   options_slim_dense_cache, options_flat_node_cache)
+                   options_flat_node_cache)
 {
     options_t options = TestType::options(db);
 
@@ -1039,7 +1024,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
 }
 
 TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
-                   options_slim_dense_cache, options_flat_node_cache)
+                   options_flat_node_cache)
 {
     options_t options = TestType::options(db);
 

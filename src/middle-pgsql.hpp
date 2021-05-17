@@ -24,8 +24,8 @@
 
 #include "db-copy-mgr.hpp"
 #include "middle.hpp"
+#include "node-locations.hpp"
 #include "node-persistent-cache.hpp"
-#include "node-ram-cache.hpp"
 #include "options.hpp"
 #include "pgsql.hpp"
 
@@ -34,7 +34,7 @@ class middle_query_pgsql_t : public middle_query_t
 public:
     middle_query_pgsql_t(
         std::string const &conninfo,
-        std::shared_ptr<node_ram_cache> const &cache,
+        std::shared_ptr<node_locations_t> const &cache,
         std::shared_ptr<node_persistent_cache> const &persistent_cache);
 
     size_t nodes_get_list(osmium::WayNodeList *nodes) const override;
@@ -55,7 +55,7 @@ private:
     std::size_t get_way_node_locations_db(osmium::WayNodeList *nodes) const;
 
     pg_conn_t m_sql_conn;
-    std::shared_ptr<node_ram_cache> m_cache;
+    std::shared_ptr<node_locations_t> m_cache;
     std::shared_ptr<node_persistent_cache> m_persistent_cache;
 };
 
@@ -147,7 +147,7 @@ private:
 
     options_t const *m_options;
 
-    std::shared_ptr<node_ram_cache> m_cache;
+    std::shared_ptr<node_locations_t> m_cache;
     std::shared_ptr<node_persistent_cache> m_persistent_cache;
 
     pg_conn_t m_db_connection;

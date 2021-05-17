@@ -32,7 +32,6 @@
 #include "expire-tiles.hpp"
 #include "logging.hpp"
 #include "middle.hpp"
-#include "node-ram-cache.hpp"
 #include "options.hpp"
 #include "osmtypes.hpp"
 #include "output-pgsql.hpp"

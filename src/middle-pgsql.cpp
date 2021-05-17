@@ -32,7 +32,6 @@
 #include "logging.hpp"
 #include "middle-pgsql.hpp"
 #include "node-persistent-cache.hpp"
-#include "node-ram-cache.hpp"
 #include "options.hpp"
 #include "osmtypes.hpp"
 #include "pgsql-helper.hpp"
@@ -587,7 +586,7 @@ void middle_pgsql_t::after_relations()
 }
 
 middle_query_pgsql_t::middle_query_pgsql_t(
-    std::string const &conninfo, std::shared_ptr<node_ram_cache> const &cache,
+    std::string const &conninfo, std::shared_ptr<node_locations_t> const &cache,
     std::shared_ptr<node_persistent_cache> const &persistent_cache)
 : m_sql_conn(conninfo), m_cache(cache), m_persistent_cache(persistent_cache)
 {
@@ -782,8 +781,8 @@ static bool check_bucket_index(pg_conn_t *db_connection,
 
 middle_pgsql_t::middle_pgsql_t(options_t const *options)
 : m_options(options),
-  m_cache(new node_ram_cache{options->alloc_chunkwise | ALLOC_LOSSY,
-                             options->cache}),
+  m_cache(new node_locations_t{static_cast<std::size_t>(options->cache) *
+                               1024UL * 1024UL}),
   m_db_connection(m_options->database_options.conninfo()),
   m_copy_thread(
       std::make_shared<db_copy_thread_t>(options->database_options.conninfo())),
