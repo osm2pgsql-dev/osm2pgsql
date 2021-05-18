@@ -87,7 +87,15 @@ TEST_CASE("huge ids should work", "[NoDB]")
 
     REQUIRE(nl.size() == 4);
 
+    REQUIRE(nl.get(1ULL) == osmium::Location{1.0, 9.9});
+    REQUIRE(nl.get(1ULL << 16U) == osmium::Location{1.1, 9.8});
+    REQUIRE(nl.get(1ULL << 32U) == osmium::Location{1.2, 9.7});
     REQUIRE(nl.get(1ULL << 48U) == osmium::Location{1.3, 9.6});
+
+    REQUIRE(nl.get(2ULL) == osmium::Location{});
+    REQUIRE(nl.get(1ULL << 40U) == osmium::Location{});
+    REQUIRE(nl.get((1ULL << 48U) + 1U) == osmium::Location{});
+    REQUIRE(nl.get((1ULL << 48U) - 1U) == osmium::Location{});
 }
 
 TEST_CASE("full node locations store", "[NoDB]")

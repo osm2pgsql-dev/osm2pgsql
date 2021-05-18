@@ -143,6 +143,9 @@ following:
 cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON
 ```
 
+Note that `Debug` builds will be much slower than release build. For production
+use `Release` or `RelWithDebInfo` builds are recommended.
+
 ### Using the PROJ library
 
 Osm2pgsql has builtin support for the Latlong (WGS84, EPSG:4326) and the
