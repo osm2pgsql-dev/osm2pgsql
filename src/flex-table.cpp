@@ -199,7 +199,7 @@ void table_connection_t::stop(bool updateable, bool append)
         return;
     }
 
-    if (table().has_geom_column()) {
+    if (table().cluster_by_geom()) {
         if (table().geom_column().needs_isvalid()) {
             drop_geom_check_trigger(m_db_connection.get(), table().schema(),
                                     table().name());
@@ -246,6 +246,14 @@ void table_connection_t::stop(bool updateable, bool append)
             table().full_tmp_name(), table().name()));
         m_id_index_created = false;
 
+        if (updateable && table().geom_column().needs_isvalid()) {
+            create_geom_check_trigger(m_db_connection.get(), table().schema(),
+                                      table().name(),
+                                      table().geom_column().name());
+        }
+    }
+
+    if (table().has_geom_column()) {
         log_info("Creating geometry index on table '{}'...", table().name());
 
         // Use fillfactor 100 for un-updateable imports
@@ -258,13 +266,6 @@ void table_connection_t::stop(bool updateable, bool append)
 
     if (updateable && table().has_id_column()) {
         create_id_index();
-
-        if (table().has_geom_column() &&
-            table().geom_column().needs_isvalid()) {
-            create_geom_check_trigger(m_db_connection.get(), table().schema(),
-                                      table().name(),
-                                      table().geom_column().name());
-        }
     }
 
     log_info("Analyzing table '{}'...", table().name());

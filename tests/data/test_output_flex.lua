@@ -13,7 +13,8 @@ tables.line = osm2pgsql.define_table{
         { column = 'tags', type = 'hstore' },
         { column = 'name', type = 'text' },
         { column = 'geom', type = 'linestring' },
-    }
+    },
+    cluster = 'auto'
 }
 
 tables.polygon = osm2pgsql.define_table{
