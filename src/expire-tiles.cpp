@@ -116,13 +116,13 @@ void expire_tiles::expire_tile(uint32_t x, uint32_t y)
     }
 }
 
-int expire_tiles::normalise_tile_x_coord(int x)
+uint32_t expire_tiles::normalise_tile_x_coord(int x)
 {
     x %= map_width;
     if (x < 0) {
         x = (map_width - x) + 1;
     }
-    return x;
+    return static_cast<uint32_t>(x);
 }
 
 void expire_tiles::coords_to_tile(double lon, double lat, double *tilex,
@@ -200,10 +200,12 @@ void expire_tiles::from_line(double lon_a, double lat_a, double lon_b,
         }
         for (int x = x1 - TILE_EXPIRY_LEEWAY; x <= x2 + TILE_EXPIRY_LEEWAY;
              ++x) {
-            int const norm_x = normalise_tile_x_coord(x);
+            uint32_t const norm_x = normalise_tile_x_coord(x);
             for (int y = y1 - TILE_EXPIRY_LEEWAY; y <= y2 + TILE_EXPIRY_LEEWAY;
                  ++y) {
-                expire_tile(norm_x, y);
+                if (y >= 0) {
+                    expire_tile(norm_x, static_cast<uint32_t>(y));
+                }
             }
         }
     }
@@ -256,10 +258,10 @@ int expire_tiles::from_bbox(double min_lon, double min_lat, double max_lon,
         max_tile_y = map_width;
     }
     for (int iterator_x = min_tile_x; iterator_x <= max_tile_x; ++iterator_x) {
-        int const norm_x = normalise_tile_x_coord(iterator_x);
+        uint32_t const norm_x = normalise_tile_x_coord(iterator_x);
         for (int iterator_y = min_tile_y; iterator_y <= max_tile_y;
              ++iterator_y) {
-            expire_tile(norm_x, iterator_y);
+            expire_tile(norm_x, static_cast<uint32_t>(iterator_y));
         }
     }
     return 0;

@@ -318,6 +318,24 @@ static osmium::Box parse_bbox(char const *bbox)
     return osmium::Box{minx, miny, maxx, maxy};
 }
 
+static unsigned int number_of_threads(char const *arg)
+{
+    int num = atoi(arg);
+    if (num < 1) {
+        log_warn("--number-processes must be at least 1. Using 1.");
+        num = 1;
+    } else if (num > 32) {
+        // The threads will open up database connections which will
+        // run out at some point. It depends on the number of tables
+        // how many connections there are. The number 32 is way beyond
+        // anything that will make sense here.
+        log_warn("--number-processes too large. Set to 32.");
+        num = 32;
+    }
+
+    return static_cast<unsigned int>(num);
+}
+
 options_t::options_t(int argc, char *argv[]) : options_t()
 {
     // If there are no command line arguments at all, show help.
@@ -503,18 +521,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             log_warn("Deprecated option --cache-strategy ignored");
             break;
         case 205:
-            num_procs = atoi(optarg);
-            if (num_procs < 1) {
-                log_warn("--number-processes must be at least 1. Using 1.");
-                num_procs = 1;
-            } else if (num_procs > 32) {
-                // The threads will open up database connections which will
-                // run out at some point. It depends on the number of tables
-                // how many connections there are. The number 32 is way beyond
-                // anything that will make sense here.
-                log_warn("--number-processes too large. Set to 32.");
-                num_procs = 32;
-            }
+            num_procs = number_of_threads(optarg);
             break;
         case 206:
             droptemp = true;

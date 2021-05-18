@@ -9,6 +9,7 @@
 
 #include <osmium/geom/mercator_projection.hpp>
 
+#include "format.hpp"
 #include "reprojection.hpp"
 
 namespace {
@@ -80,6 +81,10 @@ std::shared_ptr<reprojection> reprojection::create_projection(int srs)
         return std::make_shared<merc_reprojection_t>();
     default:
         break;
+    }
+
+    if (srs <= 0) {
+        throw std::runtime_error{"Invalid projection SRID '{}'."_format(srs)};
     }
 
     return make_generic_projection(srs);

@@ -178,7 +178,7 @@ private:
      * \param y y index of the tile to be expired.
      */
     void expire_tile(uint32_t x, uint32_t y);
-    int normalise_tile_x_coord(int x);
+    uint32_t normalise_tile_x_coord(int x);
     void from_line(double lon_a, double lat_a, double lon_b, double lat_b);
 
     void from_wkb_point(ewkb::parser_t *wkb);

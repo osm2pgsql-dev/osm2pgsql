@@ -34,7 +34,11 @@ bool node_locations_t::set(osmid_t id, osmium::Location location)
         m_index.add(id, m_data.size());
     }
 
-    protozero::add_varint_to_buffer(&m_data, m_did.update(id));
+    auto const delta = m_did.update(id);
+    // Always true because ids in input must be unique and ordered
+    assert(delta > 0);
+    protozero::add_varint_to_buffer(&m_data, static_cast<uint64_t>(delta));
+
     protozero::add_varint_to_buffer(
         &m_data, protozero::encode_zigzag64(m_dx.update(location.x())));
     protozero::add_varint_to_buffer(
@@ -62,7 +66,8 @@ osmium::Location node_locations_t::get(osmid_t id) const
     osmium::DeltaDecode<int64_t> dy;
 
     for (std::size_t n = 0; n < block_size && begin != end; ++n) {
-        auto const bid = did.update(protozero::decode_varint(&begin, end));
+        auto const bid = did.update(
+            static_cast<int64_t>(protozero::decode_varint(&begin, end)));
         int32_t const x = dx.update(
             protozero::decode_zigzag64(protozero::decode_varint(&begin, end)));
         int32_t const y = dy.update(
