@@ -820,8 +820,8 @@ void output_flex_t::setup_id_columns(flex_table_t *table)
     assert(table);
     lua_getfield(lua_state(), -1, "ids");
     if (lua_type(lua_state(), -1) != LUA_TTABLE) {
-        log_warn("Table '{}' doesn't have an 'ids' column. Updates"
-                 " and expire will not work!",
+        log_warn("Table '{}' doesn't have an id column. Two-stage"
+                 " processing, updates and expire will not work!",
                  table->name());
         lua_pop(lua_state(), 1); // ids
         return;
@@ -1497,7 +1497,7 @@ void output_flex_t::delete_from_table(table_connection_t *table_connection,
 void output_flex_t::delete_from_tables(osmium::item_type type, osmid_t osm_id)
 {
     for (auto &table : m_table_connections) {
-        if (table.table().matches_type(type)) {
+        if (table.table().matches_type(type) && table.table().has_id_column()) {
             delete_from_table(&table, type, osm_id);
         }
     }
@@ -1722,7 +1722,8 @@ void output_flex_t::reprocess_marked()
         util::timer_t timer;
 
         for (auto &table : m_table_connections) {
-            if (table.table().matches_type(osmium::item_type::way)) {
+            if (table.table().matches_type(osmium::item_type::way) &&
+                table.table().has_id_column()) {
                 table.create_id_index();
             }
         }
