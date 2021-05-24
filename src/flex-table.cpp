@@ -65,7 +65,8 @@ std::string flex_table_t::full_tmp_name() const
 }
 
 flex_table_column_t &flex_table_t::add_column(std::string const &name,
-                                              std::string const &type)
+                                              std::string const &type,
+                                              std::string const &sql_type)
 {
     // id_type (optional) and id_num must always be the first columns
     assert(type != "id_type" || m_columns.empty());
@@ -73,7 +74,7 @@ flex_table_column_t &flex_table_t::add_column(std::string const &name,
            (m_columns.size() == 1 &&
             m_columns[0].type() == table_column_type::id_type));
 
-    m_columns.emplace_back(name, type);
+    m_columns.emplace_back(name, type, sql_type);
     auto &column = m_columns.back();
 
     if (column.is_geometry_column()) {

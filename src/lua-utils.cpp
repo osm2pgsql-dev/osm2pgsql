@@ -125,6 +125,24 @@ char const *luaX_get_table_string(lua_State *lua_state, char const *key,
     return lua_tostring(lua_state, -1);
 }
 
+char const *luaX_get_table_string(lua_State *lua_state, char const *key,
+                                  int table_index, char const *error_msg,
+                                  char const *default_value)
+{
+    assert(lua_state);
+    assert(key);
+    lua_getfield(lua_state, table_index, key);
+    int const ltype = lua_type(lua_state, -1);
+    if (ltype == LUA_TNIL) {
+        return default_value;
+    }
+    if (ltype != LUA_TSTRING) {
+        throw std::runtime_error{
+            "{} must contain a '{}' string field."_format(error_msg, key)};
+    }
+    return lua_tostring(lua_state, -1);
+}
+
 bool luaX_get_table_bool(lua_State *lua_state, char const *key, int table_index,
                          char const *error_msg, bool default_value)
 {

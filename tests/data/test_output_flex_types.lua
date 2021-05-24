@@ -9,7 +9,7 @@ local test_table = osm2pgsql.define_node_table("nodes", {
     { column = 'thstr', type = 'hstore' },
     { column = 'tjson', type = 'jsonb' },
     { column = 'tdirn', type = 'direction' },
-    { column = 'tsqlt', type = 'varchar' },
+    { column = 'tsqlt', sql_type = 'varchar' },
 })
 
 function osm2pgsql.process_node(object)

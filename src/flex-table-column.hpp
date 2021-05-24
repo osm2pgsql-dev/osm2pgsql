@@ -18,8 +18,6 @@
 
 enum class table_column_type : uint8_t
 {
-    sql,
-
     text,
 
     boolean,
@@ -56,7 +54,8 @@ enum class table_column_type : uint8_t
 class flex_table_column_t
 {
 public:
-    flex_table_column_t(std::string name, std::string const &type);
+    flex_table_column_t(std::string name, std::string const &type,
+                        std::string const &sql_type);
 
     std::string const &name() const noexcept { return m_name; }
 
@@ -122,14 +121,18 @@ private:
     std::string m_name;
 
     /**
-     * The type name of the database table column. Either a name we recognize
-     * or just an SQL snippet.
+     * The type name of the column.
      */
     std::string m_type_name;
 
     /**
-     * The type of database column. Use table_column_type::sql as fallback
-     * in which case m_type_name is the SQL type used in the database.
+     * The SQL type of the database table column. If this is not set, use
+     * one generated from the m_type.
+     */
+    std::string m_sql_type;
+
+    /**
+     * The type of column.
      */
     table_column_type m_type;
 

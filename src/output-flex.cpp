@@ -491,8 +491,7 @@ void output_flex_t::write_column(
         return;
     }
 
-    if ((column.type() == table_column_type::sql) ||
-        (column.type() == table_column_type::text)) {
+    if (column.type() == table_column_type::text) {
         auto const *const str = lua_tolstring(lua_state(), -1, nullptr);
         if (!str) {
             throw std::runtime_error{
@@ -845,7 +844,7 @@ void output_flex_t::setup_id_columns(flex_table_t *table)
             std::string const column_name =
                 lua_tolstring(lua_state(), -1, nullptr);
             check_name(column_name, "column");
-            auto &column = table->add_column(column_name, "id_type");
+            auto &column = table->add_column(column_name, "id_type", "");
             column.set_not_null();
         } else if (!lua_isnil(lua_state(), -1)) {
             throw std::runtime_error{"type_column must be a string or nil."};
@@ -859,7 +858,7 @@ void output_flex_t::setup_id_columns(flex_table_t *table)
         luaX_get_table_string(lua_state(), "id_column", -2, "The ids field");
     check_name(name, "column");
 
-    auto &column = table->add_column(name, "id_num");
+    auto &column = table->add_column(name, "id_num", "");
     column.set_not_null();
     lua_pop(lua_state(), 3); // id_column, type, ids
 }
@@ -885,21 +884,23 @@ void output_flex_t::setup_flex_table_columns(flex_table_t *table)
                 "The entries in the 'columns' array must be tables."};
         }
 
-        char const *const type =
-            luaX_get_table_string(lua_state(), "type", -1, "Column entry");
+        char const *const type = luaX_get_table_string(lua_state(), "type", -1,
+                                                       "Column entry", "text");
         char const *const name =
             luaX_get_table_string(lua_state(), "column", -2, "Column entry");
         check_name(name, "column");
+        char const *const sql_type = luaX_get_table_string(
+            lua_state(), "sql_type", -3, "Column entry", "");
 
-        auto &column = table->add_column(name, type);
+        auto &column = table->add_column(name, type, sql_type);
 
-        column.set_not_null(luaX_get_table_bool(lua_state(), "not_null", -3,
+        column.set_not_null(luaX_get_table_bool(lua_state(), "not_null", -4,
                                                 "Entry 'not_null'", false));
 
         column.set_create_only(luaX_get_table_bool(
-            lua_state(), "create_only", -4, "Entry 'create_only'", false));
+            lua_state(), "create_only", -5, "Entry 'create_only'", false));
 
-        lua_getfield(lua_state(), -5, "projection");
+        lua_getfield(lua_state(), -6, "projection");
         if (!lua_isnil(lua_state(), -1)) {
             if (column.is_geometry_column() ||
                 column.type() == table_column_type::area) {
@@ -910,8 +911,9 @@ void output_flex_t::setup_flex_table_columns(flex_table_t *table)
             }
         }
 
-        // stack has: projection, create_only, not_null, column, type, table
-        lua_pop(lua_state(), 6);
+        // stack has: projection, create_only, not_null, sql_type, column,
+        //            type, table
+        lua_pop(lua_state(), 7);
         ++num_columns;
     }
 

@@ -11,7 +11,7 @@ local highways = osm2pgsql.define_way_table('highways', {
 
     -- Add a SERIAL column and tell osm2pgsql not to fill it (PostgreSQL will
     -- do that for us)
-    { column = 'id',       type = 'serial', create_only = true },
+    { column = 'id',       sql_type = 'serial', create_only = true },
 
     -- type "direction" is special, see below
     { column = 'oneway',   type = 'direction' },
@@ -21,8 +21,10 @@ local highways = osm2pgsql.define_way_table('highways', {
     { column = 'lit',      type = 'bool' },
     { column = 'tags',     type = 'jsonb' }, -- also available: 'json', 'hstore'
 
-    -- an PostgreSQL array type, not specially handled by osm2pgsql, see below
-    { column = 'nodes',    type = 'int8[]' },
+    -- osm2pgsql doesn't know about PostgreSQL arrays, so we define the SQL
+    -- type of this column and then have to convert our array data into a
+    -- valid text representation for that type, see below.
+    { column = 'nodes',    sql_type = 'int8[]' },
     { column = 'geom',     type = 'linestring' },
 })
 
