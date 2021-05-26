@@ -83,7 +83,8 @@ struct tile_output_set
     void expire_centroids(expire_tiles &et)
     {
         for (auto const &t : tiles) {
-            double x0, y0;
+            double x0 = NAN;
+            double y0 = NAN;
             t.to_centroid(x0, y0);
             et.from_bbox(x0, y0, x0, y0);
         }

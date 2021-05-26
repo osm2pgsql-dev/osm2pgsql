@@ -63,7 +63,7 @@ std::string get_password()
     GetConsoleMode(handle_stdin, &mode);
     SetConsoleMode(handle_stdin, mode & (~ENABLE_ECHO_INPUT));
 #elif defined(HAVE_TERMIOS_H)
-    termios orig_flags;
+    termios orig_flags{};
     tcgetattr(STDIN_FILENO, &orig_flags);
     termios flags = orig_flags;
     flags.c_lflag &= ~static_cast<unsigned int>(ECHO);

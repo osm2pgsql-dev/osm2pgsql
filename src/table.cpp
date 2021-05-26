@@ -386,7 +386,8 @@ void table_t::escape_type(std::string const &value, ColumnType flags)
     switch (flags) {
     case ColumnType::INT: {
         // For integers we take the first number, or the average if it's a-b
-        long long from, to;
+        long long from = 0;
+        long long to = 0;
         // limit number of digits parsed to avoid undefined behaviour in sscanf
         int const items =
             std::sscanf(value.c_str(), "%18lld-%18lld", &from, &to);
@@ -420,7 +421,8 @@ void table_t::escape_type(std::string const &value, ColumnType flags)
             std::string escaped{value};
             std::replace(escaped.begin(), escaped.end(), ',', '.');
 
-            double from, to;
+            double from = NAN;
+            double to = NAN;
             int const items =
                 std::sscanf(escaped.c_str(), "%lf-%lf", &from, &to);
             if (items == 1) {

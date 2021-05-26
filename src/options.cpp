@@ -294,10 +294,10 @@ options_t::options_t()
 
 static osmium::Box parse_bbox(char const *bbox)
 {
-    double minx;
-    double maxx;
-    double miny;
-    double maxy;
+    double minx = NAN;
+    double maxx = NAN;
+    double miny = NAN;
+    double maxy = NAN;
 
     int const n = sscanf(bbox, "%lf,%lf,%lf,%lf", &minx, &miny, &maxx, &maxy);
     if (n != 4) {
@@ -349,7 +349,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
 
     bool help_verbose = false; // Will be set when -v/--verbose is set
 
-    int c;
+    int c = 0;
 
     //keep going while there are args left to handle
     // note: optind would seem to need to be set to 1, but that gives valgrind

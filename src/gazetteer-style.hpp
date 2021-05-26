@@ -94,6 +94,11 @@ private:
     std::shared_ptr<db_target_descr_t> m_table;
 };
 
+enum : int
+{
+    MAX_ADMINLEVEL = 15
+};
+
 class gazetteer_style_t
 {
     using flag_t = uint16_t;
@@ -179,7 +184,7 @@ private:
     /// value of operator tag
     char const *m_operator = nullptr;
     /// admin level
-    int m_admin_level;
+    int m_admin_level = MAX_ADMINLEVEL;
 
     /// which metadata fields of the OSM objects should be written to the output
     osmium::metadata_options m_metadata_fields{"none"};

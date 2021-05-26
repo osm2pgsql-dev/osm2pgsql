@@ -43,7 +43,7 @@ public:
         return ret;
     }
 
-    char type() const noexcept { return 'N'; }
+    static char type() noexcept { return 'N'; }
 
 private:
     fmt::memory_buffer m_opl;
@@ -76,7 +76,7 @@ public:
         return final_opl;
     }
 
-    char type() const noexcept { return 'W'; }
+    static char type() noexcept { return 'W'; }
 
 private:
     osmid_t make_nodes()
@@ -145,7 +145,7 @@ public:
         return final_opl;
     }
 
-    char type() const noexcept { return 'R'; }
+    static char type() noexcept { return 'R'; }
 
 private:
     osmid_t make_nodes()
