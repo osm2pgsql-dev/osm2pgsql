@@ -437,11 +437,10 @@ output_pgsql_t::output_pgsql_t(
             std::abort(); // should never be here
         }
 
-        m_tables[i].reset(
-            new table_t{name, type, columns, m_options.hstore_columns,
-                        m_options.projection->target_srs(), m_options.append,
-                        m_options.hstore_mode, copy_thread,
-                        m_options.output_dbschema});
+        m_tables[i] = std::make_unique<table_t>(
+            name, type, columns, m_options.hstore_columns,
+            m_options.projection->target_srs(), m_options.append,
+            m_options.hstore_mode, copy_thread, m_options.output_dbschema);
     }
 }
 
@@ -458,8 +457,8 @@ output_pgsql_t::output_pgsql_t(
 {
     for (size_t i = 0; i < t_MAX; ++i) {
         //copy constructor will just connect to the already there table
-        m_tables[i].reset(
-            new table_t{*(other->m_tables[i].get()), copy_thread});
+        m_tables[i] =
+            std::make_unique<table_t>(*(other->m_tables[i].get()), copy_thread);
     }
 }
 

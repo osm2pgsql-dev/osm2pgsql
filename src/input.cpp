@@ -74,7 +74,7 @@ class data_source_t
 {
 public:
     explicit data_source_t(osmium::io::File const &file)
-    : m_reader(new osmium::io::Reader{file})
+    : m_reader(std::make_unique<osmium::io::Reader>(file))
     {
         get_next_nonempty_buffer();
         m_last = check_input(m_last, *m_it);

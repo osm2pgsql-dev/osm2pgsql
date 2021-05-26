@@ -41,7 +41,7 @@ public:
                 m_processor->add_buffer(std::move(m_current));
             }
 
-            m_current.reset(new db_cmd_copy_delete_t<DELETER>{table});
+            m_current = std::make_unique<db_cmd_copy_delete_t<DELETER>>(table);
         }
     }
 

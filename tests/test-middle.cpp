@@ -111,11 +111,7 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
     }
 
     auto thread_pool = std::make_shared<thread_pool_t>(1U);
-    auto mid = options.slim ? std::shared_ptr<middle_t>(
-                                  new middle_pgsql_t{thread_pool, &options})
-                            : std::shared_ptr<middle_t>(
-                                  new middle_ram_t{thread_pool, &options});
-
+    auto mid = create_middle(thread_pool, options);
     mid->start();
 
     output_requirements requirements;
