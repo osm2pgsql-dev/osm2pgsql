@@ -24,7 +24,9 @@ struct type_stats_t
 
 struct counting_middle_t : public middle_t
 {
-    counting_middle_t(bool append) : middle_t(nullptr), m_append(append) {}
+    explicit counting_middle_t(bool append)
+    : middle_t(nullptr), m_append(append)
+    {}
 
     void start() override {}
     void stop() override {}

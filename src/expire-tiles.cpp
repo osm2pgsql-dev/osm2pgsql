@@ -116,7 +116,7 @@ void expire_tiles::expire_tile(uint32_t x, uint32_t y)
     }
 }
 
-uint32_t expire_tiles::normalise_tile_x_coord(int x)
+uint32_t expire_tiles::normalise_tile_x_coord(int x) const
 {
     x %= map_width;
     if (x < 0) {

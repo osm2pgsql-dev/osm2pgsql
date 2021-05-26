@@ -95,9 +95,8 @@ void split_linestring(linestring_t const &line, double split_at,
                     dist = 0;
                     prev_pt = this_pt;
                     continue;
-                } else {
-                    dist = distance(this_pt, ipoint);
                 }
+                dist = distance(this_pt, ipoint);
             } else {
                 dist += delta;
             }

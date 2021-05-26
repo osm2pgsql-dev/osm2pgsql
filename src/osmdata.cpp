@@ -263,7 +263,7 @@ private:
      * Runs in the worker threads: As long as there are any, get ids from
      * the queue and let the output process it by calling "func".
      */
-    static void run(std::shared_ptr<output_t> output, idlist_t *queue,
+    static void run(std::shared_ptr<output_t> const &output, idlist_t *queue,
                     std::mutex *mutex, output_member_fn_ptr func)
     {
         while (osmid_t const id = pop_id(queue, mutex)) {
