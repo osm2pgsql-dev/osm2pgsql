@@ -16,7 +16,7 @@ static testing::db::import_t db;
 
 static char const *const conf_file = "test_output_flex_way.lua";
 
-static const char *const tdata[] = {
+static char const *const tdata[] = {
     "n10 v1 dV x10.0 y10.0",
     "n11 v1 dV x10.0 y10.1",
     "n12 v1 dV x10.1 y10.0",

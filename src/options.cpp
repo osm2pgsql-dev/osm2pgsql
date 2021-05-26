@@ -44,8 +44,10 @@ static char const *program_name(char const *name)
 }
 
 namespace {
-char const *short_options = "ab:cd:KhlmMp:suvU:WH:P:i:IE:C:S:e:o:O:xkjGz:r:VF:";
-const struct option long_options[] = {
+char const *const short_options =
+    "ab:cd:KhlmMp:suvU:WH:P:i:IE:C:S:e:o:O:xkjGz:r:VF:";
+
+struct option const long_options[] = {
     {"append", no_argument, nullptr, 'a'},
     {"bbox", required_argument, nullptr, 'b'},
     {"cache", required_argument, nullptr, 'C'},

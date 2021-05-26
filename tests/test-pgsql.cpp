@@ -12,7 +12,7 @@
 #include "common-import.hpp"
 #include "pgsql.hpp"
 
-static testing::db::import_t db;
+static testing::db::import_t const db;
 
 TEST_CASE("Tablespace clause with no tablespace")
 {

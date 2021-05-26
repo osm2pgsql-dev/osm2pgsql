@@ -18,7 +18,7 @@
  * Check whether the table with the specified name exists in the specified
  * schema in the database. Leave schema empty to check in the 'public' schema.
  */
-static bool has_table(pg_conn_t &db_connection, std::string const &schema,
+static bool has_table(pg_conn_t const &db_connection, std::string const &schema,
                       std::string const &table)
 {
     auto const sql = "SELECT count(*) FROM pg_tables"
