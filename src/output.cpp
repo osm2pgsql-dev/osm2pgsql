@@ -29,24 +29,29 @@
 
 std::shared_ptr<output_t>
 output_t::create_output(std::shared_ptr<middle_query_t> const &mid,
+                        std::shared_ptr<thread_pool_t> thread_pool,
                         options_t const &options)
 {
     auto copy_thread =
         std::make_shared<db_copy_thread_t>(options.database_options.conninfo());
 
     if (options.output_backend == "pgsql") {
-        return std::make_shared<output_pgsql_t>(mid, options, copy_thread);
+        return std::make_shared<output_pgsql_t>(mid, std::move(thread_pool),
+                                                options, copy_thread);
 
 #ifdef HAVE_LUA
     } else if (options.output_backend == "flex") {
-        return std::make_shared<output_flex_t>(mid, options, copy_thread);
+        return std::make_shared<output_flex_t>(mid, std::move(thread_pool),
+                                               options, copy_thread);
 #endif
 
     } else if (options.output_backend == "gazetteer") {
-        return std::make_shared<output_gazetteer_t>(mid, options, copy_thread);
+        return std::make_shared<output_gazetteer_t>(mid, std::move(thread_pool),
+                                                    options, copy_thread);
 
     } else if (options.output_backend == "null") {
-        return std::make_shared<output_null_t>(mid, options);
+        return std::make_shared<output_null_t>(mid, std::move(thread_pool),
+                                               options);
     }
 
     throw std::runtime_error{
@@ -56,8 +61,9 @@ output_t::create_output(std::shared_ptr<middle_query_t> const &mid,
 }
 
 output_t::output_t(std::shared_ptr<middle_query_t> const &mid,
+                   std::shared_ptr<thread_pool_t> thread_pool,
                    options_t const &options)
-: m_mid(mid), m_options(options)
+: m_thread_pool(std::move(thread_pool)), m_mid(mid), m_options(options)
 {}
 
 output_t::~output_t() = default;

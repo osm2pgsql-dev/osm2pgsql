@@ -69,10 +69,11 @@ struct table_sql {
 
 struct middle_pgsql_t : public middle_t
 {
-    explicit middle_pgsql_t(options_t const *options);
+    middle_pgsql_t(std::shared_ptr<thread_pool_t> thread_pool,
+                   options_t const *options);
 
     void start() override;
-    void stop(thread_pool_t &pool) override;
+    void stop() override;
 
     void wait() override;
 

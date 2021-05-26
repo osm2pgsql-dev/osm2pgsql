@@ -81,12 +81,17 @@ inline middle_query_t::~middle_query_t() = default;
  * Interface for storing "raw" OSM data in an intermediate object store and
  * getting it back.
  */
-struct middle_t
+class middle_t
 {
+public:
+    explicit middle_t(std::shared_ptr<thread_pool_t> thread_pool)
+    : m_thread_pool(std::move(thread_pool))
+    {}
+
     virtual ~middle_t() = 0;
 
     virtual void start() = 0;
-    virtual void stop(thread_pool_t &pool) = 0;
+    virtual void stop() = 0;
 
     virtual void wait() {}
 
@@ -115,11 +120,23 @@ struct middle_t
     virtual std::shared_ptr<middle_query_t> get_query_instance() = 0;
 
     virtual void set_requirements(output_requirements const &) {}
-};
+
+protected:
+    thread_pool_t &thread_pool() const noexcept
+    {
+        assert(m_thread_pool);
+        return *m_thread_pool;
+    }
+
+private:
+    std::shared_ptr<thread_pool_t> m_thread_pool;
+}; // class middle_t
 
 inline middle_t::~middle_t() = default;
 
 /// Factory function: Instantiate the middle based on the command line options.
-std::shared_ptr<middle_t> create_middle(options_t const &options);
+std::shared_ptr<middle_t>
+create_middle(std::shared_ptr<thread_pool_t> thread_pool,
+              options_t const &options);
 
 #endif // OSM2PGSQL_MIDDLE_HPP

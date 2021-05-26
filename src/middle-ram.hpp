@@ -41,12 +41,13 @@ class options_t;
 class middle_ram_t : public middle_t, public middle_query_t
 {
 public:
-    explicit middle_ram_t(options_t const *options);
+    middle_ram_t(std::shared_ptr<thread_pool_t> thread_pool,
+                 options_t const *options);
 
     ~middle_ram_t() noexcept override = default;
 
     void start() override {}
-    void stop(thread_pool_t &) override;
+    void stop() override;
 
     void node(osmium::Node const &node) override;
     void way(osmium::Way const &way) override;

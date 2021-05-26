@@ -136,17 +136,20 @@ public:
     {
         options.database_options = m_db.db_options();
 
+        auto thread_pool = std::make_shared<thread_pool_t>(1U);
         std::shared_ptr<middle_t> middle;
 
         if (options.slim) {
-            middle = std::shared_ptr<middle_t>(new middle_pgsql_t{&options});
+            middle = std::shared_ptr<middle_t>(
+                new middle_pgsql_t{thread_pool, &options});
         } else {
-            middle = std::shared_ptr<middle_t>(new middle_ram_t{&options});
+            middle = std::shared_ptr<middle_t>(
+                new middle_ram_t{thread_pool, &options});
         }
         middle->start();
 
-        auto output =
-            output_t::create_output(middle->get_query_instance(), options);
+        auto output = output_t::create_output(middle->get_query_instance(),
+                                              thread_pool, options);
 
         middle->set_requirements(output->get_requirements());
 
@@ -179,11 +182,12 @@ public:
     {
         options.database_options = m_db.db_options();
 
-        auto middle = std::make_shared<middle_ram_t>(&options);
+        auto thread_pool = std::make_shared<thread_pool_t>(1U);
+        auto middle = std::make_shared<middle_ram_t>(thread_pool, &options);
         middle->start();
 
-        auto output =
-            output_t::create_output(middle->get_query_instance(), options);
+        auto output = output_t::create_output(middle->get_query_instance(),
+                                              thread_pool, options);
 
         middle->set_requirements(output->get_requirements());
 
