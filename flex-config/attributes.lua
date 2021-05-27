@@ -15,7 +15,10 @@ tables.points = osm2pgsql.define_node_table('points', {
     { column = 'geom', type = 'point', projection = srid },
     { column = 'version', type = 'int' },
     { column = 'changeset', type = 'int' },
-    { column = 'created', type = 'timestamp' },
+    -- There is no built-in type for timestamps in osm2pgsql. So we use the
+    -- PostgreSQL type "timestamp" and then have to convert our timestamps
+    -- to a valid text representation for that type.
+    { column = 'created', sql_type = 'timestamp' },
     { column = 'uid', type = 'int' },
     { column = 'user', type = 'text' },
 })
@@ -25,7 +28,7 @@ tables.lines = osm2pgsql.define_way_table('lines', {
     { column = 'geom', type = 'linestring', projection = srid },
     { column = 'version', type = 'int' },
     { column = 'changeset', type = 'int' },
-    { column = 'created', type = 'timestamp' },
+    { column = 'created', sql_type = 'timestamp' },
     { column = 'uid', type = 'int' },
     { column = 'user', type = 'text' },
 })
@@ -34,7 +37,7 @@ tables.relations = osm2pgsql.define_relation_table('relations', {
     { column = 'tags', type = 'jsonb' },
     { column = 'version', type = 'int' },
     { column = 'changeset', type = 'int' },
-    { column = 'created', type = 'timestamp' },
+    { column = 'created', sql_type = 'timestamp' },
     { column = 'uid', type = 'int' },
     { column = 'user', type = 'text' },
 })

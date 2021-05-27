@@ -22,9 +22,8 @@ struct column_type_lookup
     table_column_type type;
 };
 
-static std::array<column_type_lookup, 26> const column_types = {
-    {{"sql", table_column_type::sql},
-     {"text", table_column_type::text},
+static std::array<column_type_lookup, 25> const column_types = {
+    {{"text", table_column_type::text},
      {"boolean", table_column_type::boolean},
      {"bool", table_column_type::boolean},
      {"int2", table_column_type::int2},
@@ -51,7 +50,7 @@ static std::array<column_type_lookup, 26> const column_types = {
      {"id_num", table_column_type::id_num}}};
 
 static table_column_type
-get_column_type_from_string(std::string const &type) noexcept
+get_column_type_from_string(std::string const &type)
 {
     auto const it =
         std::find_if(std::begin(column_types), std::end(column_types),
@@ -59,13 +58,11 @@ get_column_type_from_string(std::string const &type) noexcept
                          return type == name_type.name;
                      });
 
-    if (it != std::end(column_types)) {
-        return it->type;
+    if (it == std::end(column_types)) {
+        throw std::runtime_error{"Unknown column type '{}'."_format(type)};
     }
 
-    // If we don't recognize the column type, we just assume its a valid SQL
-    // type and use it "as is".
-    return table_column_type::sql;
+    return it->type;
 }
 
 static std::string lowercase(std::string const &str)
@@ -81,8 +78,10 @@ static std::string lowercase(std::string const &str)
 }
 
 flex_table_column_t::flex_table_column_t(std::string name,
-                                         std::string const &type)
+                                         std::string const &type,
+                                         std::string const &sql_type)
 : m_name(std::move(name)), m_type_name(lowercase(type)),
+  m_sql_type(sql_type),
   m_type(get_column_type_from_string(m_type_name))
 {}
 
@@ -115,9 +114,11 @@ void flex_table_column_t::set_projection(char const *projection)
 
 std::string flex_table_column_t::sql_type_name() const
 {
+    if (!m_sql_type.empty()) {
+        return m_sql_type;
+    }
+
     switch (m_type) {
-    case table_column_type::sql:
-        return m_type_name;
     case table_column_type::text:
         return "text";
     case table_column_type::boolean:

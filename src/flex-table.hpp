@@ -183,7 +183,8 @@ public:
     }
 
     flex_table_column_t &add_column(std::string const &name,
-                                    std::string const &type);
+                                    std::string const &type,
+                                    std::string const &sql_type);
 
     bool has_multicolumn_id_index() const noexcept;
     std::string id_column_names() const;

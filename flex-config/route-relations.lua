@@ -14,7 +14,7 @@ local tables = {}
 tables.highways = osm2pgsql.define_way_table('highways', {
     { column = 'tags',     type = 'jsonb' },
     { column = 'rel_refs', type = 'text' }, -- for the refs from the relations
-    { column = 'rel_ids',  type = 'int8[]' }, -- array with integers (for relation IDs)
+    { column = 'rel_ids',  sql_type = 'int8[]' }, -- array with integers (for relation IDs)
     { column = 'geom',     type = 'linestring' },
 })
 
