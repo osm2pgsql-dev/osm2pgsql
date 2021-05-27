@@ -18,8 +18,7 @@ static testing::pg::tempdb_t db;
 static int table_count(testing::pg::conn_t const &conn,
                        std::string const &where = "")
 {
-    return conn.require_scalar<int>("SELECT count(*) FROM test_copy_thread " +
-                                    where);
+    return conn.result_as_int("SELECT count(*) FROM test_copy_thread " + where);
 }
 
 TEST_CASE("db_copy_thread_t with db_deleter_by_id_t")
@@ -46,8 +45,8 @@ TEST_CASE("db_copy_thread_t with db_deleter_by_id_t")
             t.add_buffer(std::unique_ptr<db_cmd_t>(cmd.release()));
             t.sync_and_wait();
 
-            REQUIRE(conn.require_scalar<int>(
-                        "SELECT id FROM test_copy_thread") == 42);
+            REQUIRE(conn.result_as_int("SELECT id FROM test_copy_thread") ==
+                    42);
         }
 
         SECTION("add multiple rows and sync")
@@ -67,8 +66,7 @@ TEST_CASE("db_copy_thread_t with db_deleter_by_id_t")
             t.add_buffer(std::unique_ptr<db_cmd_t>(cmd.release()));
             t.finish();
 
-            REQUIRE(conn.require_scalar<int>(
-                        "SELECT id FROM test_copy_thread") == 2);
+            REQUIRE(conn.result_as_int("SELECT id FROM test_copy_thread") == 2);
         }
     }
 

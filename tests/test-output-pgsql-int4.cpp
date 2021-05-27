@@ -37,10 +37,10 @@ TEST_CASE("int4 conversion")
     conn.assert_null(population(3));
 
     // Check values that are valid for int4 columns, including limits
-    CHECK(2147483647 == conn.require_scalar<int>(population(4)));
-    CHECK(10000 == conn.require_scalar<int>(population(5)));
-    CHECK(-10000 == conn.require_scalar<int>(population(6)));
-    CHECK(-2147483648 == conn.require_scalar<int>(population(7)));
+    CHECK(2147483647 == conn.result_as_int(population(4)));
+    CHECK(10000 == conn.result_as_int(population(5)));
+    CHECK(-10000 == conn.result_as_int(population(6)));
+    CHECK(-2147483648 == conn.result_as_int(population(7)));
 
     // More out of range negative values
     conn.assert_null(population(8));
@@ -52,10 +52,10 @@ TEST_CASE("int4 conversion")
     conn.assert_null(population(12));
 
     // Check values that are valid for int4 columns, including limits
-    CHECK(2147483647 == conn.require_scalar<int>(population(13)));
-    CHECK(15000 == conn.require_scalar<int>(population(14)));
-    CHECK(-15000 == conn.require_scalar<int>(population(15)));
-    CHECK(-2147483648 == conn.require_scalar<int>(population(16)));
+    CHECK(2147483647 == conn.result_as_int(population(13)));
+    CHECK(15000 == conn.result_as_int(population(14)));
+    CHECK(-15000 == conn.result_as_int(population(15)));
+    CHECK(-2147483648 == conn.result_as_int(population(16)));
 
     // More out of range negative values
     conn.assert_null(population(17));
@@ -68,5 +68,5 @@ TEST_CASE("int4 conversion")
     conn.assert_null(population(22));
 
     // Zero is a valid value
-    CHECK(0 == conn.require_scalar<int>(population(23)));
+    CHECK(0 == conn.result_as_int(population(23)));
 }

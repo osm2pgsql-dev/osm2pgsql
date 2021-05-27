@@ -15,8 +15,6 @@
 #include <stdexcept>
 #include <string>
 
-#include <boost/lexical_cast.hpp>
-
 #include "format.hpp"
 #include "options.hpp"
 #include "pgsql.hpp"
@@ -26,6 +24,9 @@
 #include <process.h>
 #include <windows.h>
 #define getpid _getpid
+#else
+#include <sys/types.h>
+#include <unistd.h>
 #endif
 
 namespace testing {
@@ -37,19 +38,31 @@ class conn_t : public pg_conn_t
 public:
     conn_t(std::string const &conninfo) : pg_conn_t(conninfo) {}
 
-    template <typename T>
-    T require_scalar(std::string const &cmd) const
+    std::string result_as_string(std::string const &cmd) const
     {
         pg_result_t const res = query(PGRES_TUPLES_OK, cmd);
         REQUIRE(res.num_tuples() == 1);
+        return res.get_value_as_string(0, 0);
+    }
 
-        auto const str = res.get_value_as_string(0, 0);
-        return boost::lexical_cast<T>(str);
+    int result_as_int(std::string const &cmd) const
+    {
+        return std::stoi(result_as_string(cmd));
+    }
+
+    unsigned long result_as_ulong(std::string const &cmd) const
+    {
+        return std::stoul(result_as_string(cmd));
+    }
+
+    double result_as_double(std::string const &cmd) const
+    {
+        return std::stod(result_as_string(cmd));
     }
 
     void assert_double(double expected, std::string const &cmd) const
     {
-        REQUIRE(Approx(expected).epsilon(0.01) == require_scalar<double>(cmd));
+        REQUIRE(Approx(expected).epsilon(0.01) == result_as_double(cmd));
     }
 
     void assert_null(std::string const &cmd) const
@@ -73,7 +86,7 @@ public:
         auto const query = "SELECT count(*) FROM {} {} {}"_format(
             table_name, (where.empty() ? "" : "WHERE"), where);
 
-        return require_scalar<unsigned long>(query);
+        return result_as_ulong(query);
     }
 
     void require_has_table(char const *table_name) const
