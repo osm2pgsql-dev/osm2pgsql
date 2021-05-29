@@ -9,6 +9,11 @@
 
 #include "thread-pool.hpp"
 
+#include <osmium/thread/util.hpp>
+
+#include <cassert>
+#include <string>
+
 std::chrono::milliseconds task_result_t::wait()
 {
     if (m_future.valid()) {

@@ -10,7 +10,7 @@
  * For a full list of authors see the git log.
  */
 
-#include "options.hpp"
+class options_t;
 
 /**
  * Get settings from the database and check that minimum requirements for

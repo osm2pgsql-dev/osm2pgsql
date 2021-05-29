@@ -10,7 +10,6 @@
 #include <catch.hpp>
 
 #include <algorithm>
-#include <cassert>
 
 #include <osmium/osm/crc.hpp>
 #include <osmium/osm/crc_zlib.hpp>

@@ -8,7 +8,6 @@
  */
 
 #include "output-null.hpp"
-#include "osmtypes.hpp"
 
 std::shared_ptr<output_t>
 output_null_t::clone(std::shared_ptr<middle_query_t> const &mid,

@@ -8,11 +8,15 @@
  */
 
 #include "db-check.hpp"
+#include "format.hpp"
 #include "logging.hpp"
+#include "options.hpp"
 #include "pgsql.hpp"
 #include "version.hpp"
 
+#include <cstdlib>
 #include <stdexcept>
+#include <string>
 
 /**
  * Check whether the table with the specified name exists in the specified

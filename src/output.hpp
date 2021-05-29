@@ -23,10 +23,11 @@
 
 #include "options.hpp"
 #include "osmtypes.hpp"
-#include "thread-pool.hpp"
+
+class db_copy_thread_t;
+class thread_pool_t;
 
 struct middle_query_t;
-class db_copy_thread_t;
 
 class output_t
 {

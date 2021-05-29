@@ -13,13 +13,13 @@
 #include "ordered-index.hpp"
 #include "osmtypes.hpp"
 
+#include <osmium/osm/location.hpp>
 #include <osmium/util/delta.hpp>
 
-#include <array>
 #include <cstddef>
+#include <cstdint>
 #include <limits>
 #include <string>
-#include <utility>
 
 /**
  * Node locations storage. This implementation encodes ids and locations

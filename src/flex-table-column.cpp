@@ -8,11 +8,12 @@
  */
 
 #include "flex-table-column.hpp"
+#include "format.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cctype>
-#include <cstring>
+#include <cstdlib>
 #include <stdexcept>
 #include <utility>
 

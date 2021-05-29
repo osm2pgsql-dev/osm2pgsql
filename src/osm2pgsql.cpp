@@ -8,14 +8,13 @@
  */
 
 #include "db-check.hpp"
-#include "format.hpp"
+#include "dependency-manager.hpp"
 #include "input.hpp"
 #include "logging.hpp"
 #include "middle.hpp"
 #include "options.hpp"
 #include "osmdata.hpp"
 #include "output.hpp"
-#include "reprojection.hpp"
 #include "util.hpp"
 #include "version.hpp"
 
@@ -23,6 +22,7 @@
 
 #include <exception>
 #include <memory>
+#include <utility>
 
 static void run(options_t const &options)
 {

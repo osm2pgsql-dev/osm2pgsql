@@ -10,16 +10,11 @@
  * For a full list of authors see the git log.
  */
 
-#include "db-copy.hpp"
 #include "expire-tiles.hpp"
 #include "flex-table-column.hpp"
 #include "flex-table.hpp"
-#include "format.hpp"
-#include "geom-transform.hpp"
 #include "osmium-builder.hpp"
 #include "output.hpp"
-#include "table.hpp"
-#include "tagtransform.hpp"
 
 #include <osmium/index/id_set.hpp>
 #include <osmium/osm/item_type.hpp>
@@ -34,6 +29,12 @@ extern "C"
 #include <string>
 #include <utility>
 #include <vector>
+
+class db_copy_thread_t;
+class db_deleter_by_type_and_id_t;
+class geom_transform_t;
+class options_t;
+class thread_pool_t;
 
 using idset_t = osmium::index::IdSetSmall<osmid_t>;
 

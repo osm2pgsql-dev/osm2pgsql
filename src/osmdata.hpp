@@ -19,6 +19,7 @@
  */
 
 #include <memory>
+#include <string>
 
 #include <osmium/fwd.hpp>
 #include <osmium/handler.hpp>

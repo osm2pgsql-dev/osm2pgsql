@@ -10,9 +10,9 @@
  * For a full list of authors see the git log.
  */
 
-#include "logging.hpp"
 #include "middle.hpp"
 #include "node-locations.hpp"
+#include "osmtypes.hpp"
 #include "ordered-index.hpp"
 
 #include <osmium/index/nwr_array.hpp>
@@ -25,6 +25,7 @@
 #include <utility>
 
 class options_t;
+class thread_pool_t;
 
 /**
  * Implementation of middle for importing small to medium sized files into a

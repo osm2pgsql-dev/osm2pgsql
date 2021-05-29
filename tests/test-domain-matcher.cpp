@@ -9,13 +9,13 @@
 
 #include <catch.hpp>
 
-#include "format.hpp"
-
 #include "domain-matcher.hpp"
 
 #include <osmium/builder/osm_object_builder.hpp>
 #include <osmium/memory/buffer.hpp>
-#include <osmium/osm.hpp>
+#include <osmium/osm/tag.hpp>
+
+#include <cstring>
 
 static osmium::Tag &fill_buffer(osmium::memory::Buffer &buffer, char const *key,
                                 char const *value)

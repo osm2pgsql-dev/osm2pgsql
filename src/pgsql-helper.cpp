@@ -8,6 +8,7 @@
  */
 
 #include "format.hpp"
+#include "pgsql.hpp"
 #include "pgsql-helper.hpp"
 
 #include <cassert>

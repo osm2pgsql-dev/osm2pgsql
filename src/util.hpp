@@ -14,6 +14,7 @@
 #include "osmtypes.hpp"
 
 #include <array>
+#include <cassert>
 #include <chrono>
 #include <cstdint>
 #include <cstdlib>

@@ -13,7 +13,6 @@
 #include "osmtypes.hpp"
 #include "output-gazetteer.hpp"
 #include "pgsql.hpp"
-#include "wkb.hpp"
 
 #include <cstring>
 #include <memory>

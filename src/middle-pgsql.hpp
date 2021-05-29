@@ -24,10 +24,11 @@
 
 #include "db-copy-mgr.hpp"
 #include "middle.hpp"
-#include "node-locations.hpp"
-#include "node-persistent-cache.hpp"
-#include "options.hpp"
 #include "pgsql.hpp"
+
+class node_locations_t;
+class node_persistent_cache;
+class options_t;
 
 class middle_query_pgsql_t : public middle_query_t
 {

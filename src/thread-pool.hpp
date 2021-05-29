@@ -22,11 +22,10 @@
 
 #include <osmium/thread/function_wrapper.hpp>
 #include <osmium/thread/queue.hpp>
-#include <osmium/thread/util.hpp>
 
-#include <cassert>
 #include <chrono>
 #include <future>
+#include <thread>
 #include <utility>
 #include <vector>
 

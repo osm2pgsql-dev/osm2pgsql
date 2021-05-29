@@ -8,11 +8,11 @@
  */
 
 #include <algorithm>
+#include <cstdint>
 #include <cstdio>
-#include <cstring>
+#include <limits>
 #include <stdexcept>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "format.hpp"
@@ -22,7 +22,6 @@
 #include "table.hpp"
 #include "taginfo.hpp"
 #include "util.hpp"
-#include "wkb.hpp"
 
 table_t::table_t(std::string const &name, std::string const &type,
                  columns_t const &columns, hstores_t const &hstore_columns,

@@ -16,6 +16,7 @@
 
 #include <cassert>
 #include <memory>
+#include <utility>
 
 class middle_t;
 

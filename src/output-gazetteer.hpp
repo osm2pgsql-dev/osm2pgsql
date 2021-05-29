@@ -11,14 +11,19 @@
  */
 
 #include <memory>
+#include <utility>
 
 #include <osmium/memory/buffer.hpp>
 
-#include "db-copy-mgr.hpp"
 #include "gazetteer-style.hpp"
 #include "osmium-builder.hpp"
 #include "osmtypes.hpp"
 #include "output.hpp"
+
+class db_copy_thread_t;
+class thread_pool_t;
+
+struct middle_query_t;
 
 class output_gazetteer_t : public output_t
 {

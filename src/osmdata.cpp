@@ -8,6 +8,7 @@
  */
 
 #include <algorithm>
+#include <cassert>
 #include <chrono>
 #include <functional>
 #include <future>
@@ -23,7 +24,6 @@
 #include "options.hpp"
 #include "osmdata.hpp"
 #include "output.hpp"
-#include "thread-pool.hpp"
 #include "util.hpp"
 
 osmdata_t::osmdata_t(std::unique_ptr<dependency_manager_t> dependency_manager,

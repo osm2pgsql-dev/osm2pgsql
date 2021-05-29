@@ -12,6 +12,7 @@
 #include "util.hpp"
 
 #include <iostream>
+#include <iterator>
 
 #ifdef _WIN32
 #include <windows.h>
