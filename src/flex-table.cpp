@@ -152,7 +152,7 @@ void table_connection_t::connect(std::string const &conninfo)
 {
     assert(!m_db_connection);
 
-    m_db_connection.reset(new pg_conn_t{conninfo});
+    m_db_connection = std::make_unique<pg_conn_t>(conninfo);
     m_db_connection->exec("SET synchronous_commit = off");
 }
 

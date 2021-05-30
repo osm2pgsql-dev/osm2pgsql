@@ -44,8 +44,10 @@ static char const *program_name(char const *name)
 }
 
 namespace {
-char const *short_options = "ab:cd:KhlmMp:suvU:WH:P:i:IE:C:S:e:o:O:xkjGz:r:VF:";
-const struct option long_options[] = {
+char const *const short_options =
+    "ab:cd:KhlmMp:suvU:WH:P:i:IE:C:S:e:o:O:xkjGz:r:VF:";
+
+struct option const long_options[] = {
     {"append", no_argument, nullptr, 'a'},
     {"bbox", required_argument, nullptr, 'b'},
     {"cache", required_argument, nullptr, 'C'},
@@ -292,10 +294,10 @@ options_t::options_t()
 
 static osmium::Box parse_bbox(char const *bbox)
 {
-    double minx;
-    double maxx;
-    double miny;
-    double maxy;
+    double minx = NAN;
+    double maxx = NAN;
+    double miny = NAN;
+    double maxy = NAN;
 
     int const n = sscanf(bbox, "%lf,%lf,%lf,%lf", &minx, &miny, &maxx, &maxy);
     if (n != 4) {
@@ -347,7 +349,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
 
     bool help_verbose = false; // Will be set when -v/--verbose is set
 
-    int c;
+    int c = 0;
 
     //keep going while there are args left to handle
     // note: optind would seem to need to be set to 1, but that gives valgrind

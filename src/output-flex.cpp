@@ -363,11 +363,7 @@ static bool is_lua_array(lua_State *lua_state)
 
     // An empty lua table could be both, we decide here that it is not stored
     // as a JSON array but as a JSON object.
-    if (n == 1) {
-        return false;
-    }
-
-    return true;
+    return n != 1;
 }
 
 static void write_json(json_writer_type *writer, lua_State *lua_state,

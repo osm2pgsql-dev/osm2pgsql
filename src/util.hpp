@@ -40,7 +40,7 @@ public:
     char const *c_str() const noexcept { return m_buffer.data(); }
 
 private:
-    std::array<char, buffer_size> m_buffer;
+    std::array<char, buffer_size> m_buffer{};
 };
 
 class double_to_buffer
@@ -59,7 +59,7 @@ public:
     char const *c_str() const noexcept { return m_buffer.data(); }
 
 private:
-    std::array<char, buffer_size> m_buffer;
+    std::array<char, buffer_size> m_buffer{};
 };
 
 /**

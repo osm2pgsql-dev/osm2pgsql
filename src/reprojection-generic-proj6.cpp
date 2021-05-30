@@ -97,6 +97,7 @@ private:
 
         auto const c_out = proj_trans(transformation, PJ_FWD, c_in);
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
         return osmium::geom::Coordinates{c_out.xy.x, c_out.xy.y};
     }
 

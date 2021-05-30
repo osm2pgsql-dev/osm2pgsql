@@ -69,7 +69,7 @@ public:
 
     void add_point(osmium::geom::Coordinates coordinates)
     {
-        m_coordinates.emplace_back(std::move(coordinates));
+        m_coordinates.emplace_back(coordinates);
     }
 
     iterator begin() noexcept { return m_coordinates.begin(); }

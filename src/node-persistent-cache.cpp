@@ -40,7 +40,7 @@ node_persistent_cache::node_persistent_cache(std::string file_name,
             m_file_name, std::strerror(errno))};
     }
 
-    m_index.reset(new index_t{m_fd});
+    m_index = std::make_unique<index_t>(m_fd);
 }
 
 node_persistent_cache::~node_persistent_cache() noexcept

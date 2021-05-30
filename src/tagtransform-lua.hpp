@@ -25,7 +25,8 @@ class lua_tagtransform_t : public tagtransform_t
 
 public:
     explicit lua_tagtransform_t(options_t const *options);
-    ~lua_tagtransform_t();
+
+    ~lua_tagtransform_t() override;
 
     std::unique_ptr<tagtransform_t> clone() const override;
 
@@ -42,8 +43,11 @@ private:
     void open_style();
     void check_lua_function_exists(std::string const &func_name);
 
-    lua_State *L;
-    std::string m_node_func, m_way_func, m_rel_func, m_rel_mem_func;
+    lua_State *L = nullptr;
+    std::string m_node_func;
+    std::string m_way_func;
+    std::string m_rel_func;
+    std::string m_rel_mem_func;
     std::string m_lua_file;
     bool m_extra_attributes;
 };

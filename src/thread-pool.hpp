@@ -100,7 +100,7 @@ public:
     std::future<std::chrono::milliseconds> submit(TFunction &&func)
     {
         std::packaged_task<std::chrono::milliseconds()> task{
-            [f = std::move(func)]() {
+            [f = std::forward<TFunction>(func)]() {
                 log_debug("Starting task...");
                 auto const start_time = std::chrono::steady_clock::now();
                 f();

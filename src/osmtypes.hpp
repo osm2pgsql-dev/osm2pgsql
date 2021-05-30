@@ -40,7 +40,7 @@ struct member
 
     explicit operator osmium::builder::attr::member_type() const
     {
-        return osmium::builder::attr::member_type(type, id, role.c_str());
+        return {type, id, role.c_str()};
     }
 
     member(osmium::item_type t, osmid_t i, std::string r)
@@ -73,10 +73,9 @@ struct tag_t
     std::string key;
     std::string value;
 
-    operator std::pair<char const *, char const *>() const noexcept
+    explicit operator std::pair<char const *, char const *>() const noexcept
     {
-        return std::pair<char const *, char const *>(key.c_str(),
-                                                     value.c_str());
+        return {key.c_str(), value.c_str()};
     }
 
     tag_t(std::string k, std::string v) : key(std::move(k)), value(std::move(v))

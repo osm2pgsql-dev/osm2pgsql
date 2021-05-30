@@ -24,7 +24,9 @@ struct type_stats_t
 
 struct counting_middle_t : public middle_t
 {
-    counting_middle_t(bool append) : middle_t(nullptr), m_append(append) {}
+    explicit counting_middle_t(bool append)
+    : middle_t(nullptr), m_append(append)
+    {}
 
     void start() override {}
     void stop() override {}
@@ -82,7 +84,7 @@ struct counting_output_t : public output_null_t
     clone(std::shared_ptr<middle_query_t> const &,
           std::shared_ptr<db_copy_thread_t> const &) const override
     {
-        return std::shared_ptr<output_t>(new counting_output_t{m_options});
+        return std::make_shared<counting_output_t>(m_options);
     }
 
     void node_add(osmium::Node const &n) override
@@ -154,7 +156,7 @@ TEST_CASE("parse xml file")
     options_t const options = testing::opt_t().slim();
 
     auto const middle = std::make_shared<counting_middle_t>(false);
-    std::shared_ptr<output_t> output{new counting_output_t{options}};
+    auto const output = std::make_shared<counting_output_t>(options);
 
     auto counts = std::make_shared<counts_t>();
     auto dependency_manager =
@@ -163,19 +165,18 @@ TEST_CASE("parse xml file")
     testing::parse_file(options, std::move(dependency_manager), middle,
                         {output}, "test_multipolygon.osm", false);
 
-    auto const *out_test = static_cast<counting_output_t *>(output.get());
-    REQUIRE(out_test->sum_ids == 4728);
-    REQUIRE(out_test->sum_nds == 186);
-    REQUIRE(out_test->sum_members == 146);
-    REQUIRE(out_test->node.added == 0);
-    REQUIRE(out_test->node.modified == 0);
-    REQUIRE(out_test->node.deleted == 0);
-    REQUIRE(out_test->way.added == 48);
-    REQUIRE(out_test->way.modified == 0);
-    REQUIRE(out_test->way.deleted == 0);
-    REQUIRE(out_test->relation.added == 40);
-    REQUIRE(out_test->relation.modified == 0);
-    REQUIRE(out_test->relation.deleted == 0);
+    REQUIRE(output->sum_ids == 4728);
+    REQUIRE(output->sum_nds == 186);
+    REQUIRE(output->sum_members == 146);
+    REQUIRE(output->node.added == 0);
+    REQUIRE(output->node.modified == 0);
+    REQUIRE(output->node.deleted == 0);
+    REQUIRE(output->way.added == 48);
+    REQUIRE(output->way.modified == 0);
+    REQUIRE(output->way.deleted == 0);
+    REQUIRE(output->relation.added == 40);
+    REQUIRE(output->relation.modified == 0);
+    REQUIRE(output->relation.deleted == 0);
 
     auto const *mid_test = middle.get();
     REQUIRE(mid_test->node_count.added == 353);
@@ -194,7 +195,7 @@ TEST_CASE("parse diff file")
     options_t const options = testing::opt_t().slim().append();
 
     auto const middle = std::make_shared<counting_middle_t>(true);
-    std::shared_ptr<output_t> output{new counting_output_t{options}};
+    auto const output = std::make_shared<counting_output_t>(options);
 
     auto counts = std::make_shared<counts_t>();
     auto dependency_manager =
@@ -203,16 +204,15 @@ TEST_CASE("parse diff file")
     testing::parse_file(options, std::move(dependency_manager), middle,
                         {output}, "008-ch.osc.gz", false);
 
-    auto const *out_test = static_cast<counting_output_t *>(output.get());
-    REQUIRE(out_test->node.added == 0);
-    REQUIRE(out_test->node.modified == 1176);
-    REQUIRE(out_test->node.deleted == 16773);
-    REQUIRE(out_test->way.added == 0);
-    REQUIRE(out_test->way.modified == 161);
-    REQUIRE(out_test->way.deleted == 4);
-    REQUIRE(out_test->relation.added == 0);
-    REQUIRE(out_test->relation.modified == 11);
-    REQUIRE(out_test->relation.deleted == 1);
+    REQUIRE(output->node.added == 0);
+    REQUIRE(output->node.modified == 1176);
+    REQUIRE(output->node.deleted == 16773);
+    REQUIRE(output->way.added == 0);
+    REQUIRE(output->way.modified == 161);
+    REQUIRE(output->way.deleted == 4);
+    REQUIRE(output->relation.added == 0);
+    REQUIRE(output->relation.modified == 11);
+    REQUIRE(output->relation.deleted == 1);
 
     auto *mid_test = middle.get();
     REQUIRE(mid_test->node_count.added == 1176);
@@ -232,7 +232,7 @@ TEST_CASE("parse xml file with extra args")
     options.extra_attributes = true;
 
     auto const middle = std::make_shared<counting_middle_t>(false);
-    std::shared_ptr<output_t> output{new counting_output_t{options}};
+    auto const output = std::make_shared<counting_output_t>(options);
 
     auto counts = std::make_shared<counts_t>();
     auto dependency_manager =
@@ -241,19 +241,18 @@ TEST_CASE("parse xml file with extra args")
     testing::parse_file(options, std::move(dependency_manager), middle,
                         {output}, "test_multipolygon.osm", false);
 
-    auto const *out_test = static_cast<counting_output_t *>(output.get());
-    REQUIRE(out_test->sum_ids == 73514);
-    REQUIRE(out_test->sum_nds == 495);
-    REQUIRE(out_test->sum_members == 146);
-    REQUIRE(out_test->node.added == 353);
-    REQUIRE(out_test->node.modified == 0);
-    REQUIRE(out_test->node.deleted == 0);
-    REQUIRE(out_test->way.added == 140);
-    REQUIRE(out_test->way.modified == 0);
-    REQUIRE(out_test->way.deleted == 0);
-    REQUIRE(out_test->relation.added == 40);
-    REQUIRE(out_test->relation.modified == 0);
-    REQUIRE(out_test->relation.deleted == 0);
+    REQUIRE(output->sum_ids == 73514);
+    REQUIRE(output->sum_nds == 495);
+    REQUIRE(output->sum_members == 146);
+    REQUIRE(output->node.added == 353);
+    REQUIRE(output->node.modified == 0);
+    REQUIRE(output->node.deleted == 0);
+    REQUIRE(output->way.added == 140);
+    REQUIRE(output->way.modified == 0);
+    REQUIRE(output->way.deleted == 0);
+    REQUIRE(output->relation.added == 40);
+    REQUIRE(output->relation.modified == 0);
+    REQUIRE(output->relation.deleted == 0);
 
     auto const *mid_test = middle.get();
     REQUIRE(mid_test->node_count.added == 353);
@@ -272,7 +271,7 @@ TEST_CASE("invalid location")
     options_t options = testing::opt_t();
 
     auto const middle = std::make_shared<counting_middle_t>(false);
-    std::shared_ptr<output_t> output{new counting_output_t{options}};
+    auto const output = std::make_shared<counting_output_t>(options);
 
     auto counts = std::make_shared<counts_t>();
     auto dependency_manager =
@@ -281,9 +280,8 @@ TEST_CASE("invalid location")
     testing::parse_file(options, std::move(dependency_manager), middle,
                         {output}, "test_invalid_location.osm", false);
 
-    auto const *out_test = static_cast<counting_output_t *>(output.get());
-    REQUIRE(out_test->node.added == 0);
-    REQUIRE(out_test->way.added == 0);
-    REQUIRE(out_test->relation.added == 0);
+    REQUIRE(output->node.added == 0);
+    REQUIRE(output->way.added == 0);
+    REQUIRE(output->relation.added == 0);
 }
 

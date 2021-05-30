@@ -20,9 +20,10 @@
 class reprojection;
 class table_t;
 class tile;
+
 namespace ewkb {
 class parser_t;
-}
+} // namespace ewkb
 
 /**
  * \brief Simple struct for the x and y index of a tile ID.
@@ -114,11 +115,10 @@ struct expire_tiles
          * (larger than largest possible quadkey). */
         uint64_t last_quadkey = 1ULL << (2 * maxzoom);
         std::size_t count = 0;
-        for (std::vector<uint64_t>::const_iterator it = tiles_maxzoom.cbegin();
-             it != tiles_maxzoom.cend(); ++it) {
+        for (auto const quadkey : tiles_maxzoom) {
             for (uint32_t dz = 0; dz <= maxzoom - minzoom; ++dz) {
                 // scale down to the current zoom level
-                uint64_t qt_current = *it >> (dz * 2);
+                uint64_t qt_current = quadkey >> (dz * 2);
                 /* If dz > 0, there are propably multiple elements whose quadkey
                  * is equal because they are all sub-tiles of the same tile at the current
                  * zoom level. We skip all of them after we have written the first sibling.
@@ -130,7 +130,7 @@ struct expire_tiles
                 output_writer.output_dirty_tile(xy.x, xy.y, maxzoom - dz);
                 ++count;
             }
-            last_quadkey = *it;
+            last_quadkey = quadkey;
         }
         log_info("Wrote {} entries to expired tiles list", count);
     }
@@ -178,7 +178,7 @@ private:
      * \param y y index of the tile to be expired.
      */
     void expire_tile(uint32_t x, uint32_t y);
-    uint32_t normalise_tile_x_coord(int x);
+    uint32_t normalise_tile_x_coord(int x) const;
     void from_line(double lon_a, double lat_a, double lon_b, double lat_b);
 
     void from_wkb_point(ewkb::parser_t *wkb);

@@ -116,7 +116,7 @@ void expire_tiles::expire_tile(uint32_t x, uint32_t y)
     }
 }
 
-uint32_t expire_tiles::normalise_tile_x_coord(int x)
+uint32_t expire_tiles::normalise_tile_x_coord(int x) const
 {
     x %= map_width;
     if (x < 0) {
@@ -141,10 +141,10 @@ void expire_tiles::coords_to_tile(double lon, double lat, double *tilex,
 void expire_tiles::from_line(double lon_a, double lat_a, double lon_b,
                              double lat_b)
 {
-    double tile_x_a;
-    double tile_y_a;
-    double tile_x_b;
-    double tile_y_b;
+    double tile_x_a = NAN;
+    double tile_y_a = NAN;
+    double tile_x_b = NAN;
+    double tile_y_b = NAN;
 
     coords_to_tile(lon_a, lat_a, &tile_x_a, &tile_y_a);
     coords_to_tile(lon_b, lat_b, &tile_x_b, &tile_y_b);
@@ -237,8 +237,8 @@ int expire_tiles::from_bbox(double min_lon, double min_lat, double max_lon,
     }
 
     /* Convert the box's Mercator coordinates into tile coordinates */
-    double tmp_x;
-    double tmp_y;
+    double tmp_x = NAN;
+    double tmp_y = NAN;
     coords_to_tile(min_lon, max_lat, &tmp_x, &tmp_y);
     int min_tile_x = tmp_x - TILE_EXPIRY_LEEWAY;
     int min_tile_y = tmp_y - TILE_EXPIRY_LEEWAY;

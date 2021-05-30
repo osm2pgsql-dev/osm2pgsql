@@ -38,18 +38,21 @@ output_t::create_output(std::shared_ptr<middle_query_t> const &mid,
     if (options.output_backend == "pgsql") {
         return std::make_shared<output_pgsql_t>(mid, std::move(thread_pool),
                                                 options, copy_thread);
+    }
 
 #ifdef HAVE_LUA
-    } else if (options.output_backend == "flex") {
+    if (options.output_backend == "flex") {
         return std::make_shared<output_flex_t>(mid, std::move(thread_pool),
                                                options, copy_thread);
+    }
 #endif
 
-    } else if (options.output_backend == "gazetteer") {
+    if (options.output_backend == "gazetteer") {
         return std::make_shared<output_gazetteer_t>(mid, std::move(thread_pool),
                                                     options, copy_thread);
+    }
 
-    } else if (options.output_backend == "null") {
+    if (options.output_backend == "null") {
         return std::make_shared<output_null_t>(mid, std::move(thread_pool),
                                                options);
     }

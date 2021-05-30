@@ -782,16 +782,16 @@ static bool check_bucket_index(pg_conn_t *db_connection,
 middle_pgsql_t::middle_pgsql_t(std::shared_ptr<thread_pool_t> thread_pool,
                                options_t const *options)
 : middle_t(std::move(thread_pool)), m_options(options),
-  m_cache(new node_locations_t{static_cast<std::size_t>(options->cache) *
-                               1024UL * 1024UL}),
+  m_cache(std::make_unique<node_locations_t>(
+      static_cast<std::size_t>(options->cache) * 1024UL * 1024UL)),
   m_db_connection(m_options->database_options.conninfo()),
   m_copy_thread(
       std::make_shared<db_copy_thread_t>(options->database_options.conninfo())),
   m_db_copy(m_copy_thread)
 {
     if (!options->flat_node_file.empty()) {
-        m_persistent_cache.reset(new node_persistent_cache{
-            options->flat_node_file, options->droptemp});
+        m_persistent_cache = std::make_shared<node_persistent_cache>(
+            options->flat_node_file, options->droptemp);
     }
 
     log_debug("Mid: pgsql, cache={}", options->cache);

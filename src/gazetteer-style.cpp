@@ -21,15 +21,6 @@
 #include "pgsql.hpp"
 #include "wkb.hpp"
 
-namespace {
-
-enum : int
-{
-    MAX_ADMINLEVEL = 15
-};
-
-} // anonymous namespace
-
 namespace pt = boost::property_tree;
 
 void db_deleter_place_t::delete_rows(std::string const &table,
