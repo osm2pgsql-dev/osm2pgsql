@@ -19,10 +19,10 @@
 #include <unordered_map>
 
 #include <cassert>
-#include <cstdio>
 #include <cstdlib>
-#include <cstring>
 #include <functional>
+#include <memory>
+#include <utility>
 
 #include <osmium/builder/osm_object_builder.hpp>
 #include <osmium/memory/buffer.hpp>
@@ -31,6 +31,7 @@
 #include "format.hpp"
 #include "logging.hpp"
 #include "middle-pgsql.hpp"
+#include "node-locations.hpp"
 #include "node-persistent-cache.hpp"
 #include "options.hpp"
 #include "osmtypes.hpp"

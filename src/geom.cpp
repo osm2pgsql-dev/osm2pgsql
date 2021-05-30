@@ -14,7 +14,9 @@
 #include <osmium/osm/way.hpp>
 
 #include <algorithm>
+#include <cmath>
 #include <iterator>
+#include <tuple>
 
 namespace geom {
 

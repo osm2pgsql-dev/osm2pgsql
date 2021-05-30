@@ -22,8 +22,11 @@
 #include <osmium/osm/node_ref_list.hpp>
 #include <osmium/memory/buffer.hpp>
 
+#include <algorithm>
+#include <cassert>
 #include <initializer_list>
 #include <ostream>
+#include <utility>
 #include <vector>
 
 namespace geom {

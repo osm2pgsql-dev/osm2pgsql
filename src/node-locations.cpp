@@ -9,8 +9,6 @@
 
 #include "node-locations.hpp"
 
-#include <osmium/osm/location.hpp>
-
 // Workaround: This must be included before buffer_string.hpp due to a missing
 // include in the upstream code. https://github.com/mapbox/protozero/pull/104
 #include <protozero/config.hpp>
@@ -19,7 +17,6 @@
 #include <protozero/varint.hpp>
 
 #include <cassert>
-#include <limits>
 
 bool node_locations_t::set(osmid_t id, osmium::Location location)
 {

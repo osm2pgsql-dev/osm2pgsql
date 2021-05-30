@@ -7,9 +7,7 @@
  * For a full list of authors see the git log.
  */
 
-#include <algorithm>
 #include <cassert>
-#include <tuple>
 #include <vector>
 
 #include <osmium/area/geom_assembler.hpp>

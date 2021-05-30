@@ -10,9 +10,7 @@
  * For a full list of authors see the git log.
  */
 
-#include "format.hpp"
-#include "reprojection.hpp"
-
+#include <cassert>
 #include <cstdint>
 #include <string>
 

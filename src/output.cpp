@@ -15,7 +15,6 @@
 #include "output-null.hpp"
 #include "output-pgsql.hpp"
 #include "output.hpp"
-#include "taginfo-impl.hpp"
 
 #ifdef HAVE_LUA
 # include "output-flex.hpp"
@@ -24,8 +23,9 @@
 # define flex_backend ""
 #endif
 
-#include <cstring>
 #include <stdexcept>
+#include <string>
+#include <utility>
 
 std::shared_ptr<output_t>
 output_t::create_output(std::shared_ptr<middle_query_t> const &mid,

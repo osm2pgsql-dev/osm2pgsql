@@ -10,9 +10,13 @@
  * For a full list of authors see the git log.
  */
 
+#include "osmtypes.hpp"
+
 #include <string>
 
-#include "pgsql.hpp"
+class pg_conn_t;
+class pg_result_t;
+
 
 /**
  * Iterate over the result from a pgsql query and generate a list of all the

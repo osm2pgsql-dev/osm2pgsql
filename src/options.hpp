@@ -12,6 +12,7 @@
 
 #include <osmium/osm/box.hpp>
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>

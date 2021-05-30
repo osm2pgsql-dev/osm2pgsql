@@ -27,7 +27,6 @@
 #include "osmtypes.hpp"
 
 class osmdata_t;
-class progress_display_t;
 
 struct type_id_version
 {

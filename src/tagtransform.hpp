@@ -10,7 +10,7 @@
  * For a full list of authors see the git log.
  */
 
-#include <string>
+#include <memory>
 
 #include <osmium/memory/buffer.hpp>
 

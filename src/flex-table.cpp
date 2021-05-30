@@ -14,7 +14,6 @@
 #include "util.hpp"
 
 #include <cassert>
-#include <stdexcept>
 #include <string>
 
 char const *type_to_char(osmium::item_type type) noexcept

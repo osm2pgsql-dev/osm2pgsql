@@ -13,7 +13,6 @@
 
 #include <osmium/builder/osm_object_builder.hpp>
 #include <osmium/util/delta.hpp>
-#include <osmium/util/string.hpp>
 
 // Workaround: This must be included before buffer_string.hpp due to a missing
 // include in the upstream code. https://github.com/mapbox/protozero/pull/104
@@ -22,9 +21,7 @@
 #include <protozero/buffer_string.hpp>
 #include <protozero/varint.hpp>
 
-#include <algorithm>
 #include <cassert>
-#include <limits>
 #include <memory>
 
 middle_ram_t::middle_ram_t(std::shared_ptr<thread_pool_t> thread_pool,

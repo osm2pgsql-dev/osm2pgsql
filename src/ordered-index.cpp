@@ -10,6 +10,7 @@
 #include "ordered-index.hpp"
 
 #include <algorithm>
+#include <cassert>
 
 void ordered_index_t::add(osmid_t id, std::size_t offset)
 {

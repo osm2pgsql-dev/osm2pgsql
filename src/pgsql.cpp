@@ -15,8 +15,9 @@
 
 #include <array>
 #include <cassert>
-#include <cstdarg>
-#include <cstdio>
+#include <stdexcept>
+#include <string>
+#include <utility>
 
 pg_conn_t::pg_conn_t(std::string const &conninfo)
 : m_conn(PQconnectdb(conninfo.c_str()))

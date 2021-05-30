@@ -7,7 +7,9 @@
  * For a full list of authors see the git log.
  */
 
+#include "db-copy.hpp"
 #include "expire-tiles.hpp"
+#include "format.hpp"
 #include "geom-transform.hpp"
 #include "logging.hpp"
 #include "lua-init.hpp"
@@ -18,6 +20,7 @@
 #include "output-flex.hpp"
 #include "pgsql.hpp"
 #include "reprojection.hpp"
+#include "thread-pool.hpp"
 #include "util.hpp"
 #include "version.hpp"
 #include "wkb.hpp"
@@ -34,7 +37,6 @@ extern "C"
 #include <rapidjson/writer.h>
 
 #include <cassert>
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <limits>
