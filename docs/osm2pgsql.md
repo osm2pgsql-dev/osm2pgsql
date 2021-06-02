@@ -174,13 +174,13 @@ mandatory for short options too.
 # OUTPUT OPTIONS
 
 -O, \--output=OUTPUT
-:   Specifies the output back-end to use. Currently osm2pgsql
-    supports **pgsql**, **flex**, **gazetteer** and **null**. **pgsql** is
-    the default output back-end and is optimized for rendering with Mapnik.
-    **gazetteer** is intended for geocoding with Nominatim.
-    The experimental **flex** backend allows more flexible configuration.
-    **null** does not write any output and is only useful for testing or with
-    **\--slim** for creating slim tables.
+:   Specifies the output to use. Currently osm2pgsql supports **pgsql**,
+    **flex**, **gazetteer** and **null**. **pgsql** is
+    the default output still available for backwards compatibility. New
+    setups should use the **flex** output which allows for a much more flexible
+    configuration. The **gazetteer** output is intended for geocoding with
+    Nominatim only. The **null** output does not write anything and is only
+    useful for testing or with **\--slim** for creating slim tables.
 
 -S, \--style=FILE
 :   The style file. This specifies how the data is imported into the database,
