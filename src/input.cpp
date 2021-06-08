@@ -21,7 +21,7 @@
 #include "osmdata.hpp"
 #include "progress-display.hpp"
 
-type_id_version check_input(type_id_version const &last, type_id_version curr)
+type_id check_input(type_id const &last, type_id curr)
 {
     if (curr.id < 0) {
         throw std::runtime_error{
@@ -40,14 +40,10 @@ type_id_version check_input(type_id_version const &last, type_id_version curr)
                     osmium::item_type_to_name(last.type), curr.id, last.id)};
         }
 
-        if (last.version < curr.version) {
-            return curr;
-        }
-
         throw std::runtime_error{
-            "Input data is not ordered: {} id {} version {} after {}."_format(
-                osmium::item_type_to_name(last.type), curr.id, curr.version,
-                last.version)};
+            "Input data is not ordered:"
+            " {} id {} appears more than once."_format(
+                osmium::item_type_to_name(last.type), curr.id)};
     }
 
     if (item_type_to_nwr_index(last.type) <=
@@ -60,10 +56,9 @@ type_id_version check_input(type_id_version const &last, type_id_version curr)
         osmium::item_type_to_name(last.type))};
 }
 
-type_id_version check_input(type_id_version const &last,
-                            osmium::OSMObject const &object)
+type_id check_input(type_id const &last, osmium::OSMObject const &object)
 {
-    return check_input(last, {object.type(), object.id(), object.version()});
+    return check_input(last, {object.type(), object.id()});
 }
 
 /**
@@ -130,7 +125,7 @@ private:
     osmium::memory::Buffer m_buffer{};
     iterator m_it{};
     iterator m_end{};
-    type_id_version m_last = {osmium::item_type::node, 0, 0};
+    type_id m_last = {osmium::item_type::node, 0};
 
 }; // class data_source_t
 
@@ -274,7 +269,7 @@ static void process_single_file(osmium::io::File const &file,
                                 progress_display_t *progress, bool append)
 {
     osmium::io::Reader reader{file};
-    type_id_version last{osmium::item_type::node, 0, 0};
+    type_id last{osmium::item_type::node, 0};
 
     input_context_t ctx{osmdata, progress, append};
     while (osmium::memory::Buffer buffer = reader.read()) {
