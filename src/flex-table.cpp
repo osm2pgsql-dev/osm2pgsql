@@ -173,7 +173,7 @@ void table_connection_t::start(bool append)
 
     if (!append) {
         m_db_connection->exec(table().build_sql_create_table(
-            table().has_geom_column() ? flex_table_t::table_type::interim
+            table().cluster_by_geom() ? flex_table_t::table_type::interim
                                       : flex_table_t::table_type::permanent,
             table().full_name()));
 
