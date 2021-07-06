@@ -108,7 +108,11 @@ flex_table_t::build_sql_create_table(table_type ttype,
         ttype == table_type::interim ? "UNLOGGED" : "", table_name);
 
     for (auto const &column : m_columns) {
-        sql += column.sql_create();
+        // create_only columns are only created in permanent, not in the
+        // interim tables
+        if (ttype == table_type::permanent || !column.create_only()) {
+            sql += column.sql_create();
+        }
     }
 
     assert(sql.back() == ',');
@@ -214,8 +218,9 @@ void table_connection_t::stop(bool updateable, bool append)
         m_db_connection->exec(table().build_sql_create_table(
             flex_table_t::table_type::permanent, table().full_tmp_name()));
 
-        std::string sql = "INSERT INTO {} SELECT * FROM {}"_format(
-            table().full_tmp_name(), table().full_name());
+        std::string const columns = table().build_sql_column_list();
+        std::string sql = "INSERT INTO {} ({}) SELECT {} FROM {}"_format(
+            table().full_tmp_name(), columns, columns, table().full_name());
 
         auto const postgis_version = get_postgis_version(*m_db_connection);
 
