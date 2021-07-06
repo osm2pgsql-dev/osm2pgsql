@@ -50,14 +50,18 @@ def setUpModule():
     logging.info("Setting up test database")
     dbname = CONFIG['test_database']
 
-    with psycopg2.connect("dbname='template1'") as conn:
+    conn = psycopg2.connect("dbname='template1'")
+    try:
         conn.autocommit = True
         with conn.cursor() as cur:
             cur.execute('DROP DATABASE IF EXISTS "{}"'.format(dbname))
             cur.execute("CREATE DATABASE \"{}\" WITH ENCODING 'UTF8'"
                         .format(dbname))
+    finally:
+        conn.close()
 
-    with psycopg2.connect("dbname='{}'".format(dbname)) as conn:
+    conn = psycopg2.connect("dbname='{}'".format(dbname))
+    try:
         conn.autocommit = True
         with conn.cursor() as cur:
             # Check if there is a dataspace, we will skip tests otherwise.
@@ -68,17 +72,22 @@ def setUpModule():
 
             cur.execute('CREATE EXTENSION postgis')
             cur.execute('CREATE EXTENSION hstore')
+    finally:
+        conn.close()
 
 def tearDownModule():
     """ Destroy the global database.
     """
     logging.info("Cleaning up test database")
 
-    with psycopg2.connect("dbname='template1'") as conn:
+    conn = psycopg2.connect("dbname='template1'")
+    try:
+        conn.autocommit = True
         with conn.cursor() as cur:
-            conn.autocommit = True
             cur.execute('DROP DATABASE IF EXISTS "{}"'
                         .format(CONFIG['test_database']))
+    finally:
+        conn.close()
 
 ########################################################################
 #
@@ -111,13 +120,17 @@ class BaseRunner(object):
             cls.skipTest(None, "No Lua configured.")
         if 'tablespacetest' in cls.extra_params and not CONFIG['have_lua']:
             cls.skipTest(None, "Test tablespace 'tablespacetest' not configured.")
-        with psycopg2.connect("dbname='{}'".format(CONFIG['test_database'])) as conn:
+        conn = psycopg2.connect("dbname='{}'".format(CONFIG['test_database']))
+        try:
             with conn.cursor() as cur:
                 for t in ('nodes', 'ways', 'rels', 'point', 'line', 'roads', 'polygon'):
                     cur.execute("DROP TABLE IF EXISTS planet_osm_" + t)
                 cur.execute("DROP SCHEMA IF EXISTS osm CASCADE")
                 if cls.schema:
                     cur.execute("CREATE SCHEMA " + cls.schema)
+            conn.commit()
+        finally:
+            conn.close()
 
         if cls.import_file:
             cls.run_import(cls.get_def_params() + cls.extra_params,
@@ -134,8 +147,11 @@ class BaseRunner(object):
             BaseRunner.conn.close()
             BaseRunner.conn = None
         if cls.schema:
-            with psycopg2.connect("dbname='{}'".format(CONFIG['test_database'])) as conn:
+            conn = psycopg2.connect("dbname='{}'".format(CONFIG['test_database']))
+            try:
                 conn.cursor().execute("DROP SCHEMA IF EXISTS {} CASCADE".format(cls.schema))
+            finally:
+                conn.close()
         try:
             os.remove('flat.nodes')
         except (FileNotFoundError):
