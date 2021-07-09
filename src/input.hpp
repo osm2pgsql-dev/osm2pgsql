@@ -28,21 +28,19 @@
 
 class osmdata_t;
 
-struct type_id_version
+struct type_id
 {
     osmium::item_type type;
     osmid_t id;
-    osmium::object_version_type version;
 };
 
 /**
- * Compare two tuples (type, id, version) throw a descriptive error if either
- * the curr id is negative or if the data is not ordered.
+ * Compare two tuples (type, id). Throw a descriptive error if either the
+ * curr id is negative or if the data is not ordered.
  */
-type_id_version check_input(type_id_version const &last, type_id_version curr);
+type_id check_input(type_id const &last, type_id curr);
 
-type_id_version check_input(type_id_version const &last,
-                            osmium::OSMObject const &object);
+type_id check_input(type_id const &last, osmium::OSMObject const &object);
 
 /**
  * Prepare input file(s). Does format checks as far as this is possible
