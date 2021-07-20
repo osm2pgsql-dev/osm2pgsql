@@ -48,7 +48,7 @@ void create_geom_check_trigger(pg_conn_t *db_connection,
         "  END IF;\n"
         "  RETURN NULL;\n"
         "END;"
-        "$$ LANGUAGE plpgsql IMMUTABLE;"_format(func_name, geom_column));
+        "$$ LANGUAGE plpgsql;"_format(func_name, geom_column));
 
     db_connection->exec(
         "CREATE TRIGGER \"{}\""
