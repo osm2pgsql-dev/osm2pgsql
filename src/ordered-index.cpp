@@ -19,7 +19,8 @@ void ordered_index_t::add(osmid_t id, std::size_t offset)
             (last().offset_from + last().index.back().offset) < offset));
 
     if (need_new_2nd_level() ||
-        (id - last().from) > std::numeric_limits<uint32_t>::max()) {
+        (id - last().from) > std::numeric_limits<uint32_t>::max() ||
+        (offset - last().offset_from) >= std::numeric_limits<uint32_t>::max()) {
         if (!m_ranges.empty()) {
             m_ranges.back().to = id - 1;
         }
