@@ -31,7 +31,7 @@
  * An index that is never used doesn't need more memory than
  * sizeof(ordered_index_t).
  *
- * All allocated memory can be freed by calling clear(). Afer that the index
+ * All allocated memory can be freed by calling clear(). After that the index
  * can NOT be reused.
  *
  * There are two ways of accessing the data through the index:
@@ -185,7 +185,7 @@ private:
 
     std::pair<osmid_t, std::size_t> get_internal(osmid_t id) const noexcept;
 
-    static constexpr std::size_t const max_block_size = 16 * 1024 * 1204;
+    static constexpr std::size_t const max_block_size = 16 * 1024 * 1024;
 
     std::vector<range_entry> m_ranges;
     std::size_t m_block_size;
