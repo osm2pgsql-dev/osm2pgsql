@@ -1,0 +1,4 @@
+contact_links:
+  - name: osm2pgsql Discussions
+    url: https://github.com/openstreetmap/osm2pgsql/discussions
+    about: Ask questions, get support, share ideas and discuss with community members.

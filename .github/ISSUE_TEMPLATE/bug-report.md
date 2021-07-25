@@ -1,5 +1,11 @@
+---
+name: Report problems with the software
+about: You found a (possible) bug in osm2pgsql
+title: ''
+labels: ''
+assignees: ''
 
-# osm2pgsql bug report
+---
 
 ## What version of osm2pgsql are you using?
 
