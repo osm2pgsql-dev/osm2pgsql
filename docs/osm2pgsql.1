@@ -1,4 +1,4 @@
-.TH "OSM2PGSQL" "1" "1.5.0" "" ""
+.TH "OSM2PGSQL" "1" "1.5.1" "" ""
 .SH NAME
 .PP
 osm2pgsql \- Openstreetmap data to PostgreSQL converter
@@ -251,16 +251,17 @@ See documentation for details.
 .SH OUTPUT OPTIONS
 .TP
 .B \-O, \-\-output=OUTPUT
-Specifies the output back\-end to use.
+Specifies the output to use.
 Currently osm2pgsql supports \f[B]pgsql\f[], \f[B]flex\f[],
 \f[B]gazetteer\f[] and \f[B]null\f[].
-\f[B]pgsql\f[] is the default output back\-end and is optimized for
-rendering with Mapnik.
-\f[B]gazetteer\f[] is intended for geocoding with Nominatim.
-The experimental \f[B]flex\f[] backend allows more flexible
-configuration.
-\f[B]null\f[] does not write any output and is only useful for testing
-or with \f[B]\-\-slim\f[] for creating slim tables.
+\f[B]pgsql\f[] is the default output still available for backwards
+compatibility.
+New setups should use the \f[B]flex\f[] output which allows for a much
+more flexible configuration.
+The \f[B]gazetteer\f[] output is intended for geocoding with Nominatim
+only.
+The \f[B]null\f[] output does not write anything and is only useful for
+testing or with \f[B]\-\-slim\f[] for creating slim tables.
 .RS
 .RE
 .TP
