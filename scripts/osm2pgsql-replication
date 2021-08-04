@@ -350,7 +350,7 @@ def main():
         parser.print_help()
         exit(1)
 
-    logging.basicConfig(stream=sys.stderr,
+    logging.basicConfig(stream=sys.stdout,
                         format='{asctime} [{levelname}]: {message}',
                         style='{',
                         datefmt='%Y-%m-%d %H:%M:%S',
