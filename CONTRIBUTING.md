@@ -65,6 +65,13 @@ has been built with:
 
     argparse-manpage --pyfile scripts/osm2pgsql-replication --function get_parser
 
+This command can be installed with:
+
+```sh
+sudo apt-get install python3-argparse-manpage
+```
+
+
 Results should be checked into the repository.
 
 ## Platforms targeted
