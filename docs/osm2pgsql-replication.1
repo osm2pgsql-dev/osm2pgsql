@@ -35,7 +35,7 @@ how to use osm2pgsql\-replication.
     Download newly available data and apply it to the database.
 .SH OPTIONS 'osm2pgsql-replication init'
 usage: osm2pgsql-replication init [-h] [-q] [-v] [-d DB] [-U NAME] [-H HOST]
-                                  [-P PORT] [--prefix PREFIX]
+                                  [-P PORT] [-p PREFIX]
                                   [--osm-file FILE | --server URL]
 
 Initialise the replication process.
@@ -93,7 +93,7 @@ Database server host name or socket location
 Database server port
 
 .TP
-\fB\-\-prefix\fR PREFIX
+\fB\-p\fR PREFIX, \fB\-\-prefix\fR PREFIX
 Prefix for table names (default 'planet_osm')
 
 .TP
@@ -174,7 +174,7 @@ Database server host name or socket location
 Database server port
 
 .TP
-\fB\-\-prefix\fR PREFIX
+\fB\-p\fR PREFIX, \fB\-\-prefix\fR PREFIX
 Prefix for table names (default 'planet_osm')
 
 .SH DISTRIBUTION
