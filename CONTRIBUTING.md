@@ -63,7 +63,7 @@ The [osm2pgsql man page](docs/osm2pgsql.1) can be built from [source](docs/osm2p
 with `make man`. The [osm2pgsql-replication man page](docs/osm2pgsql-replication.1)
 has been built with:
 
-    argparse-manpage --pyfile scripts/osm2pgsql-replication --function get_parser
+    argparse-manpage --pyfile scripts/osm2pgsql-replication --function get_parser > docs/osm2pgsql-replication.1
 
 This command can be installed with:
 
