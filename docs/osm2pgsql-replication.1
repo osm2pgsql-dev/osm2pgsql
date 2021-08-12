@@ -128,6 +128,30 @@ Any additional arguments to osm2pgsql need to be given after '\-\-'. Database
 and the prefix parameter are handed through to osm2pgsql. They do not need
 .br
 to be repeated. '\-\-append' and '\-\-slim' will always be added as well.
+.br
+
+.br
+Use the '\-\-post\-processing' parameter to execute a script after osm2pgsql has
+.br
+run successfully. If the updates consists of multiple runs because the
+.br
+maximum size of downloaded data was reached, then the script is executed
+.br
+each time that osm2pgsql has run. When the post\-processing fails, then
+.br
+the entire update run is considered a failure and the replication information
+.br
+is not updated. That means that when 'update' is run the next time it will
+.br
+recommence with downloading the diffs again and reapplying them to the
+.br
+database. This is usually safe. The script receives two parameters:
+.br
+the sequence ID and timestamp of the last successful run. The timestamp
+.br
+may be missing in the rare case that the replication service stops responding
+.br
+after the updates have been downloaded.
 
 .TP
 \fBparam\fR
@@ -148,6 +172,10 @@ Path to osm2pgsql command (default: osm2pgsql)
 .TP
 \fB\-\-once\fR
 Run updates only once, even when more data is available.
+
+.TP
+\fB\-\-post\-processing\fR SCRIPT
+Post\-processing script to run after each execution of osm2pgsql.
 
 .TP
 \fB\-q\fR, \fB\-\-quiet\fR
@@ -177,7 +205,10 @@ Database server port
 \fB\-\-prefix\fR PREFIX
 Prefix for table names (default 'planet_osm')
 
+.SH AUTHORS
+.B osm2pgsql\-replication
+was written by <<UNSET \-\-author OPTION>> <<<UNSET \-\-author_email OPTION>>>.
 .SH DISTRIBUTION
 The latest version of osm2pgsql\-replication may be downloaded from
-.UR <<UNSET \-\-url OPTION>>
+.UR osm2pgsql.org
 .UE
