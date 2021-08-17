@@ -71,7 +71,7 @@ This command can be installed with:
 sudo apt-get install python3-argparse-manpage
 ```
 
-Remove the `.SH AUTHORS` section which this command adds
+Remove the `.SH AUTHORS` section which this command adds.
 
 Results should be checked into the repository.
 
