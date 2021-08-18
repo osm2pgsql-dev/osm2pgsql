@@ -63,7 +63,15 @@ The [osm2pgsql man page](docs/osm2pgsql.1) can be built from [source](docs/osm2p
 with `make man`. The [osm2pgsql-replication man page](docs/osm2pgsql-replication.1)
 has been built with:
 
-    argparse-manpage --pyfile scripts/osm2pgsql-replication --function get_parser
+    argparse-manpage --pyfile scripts/osm2pgsql-replication --function get_parser --project-name osm2pgsql-replication --url osm2pgsql.org > docs/osm2pgsql-replication.1
+
+This command can be installed with:
+
+```sh
+sudo apt-get install python3-argparse-manpage
+```
+
+Remove the `.SH AUTHORS` section which this command adds.
 
 Results should be checked into the repository.
 
