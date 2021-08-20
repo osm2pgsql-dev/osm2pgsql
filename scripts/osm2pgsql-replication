@@ -39,6 +39,28 @@ from osmium import WriteHandler
 
 LOG = logging.getLogger()
 
+def pretty_format_timedelta(seconds):
+    minutes = int(seconds/60)
+    (hours, minutes) = divmod(minutes, 60)
+    (days, hours) = divmod(hours, 24)
+    (weeks, days) = divmod(days, 7)
+
+    if 0 < seconds < 60:
+        output = "<1 minute"
+    else:
+        output = []
+        # If weeks > 1 but hours == 0, we still want to show "0 hours"
+        if weeks > 0:
+            output.append("{} week(s)".format(weeks))
+        if days > 0 or weeks > 0:
+            output.append("{} day(s)".format(days))
+        if hours > 0 or days > 0 or weeks > 0:
+            output.append("{} hour(s)".format(hours))
+
+        output.append("{} minute(s)".format(minutes))
+        output = " ".join(output)
+    return output
+
 def connect(args):
     """ Create a connection from the given command line arguments.
     """
@@ -114,6 +136,113 @@ def update_replication_state(conn, table, seq, date):
                         (seq,))
 
     conn.commit()
+
+def status(conn, args):
+    """\
+    Print information about the current replication status, optionally as JSON.
+
+    Sample output:
+
+        2021-08-17 15:20:28 [INFO]: Using replication service 'https://planet.openstreetmap.org/replication/minute', which is at sequence 4675115 ( 2021-08-17T13:19:43Z )
+        2021-08-17 15:20:28 [INFO]: Replication server's most recent data is <1 minute old
+        2021-08-17 15:20:28 [INFO]: Local database is 8288 sequences behind the server, i.e. 5 day(s) 20 hour(s) 58 minute(s)
+        2021-08-17 15:20:28 [INFO]: Local database's most recent data is 5 day(s) 20 hour(s) 59 minute(s) old
+
+
+    With the '--json' option, the status is printed as a json object.
+
+        {
+          "server": {
+            "base_url": "https://planet.openstreetmap.org/replication/minute",
+            "sequence": 4675116,
+            "timestamp": "2021-08-17T13:20:43Z",
+            "age_sec": 27
+          },
+          "local": {
+            "sequence": 4666827,
+            "timestamp": "2021-08-11T16:21:09Z",
+            "age_sec": 507601
+          },
+          "status": 0
+        }
+
+
+    'status' is 0 if there were no problems getting the status. 1 & 2 for
+    improperly set up replication. 3 for network issues. If status ≠ 0, then
+    the 'error' key is an error message (as string). 'status' is used as the
+    exit code.
+
+    'server' is the replication server's current status. 'sequence' is it's
+    sequence number, 'timestamp' the time of that, and 'age_sec' the age of the
+    data in seconds.
+
+    'local' is the status of your server.
+    """
+
+    results = {}
+
+    with conn.cursor() as cur:
+        cur.execute('SELECT * FROM pg_tables where tablename = %s', (args.table, ))
+        if cur.rowcount < 1:
+            results['status'] = 1
+            results['error'] = "Cannot find replication status table. Run 'osm2pgsql-replication init' first."
+        else:
+            cur.execute('SELECT * FROM "{}"'.format(args.table))
+            if cur.rowcount != 1:
+                results['status'] = 2
+                results['error'] = "Updates not set up correctly. Run 'osm2pgsql-updates init' first."
+            else:
+
+                base_url, db_seq, db_ts = cur.fetchone()
+                db_ts = db_ts.astimezone(dt.timezone.utc)
+                results['server'] = {}
+                results['local'] = {}
+                results['server']['base_url'] = base_url
+                results['local']['sequence'] = db_seq
+                results['local']['timestamp'] = db_ts.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+                repl = ReplicationServer(base_url)
+                state_info = repl.get_state_info()
+                if state_info is None:
+                    # PyOsmium was unable to download the state information
+                    results['status'] = 3
+                    results['error'] = "Unable to download the state information from {}".format(base_url)
+                else:
+                    results['status'] = 0
+                    now = dt.datetime.now(dt.timezone.utc)
+
+                    server_seq, server_ts = state_info
+                    server_ts = server_ts.astimezone(dt.timezone.utc)
+
+                    results['server']['sequence'] = server_seq
+                    results['server']['timestamp'] = server_ts.strftime("%Y-%m-%dT%H:%M:%SZ")
+                    results['server']['age_sec'] = int((now-server_ts).total_seconds())
+
+                    results['local']['age_sec'] = int((now - db_ts).total_seconds())
+
+    if args.json:
+        print(json.dumps(results))
+    else:
+        if results['status'] != 0:
+            LOG.fatal(results['error'])
+        else:
+            print("Using replication service '{}', which is at sequence {} ( {} )".format(
+                     results['server']['base_url'], results['server']['sequence'], results['server']['timestamp']))
+            print("Replication server's most recent data is {} old".format(pretty_format_timedelta(results['server']['age_sec'])))
+
+            if results['local']['sequence'] == results['server']['sequence']:
+                print("Local database is up to date with server")
+            else:
+                print("Local database is {} sequences behind the server, i.e. {}".format(
+                        results['server']['sequence'] - results['local']['sequence'],
+                        pretty_format_timedelta(results['local']['age_sec'] - results['server']['age_sec'])
+                    ))
+
+            print("Local database's most recent data is {} old".format(pretty_format_timedelta(results['local']['age_sec'])))
+
+
+    return results['status']
 
 
 def init(conn, args):
@@ -339,6 +468,16 @@ def get_parser():
                      help='Run updates only once, even when more data is available.')
     cmd.add_argument('--post-processing', metavar='SCRIPT',
                      help='Post-processing script to run after each execution of osm2pgsql.')
+
+    # Arguments for status
+    cmd = subs.add_parser('status', parents=[default_args],
+                          help=status.__doc__.split('\n', 1)[0],
+                          description=dedent(status.__doc__),
+                          formatter_class=RawDescriptionHelpFormatter,
+                          add_help=False)
+    cmd.add_argument('--json', action="store_true", default=False, help="Output status as json.")
+    cmd.set_defaults(handler=status)
+
 
     return parser
 
