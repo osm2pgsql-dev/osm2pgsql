@@ -563,7 +563,7 @@ void middle_pgsql_t::relation_delete(osmid_t osm_id)
 void middle_pgsql_t::after_nodes()
 {
     m_db_copy.sync();
-    if (m_options->flat_node_file.empty()) {
+    if (!m_options->append && m_options->flat_node_file.empty()) {
         auto const &table = m_tables.nodes();
         analyze_table(m_db_connection, table.schema(), table.name());
     }
@@ -572,15 +572,19 @@ void middle_pgsql_t::after_nodes()
 void middle_pgsql_t::after_ways()
 {
     m_db_copy.sync();
-    auto const &table = m_tables.ways();
-    analyze_table(m_db_connection, table.schema(), table.name());
+    if (!m_options->append) {
+        auto const &table = m_tables.ways();
+        analyze_table(m_db_connection, table.schema(), table.name());
+    }
 }
 
 void middle_pgsql_t::after_relations()
 {
     m_db_copy.sync();
-    auto const &table = m_tables.relations();
-    analyze_table(m_db_connection, table.schema(), table.name());
+    if (!m_options->append) {
+        auto const &table = m_tables.relations();
+        analyze_table(m_db_connection, table.schema(), table.name());
+    }
 
     // release the copy thread and its database connection
     m_copy_thread->finish();
