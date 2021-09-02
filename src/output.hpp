@@ -47,6 +47,13 @@ public:
     clone(std::shared_ptr<middle_query_t> const &mid,
           std::shared_ptr<db_copy_thread_t> const &copy_thread) const = 0;
 
+    /**
+     * Remove pointer to middle_query_t from output, so the middle_query_t
+     * is properly cleaned up and doesn't hold references to any datastructures
+     * any more.
+     */
+    void free_middle_references();
+
     virtual void start() = 0;
     virtual void stop() = 0;
     virtual void sync() = 0;
