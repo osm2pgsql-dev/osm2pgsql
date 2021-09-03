@@ -687,7 +687,7 @@ std::size_t output_flex_t::get_way_nodes()
 {
     assert(m_context_way);
     if (m_num_way_nodes == std::numeric_limits<std::size_t>::max()) {
-        m_num_way_nodes = m_mid->nodes_get_list(&m_context_way->nodes());
+        m_num_way_nodes = middle().nodes_get_list(&m_context_way->nodes());
     }
 
     return m_num_way_nodes;
@@ -1186,15 +1186,15 @@ output_flex_t::run_transform(geom::osmium_builder_t *builder,
                              osmium::Relation const &relation)
 {
     m_buffer.clear();
-    auto const num_ways = m_mid->rel_members_get(relation, &m_buffer,
-                                                 osmium::osm_entity_bits::way);
+    auto const num_ways = middle().rel_members_get(
+        relation, &m_buffer, osmium::osm_entity_bits::way);
 
     if (num_ways == 0) {
         return {};
     }
 
     for (auto &way : m_buffer.select<osmium::Way>()) {
-        m_mid->nodes_get_list(&(way.nodes()));
+        middle().nodes_get_list(&(way.nodes()));
     }
 
     return transform->run(builder, target_geom_type, relation, m_buffer);
@@ -1275,7 +1275,7 @@ void output_flex_t::pending_way(osmid_t id)
     }
 
     m_buffer.clear();
-    if (!m_mid->way_get(id, &m_buffer)) {
+    if (!middle().way_get(id, &m_buffer)) {
         return;
     }
 
@@ -1359,7 +1359,7 @@ void output_flex_t::select_relation_members(osmid_t id)
         return;
     }
 
-    if (!m_mid->relation_get(id, &m_rels_buffer)) {
+    if (!middle().relation_get(id, &m_rels_buffer)) {
         return;
     }
 
@@ -1374,7 +1374,7 @@ void output_flex_t::pending_relation(osmid_t id)
         return;
     }
 
-    if (!m_mid->relation_get(id, &m_rels_buffer)) {
+    if (!middle().relation_get(id, &m_rels_buffer)) {
         return;
     }
     auto const &relation = m_rels_buffer.get<osmium::Relation>(0);
@@ -1397,7 +1397,7 @@ void output_flex_t::pending_relation_stage1c(osmid_t id)
         return;
     }
 
-    if (!m_mid->relation_get(id, &m_rels_buffer)) {
+    if (!middle().relation_get(id, &m_rels_buffer)) {
         return;
     }
     auto const &relation = m_rels_buffer.get<osmium::Relation>(0);
@@ -1755,7 +1755,7 @@ void output_flex_t::reprocess_marked()
 
     for (osmid_t const id : *m_stage2_way_ids) {
         m_buffer.clear();
-        if (!m_mid->way_get(id, &m_buffer)) {
+        if (!middle().way_get(id, &m_buffer)) {
             continue;
         }
         auto &way = m_buffer.get<osmium::Way>(0);

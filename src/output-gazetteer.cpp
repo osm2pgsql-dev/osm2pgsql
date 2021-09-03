@@ -129,7 +129,7 @@ bool output_gazetteer_t::process_way(osmium::Way *way)
     }
 
     // Fetch the node details.
-    m_mid->nodes_get_list(&(way->nodes()));
+    middle().nodes_get_list(&(way->nodes()));
 
     // Get the geometry of the object.
     geom::osmium_builder_t::wkb_t geom;
@@ -189,15 +189,15 @@ bool output_gazetteer_t::process_relation(osmium::Relation const &rel)
 
     /* get the boundary path (ways) */
     m_osmium_buffer.clear();
-    auto const num_ways = m_mid->rel_members_get(rel, &m_osmium_buffer,
-                                                 osmium::osm_entity_bits::way);
+    auto const num_ways = middle().rel_members_get(
+        rel, &m_osmium_buffer, osmium::osm_entity_bits::way);
 
     if (num_ways == 0) {
         return false;
     }
 
     for (auto &w : m_osmium_buffer.select<osmium::Way>()) {
-        m_mid->nodes_get_list(&(w.nodes()));
+        middle().nodes_get_list(&(w.nodes()));
     }
 
     auto const geoms =

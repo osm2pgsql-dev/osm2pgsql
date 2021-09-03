@@ -95,6 +95,9 @@ public:
         return m_output_requirements;
     }
 
+private:
+    std::shared_ptr<middle_query_t> m_mid;
+
 protected:
     thread_pool_t &thread_pool() const noexcept
     {
@@ -102,8 +105,13 @@ protected:
         return *m_thread_pool;
     }
 
+    middle_query_t const &middle() const noexcept
+    {
+        assert(m_mid);
+        return *m_mid;
+    }
+
     std::shared_ptr<thread_pool_t> m_thread_pool;
-    std::shared_ptr<middle_query_t> m_mid;
     const options_t m_options;
     output_requirements m_output_requirements{};
 };
