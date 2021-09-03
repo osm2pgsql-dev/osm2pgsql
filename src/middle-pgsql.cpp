@@ -88,7 +88,7 @@ void middle_pgsql_t::table_desc::drop_table(
     auto const qual_name = qualified_name(schema(), name());
     db_connection.exec("DROP TABLE IF EXISTS {}"_format(qual_name));
 
-    log_info("Done postprocessing on table '{}' in {}", name(),
+    log_info("Table '{}' dropped in {}", name(),
              util::human_readable_duration(timer.stop()));
 }
 
