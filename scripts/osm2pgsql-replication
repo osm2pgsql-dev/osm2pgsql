@@ -68,7 +68,7 @@ def connect(args):
                             host=args.host, port=args.port)
 
 
-def compute_database_date(conn, prefix):
+def compute_database_date(conn, prefix, osm_server):
     """ Determine the date of the database from the newest object in the
         database.
     """
@@ -84,7 +84,7 @@ def compute_database_date(conn, prefix):
 
     LOG.debug("Using way id %d for timestamp lookup", osmid)
     # Get the way from the API to find the timestamp when it was created.
-    url = 'https://www.openstreetmap.org/api/0.6/way/{}/1'.format(osmid)
+    url = '{}/api/0.6/way/{}/1'.format(osm_server, osmid)
     headers = {"User-Agent" : "osm2pgsql-update",
                "Accept" : "application/json"}
     with urlrequest.urlopen(urlrequest.Request(url, headers=headers)) as response:
@@ -263,7 +263,7 @@ def init(conn, args):
     this with the '--server' parameter.
     """
     if args.osm_file is None:
-        date = compute_database_date(conn, args.prefix)
+        date = compute_database_date(conn, args.prefix, args.osm_server)
         if date is None:
             return 1
 
@@ -439,6 +439,9 @@ def get_parser():
                           formatter_class=RawDescriptionHelpFormatter,
                           add_help=False)
     grp = cmd.add_argument_group('Replication source arguments')
+    grp.add_argument('--osm-server', metavar='URL',
+                     default='https://www.openstreetmap.org',
+                     help='Use OpenStreetMap server at the given URL (default: %(default)s)')
     srcgrp = grp.add_mutually_exclusive_group()
     srcgrp.add_argument('--osm-file', metavar='FILE',
                         help='Get replication information from the given file.')
