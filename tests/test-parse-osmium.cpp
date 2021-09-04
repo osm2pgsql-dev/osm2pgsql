@@ -163,7 +163,7 @@ TEST_CASE("parse xml file")
         std::make_unique<counting_dependency_manager_t>(counts);
 
     testing::parse_file(options, std::move(dependency_manager), middle,
-                        {output}, "test_multipolygon.osm", false);
+                        output, "test_multipolygon.osm", false);
 
     REQUIRE(output->sum_ids == 4728);
     REQUIRE(output->sum_nds == 186);
@@ -202,7 +202,7 @@ TEST_CASE("parse diff file")
         std::make_unique<counting_dependency_manager_t>(counts);
 
     testing::parse_file(options, std::move(dependency_manager), middle,
-                        {output}, "008-ch.osc.gz", false);
+                        output, "008-ch.osc.gz", false);
 
     REQUIRE(output->node.added == 0);
     REQUIRE(output->node.modified == 1176);
@@ -239,7 +239,7 @@ TEST_CASE("parse xml file with extra args")
         std::make_unique<counting_dependency_manager_t>(counts);
 
     testing::parse_file(options, std::move(dependency_manager), middle,
-                        {output}, "test_multipolygon.osm", false);
+                        output, "test_multipolygon.osm", false);
 
     REQUIRE(output->sum_ids == 73514);
     REQUIRE(output->sum_nds == 495);
@@ -278,7 +278,7 @@ TEST_CASE("invalid location")
         std::make_unique<counting_dependency_manager_t>(counts);
 
     testing::parse_file(options, std::move(dependency_manager), middle,
-                        {output}, "test_invalid_location.osm", false);
+                        output, "test_invalid_location.osm", false);
 
     REQUIRE(output->node.added == 0);
     REQUIRE(output->way.added == 0);
