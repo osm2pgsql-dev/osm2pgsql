@@ -79,7 +79,7 @@ void output_pgsql_t::pending_way(osmid_t id)
 {
     // Try to fetch the way from the DB
     m_buffer.clear();
-    if (m_mid->way_get(id, &m_buffer)) {
+    if (middle().way_get(id, &m_buffer)) {
         pgsql_delete_way_from_output(id);
 
         taglist_t outtags;
@@ -87,7 +87,7 @@ void output_pgsql_t::pending_way(osmid_t id)
         bool roads = false;
         auto &way = m_buffer.get<osmium::Way>(0);
         if (!m_tagtransform->filter_tags(way, &polygon, &roads, outtags)) {
-            auto nnodes = m_mid->nodes_get_list(&(way.nodes()));
+            auto nnodes = middle().nodes_get_list(&(way.nodes()));
             if (nnodes > 1) {
                 pgsql_out_way(way, &outtags, polygon, roads);
                 return;
@@ -103,7 +103,7 @@ void output_pgsql_t::pending_relation(osmid_t id)
     // we cannot keep a reference to the relation and an autogrow buffer
     // might be relocated when more data is added.
     m_rels_buffer.clear();
-    if (m_mid->relation_get(id, &m_rels_buffer)) {
+    if (middle().relation_get(id, &m_rels_buffer)) {
         pgsql_delete_relation_from_output(id);
 
         auto const &rel = m_rels_buffer.get<osmium::Relation>(0);
@@ -163,7 +163,7 @@ void output_pgsql_t::way_add(osmium::Way *way)
 
     if (!filter) {
         /* Get actual node data and generate output */
-        auto nnodes = m_mid->nodes_get_list(&(way->nodes()));
+        auto nnodes = middle().nodes_get_list(&(way->nodes()));
         if (nnodes > 1) {
             pgsql_out_way(*way, &outtags, polygon, roads);
         }
@@ -209,7 +209,7 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
 
     m_buffer.clear();
     auto const num_ways =
-        m_mid->rel_members_get(rel, &m_buffer, osmium::osm_entity_bits::way);
+        middle().rel_members_get(rel, &m_buffer, osmium::osm_entity_bits::way);
 
     if (num_ways == 0) {
         return;
@@ -234,7 +234,7 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
     }
 
     for (auto &w : m_buffer.select<osmium::Way>()) {
-        m_mid->nodes_get_list(&(w.nodes()));
+        middle().nodes_get_list(&(w.nodes()));
     }
 
     // linear features and boundaries

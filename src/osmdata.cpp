@@ -372,6 +372,8 @@ void osmdata_t::reprocess_marked() const { m_output->reprocess_marked(); }
 
 void osmdata_t::postprocess_database() const
 {
+    m_output->free_middle_references();
+
     if (m_droptemp) {
         // When dropping middle tables, make sure they are gone before
         // indexing starts.

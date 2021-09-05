@@ -24,6 +24,20 @@
 #include <memory>
 #include <utility>
 
+/**
+ * Output overall memory usage as debug message.
+ *
+ * This only works on Linux.
+ */
+static void show_memory_usage()
+{
+    osmium::MemoryUsage mem;
+    if (mem.peak() != 0) {
+        log_debug("Overall memory usage: peak={}MByte current={}MByte",
+                  mem.peak(), mem.current());
+    }
+}
+
 static void run(options_t const &options)
 {
     auto const files = prepare_input_files(
@@ -55,6 +69,8 @@ static void run(options_t const &options)
     process_files(files, &osmdata, options.append,
                   get_logger().show_progress());
 
+    show_memory_usage();
+
     // Process pending ways and relations. Cluster database tables and
     // create indexes.
     osmdata.stop();
@@ -76,13 +92,7 @@ int main(int argc, char *argv[])
 
         run(options);
 
-        // Output overall memory usage. This only works on Linux.
-        osmium::MemoryUsage mem;
-        if (mem.peak() != 0) {
-            log_debug("Overall memory usage: peak={}MByte current={}MByte",
-                      mem.peak(), mem.current());
-        }
-
+        show_memory_usage();
         log_info("osm2pgsql took {} overall.",
                  util::human_readable_duration(timer_overall.stop()));
     } catch (std::exception const &e) {
