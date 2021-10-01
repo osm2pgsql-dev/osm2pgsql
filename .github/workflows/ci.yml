@@ -5,6 +5,8 @@ on: [ push, pull_request ]
 jobs:
   macos:
     runs-on: macos-latest
+    env:
+      LUA_VERSION: 5.4    
     steps:
       - uses: actions/checkout@v2
 
@@ -25,6 +27,8 @@ jobs:
         shell: bash
 
       - uses: ./.github/actions/build-and-test
+        with:
+          test-wrapper: ''
         env:
           PGHOST: /tmp
 
