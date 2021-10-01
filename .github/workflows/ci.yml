@@ -4,12 +4,7 @@ on: [ push, pull_request ]
 
 jobs:
   macos:
-
-    env:
-      LUA_VERSION: 5.2
-
     runs-on: macos-latest
-
     steps:
       - uses: actions/checkout@v2
 
@@ -30,8 +25,6 @@ jobs:
         shell: bash
 
       - uses: ./.github/actions/build-and-test
-        with:
-          test-wrapper:
         env:
           PGHOST: /tmp
 
@@ -216,7 +209,7 @@ jobs:
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
-  ubuntu20-pg12-gcc10-release:
+  ubuntu20-pg13-gcc10-release:
     runs-on: ubuntu-20.04
 
     env:
