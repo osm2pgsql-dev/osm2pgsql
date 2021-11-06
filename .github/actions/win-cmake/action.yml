@@ -1,0 +1,13 @@
+name: Windows CMake
+
+runs:
+  using: composite
+  steps:
+    - name: Create build directory
+      run: mkdir build
+      shell: bash
+    - name: Configure
+      run: cmake -LA .. -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DBUILD_TESTS=ON -DGETOPT_INCLUDE_DIR=$GETOPT_INCLUDE_DIR -DGETOPT_LIBRARY=$GETOPT_LIBRARY -DBoost_USE_STATIC_LIBS=ON
+      shell: bash
+      working-directory: build
+

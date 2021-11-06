@@ -197,3 +197,33 @@ jobs:
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
+  windows-2019:
+    runs-on: windows-2019
+    env:
+      GETOPT_INCLUDE_DIR: ${{ github.workspace }}/../wingetopt/src
+      GETOPT_LIBRARY: ${{ github.workspace }}/../wingetopt/build/Release/wingetopt.lib
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - uses: ./.github/actions/win-install
+      - uses: ./.github/actions/win-getopt
+      - uses: ./.github/actions/win-cmake
+      - uses: ./.github/actions/win-build
+      - uses: ./.github/actions/win-test
+
+  windows-2022:
+    runs-on: windows-2022
+    env:
+      GETOPT_INCLUDE_DIR: ${{ github.workspace }}/../wingetopt/src
+      GETOPT_LIBRARY: ${{ github.workspace }}/../wingetopt/build/Release/wingetopt.lib
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - uses: ./.github/actions/win-install
+      - uses: ./.github/actions/win-getopt
+      - uses: ./.github/actions/win-cmake
+      - uses: ./.github/actions/win-build
+      - uses: ./.github/actions/win-test
+
