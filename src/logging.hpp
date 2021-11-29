@@ -36,6 +36,9 @@ enum class log_level
  */
 class logger
 {
+    std::string generate_common_prefix(fmt::text_style const &ts,
+                                       char const *prefix);
+
 public:
     template <typename S, typename... TArgs>
     void log(log_level with_level, char const *prefix,
@@ -47,23 +50,7 @@ public:
 
         auto const &ts = m_use_color ? style : fmt::text_style{};
 
-        std::string str;
-
-        if (m_needs_leading_return) {
-            m_needs_leading_return = false;
-            str += '\n';
-        }
-
-        str += fmt::format("{:%Y-%m-%d %H:%M:%S}  ",
-                           fmt::localtime(std::time(nullptr)));
-
-        if (m_current_level == log_level::debug) {
-            str += fmt::format(ts, "[{}] ", this_thread_num);
-        }
-
-        if (prefix) {
-            str += fmt::format(ts, "{}: ", prefix);
-        }
+        auto str = generate_common_prefix(ts, prefix);
 
         str += fmt::format(ts, format_str, std::forward<TArgs>(args)...);
         str += '\n';
