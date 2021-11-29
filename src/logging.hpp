@@ -40,7 +40,7 @@ public:
     template <typename S, typename... TArgs>
     void log(log_level with_level, char const *prefix,
              fmt::text_style const &style, S const &format_str,
-             TArgs &&... tags) const
+             TArgs &&... args) const
     {
         if (with_level < m_current_level) {
             return;
@@ -59,7 +59,7 @@ public:
             str += fmt::format(ts, "{}: ", prefix);
         }
 
-        str += fmt::format(ts, format_str, std::forward<TArgs>(tags)...);
+        str += fmt::format(ts, format_str, std::forward<TArgs>(args)...);
         str += '\n';
 
         std::fputs(str.c_str(), stderr);
@@ -98,51 +98,51 @@ private:
 logger &get_logger() noexcept;
 
 template <typename S, typename... TArgs>
-void log_debug(S const &format_str, TArgs &&... tags)
+void log_debug(S const &format_str, TArgs &&... args)
 {
     get_logger().log(log_level::debug, nullptr, {}, format_str,
-                     std::forward<TArgs>(tags)...);
+                     std::forward<TArgs>(args)...);
 }
 
 template <typename S, typename... TArgs>
-void log_info(S const &format_str, TArgs &&... tags)
+void log_info(S const &format_str, TArgs &&... args)
 {
     get_logger().log(log_level::info, nullptr, {}, format_str,
-                     std::forward<TArgs>(tags)...);
+                     std::forward<TArgs>(args)...);
 }
 
 template <typename S, typename... TArgs>
-void log_warn(S const &format_str, TArgs &&... tags)
+void log_warn(S const &format_str, TArgs &&... args)
 {
     get_logger().log(log_level::warn, "WARNING", fg(fmt::color::red),
-                     format_str, std::forward<TArgs>(tags)...);
+                     format_str, std::forward<TArgs>(args)...);
 }
 
 template <typename S, typename... TArgs>
-void log_error(S const &format_str, TArgs &&... tags)
+void log_error(S const &format_str, TArgs &&... args)
 {
     get_logger().log(log_level::error, "ERROR",
                      fmt::emphasis::bold | fg(fmt::color::red), format_str,
-                     std::forward<TArgs>(tags)...);
+                     std::forward<TArgs>(args)...);
 }
 
 template <typename S, typename... TArgs>
-void log_sql(S const &format_str, TArgs &&... tags)
+void log_sql(S const &format_str, TArgs &&... args)
 {
     auto const &logger = get_logger();
     if (logger.log_sql()) {
         logger.log(log_level::error, "SQL", fg(fmt::color::blue), format_str,
-                   std::forward<TArgs>(tags)...);
+                   std::forward<TArgs>(args)...);
     }
 }
 
 template <typename S, typename... TArgs>
-void log_sql_data(S const &format_str, TArgs &&... tags)
+void log_sql_data(S const &format_str, TArgs &&... args)
 {
     auto const &logger = get_logger();
     if (logger.log_sql_data()) {
         logger.log(log_level::error, "SQL", {}, format_str,
-                   std::forward<TArgs>(tags)...);
+                   std::forward<TArgs>(args)...);
     }
 }
 
