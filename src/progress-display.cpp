@@ -40,6 +40,7 @@ void progress_display_t::print_summary() const
     std::time_t const now = std::time(nullptr);
 
     if (m_enabled) {
+        get_logger().no_leading_return();
         fmt::print(stderr, "\r{:90s}\r", "");
     }
 
@@ -62,6 +63,7 @@ void progress_display_t::print_summary() const
 void progress_display_t::print_status(std::time_t now) const
 {
     if (m_enabled) {
+        get_logger().needs_leading_return();
         fmt::print(stderr,
                    "\rProcessing: Node({}k {:.1f}k/s) Way({}k {:.2f}k/s)"
                    " Relation({} {:.1f}/s)",

@@ -36,11 +36,13 @@ enum class log_level
  */
 class logger
 {
+    std::string generate_common_prefix(fmt::text_style const &ts,
+                                       char const *prefix);
+
 public:
     template <typename S, typename... TArgs>
     void log(log_level with_level, char const *prefix,
-             fmt::text_style const &style, S const &format_str,
-             TArgs &&... tags) const
+             fmt::text_style const &style, S const &format_str, TArgs &&...args)
     {
         if (with_level < m_current_level) {
             return;
@@ -48,18 +50,9 @@ public:
 
         auto const &ts = m_use_color ? style : fmt::text_style{};
 
-        std::string str = fmt::format("{:%Y-%m-%d %H:%M:%S}  ",
-                                      fmt::localtime(std::time(nullptr)));
+        auto str = generate_common_prefix(ts, prefix);
 
-        if (m_current_level == log_level::debug) {
-            str += fmt::format(ts, "[{}] ", this_thread_num);
-        }
-
-        if (prefix) {
-            str += fmt::format(ts, "{}: ", prefix);
-        }
-
-        str += fmt::format(ts, format_str, std::forward<TArgs>(tags)...);
+        str += fmt::format(ts, format_str, std::forward<TArgs>(args)...);
         str += '\n';
 
         std::fputs(str.c_str(), stderr);
@@ -81,11 +74,15 @@ public:
     void disable_progress() noexcept { m_show_progress = false; }
     void auto_progress() noexcept { m_show_progress = osmium::util::isatty(2); }
 
+    void needs_leading_return() noexcept { m_needs_leading_return = true; }
+    void no_leading_return() noexcept { m_needs_leading_return = false; }
+
 private:
     log_level m_current_level = log_level::info;
     bool m_log_sql = false;
     bool m_log_sql_data = false;
     bool m_show_progress = true;
+    bool m_needs_leading_return = false;
 
 #ifdef _WIN32
     bool m_use_color = false;
@@ -98,51 +95,51 @@ private:
 logger &get_logger() noexcept;
 
 template <typename S, typename... TArgs>
-void log_debug(S const &format_str, TArgs &&... tags)
+void log_debug(S const &format_str, TArgs &&... args)
 {
     get_logger().log(log_level::debug, nullptr, {}, format_str,
-                     std::forward<TArgs>(tags)...);
+                     std::forward<TArgs>(args)...);
 }
 
 template <typename S, typename... TArgs>
-void log_info(S const &format_str, TArgs &&... tags)
+void log_info(S const &format_str, TArgs &&... args)
 {
     get_logger().log(log_level::info, nullptr, {}, format_str,
-                     std::forward<TArgs>(tags)...);
+                     std::forward<TArgs>(args)...);
 }
 
 template <typename S, typename... TArgs>
-void log_warn(S const &format_str, TArgs &&... tags)
+void log_warn(S const &format_str, TArgs &&... args)
 {
     get_logger().log(log_level::warn, "WARNING", fg(fmt::color::red),
-                     format_str, std::forward<TArgs>(tags)...);
+                     format_str, std::forward<TArgs>(args)...);
 }
 
 template <typename S, typename... TArgs>
-void log_error(S const &format_str, TArgs &&... tags)
+void log_error(S const &format_str, TArgs &&... args)
 {
     get_logger().log(log_level::error, "ERROR",
                      fmt::emphasis::bold | fg(fmt::color::red), format_str,
-                     std::forward<TArgs>(tags)...);
+                     std::forward<TArgs>(args)...);
 }
 
 template <typename S, typename... TArgs>
-void log_sql(S const &format_str, TArgs &&... tags)
+void log_sql(S const &format_str, TArgs &&... args)
 {
-    auto const &logger = get_logger();
+    auto &logger = get_logger();
     if (logger.log_sql()) {
         logger.log(log_level::error, "SQL", fg(fmt::color::blue), format_str,
-                   std::forward<TArgs>(tags)...);
+                   std::forward<TArgs>(args)...);
     }
 }
 
 template <typename S, typename... TArgs>
-void log_sql_data(S const &format_str, TArgs &&... tags)
+void log_sql_data(S const &format_str, TArgs &&... args)
 {
-    auto const &logger = get_logger();
+    auto &logger = get_logger();
     if (logger.log_sql_data()) {
         logger.log(log_level::error, "SQL", {}, format_str,
-                   std::forward<TArgs>(tags)...);
+                   std::forward<TArgs>(args)...);
     }
 }
 
