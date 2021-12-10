@@ -23,19 +23,22 @@ public:
     explicit generic_reprojection_t(int srs) : m_target_srs(srs), pj_target(srs)
     {}
 
-    osmium::geom::Coordinates reproject(osmium::Location loc) const override
+    geom::point_t reproject(geom::point_t point) const override
     {
-        double const lon = osmium::geom::deg_to_rad(loc.lon_without_check());
-        double const lat = osmium::geom::deg_to_rad(loc.lat_without_check());
+        double const lon = osmium::geom::deg_to_rad(point.x());
+        double const lat = osmium::geom::deg_to_rad(point.y());
 
-        return osmium::geom::transform(pj_source, pj_target,
-                                       osmium::geom::Coordinates{lon, lat});
+        auto const c = osmium::geom::transform(
+            pj_source, pj_target, osmium::geom::Coordinates{lon, lat});
+        return {c.x, c.y};
     }
 
-    osmium::geom::Coordinates
-    target_to_tile(osmium::geom::Coordinates coords) const override
+    geom::point_t target_to_tile(geom::point_t point) const override
     {
-        return osmium::geom::transform(pj_target, pj_tile, coords);
+        auto const c = osmium::geom::transform(
+            pj_target, pj_tile,
+            osmium::geom::Coordinates{point.x(), point.y()});
+        return {c.x, c.y};
     }
 
     int target_srs() const noexcept override { return m_target_srs; }

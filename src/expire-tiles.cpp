@@ -128,11 +128,10 @@ uint32_t expire_tiles::normalise_tile_x_coord(int x) const
 void expire_tiles::coords_to_tile(double lon, double lat, double *tilex,
                                   double *tiley)
 {
-    auto const c =
-        projection->target_to_tile(osmium::geom::Coordinates{lon, lat});
+    auto const c = projection->target_to_tile(geom::point_t{lon, lat});
 
-    *tilex = map_width * (0.5 + c.x / EARTH_CIRCUMFERENCE);
-    *tiley = map_width * (0.5 - c.y / EARTH_CIRCUMFERENCE);
+    *tilex = map_width * (0.5 + c.x() / EARTH_CIRCUMFERENCE);
+    *tiley = map_width * (0.5 - c.y() / EARTH_CIRCUMFERENCE);
 }
 
 /*

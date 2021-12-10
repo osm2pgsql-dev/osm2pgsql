@@ -38,7 +38,7 @@ if (NOT CMAKE_BUILD_TYPE)
 endif()
 
 if (NOT "${CMAKE_CXX_STANDARD}")
-    set(CMAKE_CXX_STANDARD 14)
+    set(CMAKE_CXX_STANDARD 17)
 endif()
 message(STATUS "Building in C++${CMAKE_CXX_STANDARD} mode")
 set(CMAKE_CXX_EXTENSIONS OFF)

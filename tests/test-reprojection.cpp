@@ -21,13 +21,13 @@ TEST_CASE("projection 4326", "[NoDB]")
     REQUIRE(reprojection->target_srs() == srs);
     REQUIRE(reprojection->target_latlon());
 
-    auto const c = reprojection->reproject(loc);
-    REQUIRE(c.x == Approx(10.0));
-    REQUIRE(c.y == Approx(53.0));
+    auto const c = reprojection->reproject(geom::point_t{loc});
+    REQUIRE(c.x() == Approx(10.0));
+    REQUIRE(c.y() == Approx(53.0));
 
     auto const ct = reprojection->target_to_tile(c);
-    REQUIRE(ct.x == Approx(1113194.91));
-    REQUIRE(ct.y == Approx(6982997.92));
+    REQUIRE(ct.x() == Approx(1113194.91));
+    REQUIRE(ct.y() == Approx(6982997.92));
 }
 
 TEST_CASE("projection 3857", "[NoDB]")
@@ -39,13 +39,13 @@ TEST_CASE("projection 3857", "[NoDB]")
     REQUIRE(reprojection->target_srs() == srs);
     REQUIRE_FALSE(reprojection->target_latlon());
 
-    auto const c = reprojection->reproject(loc);
-    REQUIRE(c.x == Approx(1113194.91));
-    REQUIRE(c.y == Approx(6982997.92));
+    auto const c = reprojection->reproject(geom::point_t{loc});
+    REQUIRE(c.x() == Approx(1113194.91));
+    REQUIRE(c.y() == Approx(6982997.92));
 
     auto const ct = reprojection->target_to_tile(c);
-    REQUIRE(ct.x == Approx(1113194.91));
-    REQUIRE(ct.y == Approx(6982997.92));
+    REQUIRE(ct.x() == Approx(1113194.91));
+    REQUIRE(ct.y() == Approx(6982997.92));
 }
 
 #ifdef HAVE_GENERIC_PROJ
@@ -58,12 +58,12 @@ TEST_CASE("projection 5651", "[NoDB]")
     REQUIRE(reprojection->target_srs() == srs);
     REQUIRE_FALSE(reprojection->target_latlon());
 
-    auto const c = reprojection->reproject(loc);
-    REQUIRE(c.x == Approx(31969448.78));
-    REQUIRE(c.y == Approx(5895222.39));
+    auto const c = reprojection->reproject(geom::point_t{loc});
+    REQUIRE(c.x() == Approx(31969448.78));
+    REQUIRE(c.y() == Approx(5895222.39));
 
     auto const ct = reprojection->target_to_tile(c);
-    REQUIRE(ct.x == Approx(1113194.91));
-    REQUIRE(ct.y == Approx(6982997.92));
+    REQUIRE(ct.x() == Approx(1113194.91));
+    REQUIRE(ct.y() == Approx(6982997.92));
 }
 #endif

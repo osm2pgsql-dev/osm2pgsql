@@ -10,6 +10,7 @@
 #include "db-copy.hpp"
 #include "expire-tiles.hpp"
 #include "format.hpp"
+#include "geom-functions.hpp"
 #include "geom-transform.hpp"
 #include "logging.hpp"
 #include "lua-init.hpp"
@@ -644,11 +645,19 @@ void output_flex_t::write_column(
 
 void output_flex_t::write_row(table_connection_t *table_connection,
                               osmium::item_type id_type, osmid_t id,
-                              std::string const &geom, int srid)
+                              geom::geometry_t const &geom, int srid)
 {
     assert(table_connection);
     table_connection->new_line();
     auto *copy_mgr = table_connection->copy_mgr();
+
+    geom::geometry_t projected_geom;
+    geom::geometry_t const* output_geom = &geom;
+    if (srid && geom.srid() != srid) {
+        auto const proj = reprojection::create_projection(srid);
+        projected_geom = geom::transform(geom, *proj);
+        output_geom = &projected_geom;
+    }
 
     for (auto const &column : table_connection->table()) {
         if (column.create_only()) {
@@ -659,19 +668,28 @@ void output_flex_t::write_row(table_connection_t *table_connection,
         } else if (column.type() == table_column_type::id_num) {
             copy_mgr->add_column(id);
         } else if (column.is_geometry_column()) {
-            assert(!geom.empty());
-            copy_mgr->add_hex_geom(geom);
+            assert(!geom.is_null());
+            auto const type = column.type();
+            bool const wrap_multi =
+                (type == table_column_type::multilinestring ||
+                 type == table_column_type::multipolygon);
+            copy_mgr->add_hex_geom(geom_to_ewkb(*output_geom, wrap_multi));
         } else if (column.type() == table_column_type::area) {
-            if (geom.empty()) {
+            if (geom.is_null()) {
                 write_null(copy_mgr, column);
             } else {
                 // if srid of the area column is the same as for the geom column
-                double const area =
-                    column.srid() == srid
-                        ? ewkb::parser_t(geom)
-                              .get_area<osmium::geom::IdentityProjection>()
-                        : ewkb::parser_t(geom).get_area<reprojection>(
-                              reprojection::create_projection(srid).get());
+                double area = 0;
+                if (column.srid() == 4326) {
+                    area = geom::area(geom);
+                } else if (column.srid() == srid) {
+                    area = geom::area(projected_geom);
+                } else {
+                    // XXX there is some overhead here always dynamically
+                    // creating the same projection object. Needs refactoring.
+                    auto const mproj = reprojection::create_projection(column.srid());
+                    area = geom::area(geom::transform(geom, *mproj));
+                }
                 copy_mgr->add_column(area);
             }
         } else {
@@ -1158,32 +1176,27 @@ get_default_transform(flex_table_column_t const &column,
             column.name())};
 }
 
-geom::osmium_builder_t::wkbs_t
-output_flex_t::run_transform(geom::osmium_builder_t *builder,
-                             geom_transform_t const *transform,
-                             table_column_type target_geom_type,
-                             osmium::Node const &node)
+geom::geometry_t output_flex_t::run_transform(reprojection const &proj,
+                                              geom_transform_t const *transform,
+                                              osmium::Node const &node)
 {
-    return transform->run(builder, target_geom_type, node);
+    return transform->convert(proj, node);
 }
 
-geom::osmium_builder_t::wkbs_t
-output_flex_t::run_transform(geom::osmium_builder_t *builder,
-                             geom_transform_t const *transform,
-                             table_column_type target_geom_type,
-                             osmium::Way const & /*way*/)
+geom::geometry_t output_flex_t::run_transform(reprojection const &proj,
+                                              geom_transform_t const *transform,
+                                              osmium::Way const & /*way*/)
 {
     if (get_way_nodes() <= 1U) {
         return {};
     }
-    return transform->run(builder, target_geom_type, m_context_way);
+
+    return transform->convert(proj, *m_context_way);
 }
 
-geom::osmium_builder_t::wkbs_t
-output_flex_t::run_transform(geom::osmium_builder_t *builder,
-                             geom_transform_t const *transform,
-                             table_column_type target_geom_type,
-                             osmium::Relation const &relation)
+geom::geometry_t output_flex_t::run_transform(reprojection const &proj,
+                                              geom_transform_t const *transform,
+                                              osmium::Relation const &relation)
 {
     m_buffer.clear();
     auto const num_ways = middle().rel_members_get(
@@ -1197,7 +1210,7 @@ output_flex_t::run_transform(geom::osmium_builder_t *builder,
         middle().nodes_get_list(&(way.nodes()));
     }
 
-    return transform->run(builder, target_geom_type, relation, m_buffer);
+    return transform->convert(proj, relation, m_buffer);
 }
 
 template <typename OBJECT>
@@ -1210,7 +1223,7 @@ void output_flex_t::add_row(table_connection_t *table_connection,
     osmid_t const id = table.map_id(object.type(), object.id());
 
     if (!table.has_geom_column()) {
-        write_row(table_connection, object.type(), id, "", 0);
+        write_row(table_connection, object.type(), id, {}, 0);
         return;
     }
 
@@ -1231,12 +1244,27 @@ void output_flex_t::add_row(table_connection_t *table_connection,
         transform = get_default_transform(table.geom_column(), object.type());
     }
 
-    auto *builder = table_connection->get_builder();
-    auto const wkbs =
-        run_transform(builder, transform, table.geom_column().type(), object);
-    for (auto const &wkb : wkbs) {
+    auto const &proj = table_connection->proj();
+    auto const type = table.geom_column().type();
+
+    // The geometry returned by run_transform() is in 4326 if it is a
+    // (multi)polygon. If it is a point or linestring, it is already in the
+    // target geometry.
+    auto const geom = run_transform(proj, transform, object);
+
+    // We need to split a multi geometry into its parts if the geometry
+    // column can only take non-multi geometries or if the transform
+    // explicitly asked us to split, which is the case when an area
+    // transform explicitly set `split_at = 'multi'`.
+    bool const split_multi = type == table_column_type::linestring ||
+                             type == table_column_type::polygon ||
+                             transform->split();
+
+    auto const geoms = geom::split_multi(geom, split_multi);
+    for (auto const &sgeom : geoms) {
+        auto const wkb = geom_to_ewkb(sgeom);
         m_expire.from_wkb(wkb, id);
-        write_row(table_connection, object.type(), id, wkb,
+        write_row(table_connection, object.type(), id, sgeom,
                   table.geom_column().srid());
     }
 }
