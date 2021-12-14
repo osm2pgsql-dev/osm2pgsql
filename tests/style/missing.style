@@ -1,0 +1,5 @@
+# OsmType  Tag    DataType     Flags
+node       node1  text         linear
+node       node2  text
+way        way1   text         polygon
+way        way2   text
