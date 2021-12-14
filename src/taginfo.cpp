@@ -84,10 +84,6 @@ static unsigned get_tag_type(std::string const &tag)
 
 bool read_style_file(std::string const &filename, export_list *exlist)
 {
-    char osmtype[24];
-    char tag[64];
-    char datatype[24];
-    char flags[128];
     bool enable_way_area = true;
 
     FILE *const in = std::fopen(filename.c_str(), "rt");
@@ -110,6 +106,10 @@ bool read_style_file(std::string const &filename, export_list *exlist)
         }
 
         //grab the expected fields for this row
+        char osmtype[24] = {0};
+        char tag[64] = {0};
+        char datatype[24] = {0};
+        char flags[128] = {0};
         int const fields = std::sscanf(buffer, "%23s %63s %23s %127s", osmtype,
                                        tag, datatype, flags);
         if (fields <= 0) { /* Blank line */
@@ -124,7 +124,7 @@ bool read_style_file(std::string const &filename, export_list *exlist)
         }
 
         //place to keep info about this tag
-        taginfo temp;
+        taginfo temp{};
         temp.name = tag;
         temp.type = datatype;
         temp.flags = parse_tag_flags(flags, lineno);

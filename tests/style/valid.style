@@ -1,0 +1,12 @@
+# OsmType  Tag               DataType     Flags
+node       node_text_linear  text         linear
+way        way_text_linear   text         linear
+node,way   both_text_linear  text         linear
+
+node       node_text_polygon text         polygon
+way        way_text_polygon  text         polygon
+node,way   both_text_polygon text         polygon
+
+node,way   both_nocolumn     text         nocolumn
+
+node,way   both_delete       text         delete

@@ -1,0 +1,4 @@
+# OsmType  Tag         DataType  Flags
+node,way   name        text      linear
+way        width       real      linear
+node,way   population  integer   polygon
