@@ -80,7 +80,7 @@ namespace osmium {
             ProblemReporter(ProblemReporter&&) noexcept = default;
             ProblemReporter& operator=(ProblemReporter&&) noexcept = default;
 
-            virtual ~ProblemReporter() = default;
+            virtual ~ProblemReporter() noexcept = default;
 
             /**
              * Set the object the next problem reports will be on.

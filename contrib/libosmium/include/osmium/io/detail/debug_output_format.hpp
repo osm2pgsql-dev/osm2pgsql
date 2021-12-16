@@ -261,7 +261,7 @@ namespace osmium {
                     }
                 }
 
-                void write_tags(const osmium::TagList& tags, const char* padding="") {
+                void write_tags(const osmium::TagList& tags, const char* padding = "") {
                     if (tags.empty()) {
                         return;
                     }

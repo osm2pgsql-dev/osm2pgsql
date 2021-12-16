@@ -217,7 +217,7 @@ namespace osmium {
          * @param it Iterator specifying outer ring.
          * @returns Iterator to first inner ring in specified outer ring.
          */
-        OSMIUM_DEPRECATED osmium::memory::ItemIterator<const osmium::InnerRing> inner_ring_cbegin(const osmium::memory::ItemIterator<const osmium::OuterRing>& it) const {
+        OSMIUM_DEPRECATED static osmium::memory::ItemIterator<const osmium::InnerRing> inner_ring_cbegin(const osmium::memory::ItemIterator<const osmium::OuterRing>& it) {
             return it.cast<const osmium::InnerRing>();
         }
 
@@ -230,7 +230,7 @@ namespace osmium {
          * @param it Iterator specifying outer ring.
          * @returns Iterator one past last inner ring in specified outer ring.
          */
-        OSMIUM_DEPRECATED osmium::memory::ItemIterator<const osmium::InnerRing> inner_ring_cend(const osmium::memory::ItemIterator<const osmium::OuterRing>& it) const {
+        OSMIUM_DEPRECATED static osmium::memory::ItemIterator<const osmium::InnerRing> inner_ring_cend(const osmium::memory::ItemIterator<const osmium::OuterRing>& it) {
             return std::next(it).cast<const osmium::InnerRing>();
         }
 

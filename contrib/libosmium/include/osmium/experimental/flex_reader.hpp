@@ -73,7 +73,6 @@ namespace osmium {
                 m_entities((entities & ~osmium::osm_entity_bits::area) | (m_with_areas ? osmium::osm_entity_bits::node | osmium::osm_entity_bits::way : osmium::osm_entity_bits::nothing)),
                 m_location_handler(location_handler),
                 m_reader(file, m_entities),
-                m_assembler_config(),
                 m_collector(m_assembler_config)
             {
                 m_location_handler.ignore_errors();

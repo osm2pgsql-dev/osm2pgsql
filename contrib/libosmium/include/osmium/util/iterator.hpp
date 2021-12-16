@@ -44,7 +44,7 @@ namespace osmium {
         using iterator = It;
 
         explicit iterator_range(P&& p) noexcept :
-            P(std::forward<P>(p)) {
+            P(std::move(p)) {
         }
 
         It begin() const noexcept {

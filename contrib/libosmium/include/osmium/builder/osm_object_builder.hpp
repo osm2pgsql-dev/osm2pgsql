@@ -405,6 +405,10 @@ namespace osmium {
 
             constexpr static const std::size_t min_size_for_user = osmium::memory::padded_length(sizeof(string_size_type) + 1);
 
+            void set_user_size(string_size_type size) noexcept {
+                std::memcpy(item_pos() + sizeof(T), &size, sizeof(string_size_type));
+            }
+
         public:
 
             explicit OSMObjectBuilder(osmium::memory::Buffer& buffer, Builder* parent = nullptr) :
@@ -412,11 +416,11 @@ namespace osmium {
                 new (&item()) T{};
                 add_size(min_size_for_user);
                 std::memset(object().data() + sizeof(T), 0, min_size_for_user);
-                object().set_user_size(1);
+                set_user_size(1);
             }
 
             /**
-             * Get a reference to the object buing built.
+             * Get a reference to the object being built.
              *
              * Note that this reference will be invalidated by every action
              * on the builder that might make the buffer grow. This includes
@@ -427,7 +431,7 @@ namespace osmium {
             }
 
             /**
-             * Get a const reference to the object buing built.
+             * Get a const reference to the object being built.
              *
              * Note that this reference will be invalidated by every action
              * on the builder that might make the buffer grow. This includes
@@ -454,7 +458,7 @@ namespace osmium {
                     add_size(static_cast<uint32_t>(space_needed));
                 }
                 std::memcpy(object().data() + size_of_object, user, length);
-                object().set_user_size(length + 1);
+                set_user_size(length + 1);
 
                 return static_cast<TDerived&>(*this);
             }

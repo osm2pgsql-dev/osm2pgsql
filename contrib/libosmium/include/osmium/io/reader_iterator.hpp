@@ -45,7 +45,7 @@ namespace osmium {
         }
 
         inline InputIterator<Reader> end(Reader& /*reader*/) {
-            return InputIterator<Reader>();
+            return {};
         }
 
     } // namespace io

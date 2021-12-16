@@ -276,7 +276,7 @@ namespace osmium {
 
             std::string read() override {
                 const auto offset = ftell(m_file.file());
-                if (offset > 0) {
+                if (offset > 0 && want_buffered_pages_removed()) {
                     osmium::io::detail::remove_buffered_pages(fileno(m_file.file()), static_cast<std::size_t>(offset));
                 }
 #ifdef _MSC_VER
@@ -325,7 +325,9 @@ namespace osmium {
 
             void close() override {
                 if (m_bzfile) {
-                    osmium::io::detail::remove_buffered_pages(fileno(m_file.file()));
+                    if (want_buffered_pages_removed()) {
+                        osmium::io::detail::remove_buffered_pages(fileno(m_file.file()));
+                    }
 #ifdef _MSC_VER
                     osmium::detail::disable_invalid_parameter_handler diph;
 #endif

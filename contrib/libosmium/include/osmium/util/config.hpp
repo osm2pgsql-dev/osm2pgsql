@@ -103,6 +103,19 @@ namespace osmium {
             return value;
         }
 
+        inline int8_t clean_page_cache_after_read() noexcept {
+            const char* env = osmium::detail::getenv_wrapper("OSMIUM_CLEAN_PAGE_CACHE_AFTER_READ");
+            if (env) {
+                if (!strcasecmp(env, "yes")) {
+                    return 1;
+                }
+                if (!strcasecmp(env, "no")) {
+                    return -1;
+                }
+            }
+            return 0;
+        }
+
     } // namespace config
 
 } // namespace osmium

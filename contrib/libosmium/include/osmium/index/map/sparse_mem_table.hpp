@@ -38,6 +38,7 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/index/index.hpp>
 #include <osmium/index/map.hpp>
 #include <osmium/io/detail/read_write.hpp>
+#include <osmium/util/compatibility.hpp>
 
 #include <google/sparsetable>
 
@@ -63,9 +64,12 @@ namespace osmium {
              * country extracts).
              *
              * This will only work on 64 bit machines.
+             *
+             * @deprecated
+             * Use one of the other indexes instead.
              */
             template <typename TId, typename TValue>
-            class SparseMemTable : public osmium::index::map::Map<TId, TValue> {
+            class OSMIUM_DEPRECATED SparseMemTable : public osmium::index::map::Map<TId, TValue> {
 
                 TId m_grow_size;
 

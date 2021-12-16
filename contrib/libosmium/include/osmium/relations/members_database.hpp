@@ -205,11 +205,11 @@ namespace osmium {
              */
             struct counts {
                 /// The number of members tracked and not found yet.
-                std::size_t tracked   = 0;
+                std::size_t tracked = 0;
                 /// The number of members tracked and found already.
                 std::size_t available = 0;
                 /// The number of members that were tracked, found and then removed because of a completed relation.
-                std::size_t removed   = 0;
+                std::size_t removed = 0;
             };
 
             /**

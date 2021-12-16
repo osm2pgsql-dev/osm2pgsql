@@ -60,7 +60,7 @@ namespace osmium {
              * All other parameters are forwarded to the Reader.
              */
             template <typename... TArgs>
-            ReaderWithProgressBar(bool enable, TArgs&&... args) :
+            explicit ReaderWithProgressBar(bool enable, TArgs&&... args) :
                 Reader(std::forward<TArgs>(args)...),
                 m_progress_bar(file_size(), enable) {
             }

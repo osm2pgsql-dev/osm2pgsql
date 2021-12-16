@@ -80,7 +80,7 @@ namespace osmium {
 
             template <int SIZE, typename THandlers>
             struct call_flush<SIZE, SIZE, THandlers> {
-                void operator()(THandlers&) {}
+                void operator()(THandlers& /*handlers*/) {}
             }; // struct call_flush
 
             OSMIUM_CHAIN_HANDLER_CALL(node, Node)

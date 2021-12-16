@@ -207,7 +207,7 @@ namespace osmium {
                 const char* end_ptr = data + std::strlen(data);
 
                 while (data != end_ptr) {
-                    const char* last = data;
+                    const char* prev = data;
                     const uint32_t c = next_utf8_codepoint(&data, end_ptr);
 
                     // This is a list of Unicode code points that we let
@@ -223,7 +223,7 @@ namespace osmium {
                         (0x0041 <= c && c <= 0x007e) ||
                         (0x00a1 <= c && c <= 0x00ac) ||
                         (0x00ae <= c && c <= 0x05ff)) {
-                        out.append(last, data);
+                        out.append(prev, data);
                     } else {
                         out += '%';
                         if (c <= 0xff) {
@@ -258,7 +258,7 @@ namespace osmium {
                 const char* end_ptr = data + std::strlen(data);
 
                 while (data != end_ptr) {
-                    const char* last = data;
+                    const char* prev = data;
                     uint32_t c = next_utf8_codepoint(&data, end_ptr);
 
                     // This is a list of Unicode code points that we let
@@ -272,7 +272,7 @@ namespace osmium {
                         (0x003f <= c && c <= 0x007e) ||
                         (0x00a1 <= c && c <= 0x00ac) ||
                         (0x00ae <= c && c <= 0x05ff)) {
-                        out.append(last, data);
+                        out.append(prev, data);
                     } else {
                         out.append(prefix);
                         out.append("<U+");
@@ -284,8 +284,7 @@ namespace osmium {
             }
 
             template <typename TOutputIterator>
-            TOutputIterator append_codepoint_as_utf8(uint32_t cp, TOutputIterator out)
-            {
+            TOutputIterator append_codepoint_as_utf8(uint32_t cp, TOutputIterator out) {
                 if (cp < 0x80UL) {
                     *(out++) = static_cast<char>(cp);
                 } else if (cp < 0x800UL) {

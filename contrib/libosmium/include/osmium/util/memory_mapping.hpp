@@ -157,7 +157,7 @@ namespace osmium {
 #ifdef _WIN32
                 return 0;
 #else
-                struct statvfs stat;
+                struct statvfs stat{};
                 const int result = ::fstatvfs(fd, &stat);
                 if (result != 0) {
                     return 0;
@@ -559,11 +559,11 @@ namespace osmium {
 #pragma GCC diagnostic ignored "-Wold-style-cast"
 
 inline bool osmium::util::MemoryMapping::is_valid() const noexcept {
-    return m_addr != MAP_FAILED; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
+    return m_addr != MAP_FAILED; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
 }
 
 inline void osmium::util::MemoryMapping::make_invalid() noexcept {
-    m_addr = MAP_FAILED; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
+    m_addr = MAP_FAILED; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
 }
 
 #pragma GCC diagnostic pop

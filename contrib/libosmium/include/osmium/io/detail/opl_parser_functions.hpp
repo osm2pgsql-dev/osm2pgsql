@@ -122,7 +122,7 @@ namespace osmium {
              * Check whether s points to something else than the end of the
              * string or a space or tab.
              */
-            inline bool opl_non_empty(const char *s) {
+            inline bool opl_non_empty(const char* s) {
                 return *s != '\0' && *s != ' ' && *s != '\t';
             }
 
@@ -206,43 +206,38 @@ namespace osmium {
                 *data = s;
             }
 
-            // Arbitrary limit how long integers can get
-            enum {
-                max_int_len = 16
-            };
-
             template <typename T>
             inline T opl_parse_int(const char** s) {
-                if (**s == '\0') {
-                    throw opl_error{"expected integer", *s};
-                }
                 const bool negative = (**s == '-');
                 if (negative) {
                     ++*s;
                 }
 
-                int64_t value = 0;
-
-                int n = max_int_len;
-                while (**s >= '0' && **s <= '9') {
-                    if (--n == 0) {
-                        throw opl_error{"integer too long", *s};
-                    }
-                    value *= 10;
-                    value += **s - '0';
-                    ++*s;
-                }
-
-                if (n == max_int_len) {
+                if (**s < '0' || **s > '9') {
                     throw opl_error{"expected integer", *s};
                 }
 
+                int64_t value = 0;
+                while (**s >= '0' && **s <= '9') {
+                    if (value <= -922337203685477580) {
+                        if ((value < -922337203685477580) || (**s > '8')) {
+                            throw opl_error("integer too long", *s);
+                        }
+                    }
+                    value *= 10;
+                    value -= **s - '0';
+                    ++*s;
+                }
+
                 if (negative) {
-                    value = -value;
                     if (value < std::numeric_limits<T>::min()) {
                         throw opl_error{"integer too long", *s};
                     }
                 } else {
+                    if (value == std::numeric_limits<int64_t>::min()) {
+                        throw opl_error{"integer too long", *s};
+                    }
+                    value = -value;
                     if (value > std::numeric_limits<T>::max()) {
                         throw opl_error{"integer too long", *s};
                     }

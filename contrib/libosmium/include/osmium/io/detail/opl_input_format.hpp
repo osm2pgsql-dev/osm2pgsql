@@ -155,7 +155,7 @@ namespace osmium {
                 file_format::opl,
                 [](parser_arguments& args) {
                     return std::unique_ptr<Parser>(new OPLParser{args});
-            });
+                });
 
             // dummy function to silence the unused variable warning from above
             inline bool get_registered_opl_parser() noexcept {

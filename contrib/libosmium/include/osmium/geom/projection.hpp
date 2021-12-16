@@ -68,7 +68,7 @@ namespace osmium {
          *
          * @deprecated Only supports the old PROJ API.
          */
-        class CRS {
+        class OSMIUM_DEPRECATED CRS {
 
             struct ProjCRSDeleter {
                 void operator()(void* crs) {
@@ -143,7 +143,7 @@ namespace osmium {
          *
          * @deprecated Only supports the old PROJ API.
          */
-        class Projection {
+        class OSMIUM_DEPRECATED Projection {
 
             int m_epsg;
             std::string m_proj_string;
@@ -152,9 +152,9 @@ namespace osmium {
 
         public:
 
-            explicit Projection(const std::string& proj_string) :
+            explicit Projection(std::string proj_string) :
                 m_epsg(-1),
-                m_proj_string(proj_string),
+                m_proj_string(std::move(proj_string)),
                 m_crs_user(proj_string) {
             }
 

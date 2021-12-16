@@ -44,6 +44,7 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/osm/node_ref_list.hpp>
 #include <osmium/osm/types.hpp>
 #include <osmium/osm/way.hpp>
+#include <osmium/util/compatibility.hpp>
 
 #include <cstddef>
 #include <stdexcept>
@@ -56,7 +57,7 @@ namespace osmium {
      * Exception thrown when an invalid geometry is encountered. An example
      * would be a linestring with less than two points.
      */
-    class geometry_error : public std::runtime_error {
+    class OSMIUM_EXPORT geometry_error : public std::runtime_error {
 
         std::string m_message;
         osmium::object_id_type m_id;

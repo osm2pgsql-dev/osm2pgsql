@@ -33,6 +33,8 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
+#include <osmium/util/compatibility.hpp>
+
 #include <stdexcept>
 #include <string>
 
@@ -42,7 +44,7 @@ namespace osmium {
      * Exception thrown when a projection object can not be initialized or the
      * projection of some coordinates can not be calculated.
      */
-    struct projection_error : public std::runtime_error {
+    struct OSMIUM_EXPORT projection_error : public std::runtime_error {
 
         explicit projection_error(const std::string& what) :
             std::runtime_error(what) {

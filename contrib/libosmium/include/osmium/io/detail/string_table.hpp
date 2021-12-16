@@ -215,7 +215,7 @@ namespace osmium {
                     std::size_t hash = 5381;
                     int c = 0;
 
-                    while ((c = static_cast<signed char>(*str++))) {
+                    while ((c = static_cast<signed char>(*str++))) { // NOLINT(bugprone-signed-char-misuse,cert-str34-c)
                         hash = ((hash << 5U) + hash) + c; /* hash * 33 + c */
                     }
 

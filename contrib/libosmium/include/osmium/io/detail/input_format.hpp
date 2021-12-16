@@ -58,12 +58,15 @@ namespace osmium {
 
             struct parser_arguments {
                 osmium::thread::Pool& pool;
+                int fd;
                 future_string_queue_type& input_queue;
                 future_buffer_queue_type& output_queue;
                 std::promise<osmium::io::Header>& header_promise;
+                std::atomic<std::size_t>* offset_ptr;
                 osmium::osm_entity_bits::type read_which_entities;
                 osmium::io::read_meta read_metadata;
                 osmium::io::buffers_type buffers_kind;
+                bool want_buffered_pages_removed;
             };
 
             class Parser {
@@ -264,7 +267,7 @@ namespace osmium {
                 }
 
                 bool register_parser(const osmium::io::file_format format, create_parser_type&& create_function) {
-                    callbacks(format) = std::forward<create_parser_type>(create_function);
+                    callbacks(format) = std::move(create_function);
                     return true;
                 }
 
@@ -274,11 +277,11 @@ namespace osmium {
                         return func;
                     }
                     throw unsupported_file_format_error{
-                            std::string{"Can not open file '"} +
-                            file.filename() +
-                            "' with type '" +
-                            as_string(file.format()) +
-                            "'. No support for reading this format in this program."};
+                        std::string{"Can not open file '"} +
+                        file.filename() +
+                        "' with type '" +
+                        as_string(file.format()) +
+                        "'. No support for reading this format in this program."};
                 }
 
             }; // class ParserFactory

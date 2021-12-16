@@ -33,6 +33,8 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
+#include <osmium/util/compatibility.hpp>
+
 #include <stdexcept>
 #include <string>
 
@@ -41,7 +43,7 @@ namespace osmium {
     /**
      * Exception thrown when some kind of input/output operation failed.
      */
-    struct io_error : public std::runtime_error {
+    struct OSMIUM_EXPORT io_error : public std::runtime_error {
 
         explicit io_error(const std::string& what) :
             std::runtime_error(what) {

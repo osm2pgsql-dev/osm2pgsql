@@ -208,7 +208,7 @@ namespace osmium {
             }
 
             if (user()) {
-                 result += "user+";
+                result += "user+";
             }
 
             // remove last '+' character

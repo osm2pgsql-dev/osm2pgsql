@@ -91,8 +91,7 @@ namespace osmium {
             m_prev(begin),
             m_curr(begin),
             m_next(begin == end ? begin : ++begin),
-            m_end(std::move(end)),
-            m_diff() {
+            m_end(std::move(end)) {
         }
 
         DiffIterator& operator++() {

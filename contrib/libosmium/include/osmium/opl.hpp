@@ -36,6 +36,8 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/io/detail/opl_parser_functions.hpp>
 #include <osmium/memory/buffer.hpp>
 
+#include <cassert>
+
 namespace osmium {
 
     /**
@@ -51,9 +53,9 @@ namespace osmium {
      * @throws osmium::opl_error If the parsing fails.
      */
     inline bool opl_parse(const char* data, osmium::memory::Buffer& buffer) {
+        assert(data);
         try {
             const bool wrote_something = osmium::io::detail::opl_parse_line(0, data, buffer);
-            buffer.commit();
             return wrote_something;
         } catch (const osmium::opl_error&) {
             buffer.rollback();
