@@ -67,6 +67,7 @@ set_test(test-reprojection LABELS NoDB)
 set_test(test-taginfo LABELS NoDB)
 set_test(test-util LABELS NoDB)
 set_test(test-wildcard-match LABELS NoDB)
+set_test(test-wkb LABELS NoDB)
 
 # these tests require LUA support
 if (HAVE_LUA)

@@ -13,17 +13,13 @@
 #include <memory>
 #include <unordered_set>
 
+#include "geom.hpp"
+#include "geom-box.hpp"
 #include "logging.hpp"
 #include "osmtypes.hpp"
 #include "pgsql.hpp"
 
 class reprojection;
-class table_t;
-class tile;
-
-namespace ewkb {
-class parser_t;
-} // namespace ewkb
 
 /**
  * \brief Simple struct for the x and y index of a tile ID.
@@ -63,9 +59,11 @@ struct expire_tiles
 
     bool enabled() const noexcept { return maxzoom != 0; }
 
+    void from_geometry(geom::geometry_t const &geom, osmid_t osm_id);
+
+    int from_bbox(geom::box_t const &box);
     int from_bbox(double min_lon, double min_lat, double max_lon,
                   double max_lat);
-    void from_wkb(std::string const &wkb, osmid_t osm_id);
 
     /**
      * Expire tiles based on an osm id.
@@ -181,9 +179,7 @@ private:
     uint32_t normalise_tile_x_coord(int x) const;
     void from_line(double lon_a, double lat_a, double lon_b, double lat_b);
 
-    void from_wkb_point(ewkb::parser_t *wkb);
-    void from_wkb_line(ewkb::parser_t *wkb);
-    void from_wkb_polygon(ewkb::parser_t *wkb, osmid_t osm_id);
+    void from_point_list(geom::point_list_t const &list);
 
     double tile_width;
     double max_bbox;
