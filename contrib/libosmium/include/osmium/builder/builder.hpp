@@ -87,8 +87,12 @@ namespace osmium {
             }
 #endif
 
-            osmium::memory::Item& item() const {
-                return *reinterpret_cast<osmium::memory::Item*>(m_buffer.data() + m_buffer.committed() + m_item_offset);
+            unsigned char* item_pos() const noexcept {
+                return m_buffer.data() + m_buffer.committed() + m_item_offset;
+            }
+
+            osmium::memory::Item& item() const noexcept {
+                return *reinterpret_cast<osmium::memory::Item*>(item_pos());
             }
 
             unsigned char* reserve_space(std::size_t size) {

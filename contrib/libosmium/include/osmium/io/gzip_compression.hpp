@@ -223,7 +223,7 @@ namespace osmium {
 #else
 # if ZLIB_VERNUM >= 0x1240
                 const auto offset = ::gzoffset(m_gzfile);
-                if (offset > 0) {
+                if (offset > 0 && want_buffered_pages_removed()) {
                     osmium::io::detail::remove_buffered_pages(m_fd, static_cast<std::size_t>(offset));
                 }
 # endif
@@ -243,7 +243,9 @@ namespace osmium {
 
             void close() override {
                 if (m_gzfile) {
-                    osmium::io::detail::remove_buffered_pages(m_fd);
+                    if (want_buffered_pages_removed()) {
+                        osmium::io::detail::remove_buffered_pages(m_fd);
+                    }
 #ifdef _MSC_VER
                     osmium::detail::disable_invalid_parameter_handler diph;
 #endif

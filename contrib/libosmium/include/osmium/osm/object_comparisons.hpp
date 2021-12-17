@@ -87,8 +87,24 @@ namespace osmium {
     struct id_order {
 
         bool operator()(const object_id_type lhs, const object_id_type rhs) const noexcept {
-            return const_tie(lhs > 0, std::abs(lhs)) <
-                   const_tie(rhs > 0, std::abs(rhs));
+            if (rhs == 0) {
+                return false;
+            }
+            if (lhs == 0) {
+                return true;
+            }
+            if (lhs < 0) {
+                if (rhs > 0) {
+                    return true;
+                }
+                // rhs < 0
+                return lhs > rhs;
+            }
+            // lhs > 0
+            if (rhs < 0) {
+                return false;
+            }
+            return lhs < rhs;
         }
 
     }; // struct id_order

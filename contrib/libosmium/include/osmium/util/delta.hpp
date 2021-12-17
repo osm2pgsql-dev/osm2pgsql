@@ -33,8 +33,6 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
-#include <osmium/util/cast.hpp>
-
 #include <cassert>
 #include <cstdint>
 #include <type_traits>

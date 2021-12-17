@@ -89,8 +89,7 @@ namespace osmium {
                     &*output.begin(),
                     static_cast<int>(input.size()),
                     output_size,
-                    compression_level
-                );
+                    compression_level);
 
                 if (result == 0) {
                     throw io_error{"LZ4 compression failed"};
@@ -119,8 +118,7 @@ namespace osmium {
                     input,
                     &*output.begin(),
                     static_cast<int>(input_size),
-                    static_cast<int>(raw_size)
-                );
+                    static_cast<int>(raw_size));
 
                 if (result < 0) {
                     throw io_error{"LZ4 decompression failed: invalid block"};

@@ -305,15 +305,13 @@ namespace osmium {
     template <typename TItem, typename... THandlers>
     inline void apply_item(TItem& item, THandlers&&... handlers) {
         (void)std::initializer_list<int>{
-            (detail::apply_item_impl(item, std::forward<THandlers>(handlers)), 0)...
-        };
+            (detail::apply_item_impl(item, std::forward<THandlers>(handlers)), 0)...};
     }
 
     template <typename... THandlers>
     inline void apply_flush(THandlers&&... handlers) {
         (void)std::initializer_list<int>{
-            (std::forward<THandlers>(handlers).flush(), 0)...
-        };
+            (std::forward<THandlers>(handlers).flush(), 0)...};
     }
 
     template <typename TIterator, typename... THandlers>

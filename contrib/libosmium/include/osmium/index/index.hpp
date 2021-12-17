@@ -33,6 +33,8 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
+#include <osmium/util/compatibility.hpp>
+
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -45,7 +47,7 @@ namespace osmium {
      * Exception signaling that an element could not be
      * found in an index.
      */
-    struct not_found : public std::runtime_error {
+    struct OSMIUM_EXPORT not_found : public std::runtime_error {
 
         explicit not_found(const std::string& what) :
             std::runtime_error(what) {

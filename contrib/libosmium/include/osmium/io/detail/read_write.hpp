@@ -272,7 +272,11 @@ namespace osmium {
 #ifdef __linux__
             inline void remove_buffered_pages(int fd, std::size_t size) noexcept {
                 constexpr const std::size_t block_size = 4096;
-                if (fd > 0 && size > 0) {
+                // Make sure to keep the last 10 blocks around, so were are
+                // definitely not removing something which might be needed
+                // again soon.
+                if (fd > 0 && size > 10 * block_size) {
+                    size -= 10 * block_size;
                     ::posix_fadvise(fd, 0, (size - 1) & ~(block_size - 1), POSIX_FADV_DONTNEED);
                 }
 #else

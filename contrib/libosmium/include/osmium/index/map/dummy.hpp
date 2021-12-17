@@ -56,6 +56,14 @@ namespace osmium {
 
                 Dummy() = default;
 
+                Dummy(const Dummy&) = default;
+                Dummy& operator=(const Dummy&) = default;
+
+                Dummy(Dummy&&) noexcept = default;
+                Dummy& operator=(Dummy&&) noexcept = default;
+
+                ~Dummy() noexcept override = default;
+
                 void set(const TId /*id*/, const TValue /*value*/) final {
                     // intentionally left blank
                 }

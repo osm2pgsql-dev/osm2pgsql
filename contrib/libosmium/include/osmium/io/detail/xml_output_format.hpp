@@ -116,7 +116,7 @@ namespace osmium {
                     op_delete = 3
                 }; // enum class operation
 
-                operation m_last_op {operation::op_none};
+                operation m_last_op{operation::op_none};
 
                 xml_output_options m_options;
 

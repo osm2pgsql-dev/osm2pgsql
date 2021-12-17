@@ -84,8 +84,7 @@ namespace osmium {
             m_top_right(top_right) {
             assert(
                 (!!bottom_left && !!top_right) ||
-                (bottom_left.x() <= top_right.x() && bottom_left.y() <= top_right.y())
-            );
+                (bottom_left.x() <= top_right.x() && bottom_left.y() <= top_right.y()));
         }
 
         /**

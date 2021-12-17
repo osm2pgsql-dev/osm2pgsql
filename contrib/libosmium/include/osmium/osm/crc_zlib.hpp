@@ -63,7 +63,7 @@ namespace osmium {
         }
 
         void process_bytes(const void* buffer, std::size_t byte_count) noexcept {
-            m_crc32 = ::crc32(m_crc32, reinterpret_cast<const unsigned char *>(buffer), static_cast<unsigned int>(byte_count));
+            m_crc32 = ::crc32(m_crc32, reinterpret_cast<const unsigned char*>(buffer), static_cast<unsigned int>(byte_count));
         }
 
         unsigned long checksum() const noexcept { // NOLINT(google-runtime-int)

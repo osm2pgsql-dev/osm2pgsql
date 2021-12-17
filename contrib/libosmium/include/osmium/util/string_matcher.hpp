@@ -33,8 +33,6 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
-#include <boost/variant.hpp>
-
 #include <algorithm>
 #include <cstring>
 #include <iosfwd>
@@ -42,6 +40,20 @@ DEALINGS IN THE SOFTWARE.
 #include <string>
 #include <utility>
 #include <vector>
+
+#ifdef __has_include
+# if __has_include(<variant>)
+#  include <variant>
+#  ifdef __cpp_lib_variant
+#   define OSMIUM_USE_STD_VARIANT
+#  endif
+# endif
+#endif
+
+#ifndef OSMIUM_USE_STD_VARIANT
+# include <boost/variant.hpp>
+#endif
+
 
 // std::regex isn't implemented properly in glibc++ (before the version
 // delivered with GCC 4.9) and libc++ before the version 3.6, so the use is
@@ -270,19 +282,29 @@ namespace osmium {
 
     private:
 
-        using matcher_type = boost::variant<always_false,
-                                            always_true,
-                                            equal,
-                                            prefix,
-                                            substring,
-#ifdef OSMIUM_WITH_REGEX
-                                            regex,
+        using matcher_type =
+#ifdef OSMIUM_USE_STD_VARIANT
+            std::variant
+#else
+            boost::variant
 #endif
-                                            list>;
+                <always_false,
+                 always_true,
+                 equal,
+                 prefix,
+                 substring,
+#ifdef OSMIUM_WITH_REGEX
+                 regex,
+#endif
+                 list>;
 
         matcher_type m_matcher;
 
-        class match_visitor : public boost::static_visitor<bool> {
+        class match_visitor
+#ifndef OSMIUM_USE_STD_VARIANT
+        : public boost::static_visitor<bool>
+#endif
+        {
 
             const char* m_str;
 
@@ -300,7 +322,11 @@ namespace osmium {
         }; // class match_visitor
 
         template <typename TChar, typename TTraits>
-        class print_visitor : public boost::static_visitor<void> {
+        class print_visitor
+#ifndef OSMIUM_USE_STD_VARIANT
+        : public boost::static_visitor<void>
+#endif
+        {
 
             std::basic_ostream<TChar, TTraits>* m_out;
 
@@ -403,7 +429,11 @@ namespace osmium {
          * Match the specified string.
          */
         bool operator()(const char* str) const noexcept {
+#ifdef OSMIUM_USE_STD_VARIANT
+            return std::visit(match_visitor{str}, m_matcher);
+#else
             return boost::apply_visitor(match_visitor{str}, m_matcher);
+#endif
         }
 
         /**
@@ -415,7 +445,11 @@ namespace osmium {
 
         template <typename TChar, typename TTraits>
         void print(std::basic_ostream<TChar, TTraits>& out) const {
+#ifdef OSMIUM_USE_STD_VARIANT
+            std::visit(print_visitor<TChar, TTraits>{out}, m_matcher);
+#else
             boost::apply_visitor(print_visitor<TChar, TTraits>{out}, m_matcher);
+#endif
         }
 
     }; // class StringMatcher
@@ -427,5 +461,7 @@ namespace osmium {
     }
 
 } // namespace osmium
+
+#undef OSMIUM_USE_STD_VARIANT
 
 #endif // OSMIUM_UTIL_STRING_MATCHER_HPP

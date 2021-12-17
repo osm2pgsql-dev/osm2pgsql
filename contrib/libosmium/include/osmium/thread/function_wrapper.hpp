@@ -73,7 +73,7 @@ namespace osmium {
                 F m_functor;
 
                 explicit impl_type(F&& functor) :
-                    m_functor(std::forward<F>(functor)) {
+                    m_functor(std::move(functor)) {
                 }
 
                 bool call() override {

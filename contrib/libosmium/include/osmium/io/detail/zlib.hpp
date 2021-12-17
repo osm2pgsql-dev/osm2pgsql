@@ -86,8 +86,7 @@ namespace osmium {
                     &output_size,
                     reinterpret_cast<const unsigned char*>(input.data()),
                     static_cast<unsigned long>(input.size()), // NOLINT(google-runtime-int)
-                    compression_level
-                );
+                    compression_level);
 
                 if (result != Z_OK) {
                     throw io_error{std::string{"failed to compress data: "} + zError(result)};
@@ -116,8 +115,7 @@ namespace osmium {
                     reinterpret_cast<unsigned char*>(&*output.begin()),
                     &raw_size,
                     reinterpret_cast<const unsigned char*>(input),
-                    input_size
-                );
+                    input_size);
 
                 if (result != Z_OK) {
                     throw io_error{std::string{"failed to uncompress data: "} + zError(result)};

@@ -98,6 +98,8 @@ namespace osmium {
 
             osmium::thread::Pool* m_pool = nullptr;
 
+            std::atomic<std::size_t> m_offset{0};
+
             detail::ParserFactory::create_parser_type m_creator;
 
             enum class status {
@@ -111,6 +113,10 @@ namespace osmium {
 
             detail::future_string_queue_type m_input_queue;
 
+            int m_fd = -1;
+
+            std::size_t m_file_size = 0;
+
             std::unique_ptr<osmium::io::Decompressor> m_decompressor;
 
             osmium::io::detail::ReadThreadManager m_read_thread_manager;
@@ -122,8 +128,6 @@ namespace osmium {
             osmium::io::Header m_header{};
 
             osmium::thread::thread_handler m_thread{};
-
-            std::size_t m_file_size = 0;
 
             osmium::osm_entity_bits::type m_read_which_entities = osmium::osm_entity_bits::all;
             osmium::io::read_meta m_read_metadata = osmium::io::read_meta::yes;
@@ -152,23 +156,28 @@ namespace osmium {
 
             // This function will run in a separate thread.
             static void parser_thread(osmium::thread::Pool& pool,
+                                      int fd,
                                       const detail::ParserFactory::create_parser_type& creator,
                                       detail::future_string_queue_type& input_queue,
                                       detail::future_buffer_queue_type& osmdata_queue,
                                       std::promise<osmium::io::Header>&& header_promise,
+                                      std::atomic<std::size_t>* offset_ptr,
                                       osmium::osm_entity_bits::type read_which_entities,
                                       osmium::io::read_meta read_metadata,
-                                      osmium::io::buffers_type buffers_kind) {
+                                      osmium::io::buffers_type buffers_kind,
+                                      bool want_buffered_pages_removed) {
                 std::promise<osmium::io::Header> promise{std::move(header_promise)};
                 osmium::io::detail::parser_arguments args = {
                     pool,
+                    fd,
                     input_queue,
                     osmdata_queue,
                     promise,
+                    offset_ptr,
                     read_which_entities,
                     read_metadata,
-                    buffers_kind
-                };
+                    buffers_kind,
+                    want_buffered_pages_removed};
                 creator(args)->parse();
             }
 
@@ -201,7 +210,7 @@ namespace osmium {
                         }
                     }
                     if (dup2(pipefd[1], 1) < 0) { // put end of pipe as stdout/stdin
-                        exit(1);
+                        std::exit(1); // NOLINT(concurrency-mt-unsafe)
                     }
 
                     ::open("/dev/null", O_RDONLY); // stdin
@@ -211,7 +220,7 @@ namespace osmium {
                     // in theory this execute() function could be used for other commands, but it is
                     // only used for curl at the moment, so this is okay.
                     if (::execlp(command.c_str(), command.c_str(), "-g", filename.c_str(), nullptr) < 0) {
-                        exit(1);
+                        std::exit(1); // NOLINT(concurrency-mt-unsafe)
                     }
                 }
                 // parent
@@ -246,6 +255,22 @@ namespace osmium {
                 }
 #endif
                 return fd;
+            }
+
+            static std::unique_ptr<Decompressor> make_decompressor(const osmium::io::File& file, int fd, std::atomic<std::size_t>* offset_ptr) {
+                const auto& factory = osmium::io::CompressionFactory::instance();
+                std::unique_ptr<Decompressor> decompressor;
+
+                if (file.buffer()) {
+                    decompressor = factory.create_decompressor(file.compression(), file.buffer(), file.buffer_size());
+                } else if (file.format() == file_format::pbf) {
+                    decompressor = std::unique_ptr<Decompressor>{new DummyDecompressor{}};
+                } else {
+                    decompressor = factory.create_decompressor(file.compression(), fd);
+                }
+
+                decompressor->set_offset_ptr(offset_ptr);
+                return decompressor;
             }
 
         public:
@@ -295,17 +320,14 @@ namespace osmium {
                 m_file(file.check()),
                 m_creator(detail::ParserFactory::instance().get_creator_function(m_file)),
                 m_input_queue(detail::get_input_queue_size(), "raw_input"),
-                m_decompressor(m_file.buffer() ?
-                    osmium::io::CompressionFactory::instance().create_decompressor(file.compression(), m_file.buffer(), m_file.buffer_size()) :
-                    osmium::io::CompressionFactory::instance().create_decompressor(file.compression(), open_input_file_or_url(m_file.filename(), &m_childpid))),
+                m_fd(m_file.buffer() ? -1 : open_input_file_or_url(m_file.filename(), &m_childpid)),
+                m_file_size(m_fd > 2 ? osmium::file_size(m_fd) : 0),
+                m_decompressor(make_decompressor(m_file, m_fd, &m_offset)),
                 m_read_thread_manager(*m_decompressor, m_input_queue),
                 m_osmdata_queue(detail::get_osmdata_queue_size(), "parser_results"),
-                m_osmdata_queue_wrapper(m_osmdata_queue),
-                m_file_size(m_decompressor->file_size()) {
+                m_osmdata_queue_wrapper(m_osmdata_queue) {
 
-                (void)std::initializer_list<int>{
-                    (set_option(args), 0)...
-                };
+                (void)std::initializer_list<int>{(set_option(args), 0)...};
 
                 if (!m_pool) {
                     m_pool = &thread::Pool::default_instance();
@@ -313,10 +335,18 @@ namespace osmium {
 
                 std::promise<osmium::io::Header> header_promise;
                 m_header_future = header_promise.get_future();
-                m_thread = osmium::thread::thread_handler{parser_thread, std::ref(*m_pool), std::ref(m_creator),
+
+                const auto cpc = osmium::config::clean_page_cache_after_read();
+                if (cpc >= 0) {
+                    m_decompressor->set_want_buffered_pages_removed(true);
+                }
+
+                const int fd_for_parser = m_decompressor->is_real() ? -1 : m_fd;
+                m_thread = osmium::thread::thread_handler{parser_thread, std::ref(*m_pool), fd_for_parser, std::ref(m_creator),
                                                           std::ref(m_input_queue), std::ref(m_osmdata_queue),
-                                                          std::move(header_promise), m_read_which_entities,
-                                                          m_read_metadata, m_buffers_kind};
+                                                          std::move(header_promise), &m_offset, m_read_which_entities,
+                                                          m_read_metadata, m_buffers_kind,
+                                                          m_decompressor->want_buffered_pages_removed()};
             }
 
             template <typename... TArgs>
@@ -492,7 +522,7 @@ namespace osmium {
              * do an expensive system call.
              */
             std::size_t offset() const noexcept {
-                return m_decompressor->offset();
+                return m_offset;
             }
 
         }; // class Reader
@@ -507,7 +537,7 @@ namespace osmium {
          */
         template <typename... TArgs>
         osmium::memory::Buffer read_file(TArgs&&... args) {
-            osmium::memory::Buffer buffer{1024 * 1024, osmium::memory::Buffer::auto_grow::yes};
+            osmium::memory::Buffer buffer{1024UL * 1024UL, osmium::memory::Buffer::auto_grow::yes};
 
             Reader reader{std::forward<TArgs>(args)...};
             while (auto read_buffer = reader.read()) {

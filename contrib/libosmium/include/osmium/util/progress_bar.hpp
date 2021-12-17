@@ -91,7 +91,7 @@ namespace osmium {
             }
             m_prev_percent = percent;
 
-            const auto num = static_cast<std::size_t>(percent * (full_length / 100.0));
+            const auto num = static_cast<std::size_t>(percent * (static_cast<double>(full_length) / 100.0));
             std::cerr << '[';
             if (num >= full_length) {
                 std::cerr << bar();

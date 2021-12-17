@@ -129,17 +129,6 @@ namespace osmium {
                 max_entities_per_block = 8000
             };
 
-            enum {
-                location_granularity = 100
-            };
-
-            /**
-             * convert a double lat or lon value to an int, respecting the granularity
-             */
-            inline int64_t lonlat2int(double lonlat) {
-                return static_cast<int64_t>(std::round(lonlat * lonlat_resolution / location_granularity));
-            }
-
             enum class pbf_blob_type {
                 header = 0,
                 data = 1
@@ -199,7 +188,7 @@ namespace osmium {
                         m_user_sids.reserve(max_entities_per_block);
                     }
                     if (m_options->add_visible_flag) {
-                         m_visibles.reserve(max_entities_per_block);
+                        m_visibles.reserve(max_entities_per_block);
                     }
                     m_lats.reserve(max_entities_per_block);
                     m_lons.reserve(max_entities_per_block);
@@ -232,8 +221,8 @@ namespace osmium {
                         m_visibles.push_back(node.visible());
                     }
 
-                    m_lats.push_back(m_delta_lat.update(lonlat2int(node.location().lat_without_check())));
-                    m_lons.push_back(m_delta_lon.update(lonlat2int(node.location().lon_without_check())));
+                    m_lats.push_back(m_delta_lat.update(node.location().y()));
+                    m_lons.push_back(m_delta_lon.update(node.location().x()));
 
                     for (const auto& tag : node.tags()) {
                         m_tags.push_back(m_stringtable->add(tag.key()));
@@ -516,8 +505,7 @@ namespace osmium {
                         SerializeBlob{std::move(m_primitive_block),
                                       pbf_blob_type::data,
                                       m_options.use_compression,
-                                      m_options.compression_level}
-                    ));
+                                      m_options.compression_level}));
                 }
 
                 template <typename T>
@@ -600,7 +588,7 @@ namespace osmium {
                                 break;
                         }
                     } else {
-                        char *end_ptr = nullptr;
+                        char* end_ptr = nullptr;
                         const auto val = std::strtol(pbl.c_str(), &end_ptr, 10);
                         if (*end_ptr != '\0') {
                             throw std::invalid_argument{"The 'pbf_compression_level' option must be an integer."};
@@ -675,8 +663,7 @@ namespace osmium {
                         SerializeBlob{std::move(data),
                                       pbf_blob_type::header,
                                       m_options.use_compression,
-                                      m_options.compression_level}
-                        ));
+                                      m_options.compression_level}));
                 }
 
                 void write_buffer(osmium::memory::Buffer&& buffer) final {
@@ -700,8 +687,8 @@ namespace osmium {
                     pbf_node.add_sint64(OSMFormat::Node::required_sint64_id, node.id());
                     add_meta(node, pbf_node);
 
-                    pbf_node.add_sint64(OSMFormat::Node::required_sint64_lat, lonlat2int(node.location().lat_without_check()));
-                    pbf_node.add_sint64(OSMFormat::Node::required_sint64_lon, lonlat2int(node.location().lon_without_check()));
+                    pbf_node.add_sint64(OSMFormat::Node::required_sint64_lat, node.location().y());
+                    pbf_node.add_sint64(OSMFormat::Node::required_sint64_lon, node.location().x());
                 }
 
                 void way(const osmium::Way& way) {
@@ -721,17 +708,17 @@ namespace osmium {
 
                     if (m_options.locations_on_ways) {
                         {
-                            osmium::DeltaEncode<int64_t, int64_t> delta_id;
+                            osmium::DeltaEncode<int64_t, int64_t> delta;
                             protozero::packed_field_sint64 field{pbf_way, protozero::pbf_tag_type(OSMFormat::Way::packed_sint64_lon)};
                             for (const auto& node_ref : way.nodes()) {
-                                field.add_element(delta_id.update(lonlat2int(node_ref.location().lon_without_check())));
+                                field.add_element(delta.update(node_ref.location().x()));
                             }
                         }
                         {
-                            osmium::DeltaEncode<int64_t, int64_t> delta_id;
+                            osmium::DeltaEncode<int64_t, int64_t> delta;
                             protozero::packed_field_sint64 field{pbf_way, protozero::pbf_tag_type(OSMFormat::Way::packed_sint64_lat)};
                             for (const auto& node_ref : way.nodes()) {
-                                field.add_element(delta_id.update(lonlat2int(node_ref.location().lat_without_check())));
+                                field.add_element(delta.update(node_ref.location().y()));
                             }
                         }
                     }

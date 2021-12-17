@@ -105,10 +105,6 @@ namespace osmium {
             m_version(0) {
         }
 
-        void set_user_size(string_size_type size) {
-            *reinterpret_cast<string_size_type*>(user_position()) = size;
-        }
-
     public:
 
         constexpr static bool is_compatible_to(osmium::item_type t) noexcept {

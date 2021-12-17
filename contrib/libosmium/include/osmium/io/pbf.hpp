@@ -46,7 +46,7 @@ namespace osmium {
         inline std::vector<std::string> supported_pbf_compression_types() {
             std::vector<std::string> types{"none", "zlib"};
 
-#if OSMIUM_WITH_LZ4
+#ifdef OSMIUM_WITH_LZ4
             types.push_back("lz4");
 #endif
 

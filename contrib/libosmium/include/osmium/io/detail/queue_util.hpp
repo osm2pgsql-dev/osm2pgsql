@@ -121,9 +121,10 @@ namespace osmium {
                 }
 
                 void drain() {
-                    while (!m_has_reached_end_of_data) {
+                    while (!m_queue.empty()) {
                         try {
-                            pop();
+                            std::future<T> data_future;
+                            m_queue.try_pop(data_future);
                         } catch (...) {
                             // Ignore any exceptions.
                         }
@@ -140,7 +141,7 @@ namespace osmium {
                         std::future<T> data_future;
                         m_queue.wait_and_pop(data_future);
                         assert(data_future.valid());
-                        data = data_future.get();
+                        data = std::move(data_future.get());
                         if (at_end_of_data(data)) {
                             m_has_reached_end_of_data = true;
                         }

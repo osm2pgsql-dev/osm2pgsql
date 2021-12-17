@@ -77,8 +77,7 @@ namespace osmium {
         inline constexpr uint32_t mercx_to_tilex(uint32_t zoom, double x) noexcept {
             return static_cast<uint32_t>(detail::clamp<int32_t>(
                 static_cast<int32_t>((x + detail::max_coordinate_epsg3857) / tile_extent_in_zoom(zoom)),
-                0, num_tiles_in_zoom(zoom) -1
-            ));
+                0, num_tiles_in_zoom(zoom) - 1));
         }
 
         /**
@@ -89,8 +88,7 @@ namespace osmium {
         inline constexpr uint32_t mercy_to_tiley(uint32_t zoom, double y) noexcept {
             return static_cast<uint32_t>(detail::clamp<int32_t>(
                 static_cast<int32_t>((detail::max_coordinate_epsg3857 - y) / tile_extent_in_zoom(zoom)),
-                0, num_tiles_in_zoom(zoom) -1
-            ));
+                0, num_tiles_in_zoom(zoom) - 1));
         }
 
         /**

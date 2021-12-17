@@ -81,7 +81,7 @@ namespace osmium {
             };
 
             enum {
-                default_max_buffer_size =  800UL * 1024UL
+                default_max_buffer_size = 800UL * 1024UL
             };
 
             osmium::memory::Buffer m_buffer;

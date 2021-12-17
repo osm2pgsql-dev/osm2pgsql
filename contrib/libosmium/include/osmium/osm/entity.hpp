@@ -51,7 +51,7 @@ namespace osmium {
 
             // If no subitem of the TSubitem type was found,
             // return a default constructed one.
-            static TSubitem subitem{};
+            static TSubitem subitem;
             return subitem;
         }
 

@@ -33,6 +33,8 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
+#include <osmium/util/compatibility.hpp>
+
 #include <cassert>
 #include <cstdint> // IWYU pragma: keep
 #include <iosfwd>
@@ -192,7 +194,7 @@ namespace osmium {
      * probably means the buffer contains different kinds of objects than were
      * expected or that there is some kind of data corruption.
      */
-    struct unknown_type : public std::runtime_error {
+    struct OSMIUM_EXPORT unknown_type : public std::runtime_error {
 
         unknown_type() :
             std::runtime_error("unknown item type") {

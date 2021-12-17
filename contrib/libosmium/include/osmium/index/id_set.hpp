@@ -67,7 +67,7 @@ namespace osmium {
             IdSet(IdSet&&) noexcept = default;
             IdSet& operator=(IdSet&&) noexcept = default;
 
-            virtual ~IdSet() = default;
+            virtual ~IdSet() noexcept = default;
 
             /**
              * Add the given Id to the set.
@@ -256,7 +256,7 @@ namespace osmium {
                 IdSet<T>(other),
                 m_size(other.m_size) {
                 m_data.reserve(other.m_data.size());
-                for (const auto& ptr: other.m_data) {
+                for (const auto& ptr : other.m_data) {
                     if (ptr) {
                         m_data.emplace_back(new unsigned char[chunk_size]);
                         ::memcpy(m_data.back().get(), ptr.get(), chunk_size);
@@ -382,6 +382,8 @@ namespace osmium {
             std::vector<T> m_data;
 
         public:
+
+            ~IdSetSmall() noexcept override = default;
 
             /**
              * Add the given Id to the set.

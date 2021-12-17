@@ -36,8 +36,6 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/osm/tag.hpp>
 #include <osmium/tags/matcher.hpp>
 
-#include <boost/iterator/filter_iterator.hpp>
-
 #include <utility>
 #include <vector>
 
@@ -72,7 +70,7 @@ namespace osmium {
 
     public:
 
-        using iterator = boost::filter_iterator<TagsFilterBase, osmium::TagList::const_iterator>;
+        using iterator = osmium::memory::CollectionFilterIterator<TagsFilterBase, const osmium::Tag>;
 
         /**
          * Constructor.
