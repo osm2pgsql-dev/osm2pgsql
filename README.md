@@ -54,7 +54,7 @@ Required libraries are
 * [Lua](https://www.lua.org/) (Optional, used for Lua tag transforms
   and the flex output)
 * [Python](https://python.org/) (only for running tests)
-* [Psycopg](http://initd.org/psycopg/) (only for running tests)
+* [Psycopg](https://www.psycopg.org/) (only for running tests)
 
 The following libraries are included in the `contrib` directory. You can build
 with other versions of those libraries (set the `EXTERNAL_*libname*` option to
@@ -67,7 +67,7 @@ with other versions of those libraries (set the `EXTERNAL_*libname*` option to
 
 It also requires access to a database server running
 [PostgreSQL](https://www.postgresql.org/) 9.5+ and
-[PostGIS](http://www.postgis.net/) 2.2+.
+[PostGIS](https://www.postgis.net/) 2.2+.
 
 Make sure you have installed the development packages for the libraries
 mentioned in the requirements section and a C++ compiler which supports C++14.
