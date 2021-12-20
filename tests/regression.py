@@ -303,6 +303,12 @@ class PgsqlMercGeomTests(object):
                         """SELECT round(sum(cast(ST_Area(way) as numeric)),0)
                            FROM planet_osm_polygon""")
 
+    def test_basic_polygon_way_area(self):
+        area = 1272140891 if self.use_lua_tagtransform else 1247245413
+        self.assert_sql(area,
+                        """SELECT round(sum(cast(way_area as numeric)), 0)
+                           FROM planet_osm_polygon""")
+
     def test_basic_line_length(self):
         self.assert_sql(4211350,
                         'SELECT round(sum(ST_Length(way))) FROM planet_osm_line')
@@ -420,6 +426,13 @@ class MultipolygonTests(object):
             sql += " AND name = '{}'".format(name)
         self.assert_sql(area, sql.format(osm_id, k, v, name))
 
+    def assert_sum_way_area(self, area, osm_id, k, v, name=None):
+        sql = """SELECT round(sum(way_area::numeric), 0) FROM planet_osm_polygon
+                 WHERE osm_id = {} AND "{}" = '{}'"""
+        if name is not None:
+            sql += " AND name = '{}'".format(name)
+        self.assert_sql(area, sql.format(osm_id, k, v, name))
+
     def assert_num_rows(self, area, osm_id, k, v, name = None):
         sql = """SELECT count(*) FROM planet_osm_polygon
                  WHERE osm_id = {} AND "{}" = '{}'"""
@@ -464,6 +477,9 @@ class MultipolygonTests(object):
     def test_multipolygon_two_outer(self):
         self.assert_sum_area(17581, -13, 'landuse', 'farmland', 'Name_rel9')
 
+    def test_multipolygon_two_outer_way_area(self):
+        self.assert_sum_way_area(17581, -13, 'landuse', 'farmland', 'Name_rel9')
+
     def test_multipolygon_two_outer_num(self):
         if '-G' in self.extra_params:
             self.assert_num_geoms(2, -13, 'landuse', 'farmland', 'Name_rel9')
@@ -472,6 +488,9 @@ class MultipolygonTests(object):
 
     def test_nested_outer_ways_area(self):
         self.assert_sum_area(16169, -7, 'landuse', 'farmland', 'Name_rel15')
+
+    def test_nested_outer_ways_way_area(self):
+        self.assert_sum_way_area(16169, -7, 'landuse', 'farmland', 'Name_rel15')
 
     def test_nested_outer_ways_num(self):
         if '-G' in self.extra_params:
@@ -505,9 +524,13 @@ class MultipolygonTests(object):
     def test_tags_on_outer_absence_relation(self):
         self.assert_num_rows(0, -33, 'natural', 'water')
 
-    def test_tags_on_relation_includes_relatoin(self):
+    def test_tags_on_relation_includes_relation(self):
         self.assert_sum_area(29155 if self.update else 68494,
                              -29, 'natural', 'water')
+
+    def test_tags_on_relation_includes_relation_way_area(self):
+        self.assert_sum_way_area(29155 if self.update else 68494,
+                                 -29, 'natural', 'water')
 
     def test_tags_relation_outer_1_absence(self):
         self.assert_count(0, 'planet_osm_polygon', where='osm_id = 109')
@@ -527,11 +550,17 @@ class MultipolygonTests(object):
     def test_tags_on_relation_and_way_relation_presence(self):
         self.assert_sum_area(10377, -39, 'landuse', 'forest')
 
+    def test_tags_on_relation_and_way_relation_presence_way_area(self):
+        self.assert_sum_way_area(10378, -39, 'landuse', 'forest')
+
     def test_tags_on_relation_and_way_way_presence(self):
         self.assert_count(1, 'planet_osm_polygon', where='osm_id = 138')
 
     def test_different_tags_on_relation_and_way_relation_presence(self):
         self.assert_sum_area(12397, -40, 'landuse', 'forest')
+
+    def test_different_tags_on_relation_and_way_relation_presence_way_area(self):
+        self.assert_sum_way_area(12397, -40, 'landuse', 'forest')
 
     def test_different_tags_on_relation_and_way_way_presence(self):
         self.assert_count(1, 'planet_osm_polygon', where='osm_id = 140')
