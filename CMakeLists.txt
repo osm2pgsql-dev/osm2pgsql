@@ -1,10 +1,7 @@
-set(PACKAGE osm2pgsql)
-set(PACKAGE_NAME osm2pgsql)
-set(PACKAGE_VERSION 1.5.1)
 
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.5.0)
 
-project(osm2pgsql)
+project(osm2pgsql VERSION 1.5.1 LANGUAGES CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -34,7 +31,7 @@ if (PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
     message(FATAL_ERROR "In-source builds are not allowed, please use a separate build directory like `mkdir build && cd build && cmake ..`")
 endif()
 
-message(STATUS "Building osm2pgsql ${PACKAGE_VERSION}")
+message(STATUS "Building osm2pgsql ${PROJECT_VERSION}")
 
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE RelWithDebInfo)
@@ -48,13 +45,11 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if (MSVC)
-    add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX -wd4996)
+    add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX)
+    add_compile_options(-wd4996)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /ignore:4099 /STACK:30000000")
 else()
-    add_definitions(-Wall)
-    if (CMAKE_VERSION VERSION_LESS 3.1)
-        add_definitions(-std=c++14)
-    endif()
+    add_compile_options(-Wall)
 endif()
 
 option(EXTERNAL_LIBOSMIUM "Do not use the bundled libosmium" OFF)
@@ -71,10 +66,10 @@ if (NOT WIN32 AND NOT APPLE)
     set(PostgreSQL_TYPE_INCLUDE_DIR /usr/include)
 endif()
 
-set(MINIMUM_POSTGRESQL_SERVER_VERSION "9.3")
-set(MINIMUM_POSTGRESQL_SERVER_VERSION_NUM "90300")
+set(MINIMUM_POSTGRESQL_SERVER_VERSION "9.5")
+set(MINIMUM_POSTGRESQL_SERVER_VERSION_NUM "90500")
 
-set(PostgreSQL_ADDITIONAL_VERSIONS "13" "12" "11" "10" "9.6" "9.5" "9.4" "9.3")
+set(PostgreSQL_ADDITIONAL_VERSIONS "14" "13" "12" "11" "10" "9.6" "9.5")
 
 #############################################################
 # Version
@@ -132,7 +127,7 @@ if (BUILD_COVERAGE)
             message(STATUS "  found")
         endif()
 
-        add_definitions(-g -O0 -fno-inline-functions -fno-inline --coverage)
+        add_compile_options(-g -O0 -fno-inline-functions -fno-inline --coverage)
 
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage"
             CACHE
@@ -190,7 +185,7 @@ endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR})
 
-find_package(Osmium 2.17.0 REQUIRED COMPONENTS io)
+find_package(Osmium 2.17.2 REQUIRED COMPONENTS io)
 include_directories(SYSTEM ${OSMIUM_INCLUDE_DIRS} ${PROTOZERO_INCLUDE_DIR} ${FMT_INCLUDE_DIR} ${RAPIDJSON_INCLUDE_DIR})
 
 if (WITH_LUA)
@@ -297,7 +292,7 @@ target_link_libraries(osm2pgsql osm2pgsql_lib ${LIBS})
 
 message(STATUS "Looking for clang-tidy")
 find_program(CLANG_TIDY
-             NAMES clang-tidy clang-tidy-12 clang-tidy-11 clang-tidy-10 clang-tidy-9 clang-tidy-8 clang-tidy-7)
+             NAMES clang-tidy clang-tidy-14 clang-tidy-13 clang-tidy-12 clang-tidy-11)
 
 if (CLANG_TIDY)
     message(STATUS "Looking for clang-tidy - found ${CLANG_TIDY}")
