@@ -148,7 +148,7 @@ the report.
 ## Releasing a new version
 
 * Decide on a new version. (See [semantic versioning](https://semver.org/).)
-* Update version in [CMakeLists.txt](CMakeLists.txt), look for `PACKAGE_VERSION`.
+* Update version in [CMakeLists.txt](CMakeLists.txt), look for `project` function.
 * Build man page (`make man`) and copy it to `docs/osm2pgsql.1`.
 * Tag release with release notes in commit message and upload the tag to Github.
 * Fill out release notes on Github.

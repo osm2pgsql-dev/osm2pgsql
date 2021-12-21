@@ -9,7 +9,7 @@ if(PANDOC)
         -s
         -t man
         --template ${CMAKE_CURRENT_SOURCE_DIR}/manpage.template
-        --variable "version=${PACKAGE_VERSION}"
+        --variable "version=${PROJECT_VERSION}"
         --variable "title=OSM2PGSQL"
         --variable "section=1"
     )

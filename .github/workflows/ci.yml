@@ -179,6 +179,25 @@ jobs:
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
+  ubuntu20-pg13-clang10-cpp17:
+    runs-on: ubuntu-20.04
+
+    env:
+      CC: clang-10
+      CXX: clang++-10
+      LUA_VERSION: 5.3
+      LUAJIT_OPTION: OFF
+      POSTGRESQL_VERSION: 14
+      POSTGIS_VERSION: 3
+      CPP_VERSION: 17
+      USE_PROJ_LIB: 6
+      BUILD_TYPE: Debug
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/build-and-test
+
   ubuntu20-pg13-gcc10-release:
     runs-on: ubuntu-20.04
 
