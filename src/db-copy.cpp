@@ -23,11 +23,11 @@ void db_deleter_by_id_t::delete_rows(std::string const &table,
     // Add 50 characters for the SQL statement itself.
     sql.reserve(m_deletables.size() * 15 + 50);
 
-    fmt::format_to(sql, FMT_STRING("DELETE FROM {} WHERE {} IN ("), table,
-                   column);
+    fmt::format_to(std::back_inserter(sql),
+                   FMT_STRING("DELETE FROM {} WHERE {} IN ("), table, column);
 
     for (auto id : m_deletables) {
-        format_to(sql, FMT_STRING("{},"), id);
+        format_to(std::back_inserter(sql), FMT_STRING("{},"), id);
     }
     sql[sql.size() - 1] = ')';
 
@@ -48,11 +48,12 @@ void db_deleter_by_type_and_id_t::delete_rows(std::string const &table,
     sql.reserve(m_deletables.size() * 22 + 200);
 
     if (m_has_type) {
-        fmt::format_to(sql, "DELETE FROM {} p USING (VALUES ", table);
+        fmt::format_to(std::back_inserter(sql),
+                       "DELETE FROM {} p USING (VALUES ", table);
 
         for (auto const &item : m_deletables) {
-            fmt::format_to(sql, FMT_STRING("('{}',{}),"), item.osm_type,
-                           item.osm_id);
+            fmt::format_to(std::back_inserter(sql), FMT_STRING("('{}',{}),"),
+                           item.osm_type, item.osm_id);
         }
 
         sql.resize(sql.size() - 1);
@@ -61,16 +62,17 @@ void db_deleter_by_type_and_id_t::delete_rows(std::string const &table,
         assert(pos != std::string::npos);
         std::string type = column.substr(0, pos);
 
-        fmt::format_to(sql,
+        fmt::format_to(std::back_inserter(sql),
                        ") AS t (osm_type, osm_id) WHERE"
                        " p.{} = t.osm_type AND p.{} = t.osm_id",
                        type, column.c_str() + pos + 1);
     } else {
-        fmt::format_to(sql, FMT_STRING("DELETE FROM {} WHERE {} IN ("), table,
+        fmt::format_to(std::back_inserter(sql),
+                       FMT_STRING("DELETE FROM {} WHERE {} IN ("), table,
                        column);
 
         for (auto const &item : m_deletables) {
-            format_to(sql, FMT_STRING("{},"), item.osm_id);
+            format_to(std::back_inserter(sql), FMT_STRING("{},"), item.osm_id);
         }
         sql[sql.size() - 1] = ')';
     }
@@ -194,9 +196,11 @@ void db_copy_thread_t::thread_t::start_copy(
     fmt::memory_buffer sql;
     sql.reserve(qname.size() + target->rows.size() + 20);
     if (target->rows.empty()) {
-        fmt::format_to(sql, FMT_STRING("COPY {} FROM STDIN"), qname);
+        fmt::format_to(std::back_inserter(sql),
+                       FMT_STRING("COPY {} FROM STDIN"), qname);
     } else {
-        fmt::format_to(sql, FMT_STRING("COPY {} ({}) FROM STDIN"), qname,
+        fmt::format_to(std::back_inserter(sql),
+                       FMT_STRING("COPY {} ({}) FROM STDIN"), qname,
                        target->rows);
     }
 

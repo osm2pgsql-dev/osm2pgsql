@@ -34,23 +34,27 @@ void db_deleter_place_t::delete_rows(std::string const &table,
     // the remainder of the SQL command.
     sql.reserve(m_deletables.size() * 43 + 200);
 
-    fmt::format_to(sql, "DELETE FROM {} p USING (VALUES ", table);
+    fmt::format_to(std::back_inserter(sql), "DELETE FROM {} p USING (VALUES ",
+                   table);
 
     for (auto const &item : m_deletables) {
-        fmt::format_to(sql, "('{}',{},", item.osm_type, item.osm_id);
+        fmt::format_to(std::back_inserter(sql), "('{}',{},", item.osm_type,
+                       item.osm_id);
         if (item.classes.empty()) {
-            fmt::format_to(sql, "ARRAY[]::text[]),");
+            fmt::format_to(std::back_inserter(sql), "ARRAY[]::text[]),");
         } else {
-            fmt::format_to(sql, "ARRAY[{}]),", item.classes);
+            fmt::format_to(std::back_inserter(sql), "ARRAY[{}]),",
+                           item.classes);
         }
     }
 
     // remove the final comma
     sql.resize(sql.size() - 1);
 
-    fmt::format_to(sql, ") AS t (osm_type, osm_id, classes) WHERE"
-                        " p.osm_type = t.osm_type AND p.osm_id = t.osm_id"
-                        " AND NOT p.class = ANY(t.classes)");
+    fmt::format_to(std::back_inserter(sql),
+                   ") AS t (osm_type, osm_id, classes) WHERE"
+                   " p.osm_type = t.osm_type AND p.osm_id = t.osm_id"
+                   " AND NOT p.class = ANY(t.classes)");
 
     conn->exec(fmt::to_string(sql));
 }
@@ -70,7 +74,8 @@ std::string gazetteer_style_t::class_list() const
     fmt::memory_buffer buf;
 
     for (auto const &m : m_main) {
-        fmt::format_to(buf, FMT_STRING("'{}',"), std::get<0>(m));
+        fmt::format_to(std::back_inserter(buf), FMT_STRING("'{}',"),
+                       std::get<0>(m));
     }
 
     if (buf.size() > 0) {

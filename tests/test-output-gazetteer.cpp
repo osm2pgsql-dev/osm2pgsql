@@ -30,11 +30,14 @@ public:
     {
         std::uniform_real_distribution<double> dist{-90, 89.99};
 
-        fmt::format_to(m_opl, "n{} T{} x{} y{}\n", id, tags, 2 * dist(rng),
-                       dist(rng));
+        fmt::format_to(std::back_inserter(m_opl), "n{} T{} x{} y{}\n", id, tags,
+                       2 * dist(rng), dist(rng));
     }
 
-    void del(osmid_t id) { fmt::format_to(m_opl, "n{} v2 dD\n", id); }
+    void del(osmid_t id)
+    {
+        fmt::format_to(std::back_inserter(m_opl), "n{} v2 dD\n", id);
+    }
 
     std::string get_and_clear_opl()
     {
@@ -57,13 +60,17 @@ public:
         osmid_t const first_node = m_current_node_id;
         osmid_t const last_node = make_nodes();
 
-        fmt::format_to(m_way_opl, "w{} T{} N", id, tags);
+        fmt::format_to(std::back_inserter(m_way_opl), "w{} T{} N", id, tags);
         for (osmid_t i = first_node; i <= last_node; ++i) {
-            fmt::format_to(m_way_opl, "n{}{}", i, i == last_node ? '\n' : ',');
+            fmt::format_to(std::back_inserter(m_way_opl), "n{}{}", i,
+                           i == last_node ? '\n' : ',');
         }
     }
 
-    void del(osmid_t id) { fmt::format_to(m_way_opl, "w{} v2 dD\n", id); }
+    void del(osmid_t id)
+    {
+        fmt::format_to(std::back_inserter(m_way_opl), "w{} v2 dD\n", id);
+    }
 
     std::string get_and_clear_opl()
     {
@@ -91,8 +98,8 @@ private:
 
         std::uniform_real_distribution<double> diff_dist{-0.01, 0.01};
         for (unsigned i = 0; i < num_nodes; ++i) {
-            fmt::format_to(m_node_opl, "n{} x{} y{}\n", m_current_node_id++, x,
-                           y);
+            fmt::format_to(std::back_inserter(m_node_opl), "n{} x{} y{}\n",
+                           m_current_node_id++, x, y);
             double diffx = 0.0;
             double diffy = 0.0;
             do {
@@ -120,17 +127,20 @@ public:
         osmid_t const last_node = make_nodes();
 
         // create a very simple multipolygon with one closed way
-        fmt::format_to(m_way_opl, "w{} N", id, tags);
+        fmt::format_to(std::back_inserter(m_way_opl), "w{} N", id, tags);
         for (osmid_t i = first_node; i <= last_node; ++i) {
-            fmt::format_to(m_way_opl, "n{},", i);
+            fmt::format_to(std::back_inserter(m_way_opl), "n{},", i);
         }
-        fmt::format_to(m_way_opl, "n{}\n", first_node);
+        fmt::format_to(std::back_inserter(m_way_opl), "n{}\n", first_node);
 
-        fmt::format_to(m_rel_opl, "r{} Ttype=multipolygon,{} Mw{}@\n", id, tags,
-                       id);
+        fmt::format_to(std::back_inserter(m_rel_opl),
+                       "r{} Ttype=multipolygon,{} Mw{}@\n", id, tags, id);
     }
 
-    void del(osmid_t id) { fmt::format_to(m_rel_opl, "r{} v2 dD\n", id); }
+    void del(osmid_t id)
+    {
+        fmt::format_to(std::back_inserter(m_rel_opl), "r{} v2 dD\n", id);
+    }
 
     std::string get_and_clear_opl()
     {
@@ -157,14 +167,18 @@ private:
 
         std::uniform_real_distribution<double> diff_dist{0.0000001, 0.01};
 
-        fmt::format_to(m_node_opl, "n{} x{} y{}\n", m_current_node_id++,
-                       x - diff_dist(rng), y - diff_dist(rng));
-        fmt::format_to(m_node_opl, "n{} x{} y{}\n", m_current_node_id++,
-                       x - diff_dist(rng), y + diff_dist(rng));
-        fmt::format_to(m_node_opl, "n{} x{} y{}\n", m_current_node_id++,
-                       x + diff_dist(rng), y + diff_dist(rng));
-        fmt::format_to(m_node_opl, "n{} x{} y{}\n", m_current_node_id++,
-                       x + diff_dist(rng), y - diff_dist(rng));
+        fmt::format_to(std::back_inserter(m_node_opl), "n{} x{} y{}\n",
+                       m_current_node_id++, x - diff_dist(rng),
+                       y - diff_dist(rng));
+        fmt::format_to(std::back_inserter(m_node_opl), "n{} x{} y{}\n",
+                       m_current_node_id++, x - diff_dist(rng),
+                       y + diff_dist(rng));
+        fmt::format_to(std::back_inserter(m_node_opl), "n{} x{} y{}\n",
+                       m_current_node_id++, x + diff_dist(rng),
+                       y + diff_dist(rng));
+        fmt::format_to(std::back_inserter(m_node_opl), "n{} x{} y{}\n",
+                       m_current_node_id++, x + diff_dist(rng),
+                       y - diff_dist(rng));
 
         return m_current_node_id - 1;
     }
