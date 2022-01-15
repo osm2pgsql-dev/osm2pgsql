@@ -18,6 +18,7 @@
 
 import logging
 from os import path as op
+from io import StringIO
 import os
 import subprocess
 import sys
@@ -192,6 +193,27 @@ class BaseRunner(object):
             logging.warning(err.decode('utf-8'))
             raise RuntimeError("Import failed.")
 
+
+    @classmethod
+    def import_from_string(cls, content, format='opl'):
+        cmdline = [CONFIG['executable']]
+        params = cls.get_def_params() + cls.extra_params
+        if not '-d' in params and not '--database' in params:
+            cmdline.extend(('-d', CONFIG['test_database']))
+        cmdline.extend(params)
+        cmdline.extend(('-r', format, '-'))
+        logging.info("Executing command: {}".format(' '.join(cmdline)))
+
+        proc = subprocess.Popen(cmdline, stdin=subprocess.PIPE,
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        (outp, err) = proc.communicate(input=content.encode('utf-8'))
+
+        if proc.returncode == 0:
+            logging.debug(err.decode('utf-8'))
+        else:
+            logging.warning(err.decode('utf-8'))
+            raise RuntimeError("Import failed.")
 
     def assert_count(self, count, table, where=None):
         if self.schema:
@@ -872,4 +894,22 @@ class TestDBAccessURIPostgres(BaseUpdateRunner, unittest.TestCase,
 class TestDBOutputSchema(BaseUpdateRunnerWithOutputSchema, unittest.TestCase,
                          PgsqlBaseTests):
     extra_params = ['--slim', '--output-pgsql-schema=osm']
+
+# Bad data tests
+
+class TestBadOSMData(BaseRunner, unittest.TestCase):
+
+    extra_params = ['--slim']
+
+    def test_large_relation(self):
+        content = StringIO()
+        content.write('n1 x45 y34\n')
+        content.write('r1 Ttype=multipolygon M')
+        for _ in range(33000):
+            content.write('n1@,')
+        content.write('n1@')
+        self.import_from_string(content.getvalue())
+
+        self.assert_count(1, 'planet_osm_nodes')
+        self.assert_count(0, 'planet_osm_rels')
 

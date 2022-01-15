@@ -88,6 +88,13 @@ void osmdata_t::after_ways() { m_mid->after_ways(); }
 
 void osmdata_t::relation(osmium::Relation const &rel)
 {
+    if (rel.members().size() > 32767) {
+        log_warn(
+            "Relation id {} ignored, because it has more than 32767 members",
+            rel.id());
+        return;
+    }
+
     if (m_append && !rel.deleted()) {
         m_output->select_relation_members(rel.id());
     }
@@ -97,9 +104,6 @@ void osmdata_t::relation(osmium::Relation const &rel)
     if (rel.deleted()) {
         relation_delete(rel.id());
     } else {
-        if (rel.members().size() > 32767) {
-            return;
-        }
         if (m_append) {
             relation_modify(rel);
         } else {
