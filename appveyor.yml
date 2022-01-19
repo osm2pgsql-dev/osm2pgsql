@@ -108,7 +108,7 @@ before_test:
   - |
     psql -c "CREATE TABLESPACE tablespacetest LOCATION 'c:/temp'"
   - set PATH=c:\osm2pgsql\build\osm2pgsql-bin;%PATH%
-  - set PROJ_LIB=%conda_library_path%\share
+  - set PROJ_LIB=%conda_library_path%\share\proj
 
 test_script:
   - cd c:\osm2pgsql\build
