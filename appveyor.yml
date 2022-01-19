@@ -48,7 +48,7 @@ install:
   - conda config --set always_yes yes
   - conda create --name osm2pgsql
   - activate osm2pgsql
-  - conda install expat=%EXPAT_VER% proj4=%PROJ_VER% zlib=%ZLIB_VER% postgresql=%POSTGRESQL_VER%
+  - conda install expat=%EXPAT_VER% proj=%PROJ_VER% zlib=%ZLIB_VER% postgresql=%POSTGRESQL_VER%
   - ps: if (!(Test-Path "C:\bzip2_dll_x64.zip")){(new-object net.webclient).DownloadFile($env:bz2_dll_url, "C:\bzip2_dll_x64.zip")}
   - 7z x -y C:\bzip2_dll_x64.zip -o%BZIP2_LIBRARY%
   - ps: if (!(Test-Path "C:\bzip2_dev_x64.zip")){(new-object net.webclient).DownloadFile($env:bz2_dev_url, "C:\bzip2_dev_x64.zip")}
