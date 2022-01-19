@@ -40,7 +40,7 @@ init:
   - set conda_library_path=C:\Miniconda36-x64\envs\osm2pgsql\Library
   - set lua_url=https://osm2pgsql.org/ci/winbuild/lua_x64.zip
   - set build_type=Release
-  - '"C:\Program Files (x86)\Microsoft Visual Studio 17.0\VC\vcvarsall" %vcvarsall_arg%'
+  - '"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"'
 
 install:
   - set PATH=%TESTS_POSTGRESQL_ROOT%\bin;%python_path%;%PATH%;%conda_path%
