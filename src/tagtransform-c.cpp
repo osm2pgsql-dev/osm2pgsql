@@ -7,7 +7,6 @@
  * For a full list of authors see the git log.
  */
 
-#include <boost/algorithm/string/predicate.hpp>
 #include <cstdlib>
 #include <cstring>
 
@@ -99,6 +98,11 @@ std::unique_ptr<tagtransform_t> c_tagtransform_t::clone() const
     return std::make_unique<c_tagtransform_t>(m_options, m_export_list);
 }
 
+static bool starts_with(char const *input, std::string const& test) noexcept
+{
+    return std::strncmp(input, test.c_str(), test.size()) == 0;
+}
+
 bool c_tagtransform_t::check_key(std::vector<taginfo> const &infos,
                                  char const *k, bool *filter,
                                  unsigned int *flags)
@@ -131,7 +135,7 @@ bool c_tagtransform_t::check_key(std::vector<taginfo> const &infos,
     if (!m_options->hstore_columns.empty()) {
         /* does this column match any of the hstore column prefixes? */
         for (auto const &column : m_options->hstore_columns) {
-            if (boost::starts_with(k, column)) {
+            if (starts_with(k, column)) {
                 /* ... but if hstore_match_only is set then don't take this
                          as a reason for keeping the object */
                 if (!m_options->hstore_match_only) {
