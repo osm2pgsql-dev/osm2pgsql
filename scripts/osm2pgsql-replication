@@ -30,13 +30,22 @@ from textwrap import dedent
 from pathlib import Path
 import urllib.request as urlrequest
 
-import psycopg2
+missing_modules = []
 
-from osmium.replication.server import ReplicationServer
-from osmium.replication.utils import get_replication_header
-from osmium import WriteHandler
+try:
+    import psycopg2
+except ImportError:
+    missing_modules.append('psycopg2')
+
+try:
+    from osmium.replication.server import ReplicationServer
+    from osmium.replication.utils import get_replication_header
+    from osmium import WriteHandler
+except ImportError:
+    missing_modules.append('osmium')
 
 LOG = logging.getLogger()
+
 
 def pretty_format_timedelta(seconds):
     minutes = int(seconds/60)
@@ -484,9 +493,17 @@ def main():
     parser = get_parser()
     args = parser.parse_args()
 
+    if missing_modules:
+        LOG.fatal("Missing required Python libraries %(mods)s.\n\n"
+                  "To install them via pip run: pip install %(mods)s\n\n"
+                  "ERROR: libraries could not be loaded.",
+                  dict(mods=" ".join(missing_modules)))
+        return 1
+
+
     if args.subcommand is None:
         parser.print_help()
-        sys.exit(1)
+        return 1
 
     logging.basicConfig(stream=sys.stderr,
                         format='{asctime} [{levelname}]: {message}',
