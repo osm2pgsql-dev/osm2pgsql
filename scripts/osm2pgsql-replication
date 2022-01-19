@@ -27,7 +27,6 @@ import sys
 import subprocess
 import tempfile
 from textwrap import dedent
-import traceback
 from pathlib import Path
 import urllib.request as urlrequest
 
@@ -487,7 +486,7 @@ def main():
 
     if args.subcommand is None:
         parser.print_help()
-        exit(1)
+        sys.exit(1)
 
     logging.basicConfig(stream=sys.stderr,
                         format='{asctime} [{levelname}]: {message}',
@@ -509,4 +508,4 @@ def main():
 
 
 if __name__ == '__main__':
-    exit(main())
+    sys.exit(main())
