@@ -85,4 +85,10 @@ std::string get_password()
     return password;
 }
 
+std::string parent_path(std::string const &path)
+{
+    auto const pos = path.find_last_of("/\\");
+    return path.substr(0, pos);
+}
+
 } // namespace util

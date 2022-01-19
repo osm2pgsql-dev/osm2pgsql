@@ -36,8 +36,6 @@ extern "C"
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 
-#include <boost/filesystem.hpp>
-
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
@@ -1632,8 +1630,7 @@ void output_flex_t::init_lua(std::string const &filename)
                        m_options.append ? "append" : "create");
     luaX_add_table_int(lua_state(), "stage", 1);
 
-    std::string const dir_path =
-        boost::filesystem::path{filename}.parent_path().string();
+    std::string const dir_path = util::parent_path(filename);
     luaX_add_table_str(lua_state(), "config_dir", dir_path.c_str());
 
     luaX_add_table_func(lua_state(), "define_table",

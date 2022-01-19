@@ -19,7 +19,7 @@ runs:
 
     - name: Install software
       run: |
-        sudo apt-get install -yq --no-install-suggests --no-install-recommends postgresql-${POSTGRESQL_VERSION}-postgis-${POSTGIS_VERSION} postgresql-${POSTGRESQL_VERSION}-postgis-${POSTGIS_VERSION}-scripts postgresql-client postgresql-contrib-${POSTGRESQL_VERSION} postgresql-${POSTGRESQL_VERSION} libpq-dev libboost-system-dev libboost-filesystem-dev libexpat1-dev zlib1g-dev libbz2-dev libproj-dev pandoc python3-psycopg2 libluajit-5.1-dev
+        sudo apt-get install -yq --no-install-suggests --no-install-recommends postgresql-${POSTGRESQL_VERSION}-postgis-${POSTGIS_VERSION} postgresql-${POSTGRESQL_VERSION}-postgis-${POSTGIS_VERSION}-scripts postgresql-client postgresql-contrib-${POSTGRESQL_VERSION} postgresql-${POSTGRESQL_VERSION} libpq-dev libboost-dev libexpat1-dev zlib1g-dev libbz2-dev libproj-dev pandoc python3-psycopg2 libluajit-5.1-dev
         if [ "$CC" = clang-6.0 ]; then sudo apt-get install -yq --no-install-suggests --no-install-recommends clang-6.0; fi
         if [ "$CC" = clang-8 ]; then sudo apt-get install -yq --no-install-suggests --no-install-recommends clang-8; fi
       shell: bash

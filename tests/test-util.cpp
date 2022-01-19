@@ -82,3 +82,14 @@ TEST_CASE("human readable time durations", "[NoDB]")
     REQUIRE(util::human_readable_duration(152592) == "152592s (42h 23m 12s)");
 }
 
+TEST_CASE("get parent path")
+{
+    REQUIRE(util::parent_path("/foo/bar/baz") == "/foo/bar");
+    REQUIRE(util::parent_path("/foo/bar/") == "/foo/bar");
+    REQUIRE(util::parent_path("/foo/bar") == "/foo");
+    REQUIRE(util::parent_path("/") == "");
+    REQUIRE(util::parent_path("C:\\foo\\bar\\baz") == "C:\\foo\\bar");
+    REQUIRE(util::parent_path("C:\\foo\\bar\\") == "C:\\foo\\bar");
+    REQUIRE(util::parent_path("C:\\foo\\bar") == "C:\\foo");
+    REQUIRE(util::parent_path("C:\\") == "C:");
+}

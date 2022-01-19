@@ -201,7 +201,7 @@ if (WITH_LUA)
     find_program(LUA_EXE lua)
 endif()
 
-find_package(Boost 1.50 REQUIRED COMPONENTS system filesystem)
+find_package(Boost 1.50 REQUIRED)
 include_directories(SYSTEM ${Boost_INCLUDE_DIR})
 
 find_package(PostgreSQL REQUIRED)
@@ -256,6 +256,7 @@ elseif (LUA_FOUND)
 endif()
 
 if (WIN32)
+    add_definitions(/D_CRT_NONSTDC_NO_WARNINGS) # suppress warning for unlink()
     list(APPEND LIBS ws2_32)
     if (MSVC)
         find_path(GETOPT_INCLUDE_DIR getopt.h)

@@ -129,6 +129,8 @@ std::string human_readable_duration(std::chrono::milliseconds ms);
 
 std::string get_password();
 
+std::string parent_path(std::string const &path);
+
 } // namespace util
 
 #endif // OSM2PGSQL_UTIL_HPP

@@ -14,7 +14,13 @@
 
 #include <string>
 
-#include <boost/filesystem.hpp>
+// for unlink()
+#ifdef _WIN32
+#include <io.h>
+#include <cstdio>
+#else
+#include <unistd.h>
+#endif
 
 namespace testing {
 namespace cleanup {
@@ -45,11 +51,10 @@ private:
             return;
         }
 
-        boost::system::error_code ec;
-        boost::filesystem::remove(m_filename, ec);
-        if (ec && warn) {
+        int result = unlink(m_filename.c_str());
+        if (result != 0 && warn) {
             fmt::print(stderr, "WARNING: Unable to remove \"{}\": {}\n",
-                       m_filename, ec.message());
+                       m_filename, std::strerror(result));
         }
     }
 
