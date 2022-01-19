@@ -1,8 +1,8 @@
 environment:
   global:
     BZIP2_VER: 1.0.8.0
-    EXPAT_VER: 2.2.5
-    PROJ4_VER: 4.9.3
+    EXPAT_VER: 2.4.1
+    PROJ_VER: 7.0.1
     ZLIB_VER: 1.2.11
     LUA_VER: 5.3.4
     LUA_INCLUDE_DIR: C:\lua\include
@@ -13,7 +13,7 @@ environment:
     GETOPT_LIBRARY: C:\wingetopt\build\wingetopt.lib
     BZIP2_INCLUDE_DIR: C:\bzip2\dev
     BZIP2_LIBRARY: C:\bzip2\dll
-    BOOST_PATH: C:\Libraries\boost_1_63_0
+    BOOST_PATH: C:\Libraries\boost_1_77_0
     POSTGRESQL_VER: 11.2
     TESTS_POSTGRESQL_ROOT: C:\Progra~1\PostgreSQL\9.6
     POSTGIS_VER: 2.4.3
@@ -40,7 +40,7 @@ init:
   - set conda_library_path=C:\Miniconda36-x64\envs\osm2pgsql\Library
   - set lua_url=https://osm2pgsql.org/ci/winbuild/lua_x64.zip
   - set build_type=Release
-  - '"C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall" %vcvarsall_arg%'
+  - '"C:\Program Files (x86)\Microsoft Visual Studio 17.0\VC\vcvarsall" %vcvarsall_arg%'
 
 install:
   - set PATH=%TESTS_POSTGRESQL_ROOT%\bin;%python_path%;%PATH%;%conda_path%
@@ -48,7 +48,7 @@ install:
   - conda config --set always_yes yes
   - conda create --name osm2pgsql
   - activate osm2pgsql
-  - conda install expat=%EXPAT_VER% proj4=%PROJ4_VER% zlib=%ZLIB_VER% postgresql=%POSTGRESQL_VER%
+  - conda install expat=%EXPAT_VER% proj4=%PROJ_VER% zlib=%ZLIB_VER% postgresql=%POSTGRESQL_VER%
   - ps: if (!(Test-Path "C:\bzip2_dll_x64.zip")){(new-object net.webclient).DownloadFile($env:bz2_dll_url, "C:\bzip2_dll_x64.zip")}
   - 7z x -y C:\bzip2_dll_x64.zip -o%BZIP2_LIBRARY%
   - ps: if (!(Test-Path "C:\bzip2_dev_x64.zip")){(new-object net.webclient).DownloadFile($env:bz2_dev_url, "C:\bzip2_dev_x64.zip")}
@@ -74,7 +74,7 @@ build_script:
   - cd c:\osm2pgsql\build
   - >
     cmake .. -LA -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=%build_type% -DBUILD_TESTS=ON
-    -DLUA_INCLUDE_DIR=%LUA_INCLUDE_DIR% -DLUA_LIBRARIES=%LUA_LIBRARIES% 
+    -DLUA_INCLUDE_DIR=%LUA_INCLUDE_DIR% -DLUA_LIBRARIES=%LUA_LIBRARIES%
     -DGETOPT_INCLUDE_DIR=%GETOPT_INCLUDE_DIR% -DGETOPT_LIBRARY=%GETOPT_LIBRARY%
     -DBOOST_ROOT=%BOOST_PATH% -DBoost_USE_STATIC_LIBS=ON
     -DBZIP2_INCLUDE_DIR=%BZIP2_INCLUDE_DIR%
