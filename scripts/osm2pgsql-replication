@@ -33,9 +33,12 @@ import urllib.request as urlrequest
 missing_modules = []
 
 try:
-    import psycopg2
+    import psycopg2 as psycopg
 except ImportError:
-    missing_modules.append('psycopg2')
+    try:
+        import psycopg
+    except ImportError:
+        missing_modules.append('psycopg2')
 
 try:
     from osmium.replication.server import ReplicationServer
@@ -72,8 +75,8 @@ def pretty_format_timedelta(seconds):
 def connect(args):
     """ Create a connection from the given command line arguments.
     """
-    return psycopg2.connect(dbname=args.database, user=args.username,
-                            host=args.host, port=args.port)
+    return psycopg.connect(dbname=args.database, user=args.username,
+                           host=args.host, port=args.port)
 
 
 def compute_database_date(conn, prefix):
