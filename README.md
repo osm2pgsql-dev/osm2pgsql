@@ -49,7 +49,6 @@ Required libraries are
 * [proj](https://proj.org/)
 * [bzip2](http://www.bzip.org/)
 * [zlib](https://www.zlib.net/)
-* [Boost libraries](https://www.boost.org/)
 * [PostgreSQL](https://www.postgresql.org/) client libraries
 * [Lua](https://www.lua.org/) (Optional, used for Lua tag transforms
   and the flex output)
@@ -81,7 +80,7 @@ First install the dependencies.
 On a Debian or Ubuntu system, this can be done with:
 
 ```sh
-sudo apt-get install make cmake g++ libboost-dev \
+sudo apt-get install make cmake g++ \
   libexpat1-dev zlib1g-dev \
   libbz2-dev libpq-dev libproj-dev lua5.3 liblua5.3-dev pandoc
 ```
@@ -89,7 +88,7 @@ sudo apt-get install make cmake g++ libboost-dev \
 On a Fedora system, use
 
 ```sh
-sudo dnf install cmake make gcc-c++ boost-devel expat-devel zlib-devel \
+sudo dnf install cmake make gcc-c++ expat-devel zlib-devel \
   bzip2-devel postgresql-devel proj-devel proj-epsg lua-devel pandoc
 ```
 
@@ -97,21 +96,21 @@ On RedHat / CentOS first run `sudo yum install epel-release` then install
 dependencies with:
 
 ```sh
-sudo yum install cmake make gcc-c++ boost-devel expat-devel zlib-devel \
+sudo yum install cmake make gcc-c++ expat-devel zlib-devel \
   bzip2-devel postgresql-devel proj-devel proj-epsg lua-devel pandoc
 ```
 
 On a FreeBSD system, use
 
 ```sh
-pkg install devel/cmake devel/boost-libs textproc/expat2 \
+pkg install devel/cmake textproc/expat2 \
   databases/postgresql94-client graphics/proj lang/lua52
 ```
 
 On Alpine, use
 
 ```sh
-apk --update-cache add cmake make g++ boost-dev expat-dev \
+apk --update-cache add cmake make g++ expat-dev \
   bzip2-dev zlib-dev libpq proj-dev lua5.3-dev postgresql-dev
 ```
 

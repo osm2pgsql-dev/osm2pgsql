@@ -4,7 +4,7 @@ runs:
   using: composite
   steps:
     - name: Install packages
-      run: vcpkg install bzip2:x64-windows expat:x64-windows zlib:x64-windows proj4:x64-windows boost-property-tree:x64-windows lua:x64-windows libpq:x64-windows
+      run: vcpkg install bzip2:x64-windows expat:x64-windows zlib:x64-windows proj4:x64-windows lua:x64-windows libpq:x64-windows
       shell: bash
     - name: Install psycopg2
       run: python -m pip install psycopg2

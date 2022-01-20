@@ -9,9 +9,11 @@
 
 #include <algorithm>
 #include <cstring>
+#include <fstream>
 #include <stdexcept>
 
-#include <boost/property_tree/json_parser.hpp>
+#include "rapidjson/document.h"
+
 #include <osmium/osm.hpp>
 
 #include "domain-matcher.hpp"
@@ -20,8 +22,6 @@
 #include "logging.hpp"
 #include "pgsql.hpp"
 #include "wkb.hpp"
-
-namespace pt = boost::property_tree;
 
 void db_deleter_place_t::delete_rows(std::string const &table,
                                      std::string const &, pg_conn_t *conn)
@@ -85,18 +85,49 @@ std::string gazetteer_style_t::class_list() const
     return fmt::to_string(buf);
 }
 
+static std::string read_file(std::string const &filename)
+{
+    std::ifstream file{filename};
+
+    if (!file.is_open()) {
+        throw std::runtime_error{"Can not open style file " + filename};
+    }
+
+    return std::string((std::istreambuf_iterator<char>(file)),
+                       std::istreambuf_iterator<char>());
+}
+
 void gazetteer_style_t::load_style(std::string const &filename)
 {
     log_info("Parsing gazetteer style file '{}'.", filename);
-    pt::ptree root;
 
-    pt::read_json(filename, root);
+    auto const json = read_file(filename);
+    rapidjson::Document document;
+    document.Parse(json.c_str());
 
-    for (auto const &entry : root) {
-        for (auto const &tag : entry.second.get_child("keys")) {
-            for (auto const &value : entry.second.get_child("values")) {
-                add_style_entry(tag.second.data(), value.first,
-                                parse_flags(value.second.data()));
+    if (!document.IsArray()) {
+        throw std::runtime_error{
+            "Gazetteer style file must contain JSON array"};
+    }
+
+    for (auto const &entry : document.GetArray()) {
+        if (!entry.IsObject()) {
+            throw std::runtime_error{
+                "Gazetteer style file must contain JSON array with objects"};
+        }
+        auto const obj = entry.GetObject();
+        if (!obj.HasMember("keys") || !obj["keys"].IsArray()) {
+            throw std::runtime_error{
+                "'keys' field missing or not an array when reading style file"};
+        }
+        if (!obj.HasMember("values") || !obj["values"].IsObject()) {
+            throw std::runtime_error{"'values' field missing or not an object "
+                                     "when reading style file"};
+        }
+        for (auto const &tag : obj["keys"].GetArray()) {
+            for (auto const &value : obj["values"].GetObject()) {
+                add_style_entry(tag.GetString(), value.name.GetString(),
+                                parse_flags(value.value.GetString()));
             }
         }
     }

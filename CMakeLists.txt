@@ -201,9 +201,6 @@ if (WITH_LUA)
     find_program(LUA_EXE lua)
 endif()
 
-find_package(Boost 1.50 REQUIRED)
-include_directories(SYSTEM ${Boost_INCLUDE_DIR})
-
 find_package(PostgreSQL REQUIRED)
 include_directories(SYSTEM ${PostgreSQL_INCLUDE_DIRS})
 
@@ -211,7 +208,7 @@ find_package(Threads)
 
 ############### Libraries are found now ########################
 
-set(LIBS ${Boost_LIBRARIES} ${PostgreSQL_LIBRARY} ${OSMIUM_LIBRARIES})
+set(LIBS ${PostgreSQL_LIBRARY} ${OSMIUM_LIBRARIES})
 
 if (USE_PROJ_LIB STREQUAL "off")
     message(STATUS "Proj library disabled (because USE_PROJ_LIB is set to 'off').")
