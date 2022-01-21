@@ -49,7 +49,7 @@ Required libraries are
 * [proj](https://proj.org/)
 * [bzip2](http://www.bzip.org/)
 * [zlib](https://www.zlib.net/)
-* [Boost libraries](https://www.boost.org/), including system and filesystem
+* [Boost libraries](https://www.boost.org/)
 * [PostgreSQL](https://www.postgresql.org/) client libraries
 * [Lua](https://www.lua.org/) (Optional, used for Lua tag transforms
   and the flex output)
@@ -81,8 +81,8 @@ First install the dependencies.
 On a Debian or Ubuntu system, this can be done with:
 
 ```sh
-sudo apt-get install make cmake g++ libboost-dev libboost-system-dev \
-  libboost-filesystem-dev libexpat1-dev zlib1g-dev \
+sudo apt-get install make cmake g++ libboost-dev \
+  libexpat1-dev zlib1g-dev \
   libbz2-dev libpq-dev libproj-dev lua5.3 liblua5.3-dev pandoc
 ```
 

@@ -12,9 +12,8 @@
 
 #include "format.hpp"
 
+#include <filesystem>
 #include <string>
-
-#include <boost/filesystem.hpp>
 
 namespace testing {
 namespace cleanup {
@@ -45,9 +44,8 @@ private:
             return;
         }
 
-        boost::system::error_code ec;
-        boost::filesystem::remove(m_filename, ec);
-        if (ec && warn) {
+        std::error_code ec;
+        if (!std::filesystem::remove(m_filename, ec) && warn) {
             fmt::print(stderr, "WARNING: Unable to remove \"{}\": {}\n",
                        m_filename, ec.message());
         }

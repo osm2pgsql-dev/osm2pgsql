@@ -24,8 +24,7 @@ jobs:
         run: |
           sudo apt-get purge -yq postgresql*
           sudo apt-get install -yq --no-install-suggests --no-install-recommends \
-            libboost-filesystem-dev \
-            libboost-system-dev \
+            libboost-dev \
             libbz2-dev \
             libexpat1-dev \
             liblua${LUA_VERSION}-dev \
