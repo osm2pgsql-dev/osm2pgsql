@@ -48,8 +48,7 @@ Required libraries are
 * [proj](https://proj.org/)
 * [bzip2](http://www.bzip.org/)
 * [zlib](https://www.zlib.net/)
-* [Boost libraries](https://www.boost.org/), including geometry, system and
-  filesystem
+* [Boost libraries](https://www.boost.org/) (for boost geometry)
 * [nlohmann/json](https://json.nlohmann.me/)
 * [OpenCV](https://opencv.org/) (Optional, for generalization only)
 * [potrace](https://potrace.sourceforge.net/) (Optional, for generalization only)
@@ -73,7 +72,7 @@ It also requires access to a database server running
 
 Make sure you have installed the development packages for the libraries
 mentioned in the requirements section and a C++ compiler which supports C++17.
-We officially support gcc >= 7.0 and clang >= 8.
+We officially support gcc >= 8.0 and clang >= 8.
 
 To rebuild the included man page you'll need the [pandoc](https://pandoc.org/)
 tool.
@@ -83,8 +82,8 @@ First install the dependencies.
 On a Debian or Ubuntu system, this can be done with:
 
 ```sh
-sudo apt-get install make cmake g++ libboost-dev libboost-system-dev \
-  libboost-filesystem-dev libexpat1-dev zlib1g-dev libpotrace-dev \
+sudo apt-get install make cmake g++ libboost-dev \
+  libexpat1-dev zlib1g-dev libpotrace-dev \
   libopencv-dev libbz2-dev libpq-dev libproj-dev lua5.3 liblua5.3-dev \
   pandoc nlohmann-json3-dev pyosmium
 ```

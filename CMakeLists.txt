@@ -202,7 +202,7 @@ else()
     message(STATUS "Building without Lua support")
 endif()
 
-find_package(Boost 1.50 REQUIRED COMPONENTS system filesystem)
+find_package(Boost 1.50 REQUIRED)
 include_directories(SYSTEM ${Boost_INCLUDE_DIR})
 
 find_package(PostgreSQL REQUIRED)
