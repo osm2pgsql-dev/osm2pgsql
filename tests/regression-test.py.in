@@ -1,5 +1,6 @@
 #! @PYTHON_EXECUTABLE@ -B
 
+import os
 import sys
 import unittest
 
@@ -7,7 +8,7 @@ sys.path.insert(1, '@CMAKE_CURRENT_SOURCE_DIR@')
 
 from regression import *
 
-CONFIG['executable'] = '@osm2pgsql_BINARY_DIR@/osm2pgsql'
+CONFIG['executable'] = os.environ['OSM2PGSQL_BINARY']
 CONFIG['test_data_path'] = '@CMAKE_CURRENT_SOURCE_DIR@/data'
 CONFIG['default_data_path'] = '@osm2pgsql_SOURCE_DIR@'
 CONFIG['have_lua'] = '@HAVE_LUA@' == '1'

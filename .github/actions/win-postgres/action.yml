@@ -1,0 +1,26 @@
+name: Set up postgresql on Windows
+
+runs:
+  using: composite
+  steps:
+    - name: Download postgis
+      run: |
+        if (!(Test-Path "C:\postgis.zip")){(new-object net.webclient).DownloadFile("https://osm2pgsql.org/ci/winbuild/postgis-bundle-pg14-3.2.0x64.zip", "c:\postgis.zip")}
+        7z x c:\postgis.zip -oc:\postgis_archive
+      shell: pwsh
+    - name: Install postgis
+      run: |
+        echo "Root: $PGROOT, Bin: $PGBIN"
+        cp -r c:/postgis_archive/postgis-bundle-*/* "$PGROOT"
+      shell: bash
+    - name: Start PostgreSQL on Windows
+      run: |
+        $pgService = Get-Service -Name postgresql*
+        Set-Service -InputObject $pgService -Status running -StartupType automatic
+        Start-Process -FilePath "$env:PGBIN\pg_isready" -Wait -PassThru
+      shell: pwsh
+    - name: Create test tablespace
+      run: |
+        mkdir c:\tablespace
+        & $env:PGBIN\psql -c "CREATE TABLESPACE tablespacetest LOCATION 'c:/tablespace'"
+      shell: pwsh
