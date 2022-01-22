@@ -4,7 +4,7 @@ runs:
   using: composite
   steps:
     - name: Test
-      run: ctest --output-on-failure -C Release -L NoDB
+      run: ctest --output-on-failure -C Release
       shell: bash
       working-directory: build
 
