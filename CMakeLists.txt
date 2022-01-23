@@ -335,5 +335,7 @@ add_subdirectory(docs)
 
 if (ENABLE_INSTALL)
     install(TARGETS osm2pgsql DESTINATION bin)
+    install(PROGRAMS scripts/osm2pgsql-replication DESTINATION bin)
+    install(FILES docs/osm2pgsql-replication.1 DESTINATION share/man/man1)
     install(FILES default.style empty.style DESTINATION share/osm2pgsql)
 endif()
