@@ -1,6 +1,6 @@
 .TH osm2pgsql-replication "1" Manual
 .SH NAME
-osm2pgsql-replication
+osm2pgsql-replication - osm2pgsql database updater
 .SH SYNOPSIS
 .B osm2pgsql-replication
 [-h] {init,update,status} ...
@@ -269,25 +269,25 @@ With the '\-\-json' option, the status is printed as a json object.
 .br
 
 .br
-'status' is 0 if there were no problems getting the status. 1 & 2 for
+\(cqstatus\(cq is 0 if there were no problems getting the status. 1 & 2 for
 .br
 improperly set up replication. 3 for network issues. If status ≠ 0, then
 .br
-the 'error' key is an error message (as string). 'status' is used as the
+the \(cqerror\(cq key is an error message (as string). \(cqstatus\(cq is used
 .br
-exit code.
+as the exit code.
 .br
 
 .br
-'server' is the replication server's current status. 'sequence' is it's
+\(cqserver\(cq is the replication server\(cqs current status. \(cqsequence\(cq is it\(cqs
 .br
-sequence number, 'timestamp' the time of that, and 'age_sec' the age of the
+sequence number, \(cqtimestamp\(cq the time of that, and \(cqage_sec\(cq the age of the
 .br
 data in seconds.
 .br
 
 .br
-'local' is the status of your server.
+\(cqlocal\(cq is the status of your server.
 
 
 .TP
