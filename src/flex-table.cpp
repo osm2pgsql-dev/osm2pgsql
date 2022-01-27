@@ -77,6 +77,9 @@ flex_table_column_t &flex_table_t::add_column(std::string const &name,
     auto &column = m_columns.back();
 
     if (column.is_geometry_column()) {
+        if (m_geom_column != std::numeric_limits<std::size_t>::max()) {
+            m_has_multiple_geom_columns = true;
+        }
         m_geom_column = m_columns.size() - 1;
         column.set_not_null();
     }

@@ -23,7 +23,7 @@ struct column_type_lookup
     table_column_type type;
 };
 
-static std::array<column_type_lookup, 25> const column_types = {
+static std::array<column_type_lookup, 26> const column_types = {
     {{"text", table_column_type::text},
      {"boolean", table_column_type::boolean},
      {"bool", table_column_type::boolean},
@@ -46,6 +46,7 @@ static std::array<column_type_lookup, 25> const column_types = {
      {"multipoint", table_column_type::multipoint},
      {"multilinestring", table_column_type::multilinestring},
      {"multipolygon", table_column_type::multipolygon},
+     {"geometrycollection", table_column_type::geometrycollection},
      {"area", table_column_type::area},
      {"id_type", table_column_type::id_type},
      {"id_num", table_column_type::id_num}}};
@@ -156,6 +157,8 @@ std::string flex_table_column_t::sql_type_name() const
         return "Geometry(MULTILINESTRING, {})"_format(m_srid);
     case table_column_type::multipolygon:
         return "Geometry(MULTIPOLYGON, {})"_format(m_srid);
+    case table_column_type::geometrycollection:
+        return "Geometry(GEOMETRYCOLLECTION, {})"_format(m_srid);
     case table_column_type::area:
         return "real";
     case table_column_type::id_type:

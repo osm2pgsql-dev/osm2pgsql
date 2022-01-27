@@ -191,6 +191,11 @@ public:
     std::string full_name() const;
     std::string full_tmp_name() const;
 
+    bool has_multiple_geom_columns() const noexcept
+    {
+        return m_has_multiple_geom_columns;
+    }
+
 private:
     /// The name of the table
     std::string m_name;
@@ -224,6 +229,9 @@ private:
 
     /// Cluster the table by geometry.
     bool m_cluster_by_geom = true;
+
+    /// Does this table have more than one geometry column?
+    bool m_has_multiple_geom_columns = false;
 
 }; // class flex_table_t
 

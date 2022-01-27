@@ -193,3 +193,13 @@ object_metatable = {
 
 setmetatable(object_metatable.__index, inner_metatable)
 
+-- This is used to iterate over (multi)geometries.
+function osm2pgsql.Geometry.geometries(geom)
+    local i = 0
+    local max = #geom
+    return function()
+        i = i + 1
+        if i <= max then return geom:geometry_n(i) end
+    end
+end
+
