@@ -31,8 +31,8 @@ TEST_CASE("delete way: not a member")
 
     testing::db::data_t data{tdata};
 
-    unsigned long num_t1 = 0;
-    unsigned long num_tboth = 0;
+    int num_t1 = 0;
+    int num_tboth = 0;
     SECTION("in none") { data.add("w10 v1 dV Tt=ag Nn10,n11"); }
     SECTION("in t1")
     {
@@ -69,9 +69,9 @@ TEST_CASE("delete way: relation member")
 
     testing::db::data_t data{tdata};
 
-    unsigned long num_t1 = 0;
-    unsigned long num_t2 = 0;
-    unsigned long num_tboth = 0;
+    int num_t1 = 0;
+    int num_t2 = 0;
+    int num_tboth = 0;
 
     SECTION("in none")
     {
