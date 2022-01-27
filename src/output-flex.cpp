@@ -10,6 +10,7 @@
 #include "db-copy.hpp"
 #include "expire-tiles.hpp"
 #include "format.hpp"
+#include "geom-from-osm.hpp"
 #include "geom-functions.hpp"
 #include "geom-transform.hpp"
 #include "logging.hpp"
@@ -70,18 +71,37 @@ static std::mutex lua_mutex;
         }                                                                      \
     }
 
+TRAMPOLINE(app_geometry_gc, geometry_gc)
 TRAMPOLINE(app_define_table, define_table)
 TRAMPOLINE(app_get_bbox, get_bbox)
+TRAMPOLINE(app_as_linestring, as_linestring)
+TRAMPOLINE(app_as_point, as_point)
+TRAMPOLINE(app_as_polygon, as_polygon)
+TRAMPOLINE(app_as_multilinestring, as_multilinestring)
+TRAMPOLINE(app_as_multipolygon, as_multipolygon)
+TRAMPOLINE(app_as_geometrycollection, as_geometrycollection)
+TRAMPOLINE(geom_len, __len)
+TRAMPOLINE(geom_tostring, __tostring)
+TRAMPOLINE(geom_geometrytype, geometrytype)
+TRAMPOLINE(geom_is_null, is_null)
+TRAMPOLINE(geom_srid, srid)
+TRAMPOLINE(geom_area, area)
+TRAMPOLINE(geom_centroid, centroid)
+TRAMPOLINE(geom_transform, transform)
+TRAMPOLINE(geom_split_multi, split_multi)
+TRAMPOLINE(geom_simplify, simplify)
 TRAMPOLINE(table_name, name)
 TRAMPOLINE(table_schema, schema)
 TRAMPOLINE(table_cluster, cluster)
 TRAMPOLINE(table_add_row, add_row)
+TRAMPOLINE(table_insert, insert)
 TRAMPOLINE(table_columns, columns)
 TRAMPOLINE(table_tostring, __tostring)
 
 static char const *const osm2pgsql_table_name = "osm2pgsql.Table";
 static char const *const osm2pgsql_object_metatable =
     "osm2pgsql.object_metatable";
+static char const *const osm2pgsql_geometry_name = "osm2pgsql.Geometry";
 
 prepared_lua_function_t::prepared_lua_function_t(lua_State *lua_state,
                                                  calling_context context,
@@ -235,13 +255,28 @@ static int sgn(double val) noexcept
     return 0;
 }
 
+class not_null_exception : public std::runtime_error
+{
+public:
+    not_null_exception(std::string const &message,
+                       flex_table_column_t const *column)
+    : std::runtime_error(message), m_column(column)
+    {}
+
+    flex_table_column_t const &column() const noexcept { return *m_column; }
+
+private:
+    flex_table_column_t const *m_column;
+}; // class not_null_exception
+
 static void write_null(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
                        flex_table_column_t const &column)
 {
     if (column.not_null()) {
-        throw std::runtime_error{
+        throw not_null_exception{
             "Can not add NULL to column '{}' declared NOT NULL."_format(
-                column.name())};
+                column.name()),
+            &column};
     }
     copy_mgr->add_null_column();
 }
@@ -468,6 +503,22 @@ static void write_json(json_writer_type *writer, lua_State *lua_state,
     }
 }
 
+geom::geometry_t *unpack_geometry(lua_State *lua_state) {
+    void *user_data = lua_touserdata(lua_state, -1);
+
+    if (user_data == nullptr || !lua_getmetatable(lua_state, -1)) {
+        throw std::runtime_error{"First parameter must be a geometry."};
+    }
+
+    luaL_getmetatable(lua_state, osm2pgsql_geometry_name);
+    if (!lua_rawequal(lua_state, -1, -2)) {
+        throw std::runtime_error{"First parameter must be a geometry."};
+    }
+    lua_pop(lua_state, 2);
+
+    return static_cast<geom::geometry_t *>(user_data);
+}
+
 void output_flex_t::write_column(
     db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
     flex_table_column_t const &column)
@@ -484,10 +535,9 @@ void output_flex_t::write_column(
     int const ltype = lua_type(lua_state(), -1);
 
     // Certain Lua types can never be added to the database
-    if (ltype == LUA_TFUNCTION || ltype == LUA_TUSERDATA ||
-        ltype == LUA_TTHREAD) {
+    if (ltype == LUA_TFUNCTION || ltype == LUA_TTHREAD) {
         throw std::runtime_error{
-            "Can not add Lua objects of type function, userdata, or thread."};
+            "Can not add Lua objects of type function or thread."};
     }
 
     // A Lua nil value is always translated to a database NULL
@@ -640,9 +690,44 @@ void output_flex_t::write_column(
                 "Invalid type '{}' for direction column."_format(
                     lua_typename(lua_state(), ltype))};
         }
+    } else if (column.is_geometry_column()) {
+        // If this is a geometry column, the Lua function 'insert()' was
+        // called, because for 'add_row()' geometry columns are handled
+        // earlier and 'write_column()' is not called.
+        if (ltype == LUA_TUSERDATA) {
+            auto const *const geom = unpack_geometry(lua_state());
+            if (geom && !geom->is_null()) {
+                if (geom->srid() == column.srid()) {
+                    // OSM id not available here, so use dummy 0, it is used
+                    // for debug messages only anyway.
+                    m_expire.from_geometry(*geom, 0);
+                    copy_mgr->add_hex_geom(geom_to_ewkb(*geom));
+                } else {
+                    auto const proj =
+                        reprojection::create_projection(column.srid());
+                    auto const tgeom = geom::transform(*geom, *proj);
+                    // OSM id not available here, so use dummy 0, it is used
+                    // for debug messages only anyway.
+                    m_expire.from_geometry(tgeom, 0);
+                    copy_mgr->add_hex_geom(geom_to_ewkb(tgeom));
+                }
+            } else {
+                write_null(copy_mgr, column);
+            }
+        } else {
+            throw std::runtime_error{
+                "Need geometry data for geometry column '{}'."_format(
+                    column.name())};
+        }
+    } else if (column.type() == table_column_type::area) {
+        // If this is an area column, the Lua function 'insert()' was
+        // called, because for 'add_row()' area columns are handled
+        // earlier and 'write_column()' is not called.
+        throw std::runtime_error{"Column type 'area' not allowed with "
+                                 "'insert()'. Maybe use 'real'?"};
     } else {
-        throw std::runtime_error{
-            "Column type {} not implemented."_format(static_cast<uint8_t>(column.type()))};
+        throw std::runtime_error{"Column type {} not implemented."_format(
+            static_cast<uint8_t>(column.type()))};
     }
 
     lua_pop(lua_state(), 1);
@@ -784,6 +869,253 @@ int output_flex_t::app_get_bbox()
     }
 
     return 0;
+}
+
+template <typename CREATE>
+void create_lua_geometry_object(lua_State *lua_state, CREATE &&create)
+{
+    void *ptr = lua_newuserdata(lua_state, sizeof(geom::geometry_t));
+    new (ptr) geom::geometry_t{};
+    std::forward<CREATE>(create)(static_cast<geom::geometry_t *>(ptr));
+
+    // Set the metatable of this object
+    luaL_getmetatable(lua_state, osm2pgsql_geometry_name);
+    lua_setmetatable(lua_state, -2);
+}
+
+int output_flex_t::app_as_point()
+{
+    check_context_and_state("as_point", "process_node() function",
+                            m_calling_context != calling_context::process_node);
+
+    create_lua_geometry_object(lua_state(), [&](geom::geometry_t *geom) {
+        geom::create_point(geom, *m_context_node);
+    });
+
+    return 1;
+}
+
+int output_flex_t::app_as_linestring()
+{
+    check_context_and_state("as_linestring", "process_way() function",
+                            m_calling_context != calling_context::process_way);
+
+    m_way_cache.add_nodes(middle());
+
+    create_lua_geometry_object(lua_state(), [&](geom::geometry_t *geom) {
+        geom::create_linestring(geom, m_way_cache.get());
+    });
+
+    return 1;
+}
+
+int output_flex_t::app_as_polygon()
+{
+    check_context_and_state("as_polygon", "process_way() function",
+                            m_calling_context != calling_context::process_way);
+
+    m_way_cache.add_nodes(middle());
+
+    create_lua_geometry_object(lua_state(), [&](geom::geometry_t *geom) {
+        geom::create_polygon(geom, m_way_cache.get());
+    });
+
+    return 1;
+}
+
+int output_flex_t::app_as_multilinestring()
+{
+    check_context_and_state("as_multilinestring", "process_relation() function",
+                            m_calling_context !=
+                                calling_context::process_relation);
+
+    m_relation_cache.add_members(middle());
+
+    create_lua_geometry_object(lua_state(), [&](geom::geometry_t *geom) {
+        geom::create_multilinestring(geom, m_relation_cache.members_buffer());
+    });
+
+    return 1;
+}
+
+int output_flex_t::app_as_multipolygon()
+{
+    check_context_and_state("as_multipolygon", "process_relation() function",
+                            m_calling_context !=
+                                calling_context::process_relation);
+
+    m_relation_cache.add_members(middle());
+
+    create_lua_geometry_object(lua_state(), [&](geom::geometry_t *geom) {
+        geom::create_multipolygon(geom, m_relation_cache.get(),
+                                  m_relation_cache.members_buffer());
+    });
+
+    return 1;
+}
+
+int output_flex_t::app_as_geometrycollection()
+{
+    check_context_and_state(
+        "as_geometrycollection", "process_relation() function",
+        m_calling_context != calling_context::process_relation);
+
+    m_relation_cache.add_members(middle());
+
+    create_lua_geometry_object(lua_state(), [&](geom::geometry_t *geom) {
+        geom::create_collection(geom, m_relation_cache.members_buffer());
+    });
+
+    return 1;
+}
+
+// XXX Implementation for Lua __tostring function on geometries. Currently
+// just returns the type as string. This could be improved, for instance by
+// showing a WKT representation of the geometry.
+int output_flex_t::geom_tostring()
+{
+    return geom_geometrytype();
+}
+
+int output_flex_t::geom_geometrytype()
+{
+    auto const *const input_geometry = unpack_geometry(lua_state());
+    auto const type = geometry_type(*input_geometry);
+    lua_pushlstring(lua_state(), type.data(), type.size());
+    return 1;
+}
+
+int output_flex_t::geom_len()
+{
+    auto const *const input_geometry = unpack_geometry(lua_state());
+    lua_pushinteger(lua_state(),
+                    static_cast<lua_Integer>(num_geometries(*input_geometry)));
+    return 1;
+}
+
+int output_flex_t::geom_is_null()
+{
+    auto const *const input_geometry = unpack_geometry(lua_state());
+    lua_pushboolean(lua_state(), input_geometry->is_null());
+    return 1;
+}
+
+int output_flex_t::geom_srid()
+{
+    auto const *const input_geometry = unpack_geometry(lua_state());
+    lua_pushinteger(lua_state(),
+                    static_cast<lua_Integer>(input_geometry->srid()));
+    return 1;
+}
+
+int output_flex_t::geom_area()
+{
+    if (lua_gettop(lua_state()) > 1) {
+        throw std::runtime_error{"No parameter(s) needed for area()."};
+    }
+
+    auto const *const input_geometry = unpack_geometry(lua_state());
+    double const area = geom::area(*input_geometry);
+    lua_pushnumber(lua_state(), area);
+
+    return 1;
+}
+
+int output_flex_t::geom_centroid()
+{
+    if (lua_gettop(lua_state()) > 1) {
+        throw std::runtime_error{"No parameter(s) needed for centroid()."};
+    }
+
+    auto const *const input_geometry = unpack_geometry(lua_state());
+
+    create_lua_geometry_object(lua_state(), [&](geom::geometry_t *geom) {
+        *geom = geom::centroid(*input_geometry);
+    });
+
+    return 1;
+}
+
+int output_flex_t::geom_transform()
+{
+    if (lua_gettop(lua_state()) != 2) {
+        throw std::runtime_error{
+            "One parameter needed for transform(), the target srid."};
+    }
+
+#if LUA_VERSION_NUM >= 503
+    if (!lua_isinteger(lua_state(), -1)) {
+#else
+    if (!lua_isnumber(lua_state(), -1)) {
+#endif
+        throw std::runtime_error{
+            "transform() srid parameter has to be an integer."};
+    }
+
+    int const srid = lua_tointeger(lua_state(), -1);
+    lua_pop(lua_state(), 1); // srid parameter
+
+    auto const *const input_geometry = unpack_geometry(lua_state());
+
+    if (input_geometry->srid() != 4326) {
+        throw std::runtime_error{
+            "Can not transform already transformed geometry."};
+    }
+    auto const proj = reprojection::create_projection(srid);
+
+    create_lua_geometry_object(lua_state(), [&](geom::geometry_t *geom) {
+        geom::transform(geom, *input_geometry, *proj);
+    });
+
+    return 1;
+}
+
+// XXX this is inefficient, because we are copying the whole geometry and
+// creating a large Lua array. Better implement this with an iterator?
+int output_flex_t::geom_split_multi()
+{
+    if (lua_gettop(lua_state()) > 1) {
+        throw std::runtime_error{"No parameter(s) needed for split_multi()."};
+    }
+
+    auto const *const input_geometry = unpack_geometry(lua_state());
+    auto const geoms = geom::split_multi(*input_geometry, true);
+
+    lua_createtable(lua_state(), (int)geoms.size(), 0);
+    int n = 0;
+    for (auto const &g : geoms) {
+        lua_pushinteger(lua_state(), ++n);
+        create_lua_geometry_object(lua_state(), [&](geom::geometry_t *geom) {
+            *geom = std::move(g);
+        });
+        lua_rawset(lua_state(), -3);
+    }
+
+    return 1;
+}
+
+int output_flex_t::geom_simplify()
+{
+    if (lua_gettop(lua_state()) != 2) {
+        throw std::runtime_error{
+            "simplify() function needs one parameter: tolerance."};
+    }
+
+    if (!lua_isnumber(lua_state(), -1)) {
+        throw std::runtime_error{
+            "simplify() tolerance parameters has to be a number."};
+    }
+
+    double const tolerance = lua_tonumber(lua_state(), -1);
+    lua_pop(lua_state(), 1); // tolerance parameter
+
+    auto const *const input_geometry = unpack_geometry(lua_state());
+
+    create_lua_geometry_object(lua_state(), [&](geom::geometry_t *geom) {
+        *geom = geom::simplify(*input_geometry, tolerance);
+    });
+
+    return 1;
 }
 
 static void check_name(std::string const &name, char const *in)
@@ -981,6 +1313,18 @@ void output_flex_t::setup_flex_table_columns(flex_table_t *table)
     }
 }
 
+int output_flex_t::app_geometry_gc()
+{
+    void *geom = lua_touserdata(lua_state(), 1);
+    if (geom) {
+        static_cast<geom::geometry_t *>(geom)->~geometry_t();
+    }
+
+    lua_pop(lua_state(), 1); // pop parameter from stack
+
+    return 0;
+}
+
 int output_flex_t::app_define_table()
 {
     if (m_calling_context != calling_context::main) {
@@ -1099,13 +1443,19 @@ void output_flex_t::relation_cache_t::init(osmium::Relation const &relation)
 
 bool output_flex_t::relation_cache_t::add_members(middle_query_t const &middle)
 {
-    if (m_members_buffer.committed() == 0) {
+    if (members_buffer().committed() == 0) {
         auto const num_members = middle.rel_members_get(
             *m_relation, &m_members_buffer,
             osmium::osm_entity_bits::node | osmium::osm_entity_bits::way);
 
         if (num_members == 0) {
             return false;
+        }
+
+        for (auto &node : m_members_buffer.select<osmium::Node>()) {
+            if (!node.location().valid()) {
+                node.set_location(middle.get_node_location(node.id()));
+            }
         }
 
         for (auto &nodes : m_members_buffer.select<osmium::WayNodeList>()) {
@@ -1175,6 +1525,99 @@ int output_flex_t::table_add_row()
     return 0;
 }
 
+osmium::OSMObject const &
+output_flex_t::check_and_get_context_object(flex_table_t const &table)
+{
+    if (m_calling_context == calling_context::process_node) {
+        if (!table.matches_type(osmium::item_type::node)) {
+            throw std::runtime_error{
+                "Trying to add node to table '{}'."_format(table.name())};
+        }
+        return *m_context_node;
+    }
+
+    if (m_calling_context == calling_context::process_way) {
+        if (!table.matches_type(osmium::item_type::way)) {
+            throw std::runtime_error{
+                "Trying to add way to table '{}'."_format(table.name())};
+        }
+        return m_way_cache.get();
+    }
+
+    assert(m_calling_context == calling_context::process_relation);
+
+    if (!table.matches_type(osmium::item_type::relation)) {
+        throw std::runtime_error{
+            "Trying to add relation to table '{}'."_format(table.name())};
+    }
+    return m_relation_cache.get();
+}
+
+int output_flex_t::table_insert()
+{
+    if (m_disable_add_row) {
+        return 0;
+    }
+
+    if (m_calling_context != calling_context::process_node &&
+        m_calling_context != calling_context::process_way &&
+        m_calling_context != calling_context::process_relation) {
+        throw std::runtime_error{
+            "The function insert() can only be called from the "
+            "process_node/way/relation() functions."};
+    }
+
+    auto const num_params = lua_gettop(lua_state());
+    if (num_params != 2) {
+        throw std::runtime_error{
+            "Need two parameters: The osm2pgsql.table and the row data."};
+    }
+
+    // The first parameter is the table object.
+    auto &table_connection =
+        m_table_connections.at(table_idx_from_param(lua_state()));
+
+    // The second parameter must be a Lua table with the contents for the
+    // fields.
+    luaL_checktype(lua_state(), 2, LUA_TTABLE);
+    lua_remove(lua_state(), 1);
+
+    auto const &table = table_connection.table();
+    auto const &object = check_and_get_context_object(table);
+    osmid_t const id = table.map_id(object.type(), object.id());
+
+    table_connection.new_line();
+    auto *copy_mgr = table_connection.copy_mgr();
+
+    try {
+        for (auto const &column : table_connection.table()) {
+            if (column.create_only()) {
+                continue;
+            }
+            if (column.type() == table_column_type::id_type) {
+                copy_mgr->add_column(type_to_char(object.type()));
+            } else if (column.type() == table_column_type::id_num) {
+                copy_mgr->add_column(id);
+            } else {
+                write_column(copy_mgr, column);
+            }
+        }
+    } catch (not_null_exception const &e) {
+        copy_mgr->rollback_line();
+        lua_pushboolean(lua_state(), false);
+        lua_pushstring(lua_state(), "null value in not null column.");
+        lua_pushstring(lua_state(), e.column().name().c_str());
+        push_osm_object_to_lua_stack(lua_state(), object,
+                                     get_options()->extra_attributes);
+        return 4;
+    }
+
+    copy_mgr->finish_line();
+
+    lua_pushboolean(lua_state(), true);
+    return 1;
+}
+
 int output_flex_t::table_columns()
 {
     auto const &table = get_table_from_param();
@@ -1231,9 +1674,19 @@ get_transform(lua_State *lua_state, flex_table_column_t const &column)
 
     lua_getfield(lua_state, -1, column.name().c_str());
     int const ltype = lua_type(lua_state, -1);
-    if (ltype != LUA_TTABLE) {
+
+    // Field not set, return null transform
+    if (ltype == LUA_TNIL) {
         lua_pop(lua_state, 1); // geom field
         return transform;
+    }
+
+    // Field set to anything but a Lua table is not allowed
+    if (ltype != LUA_TTABLE) {
+        lua_pop(lua_state, 1); // geom field
+        throw std::runtime_error{
+            "Invalid geometry transformation for column '{}'."_format(
+                column.name())};
     }
 
     lua_getfield(lua_state, -1, "create");
@@ -1325,6 +1778,13 @@ void output_flex_t::add_row(table_connection_t *table_connection,
 {
     assert(table_connection);
     auto const &table = table_connection->table();
+
+    if (table.has_multiple_geom_columns()) {
+        throw std::runtime_error{
+            "Table '{}' has more than one geometry column."
+            " This is not allowed with 'add_row()'."
+            " Maybe use 'insert()' instead?"_format(table.name())};
+    }
 
     osmid_t const id = table.map_id(object.type(), object.id());
 
@@ -1743,10 +2203,38 @@ static void init_table_class(lua_State *lua_state)
     lua_setfield(lua_state, -2, "__index");
     luaX_add_table_func(lua_state, "__tostring", lua_trampoline_table_tostring);
     luaX_add_table_func(lua_state, "add_row", lua_trampoline_table_add_row);
+    luaX_add_table_func(lua_state, "insert", lua_trampoline_table_insert);
     luaX_add_table_func(lua_state, "name", lua_trampoline_table_name);
     luaX_add_table_func(lua_state, "schema", lua_trampoline_table_schema);
     luaX_add_table_func(lua_state, "cluster", lua_trampoline_table_cluster);
     luaX_add_table_func(lua_state, "columns", lua_trampoline_table_columns);
+}
+
+/**
+ * Define the osm2pgsql.Geometry class/metatable.
+ */
+static void init_geometry_class(lua_State *lua_state)
+{
+    if (luaL_newmetatable(lua_state, osm2pgsql_geometry_name) != 1) {
+        throw std::runtime_error{"Internal error: Lua newmetatable failed."};
+    }
+
+    luaX_add_table_func(lua_state, "__gc", lua_trampoline_app_geometry_gc);
+    luaX_add_table_func(lua_state, "__len", lua_trampoline_geom_len);
+    luaX_add_table_func(lua_state, "__tostring", lua_trampoline_geom_tostring);
+    lua_pushvalue(lua_state, -1);
+    lua_setfield(lua_state, -2, "__index");
+    luaX_add_table_func(lua_state, "is_null", lua_trampoline_geom_is_null);
+    luaX_add_table_func(lua_state, "srid", lua_trampoline_geom_srid);
+    luaX_add_table_func(lua_state, "area", lua_trampoline_geom_area);
+    luaX_add_table_func(lua_state, "geometrytype",
+                        lua_trampoline_geom_geometrytype);
+    luaX_add_table_func(lua_state, "centroid", lua_trampoline_geom_centroid);
+    luaX_add_table_func(lua_state, "transform", lua_trampoline_geom_transform);
+    luaX_add_table_func(lua_state, "split_multi",
+                        lua_trampoline_geom_split_multi);
+    luaX_add_table_func(lua_state, "simplify", lua_trampoline_geom_simplify);
+    lua_pop(lua_state, 1); // __index
 }
 
 void output_flex_t::init_lua(std::string const &filename)
@@ -1788,10 +2276,22 @@ void output_flex_t::init_lua(std::string const &filename)
             lua_tostring(lua_state(), -1))};
     }
 
-    // Store the "get_bbox" in the "object_metatable".
+    // Store the methods on OSM objects in its metatable.
     lua_getglobal(lua_state(), "object_metatable");
     lua_getfield(lua_state(), -1, "__index");
     luaX_add_table_func(lua_state(), "get_bbox", lua_trampoline_app_get_bbox);
+    luaX_add_table_func(lua_state(), "as_linestring",
+                        lua_trampoline_app_as_linestring);
+    luaX_add_table_func(lua_state(), "as_point",
+                        lua_trampoline_app_as_point);
+    luaX_add_table_func(lua_state(), "as_polygon",
+                        lua_trampoline_app_as_polygon);
+    luaX_add_table_func(lua_state(), "as_multilinestring",
+                        lua_trampoline_app_as_multilinestring);
+    luaX_add_table_func(lua_state(), "as_multipolygon",
+                        lua_trampoline_app_as_multipolygon);
+    luaX_add_table_func(lua_state(), "as_geometrycollection",
+                        lua_trampoline_app_as_geometrycollection);
     lua_settop(lua_state(), 0);
 
     // Store the global object "object_metatable" defined in the init.lua
@@ -1802,6 +2302,12 @@ void output_flex_t::init_lua(std::string const &filename)
     lua_settable(lua_state(), LUA_REGISTRYINDEX);
     lua_pushnil(lua_state());
     lua_setglobal(lua_state(), "object_metatable");
+
+    assert(lua_gettop(lua_state()) == 0);
+
+    init_geometry_class(lua_state());
+
+    assert(lua_gettop(lua_state()) == 0);
 
     // Load user config file
     luaX_set_context(lua_state(), this);

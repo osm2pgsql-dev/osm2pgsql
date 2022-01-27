@@ -153,12 +153,32 @@ public:
 
     void merge_expire_trees(output_t *other) override;
 
+    int app_as_point();
+    int app_as_linestring();
+    int app_as_polygon();
+    int app_as_multilinestring();
+    int app_as_multipolygon();
+    int app_as_geometrycollection();
+
     int app_define_table();
-    int app_mark_way();
+    int app_geometry_gc();
     int app_get_bbox();
+    int app_mark_way();
+
+    int geom_area();
+    int geom_centroid();
+    int geom_geometrytype();
+    int geom_is_null();
+    int geom_len();
+    int geom_simplify();
+    int geom_split_multi();
+    int geom_srid();
+    int geom_tostring();
+    int geom_transform();
 
     int table_tostring();
     int table_add_row();
+    int table_insert();
     int table_name();
     int table_schema();
     int table_cluster();
@@ -192,9 +212,13 @@ private:
 
     void write_column(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
                       flex_table_column_t const &column);
+
     void write_row(table_connection_t *table_connection,
                    osmium::item_type id_type, osmid_t id,
                    geom::geometry_t const &geom, int srid);
+
+    osmium::OSMObject const &
+    check_and_get_context_object(flex_table_t const &table);
 
     geom::geometry_t run_transform(reprojection const &proj,
                                    geom_transform_t const *transform,
