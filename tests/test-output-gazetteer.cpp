@@ -214,8 +214,7 @@ public:
         REQUIRE_NOTHROW(db.run_import(opt, opl.c_str()));
     }
 
-    unsigned long obj_count(testing::pg::conn_t const &conn, osmid_t id,
-                            char const *cls)
+    int obj_count(testing::pg::conn_t const &conn, osmid_t id, char const *cls)
     {
         char const tchar = m_opl_factory.type();
         return conn.get_count("place",
