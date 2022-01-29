@@ -50,11 +50,6 @@ public:
         return std::stoi(result_as_string(cmd));
     }
 
-    unsigned long result_as_ulong(std::string const &cmd) const
-    {
-        return std::stoul(result_as_string(cmd));
-    }
-
     double result_as_double(std::string const &cmd) const
     {
         return std::stod(result_as_string(cmd));
@@ -80,13 +75,12 @@ public:
         return res;
     }
 
-    unsigned long get_count(char const *table_name,
-                            std::string const &where = "") const
+    int get_count(char const *table_name, std::string const &where = "") const
     {
         auto const query = "SELECT count(*) FROM {} {} {}"_format(
             table_name, (where.empty() ? "" : "WHERE"), where);
 
-        return result_as_ulong(query);
+        return result_as_int(query);
     }
 
     void require_has_table(char const *table_name) const
