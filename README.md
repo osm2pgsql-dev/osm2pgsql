@@ -48,7 +48,8 @@ Required libraries are
 * [proj](https://proj.org/)
 * [bzip2](http://www.bzip.org/)
 * [zlib](https://www.zlib.net/)
-* [Boost libraries](https://www.boost.org/), including system and filesystem
+* [Boost libraries](https://www.boost.org/), including geometry, system and
+  filesystem
 * [PostgreSQL](https://www.postgresql.org/) client libraries
 * [Lua](https://www.lua.org/) (Optional, used for Lua tag transforms
   and the flex output)
