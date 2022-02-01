@@ -9,6 +9,7 @@
 
 #include <catch.hpp>
 
+#include "config.h"
 #include "reprojection.hpp"
 
 TEST_CASE("projection 4326", "[NoDB]")
@@ -58,8 +59,8 @@ TEST_CASE("projection 5520", "[NoDB]")
     REQUIRE_FALSE(reprojection->target_latlon());
 
     auto const c = reprojection->reproject(loc);
-    REQUIRE(c.x == Approx(1969644.93));
-    REQUIRE(c.y == Approx(5897146.04));
+    REQUIRE(c.x == Approx(1969579.14));
+    REQUIRE(c.y == Approx(5896972.95));
 
     auto const ct = reprojection->target_to_tile(c);
     REQUIRE(ct.x == Approx(1113194.91));
