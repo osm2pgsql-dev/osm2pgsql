@@ -17,8 +17,8 @@
 
 #include "db-copy.hpp"
 #include "expire-tiles.hpp"
-#include "osmium-builder.hpp"
 #include "output.hpp"
+#include "reprojection.hpp"
 #include "table.hpp"
 #include "tagtransform.hpp"
 
@@ -89,7 +89,7 @@ protected:
 
     std::array<std::unique_ptr<table_t>, t_MAX> m_tables;
 
-    geom::osmium_builder_t m_builder;
+    std::shared_ptr<reprojection> m_proj;
     expire_tiles m_expire;
 
     osmium::memory::Buffer m_buffer;

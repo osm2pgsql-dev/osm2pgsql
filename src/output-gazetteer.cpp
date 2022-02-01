@@ -8,6 +8,9 @@
  */
 
 #include "format.hpp"
+#include "geom.hpp"
+#include "geom-from-osm.hpp"
+#include "geom-functions.hpp"
 #include "middle.hpp"
 #include "options.hpp"
 #include "osmtypes.hpp"
@@ -99,7 +102,8 @@ bool output_gazetteer_t::process_node(osmium::Node const &node)
         return false;
     }
 
-    auto const wkb = m_builder.get_wkb_node(node.location());
+    auto const wkb =
+        geom_to_ewkb(geom::transform(geom::create_point(node), *m_proj));
     delete_unused_classes('N', node.id());
     m_style.copy_out(node, wkb, m_copy);
 
@@ -132,21 +136,19 @@ bool output_gazetteer_t::process_way(osmium::Way *way)
     middle().nodes_get_list(&(way->nodes()));
 
     // Get the geometry of the object.
-    geom::osmium_builder_t::wkb_t geom;
+    geom::geometry_t geom;
     if (way->is_closed()) {
-        geom = m_builder.get_wkb_polygon(*way);
+        geom = geom::transform(geom::create_polygon(*way), *m_proj);
     }
-    if (geom.empty()) {
-        auto const wkbs = m_builder.get_wkb_line(way->nodes(), 0.0);
-        if (wkbs.empty()) {
+    if (geom.is_null()) {
+        geom = geom::transform(geom::create_linestring(*way), *m_proj);
+        if (geom.is_null()) {
             return false;
         }
-
-        geom = wkbs[0];
     }
 
     delete_unused_classes('W', way->id());
-    m_style.copy_out(*way, geom, m_copy);
+    m_style.copy_out(*way, geom_to_ewkb(geom), m_copy);
 
     return true;
 }
@@ -200,17 +202,17 @@ bool output_gazetteer_t::process_relation(osmium::Relation const &rel)
         middle().nodes_get_list(&(w.nodes()));
     }
 
-    auto const geoms =
-        is_waterway
-            ? m_builder.get_wkb_multiline(m_osmium_buffer, 0.0)
-            : m_builder.get_wkb_multipolygon(rel, m_osmium_buffer, true);
+    auto const geom = geom::transform(
+        is_waterway ? geom::create_multilinestring(m_osmium_buffer)
+                    : geom::create_multipolygon(rel, m_osmium_buffer),
+        *m_proj);
 
-    if (geoms.empty()) {
+    if (geom.is_null()) {
         return false;
     }
 
     delete_unused_classes('R', rel.id());
-    m_style.copy_out(rel, geoms[0], m_copy);
+    m_style.copy_out(rel, geom_to_ewkb(geom), m_copy);
 
     return true;
 }

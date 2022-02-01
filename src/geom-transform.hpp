@@ -11,9 +11,11 @@
  */
 
 #include "flex-table-column.hpp"
-#include "osmium-builder.hpp"
+#include "geom.hpp"
+#include "reprojection.hpp"
 
 #include <osmium/fwd.hpp>
+#include <osmium/memory/buffer.hpp>
 
 extern "C"
 {
@@ -36,44 +38,41 @@ public:
         return false;
     }
 
-    virtual bool is_compatible_with(table_column_type geom_type) const
-        noexcept = 0;
+    virtual bool
+    is_compatible_with(table_column_type geom_type) const noexcept = 0;
 
-    virtual geom::osmium_builder_t::wkbs_t
-    run(geom::osmium_builder_t * /*builder*/,
-        table_column_type /*target_geom_type*/,
-        osmium::Node const & /*node*/) const
+    virtual geom::geometry_t convert(reprojection const & /*proj*/,
+                                     osmium::Node const & /*node*/) const
     {
         return {};
     }
 
-    virtual geom::osmium_builder_t::wkbs_t
-    run(geom::osmium_builder_t * /*builder*/,
-        table_column_type /*target_geom_type*/, osmium::Way * /*way*/) const
+    virtual geom::geometry_t convert(reprojection const & /*proj*/,
+                                     osmium::Way const & /*way*/) const
     {
         return {};
     }
 
-    virtual geom::osmium_builder_t::wkbs_t
-    run(geom::osmium_builder_t * /*builder*/,
-        table_column_type /*target_geom_type*/,
-        osmium::Relation const & /*relation*/,
-        osmium::memory::Buffer const & /*buffer*/) const
+    virtual geom::geometry_t
+    convert(reprojection const & /*proj*/,
+            osmium::Relation const & /*relation*/,
+            osmium::memory::Buffer const & /*buffer*/) const
     {
         return {};
     }
+
+    virtual bool split() const noexcept { return false; }
 
 }; // class geom_transform_t
 
 class geom_transform_point_t : public geom_transform_t
 {
 public:
-    bool is_compatible_with(table_column_type geom_type) const
-        noexcept override;
+    bool
+    is_compatible_with(table_column_type geom_type) const noexcept override;
 
-    geom::osmium_builder_t::wkbs_t run(geom::osmium_builder_t *builder,
-                                       table_column_type target_geom_type,
-                                       osmium::Node const &node) const override;
+    geom::geometry_t convert(reprojection const &proj,
+                             osmium::Node const &node) const override;
 
 }; // class geom_transform_point_t
 
@@ -82,17 +81,15 @@ class geom_transform_line_t : public geom_transform_t
 public:
     bool set_param(char const *name, lua_State *lua_state) override;
 
-    bool is_compatible_with(table_column_type geom_type) const
-        noexcept override;
+    bool
+    is_compatible_with(table_column_type geom_type) const noexcept override;
 
-    geom::osmium_builder_t::wkbs_t run(geom::osmium_builder_t *builder,
-                                       table_column_type target_geom_type,
-                                       osmium::Way *way) const override;
+    geom::geometry_t convert(reprojection const &proj,
+                             osmium::Way const &way) const override;
 
-    geom::osmium_builder_t::wkbs_t
-    run(geom::osmium_builder_t *builder, table_column_type target_geom_type,
-        osmium::Relation const &relation,
-        osmium::memory::Buffer const &buffer) const override;
+    geom::geometry_t
+    convert(reprojection const &proj, osmium::Relation const &relation,
+            osmium::memory::Buffer const &buffer) const override;
 
 private:
     double m_split_at = 0.0;
@@ -104,17 +101,17 @@ class geom_transform_area_t : public geom_transform_t
 public:
     bool set_param(char const *name, lua_State *lua_state) override;
 
-    bool is_compatible_with(table_column_type geom_type) const
-        noexcept override;
+    bool
+    is_compatible_with(table_column_type geom_type) const noexcept override;
 
-    geom::osmium_builder_t::wkbs_t run(geom::osmium_builder_t *builder,
-                                       table_column_type target_geom_type,
-                                       osmium::Way *way) const override;
+    geom::geometry_t convert(reprojection const &proj,
+                             osmium::Way const &way) const override;
 
-    geom::osmium_builder_t::wkbs_t
-    run(geom::osmium_builder_t *builder, table_column_type target_geom_type,
-        osmium::Relation const &relation,
-        osmium::memory::Buffer const &buffer) const override;
+    geom::geometry_t
+    convert(reprojection const &proj, osmium::Relation const &relation,
+            osmium::memory::Buffer const &buffer) const override;
+
+    bool split() const noexcept override { return !m_multi; }
 
 private:
     bool m_multi = true;

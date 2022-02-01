@@ -8,6 +8,8 @@ target_sources(osm2pgsql_lib PRIVATE
   expire-tiles.cpp
   gazetteer-style.cpp
   geom.cpp
+  geom-from-osm.cpp
+  geom-functions.cpp
   input.cpp
   logging.cpp
   middle.cpp
@@ -18,7 +20,6 @@ target_sources(osm2pgsql_lib PRIVATE
   options.cpp
   ordered-index.cpp
   osmdata.cpp
-  osmium-builder.cpp
   output-gazetteer.cpp
   output-null.cpp
   output-pgsql.cpp
@@ -34,6 +35,7 @@ target_sources(osm2pgsql_lib PRIVATE
   thread-pool.cpp
   util.cpp
   wildcmp.cpp
+  wkb.cpp
 )
 
 if (LUA_FOUND OR LUAJIT_FOUND)

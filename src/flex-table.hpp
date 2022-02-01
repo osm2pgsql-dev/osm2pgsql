@@ -12,8 +12,8 @@
 
 #include "db-copy-mgr.hpp"
 #include "flex-table-column.hpp"
-#include "osmium-builder.hpp"
 #include "pgsql.hpp"
+#include "reprojection.hpp"
 #include "thread-pool.hpp"
 
 #include <osmium/osm/item_type.hpp>
@@ -232,7 +232,7 @@ class table_connection_t
 public:
     table_connection_t(flex_table_t *table,
                        std::shared_ptr<db_copy_thread_t> const &copy_thread)
-    : m_builder(reprojection::create_projection(table->srid())), m_table(table),
+    : m_proj(reprojection::create_projection(table->srid())), m_table(table),
       m_target(std::make_shared<db_target_descr_t>(
           table->name(), table->id_column_names(),
           table->build_sql_column_list())),
@@ -268,7 +268,11 @@ public:
 
     void delete_rows_with(osmium::item_type type, osmid_t id);
 
-    geom::osmium_builder_t *get_builder() { return &m_builder; }
+    reprojection const &proj() const noexcept
+    {
+        assert(m_proj);
+        return *m_proj;
+    }
 
     void task_set(std::future<std::chrono::milliseconds> &&future)
     {
@@ -278,7 +282,7 @@ public:
     void task_wait();
 
 private:
-    geom::osmium_builder_t m_builder;
+    std::shared_ptr<reprojection> m_proj;
 
     flex_table_t *m_table;
 

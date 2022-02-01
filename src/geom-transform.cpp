@@ -7,6 +7,8 @@
  * For a full list of authors see the git log.
  */
 
+#include "geom-from-osm.hpp"
+#include "geom-functions.hpp"
 #include "geom-transform.hpp"
 #include "logging.hpp"
 
@@ -22,14 +24,10 @@ bool geom_transform_point_t::is_compatible_with(
            geom_type == table_column_type::geometry;
 }
 
-geom::osmium_builder_t::wkbs_t
-geom_transform_point_t::run(geom::osmium_builder_t *builder,
-                            table_column_type /*target_geom_type*/,
-                            osmium::Node const &node) const
+geom::geometry_t geom_transform_point_t::convert(reprojection const &proj,
+                                                 osmium::Node const &node) const
 {
-    assert(builder);
-
-    return {builder->get_wkb_node(node.location())};
+    return geom::transform(geom::create_point(node), proj);
 }
 
 bool geom_transform_line_t::set_param(char const *name, lua_State *lua_state)
@@ -56,26 +54,27 @@ bool geom_transform_line_t::is_compatible_with(
            geom_type == table_column_type::geometry;
 }
 
-geom::osmium_builder_t::wkbs_t
-geom_transform_line_t::run(geom::osmium_builder_t *builder,
-                           table_column_type /*target_geom_type*/,
-                           osmium::Way *way) const
+geom::geometry_t geom_transform_line_t::convert(reprojection const &proj,
+                                                osmium::Way const &way) const
 {
-    assert(builder);
-    assert(way);
-
-    return builder->get_wkb_line(way->nodes(), m_split_at);
+    auto geom = geom::transform(geom::create_linestring(way), proj);
+    if (!geom.is_null() && m_split_at > 0.0) {
+        geom = geom::segmentize(geom, m_split_at);
+    }
+    return geom;
 }
 
-geom::osmium_builder_t::wkbs_t
-geom_transform_line_t::run(geom::osmium_builder_t *builder,
-                           table_column_type /*target_geom_type*/,
-                           osmium::Relation const & /*relation*/,
-                           osmium::memory::Buffer const &buffer) const
+geom::geometry_t
+geom_transform_line_t::convert(reprojection const &proj,
+                               osmium::Relation const & /*relation*/,
+                               osmium::memory::Buffer const &buffer) const
 {
-    assert(builder);
-
-    return builder->get_wkb_multiline(buffer, m_split_at);
+    auto geom = geom::transform(
+        geom::line_merge(geom::create_multilinestring(buffer)), proj);
+    if (!geom.is_null() && m_split_at > 0.0) {
+        geom = geom::segmentize(geom, m_split_at);
+    }
+    return geom;
 }
 
 bool geom_transform_area_t::set_param(char const *name, lua_State *lua_state)
@@ -115,42 +114,18 @@ bool geom_transform_area_t::is_compatible_with(
            geom_type == table_column_type::geometry;
 }
 
-geom::osmium_builder_t::wkbs_t
-geom_transform_area_t::run(geom::osmium_builder_t *builder,
-                           table_column_type target_geom_type,
-                           osmium::Way *way) const
+geom::geometry_t geom_transform_area_t::convert(reprojection const & /*proj*/,
+                                                osmium::Way const &way) const
 {
-    assert(builder);
-    assert(way);
-
-    geom::osmium_builder_t::wkbs_t result;
-
-    if (!way->is_closed()) {
-        return result;
-    }
-
-    result.push_back(builder->get_wkb_polygon(*way));
-
-    if (result.front().empty()) {
-        result.clear();
-    } else if (target_geom_type == table_column_type::multipolygon) {
-        builder->wrap_in_multipolygon(&result);
-    }
-
-    return result;
+    return geom::create_polygon(way);
 }
 
-geom::osmium_builder_t::wkbs_t
-geom_transform_area_t::run(geom::osmium_builder_t *builder,
-                           table_column_type target_geom_type,
-                           osmium::Relation const &relation,
-                           osmium::memory::Buffer const &buffer) const
+geom::geometry_t
+geom_transform_area_t::convert(reprojection const & /*proj*/,
+                               osmium::Relation const &relation,
+                               osmium::memory::Buffer const &buffer) const
 {
-    assert(builder);
-
-    bool const wrap_multi = target_geom_type == table_column_type::multipolygon;
-
-    return builder->get_wkb_multipolygon(relation, buffer, m_multi, wrap_multi);
+    return geom::create_multipolygon(relation, buffer);
 }
 
 std::unique_ptr<geom_transform_t> create_geom_transform(char const *type)

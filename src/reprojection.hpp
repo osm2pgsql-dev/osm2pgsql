@@ -9,8 +9,7 @@
  * It contains the reprojection class.
  */
 
-#include <osmium/geom/coordinates.hpp>
-#include <osmium/osm/location.hpp>
+#include "geom.hpp"
 
 #include <memory>
 #include <string>
@@ -44,14 +43,13 @@ public:
      * Reproject from the source projection lat/lon (EPSG:4326)
      * to target projection.
      */
-    virtual osmium::geom::Coordinates reproject(osmium::Location loc) const = 0;
+    virtual geom::point_t reproject(geom::point_t point) const = 0;
 
     /**
      * Converts coordinates from target projection to tile projection
      * (EPSG:3857)
      */
-    virtual osmium::geom::Coordinates
-        target_to_tile(osmium::geom::Coordinates) const = 0;
+    virtual geom::point_t target_to_tile(geom::point_t point) const = 0;
 
     virtual int target_srs() const noexcept = 0;
 

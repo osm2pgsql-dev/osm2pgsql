@@ -20,17 +20,16 @@ public:
       m_transformation_tile(create_transformation(srs, PROJ_SPHERE_MERC))
     {}
 
-    osmium::geom::Coordinates reproject(osmium::Location loc) const override
+    geom::point_t
+    reproject(geom::point_t point) const noexcept override
     {
-        return transform(m_transformation.get(),
-                         osmium::geom::Coordinates{loc.lon_without_check(),
-                                                   loc.lat_without_check()});
+        return transform(m_transformation.get(), point);
     }
 
-    osmium::geom::Coordinates
-    target_to_tile(osmium::geom::Coordinates coords) const override
+    geom::point_t
+    target_to_tile(geom::point_t point) const override
     {
-        return transform(m_transformation_tile.get(), coords);
+        return transform(m_transformation_tile.get(), point);
     }
 
     int target_srs() const noexcept override { return m_target_srs; }
@@ -85,20 +84,19 @@ private:
         return trans_vis;
     }
 
-    osmium::geom::Coordinates transform(PJ *transformation,
-                                        osmium::geom::Coordinates coords) const
-        noexcept
+    geom::point_t transform(PJ *transformation,
+                            geom::point_t point) const noexcept
     {
         PJ_COORD c_in;
         c_in.lpzt.z = 0.0;
         c_in.lpzt.t = HUGE_VAL;
-        c_in.lpzt.lam = coords.x;
-        c_in.lpzt.phi = coords.y;
+        c_in.lpzt.lam = point.x();
+        c_in.lpzt.phi = point.y();
 
         auto const c_out = proj_trans(transformation, PJ_FWD, c_in);
 
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-        return osmium::geom::Coordinates{c_out.xy.x, c_out.xy.y};
+        return {c_out.xy.x, c_out.xy.y};
     }
 
     int m_target_srs;

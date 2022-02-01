@@ -13,7 +13,7 @@
 #include "expire-tiles.hpp"
 #include "flex-table-column.hpp"
 #include "flex-table.hpp"
-#include "osmium-builder.hpp"
+#include "geom.hpp"
 #include "output.hpp"
 
 #include <osmium/index/id_set.hpp>
@@ -191,21 +191,19 @@ private:
                       flex_table_column_t const &column);
     void write_row(table_connection_t *table_connection,
                    osmium::item_type id_type, osmid_t id,
-                   std::string const &geom, int srid);
+                   geom::geometry_t const &geom, int srid);
 
-    geom::osmium_builder_t::wkbs_t
-    run_transform(geom::osmium_builder_t *builder,
-                  geom_transform_t const *transform,
-                  table_column_type target_geom_type, osmium::Node const &node);
+    geom::geometry_t run_transform(reprojection const &proj,
+                                   geom_transform_t const *transform,
+                                   osmium::Node const &node);
 
-    geom::osmium_builder_t::wkbs_t
-    run_transform(geom::osmium_builder_t *builder,
-                  geom_transform_t const *transform,
-                  table_column_type target_geom_type, osmium::Way const &way);
+    geom::geometry_t run_transform(reprojection const &proj,
+                                   geom_transform_t const *transform,
+                                   osmium::Way const &way);
 
-    geom::osmium_builder_t::wkbs_t run_transform(
-        geom::osmium_builder_t *builder, geom_transform_t const *transform,
-        table_column_type target_geom_type, osmium::Relation const &relation);
+    geom::geometry_t run_transform(reprojection const &proj,
+                                   geom_transform_t const *transform,
+                                   osmium::Relation const &relation);
 
     template <typename OBJECT>
     void add_row(table_connection_t *table_connection, OBJECT const &object);

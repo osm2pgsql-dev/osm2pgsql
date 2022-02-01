@@ -16,9 +16,10 @@
 #include <osmium/memory/buffer.hpp>
 
 #include "gazetteer-style.hpp"
-#include "osmium-builder.hpp"
 #include "osmtypes.hpp"
 #include "output.hpp"
+#include "reprojection.hpp"
+#include "wkb.hpp"
 
 class db_copy_thread_t;
 class thread_pool_t;
@@ -31,7 +32,7 @@ class output_gazetteer_t : public output_t
                        std::shared_ptr<middle_query_t> const &cloned_mid,
                        std::shared_ptr<db_copy_thread_t> const &copy_thread)
     : output_t(cloned_mid, other->m_thread_pool, other->m_options),
-      m_copy(copy_thread), m_builder(other->m_options.projection),
+      m_copy(copy_thread), m_proj(other->m_options.projection),
       m_osmium_buffer(PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes)
     {}
 
@@ -41,7 +42,7 @@ public:
                        options_t const &options,
                        std::shared_ptr<db_copy_thread_t> const &copy_thread)
     : output_t(mid, std::move(thread_pool), options), m_copy(copy_thread),
-      m_builder(options.projection),
+      m_proj(options.projection),
       m_osmium_buffer(PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes)
     {
         m_style.load_style(options.style);
@@ -91,7 +92,7 @@ private:
     gazetteer_copy_mgr_t m_copy;
     gazetteer_style_t m_style;
 
-    geom::osmium_builder_t m_builder;
+    std::shared_ptr<reprojection> m_proj;
     osmium::memory::Buffer m_osmium_buffer;
 };
 

@@ -30,6 +30,8 @@
 #include <unistd.h>
 
 #include "expire-tiles.hpp"
+#include "geom-from-osm.hpp"
+#include "geom-functions.hpp"
 #include "logging.hpp"
 #include "middle.hpp"
 #include "options.hpp"
@@ -43,20 +45,33 @@
 #include "wildcmp.hpp"
 #include "wkb.hpp"
 
+static double calculate_area(bool reproject_area,
+                             geom::geometry_t const &geom4326,
+                             geom::geometry_t const &geom)
+{
+    if (reproject_area) {
+        // XXX there is some overhead here always dynamically
+        // creating the same projection object. Needs refactoring.
+        auto const ogeom =
+            geom::transform(geom4326, *reprojection::create_projection(3857));
+        return geom::area(ogeom);
+    }
+    return geom::area(geom);
+}
+
 void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
                                    bool polygon, bool roads)
 {
     if (polygon && way.is_closed()) {
-        auto wkb = m_builder.get_wkb_polygon(way);
+        auto const geom = geom::create_polygon(way);
+        auto const projected_geom = geom::transform(geom, *m_proj);
+
+        auto const wkb = geom_to_ewkb(projected_geom);
         if (!wkb.empty()) {
             m_expire.from_wkb(wkb, way.id());
             if (m_enable_way_area) {
-                auto const area =
-                    m_options.reproject_area
-                        ? ewkb::parser_t(wkb).get_area<reprojection>(
-                              m_options.projection.get())
-                        : ewkb::parser_t(wkb)
-                              .get_area<osmium::geom::IdentityProjection>();
+                double const area = calculate_area(m_options.reproject_area,
+                                                   geom, projected_geom);
                 util::double_to_buffer tmp{area};
                 tags->set("way_area", tmp.c_str());
             }
@@ -65,7 +80,10 @@ void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
     } else {
         double const split_at =
             m_options.projection->target_latlon() ? 1 : 100 * 1000;
-        for (auto const &wkb : m_builder.get_wkb_line(way.nodes(), split_at)) {
+        auto const geoms = geom::split_multi(geom::segmentize(
+            geom::transform(geom::create_linestring(way), *m_proj), split_at));
+        for (auto const &sgeom : geoms) {
+            auto const wkb = geom_to_ewkb(sgeom);
             m_expire.from_wkb(wkb, way.id());
             m_tables[t_line]->write_row(way.id(), *tags, wkb);
             if (roads) {
@@ -147,7 +165,8 @@ void output_pgsql_t::node_add(osmium::Node const &node)
         return;
     }
 
-    auto wkb = m_builder.get_wkb_node(node.location());
+    auto const wkb =
+        geom_to_ewkb(geom::transform(geom::create_point(node), *m_proj));
     m_expire.from_wkb(wkb, node.id());
     m_tables[t_point]->write_row(node.id(), outtags, wkb);
 }
@@ -243,8 +262,14 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
     if (!make_polygon) {
         double const split_at =
             m_options.projection->target_latlon() ? 1 : 100 * 1000;
-        auto wkbs = m_builder.get_wkb_multiline(m_buffer, split_at);
-        for (auto const &wkb : wkbs) {
+        auto geom = geom::line_merge(geom::create_multilinestring(m_buffer));
+        auto projected_geom = geom::transform(geom, *m_proj);
+        if (!projected_geom.is_null() && split_at > 0.0) {
+            projected_geom = geom::segmentize(projected_geom, split_at);
+        }
+        auto const geoms = geom::split_multi(projected_geom);
+        for (auto const &sgeom : geoms) {
+            auto const wkb = geom_to_ewkb(sgeom);
             m_expire.from_wkb(wkb, -rel.id());
             m_tables[t_line]->write_row(-rel.id(), outtags, wkb);
             if (roads) {
@@ -255,18 +280,15 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
 
     // multipolygons and boundaries
     if (make_boundary || make_polygon) {
-        auto wkbs = m_builder.get_wkb_multipolygon(rel, m_buffer,
-                                                   m_options.enable_multi);
-
-        for (auto const &wkb : wkbs) {
+        auto const geoms = geom::split_multi(
+            geom::create_multipolygon(rel, m_buffer), !m_options.enable_multi);
+        for (auto const &sgeom : geoms) {
+            auto const projected_geom = geom::transform(sgeom, *m_proj);
+            auto const wkb = geom_to_ewkb(projected_geom);
             m_expire.from_wkb(wkb, -rel.id());
             if (m_enable_way_area) {
-                auto const area =
-                    m_options.reproject_area
-                        ? ewkb::parser_t(wkb).get_area<reprojection>(
-                              m_options.projection.get())
-                        : ewkb::parser_t(wkb)
-                              .get_area<osmium::geom::IdentityProjection>();
+                double const area = calculate_area(m_options.reproject_area,
+                                                   sgeom, projected_geom);
                 util::double_to_buffer tmp{area};
                 outtags.set("way_area", tmp.c_str());
             }
@@ -391,7 +413,7 @@ output_pgsql_t::output_pgsql_t(
     std::shared_ptr<middle_query_t> const &mid,
     std::shared_ptr<thread_pool_t> thread_pool, options_t const &o,
     std::shared_ptr<db_copy_thread_t> const &copy_thread)
-: output_t(mid, std::move(thread_pool), o), m_builder(o.projection),
+: output_t(mid, std::move(thread_pool), o), m_proj(o.projection),
   m_expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection),
   m_buffer(32768, osmium::memory::Buffer::auto_grow::yes),
   m_rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
@@ -449,7 +471,7 @@ output_pgsql_t::output_pgsql_t(
     std::shared_ptr<db_copy_thread_t> const &copy_thread)
 : output_t(mid, other->m_thread_pool, other->m_options),
   m_tagtransform(other->m_tagtransform->clone()),
-  m_enable_way_area(other->m_enable_way_area), m_builder(m_options.projection),
+  m_enable_way_area(other->m_enable_way_area), m_proj(m_options.projection),
   m_expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
            m_options.projection),
   m_buffer(1024, osmium::memory::Buffer::auto_grow::yes),
