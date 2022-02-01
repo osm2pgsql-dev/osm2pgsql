@@ -892,7 +892,8 @@ int output_flex_t::app_as_multilinestring()
     m_relation_cache.add_members(middle());
 
     auto *geom = create_lua_geometry_object(lua_state());
-    geom::create_multilinestring(geom, m_relation_cache.members_buffer());
+    geom::create_multilinestring(geom, m_relation_cache.members_buffer(),
+                                 false);
 
     return 1;
 }

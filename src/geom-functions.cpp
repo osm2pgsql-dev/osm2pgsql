@@ -448,6 +448,11 @@ static void add_nodes_to_linestring(linestring_t *linestring, ITERATOR it,
 
 void line_merge(geometry_t *output, geometry_t const &input)
 {
+    if (input.is_linestring()) {
+        *output = input;
+        return;
+    }
+
     if (!input.is_multilinestring()) {
         output->reset();
         return;

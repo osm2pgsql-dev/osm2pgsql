@@ -101,7 +101,8 @@ void create_polygon(geometry_t *geom, osmium::Way const &way);
  * \param ways Buffer containing all the input ways.
  */
 void create_multilinestring(geometry_t *geom,
-                            osmium::memory::Buffer const &ways);
+                            osmium::memory::Buffer const &ways,
+                            bool force_multi = true);
 
 /**
  * Create a multilinestring geometry from a bunch of ways (usually this
@@ -115,7 +116,8 @@ void create_multilinestring(geometry_t *geom,
  * \returns The created geometry.
  */
 [[nodiscard]] geometry_t
-create_multilinestring(osmium::memory::Buffer const &ways);
+create_multilinestring(osmium::memory::Buffer const &ways,
+                       bool force_multi = true);
 
 /**
  * Create a (multi)polygon geometry from a relation and member ways.
