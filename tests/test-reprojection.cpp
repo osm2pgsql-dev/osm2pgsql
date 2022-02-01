@@ -49,18 +49,18 @@ TEST_CASE("projection 3857", "[NoDB]")
 }
 
 #ifdef HAVE_GENERIC_PROJ
-TEST_CASE("projection 5520", "[NoDB]")
+TEST_CASE("projection 5651", "[NoDB]")
 {
     osmium::Location const loc{10.0, 53.0};
-    int const srs = 5520; // DHDN / 3-degree Gauss-Kruger zone 1
+    int const srs = 5651; // ETRS89 / UTM zone 31N (N-zE)
 
     auto const reprojection = reprojection::create_projection(srs);
     REQUIRE(reprojection->target_srs() == srs);
     REQUIRE_FALSE(reprojection->target_latlon());
 
     auto const c = reprojection->reproject(loc);
-    REQUIRE(c.x == Approx(1969579.14));
-    REQUIRE(c.y == Approx(5896972.95));
+    REQUIRE(c.x == Approx(31969448.78));
+    REQUIRE(c.y == Approx(5895222.39));
 
     auto const ct = reprojection->target_to_tile(c);
     REQUIRE(ct.x == Approx(1113194.91));
