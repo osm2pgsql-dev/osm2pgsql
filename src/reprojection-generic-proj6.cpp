@@ -15,22 +15,10 @@ class generic_reprojection_t : public reprojection
 {
 public:
     explicit generic_reprojection_t(int srs)
-    : m_target_srs(srs), m_context(proj_context_create())
-    {
-        assert(m_context);
-
-        m_transformation = create_transformation(PROJ_LATLONG, srs);
-
-        m_transformation.reset(proj_normalize_for_visualization(
-            m_context.get(), m_transformation.get()));
-
-        if (!m_transformation) {
-            throw std::runtime_error{
-                "Invalid projection '{}': {}"_format(srs, errormsg())};
-        }
-
-        m_transformation_tile = create_transformation(PROJ_SPHERE_MERC, srs);
-    }
+    : m_target_srs(srs), m_context(proj_context_create()),
+      m_transformation(create_transformation(PROJ_LATLONG, srs)),
+      m_transformation_tile(create_transformation(srs, PROJ_SPHERE_MERC))
+    {}
 
     osmium::geom::Coordinates reproject(osmium::Location loc) const override
     {
@@ -71,6 +59,8 @@ private:
     std::unique_ptr<PJ, pj_deleter_t> create_transformation(int from,
                                                             int to) const
     {
+        assert(m_context);
+
         std::string const source = "epsg:{}"_format(from);
         std::string const target = "epsg:{}"_format(to);
 
@@ -82,7 +72,17 @@ private:
                 "Invalid projection from {} to {}: {}"_format(from, to,
                                                               errormsg())};
         }
-        return trans;
+
+        std::unique_ptr<PJ, pj_deleter_t> trans_vis{
+            proj_normalize_for_visualization(m_context.get(), trans.get())};
+
+        if (!trans_vis) {
+            throw std::runtime_error{
+                "Invalid projection from {} to {}: {}"_format(from, to,
+                                                              errormsg())};
+        }
+
+        return trans_vis;
     }
 
     osmium::geom::Coordinates transform(PJ *transformation,
@@ -92,8 +92,8 @@ private:
         PJ_COORD c_in;
         c_in.lpzt.z = 0.0;
         c_in.lpzt.t = HUGE_VAL;
-        c_in.lpzt.lam = osmium::geom::deg_to_rad(coords.x);
-        c_in.lpzt.phi = osmium::geom::deg_to_rad(coords.y);
+        c_in.lpzt.lam = coords.x;
+        c_in.lpzt.phi = coords.y;
 
         auto const c_out = proj_trans(transformation, PJ_FWD, c_in);
 
