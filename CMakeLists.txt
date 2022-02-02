@@ -161,7 +161,6 @@ include(CheckIncludeFiles)
 add_definitions(-DDEFAULT_STYLE=\"${DEFAULT_STYLE}\")
 
 CHECK_INCLUDE_FILES(termios.h HAVE_TERMIOS_H)
-CHECK_INCLUDE_FILES(unistd.h HAVE_UNISTD_H)
 
 #############################################################
 # Find necessary libraries
@@ -276,10 +275,6 @@ message(STATUS "Libraries used to build: ${LIBS}")
 #############################################################
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
-
-if (NOT HAVE_UNISTD_H AND NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/unistd.h)
-   file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/unistd.h "// empty header\n")
-endif()
 
 add_subdirectory(src)
 
