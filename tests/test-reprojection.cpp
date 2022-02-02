@@ -9,7 +9,6 @@
 
 #include <catch.hpp>
 
-#include "config.h"
 #include "reprojection.hpp"
 
 TEST_CASE("projection 4326", "[NoDB]")
