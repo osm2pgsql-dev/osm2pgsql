@@ -27,7 +27,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <unistd.h>
 
 #include "expire-tiles.hpp"
 #include "geom-from-osm.hpp"
