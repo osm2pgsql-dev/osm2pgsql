@@ -11,16 +11,23 @@ runs:
         sudo apt-get update -qq
       shell: bash
 
-    # Workaround for bug in Github Action environment https://github.com/actions/virtual-environments/issues/3376
-    - name: Remove preinstalled GCC 11
-      run: |
-        sudo apt-get remove -yq libgcc-11-dev gcc-11 || true
-      shell: bash
-
     - name: Install software
       run: |
-        sudo apt-get install -yq --no-install-suggests --no-install-recommends postgresql-${POSTGRESQL_VERSION}-postgis-${POSTGIS_VERSION} postgresql-${POSTGRESQL_VERSION}-postgis-${POSTGIS_VERSION}-scripts postgresql-client postgresql-contrib-${POSTGRESQL_VERSION} postgresql-${POSTGRESQL_VERSION} libpq-dev libboost-system-dev libboost-filesystem-dev libexpat1-dev zlib1g-dev libbz2-dev libproj-dev pandoc python3-psycopg2 libluajit-5.1-dev
-        if [ "$CC" = clang-6.0 ]; then sudo apt-get install -yq --no-install-suggests --no-install-recommends clang-6.0; fi
+        sudo apt-get install -yq --no-install-suggests --no-install-recommends \
+          libboost-filesystem-dev \
+          libboost-system-dev \
+          libbz2-dev \
+          libexpat1-dev \
+          libluajit-5.1-dev \
+          libpq-dev \
+          libproj-dev \
+          pandoc \
+          postgresql-${POSTGRESQL_VERSION} \
+          postgresql-${POSTGRESQL_VERSION}-postgis-${POSTGIS_VERSION} \
+          postgresql-${POSTGRESQL_VERSION}-postgis-${POSTGIS_VERSION}-scripts \
+          postgresql-client postgresql-contrib-${POSTGRESQL_VERSION} \
+          python3-psycopg2 \
+          zlib1g-dev
         if [ "$CC" = clang-8 ]; then sudo apt-get install -yq --no-install-suggests --no-install-recommends clang-8; fi
       shell: bash
 
