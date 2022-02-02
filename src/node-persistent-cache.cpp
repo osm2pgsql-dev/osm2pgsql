@@ -11,8 +11,8 @@
 #include "node-persistent-cache.hpp"
 
 #include <cassert>
-#include <cstring>
 #include <stdexcept>
+#include <system_error>
 
 void node_persistent_cache::set(osmid_t id, osmium::Location location)
 {
@@ -36,8 +36,9 @@ node_persistent_cache::node_persistent_cache(std::string file_name,
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-signed-bitwise)
     m_fd = open(m_file_name.c_str(), O_RDWR | O_CREAT, 0644);
     if (m_fd < 0) {
-        throw std::runtime_error{"Unable to open flatnode file '{}': {}"_format(
-            m_file_name, std::strerror(errno))};
+        throw std::system_error{
+            errno, std::system_category(),
+            "Unable to open flatnode file '{}'"_format(m_file_name)};
     }
 
     m_index = std::make_unique<index_t>(m_fd);
