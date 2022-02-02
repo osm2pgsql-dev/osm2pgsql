@@ -15,6 +15,7 @@
 #include <cstring>
 #include <map>
 #include <stdexcept>
+#include <system_error>
 
 #include <osmium/util/string.hpp>
 
@@ -88,8 +89,9 @@ bool read_style_file(std::string const &filename, export_list *exlist)
 
     FILE *const in = std::fopen(filename.c_str(), "rt");
     if (!in) {
-        throw std::runtime_error{"Couldn't open style file '{}': {}."_format(
-            filename, std::strerror(errno))};
+        throw std::system_error{
+            errno, std::system_category(),
+            "Couldn't open style file '{}'"_format(filename)};
     }
 
     char buffer[1024];
@@ -177,8 +179,9 @@ bool read_style_file(std::string const &filename, export_list *exlist)
     if (std::ferror(in)) {
         int const err = errno;
         std::fclose(in);
-        throw std::runtime_error{
-            "{}: {}."_format(filename, std::strerror(err))};
+        throw std::system_error{
+            err, std::system_category(),
+            "Error reading style file '{}'"_format(filename)};
     }
 
     std::fclose(in);
