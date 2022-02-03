@@ -12,7 +12,6 @@
 #include "common-import.hpp"
 #include "common-options.hpp"
 
-#include "config.h"
 #include "format.hpp"
 
 #include <array>
