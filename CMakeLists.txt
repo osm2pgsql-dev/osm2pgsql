@@ -160,8 +160,6 @@ include(CheckIncludeFiles)
 
 add_definitions(-DDEFAULT_STYLE=\"${DEFAULT_STYLE}\")
 
-CHECK_INCLUDE_FILES(termios.h HAVE_TERMIOS_H)
-
 #############################################################
 # Find necessary libraries
 #############################################################
