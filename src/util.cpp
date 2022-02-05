@@ -7,8 +7,6 @@
  * For a full list of authors see the git log.
  */
 
-#include "config.h"
-
 #include "util.hpp"
 
 #include <iostream>
@@ -16,7 +14,7 @@
 
 #ifdef _WIN32
 #include <windows.h>
-#elif defined(HAVE_TERMIOS_H)
+#elif __has_include(<termios.h>)
 #include <termios.h>
 #include <unistd.h>
 #endif
@@ -63,7 +61,7 @@ std::string get_password()
     DWORD mode = 0;
     GetConsoleMode(handle_stdin, &mode);
     SetConsoleMode(handle_stdin, mode & (~ENABLE_ECHO_INPUT));
-#elif defined(HAVE_TERMIOS_H)
+#elif __has_include(<termios.h>)
     termios orig_flags{};
     tcgetattr(STDIN_FILENO, &orig_flags);
     termios flags = orig_flags;
@@ -78,7 +76,7 @@ std::string get_password()
 
 #ifdef _WIN32
     SetConsoleMode(handle_stdin, mode);
-#elif defined(HAVE_TERMIOS_H)
+#elif __has_include(<termios.h>)
     tcsetattr(STDIN_FILENO, TCSANOW, &orig_flags);
 #endif
 
