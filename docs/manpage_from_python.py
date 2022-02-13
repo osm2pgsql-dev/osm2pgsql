@@ -1,3 +1,9 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
+# This file is part of osm2pgsql (https://osm2pgsql.org/).
+#
+# Copyright (C) 2022 by the osm2pgsql developer community.
+# For a full list of authors see the git log.
 """ Create a man page for osm2pgsql helper scripts in python.
 """
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
