@@ -25,6 +25,8 @@ def create_manpage_for(args):
     manpage = re.sub(r'.TH.*',
                      f'.TH "{parser.prog.upper()}" "1" "{args.version}" "" ""',
                      manpage)
+    # Correct quoting for single quotes. See groff manpage.
+    manpage = manpage.replace('`', '\\(cq')
 
     return manpage
 
