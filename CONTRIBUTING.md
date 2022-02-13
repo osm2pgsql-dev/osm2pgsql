@@ -59,19 +59,16 @@ User documentation is available on [the website](https://osm2pgsql.org/), some
 is stored in `docs/`. Pages on the OpenStreetMap wiki are known to be
 unreliable and outdated.
 
-The [osm2pgsql man page](docs/osm2pgsql.1) can be built from [source](docs/osm2pgsql.md)
-with `make man`. The [osm2pgsql-replication man page](docs/osm2pgsql-replication.1)
-has been built with:
+The man pages for [osm2pgsql](docs/osm2pgsql.1) and
+[osm2pgsql-replication](docs/osm2pgsql-replication.1) can be built from source
+with `make man`.
 
-    argparse-manpage --pyfile scripts/osm2pgsql-replication --function get_parser --project-name osm2pgsql-replication --url osm2pgsql.org > docs/osm2pgsql-replication.1
-
-This command can be installed with:
+They need pandoc and argparse-manpage for the conversion. These tools can be
+installed with:
 
 ```sh
-sudo apt-get install python3-argparse-manpage
+sudo apt-get install pandoc python3-argparse-manpage
 ```
-
-Remove the `.SH AUTHORS` section which this command adds.
 
 Results should be checked into the repository.
 
