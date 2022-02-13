@@ -15,7 +15,7 @@ or the newest object in the database. The state is then saved in a table
 in the database. Subsequent runs download newly available data and apply
 it to the database.
 
-See the help of the 'init' and 'update' command for more information on
+See the help of the `init` and `update` command for more information on
 how to use %(prog)s.
 """
 
@@ -160,7 +160,7 @@ def status(conn, args):
         2021-08-17 15:20:28 [INFO]: Local database's most recent data is 5 day(s) 20 hour(s) 59 minute(s) old
 
 
-    With the '--json' option, the status is printed as a json object.
+    With the `--json` option, the status is printed as a json object.
 
         {
           "server": {
@@ -178,16 +178,16 @@ def status(conn, args):
         }
 
 
-    'status' is 0 if there were no problems getting the status. 1 & 2 for
+    `status` is 0 if there were no problems getting the status. 1 & 2 for
     improperly set up replication. 3 for network issues. If status ≠ 0, then
-    the 'error' key is an error message (as string). 'status' is used as the
+    the `error` key is an error message (as string). `status` is used as the
     exit code.
 
-    'server' is the replication server's current status. 'sequence' is it's
-    sequence number, 'timestamp' the time of that, and 'age_sec' the age of the
+    `server` is the replication server's current status. `sequence` is it's
+    sequence number, `timestamp` the time of that, and 'age_sec' the age of the
     data in seconds.
 
-    'local' is the status of your server.
+    `local` is the status of your server.
     """
 
     results = {}
@@ -263,7 +263,7 @@ def init(conn, args):
     There are two ways to initialise the replication process: if you have imported
     from a file that contains replication source information, then the
     initialisation process can use this and set up replication from there.
-    Use the command '%(prog)s --osm-file <filename>' for this.
+    Use the command `%(prog)s --osm-file <filename>` for this.
 
     If the file has no replication information or you don't have the initial
     import file anymore then replication can be set up according to
@@ -271,7 +271,7 @@ def init(conn, args):
     newest way in the database and then queries the OSM API when the way was
     created. The date is used as the start date for replication. In this mode
     the minutely diffs from the OSM servers are used as a source. You can change
-    this with the '--server' parameter.
+    this with the `--server` parameter.
     """
     if args.osm_file is None:
         date = compute_database_date(conn, args.prefix)
@@ -315,17 +315,17 @@ def update(conn, args):
     """\
     Download newly available data and apply it to the database.
 
-    The data is downloaded in chunks of '--max-diff-size' MB. Each chunk is
+    The data is downloaded in chunks of `--max-diff-size` MB. Each chunk is
     saved in a temporary file and imported with osm2pgsql from there. The
     temporary file is normally deleted afterwards unless you state an explicit
-    location with '--diff-file'. Once the database is up to date with the
+    location with `--diff-file`. Once the database is up to date with the
     replication source, the update process exits with 0.
 
-    Any additional arguments to osm2pgsql need to be given after '--'. Database
+    Any additional arguments to osm2pgsql need to be given after `--`. Database
     and the prefix parameter are handed through to osm2pgsql. They do not need
-    to be repeated. '--append' and '--slim' will always be added as well.
+    to be repeated. `--append` and `--slim` will always be added as well.
 
-    Use the '--post-processing' parameter to execute a script after osm2pgsql has
+    Use the `--post-processing` parameter to execute a script after osm2pgsql has
     run successfully. If the updates consists of multiple runs because the
     maximum size of downloaded data was reached, then the script is executed
     each time that osm2pgsql has run. When the post-processing fails, then

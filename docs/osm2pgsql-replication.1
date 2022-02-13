@@ -1,6 +1,6 @@
-.TH osm2pgsql-replication "1" Manual
+.TH "OSM2PGSQL-REPLICATION" "1" "1.6.0" "" ""
 .SH NAME
-osm2pgsql-replication
+osm2pgsql-replication \- osm2pgsql database updater
 .SH SYNOPSIS
 .B osm2pgsql-replication
 [-h] {init,update,status} ...
@@ -19,7 +19,7 @@ it to the database.
 .br
 
 .br
-See the help of the 'init' and 'update' command for more information on
+See the help of the \(cqinit\(cq and \(cqupdate\(cq command for more information on
 .br
 how to use osm2pgsql\-replication.
 .SH OPTIONS
@@ -51,7 +51,7 @@ from a file that contains replication source information, then the
 .br
 initialisation process can use this and set up replication from there.
 .br
-Use the command '%(prog)s \-\-osm\-file <filename>' for this.
+Use the command \(cq%(prog)s \-\-osm\-file <filename>\(cq for this.
 .br
 
 .br
@@ -67,7 +67,7 @@ created. The date is used as the start date for replication. In this mode
 .br
 the minutely diffs from the OSM servers are used as a source. You can change
 .br
-this with the '\-\-server' parameter.
+this with the \(cq\-\-server\(cq parameter.
 
 
 
@@ -114,27 +114,27 @@ Download newly available data and apply it to the database.
 .br
 
 .br
-The data is downloaded in chunks of '\-\-max\-diff\-size' MB. Each chunk is
+The data is downloaded in chunks of \(cq\-\-max\-diff\-size\(cq MB. Each chunk is
 .br
 saved in a temporary file and imported with osm2pgsql from there. The
 .br
 temporary file is normally deleted afterwards unless you state an explicit
 .br
-location with '\-\-diff\-file'. Once the database is up to date with the
+location with \(cq\-\-diff\-file\(cq. Once the database is up to date with the
 .br
 replication source, the update process exits with 0.
 .br
 
 .br
-Any additional arguments to osm2pgsql need to be given after '\-\-'. Database
+Any additional arguments to osm2pgsql need to be given after \(cq\-\-\(cq. Database
 .br
 and the prefix parameter are handed through to osm2pgsql. They do not need
 .br
-to be repeated. '\-\-append' and '\-\-slim' will always be added as well.
+to be repeated. \(cq\-\-append\(cq and \(cq\-\-slim\(cq will always be added as well.
 .br
 
 .br
-Use the '\-\-post\-processing' parameter to execute a script after osm2pgsql has
+Use the \(cq\-\-post\-processing\(cq parameter to execute a script after osm2pgsql has
 .br
 run successfully. If the updates consists of multiple runs because the
 .br
@@ -233,7 +233,7 @@ Sample output:
 .br
 
 .br
-With the '\-\-json' option, the status is printed as a json object.
+With the \(cq\-\-json\(cq option, the status is printed as a json object.
 .br
 
 .br
@@ -269,25 +269,25 @@ With the '\-\-json' option, the status is printed as a json object.
 .br
 
 .br
-'status' is 0 if there were no problems getting the status. 1 & 2 for
+\(cqstatus\(cq is 0 if there were no problems getting the status. 1 & 2 for
 .br
 improperly set up replication. 3 for network issues. If status ≠ 0, then
 .br
-the 'error' key is an error message (as string). 'status' is used as the
+the \(cqerror\(cq key is an error message (as string). \(cqstatus\(cq is used as the
 .br
 exit code.
 .br
 
 .br
-'server' is the replication server's current status. 'sequence' is it's
+\(cqserver\(cq is the replication server's current status. \(cqsequence\(cq is it's
 .br
-sequence number, 'timestamp' the time of that, and 'age_sec' the age of the
+sequence number, \(cqtimestamp\(cq the time of that, and 'age_sec' the age of the
 .br
 data in seconds.
 .br
 
 .br
-'local' is the status of your server.
+\(cqlocal\(cq is the status of your server.
 
 
 .TP
@@ -322,7 +322,8 @@ Database server port
 \fB\-p\fR PREFIX, \fB\-\-prefix\fR PREFIX
 Prefix for table names (default 'planet_osm')
 
-.SH DISTRIBUTION
-The latest version of osm2pgsql\-replication may be downloaded from
-.UR osm2pgsql.org
-.UE
+.SH SEE ALSO
+* osm2pgsql website (https://osm2pgsql.org)
+.br
+* osm2pgsql manual (https://osm2pgsql.org/doc/manual.html)
+
