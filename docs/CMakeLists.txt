@@ -35,8 +35,8 @@ if(ARGPARSE_MANPAGE)
     message(STATUS "  osm2pgsql-replication manual page can be built using 'man' target")
 
     add_custom_command(OUTPUT osm2pgsql-replication.1
-        COMMAND ${ARGPARSE_MANPAGE} --pyfile ${CMAKE_SOURCE_DIR}/scripts/osm2pgsql-replication --function get_parser --project-name osm2pgsql-replication --url osm2pgsql.org > ${CMAKE_CURRENT_BINARY_DIR}/osm2pgsql-replication.1
-        DEPENDS ${CMAKE_SOURCE_DIR}/scripts/osm2pgsql-replication
+        COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/manpage_from_python.py --version ${PROJECT_VERSION} --description "osm2pgsql database updater" ${CMAKE_SOURCE_DIR}/scripts/osm2pgsql-replication > ${CMAKE_CURRENT_BINARY_DIR}/osm2pgsql-replication.1
+        DEPENDS ${CMAKE_SOURCE_DIR}/scripts/osm2pgsql-replication manpage_from_python.py
         COMMENT "Building manpage osm2pgsql-replication.1"
         VERBATIM)
 
