@@ -75,6 +75,10 @@ def pretty_format_timedelta(seconds):
 def connect(args):
     """ Create a connection from the given command line arguments.
     """
+    # If dbname looks like a conninfo string use it as such
+    if any(part in args.database for part in ['=', '://']):
+        return psycopg.connect(args.database)
+
     return psycopg.connect(dbname=args.database, user=args.username,
                            host=args.host, port=args.port)
 
