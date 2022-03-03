@@ -53,18 +53,18 @@ tile_output_t::~tile_output_t()
     }
 }
 
-void tile_output_t::output_dirty_tile(uint32_t x, uint32_t y, uint32_t zoom)
+void tile_output_t::output_dirty_tile(tile_t const &tile)
 {
     if (!outfile) {
         return;
     }
 
-    fmt::print(outfile, "{}/{}/{}\n", zoom, x, y);
+    fmt::print(outfile, "{}/{}/{}\n", tile.zoom(), tile.x(), tile.y());
 }
 
 void expire_tiles::output_and_destroy(char const *filename, uint32_t minzoom)
 {
-    tile_output_t output_writer(filename);
+    tile_output_t output_writer{filename};
     output_and_destroy<tile_output_t>(output_writer, minzoom);
 }
 
@@ -72,48 +72,18 @@ expire_tiles::expire_tiles(uint32_t max, double bbox,
                            const std::shared_ptr<reprojection> &proj)
 : max_bbox(bbox), maxzoom(max), projection(proj)
 {
-    map_width = 1 << maxzoom;
+    map_width = 1U << maxzoom;
     tile_width = EARTH_CIRCUMFERENCE / map_width;
-    last_tile_x = static_cast<uint32_t>(map_width) + 1;
-    last_tile_y = static_cast<uint32_t>(map_width) + 1;
-}
-
-uint64_t expire_tiles::xy_to_quadkey(uint32_t x, uint32_t y, uint32_t zoom)
-{
-    uint64_t quadkey = 0;
-    // the two highest bits are the bits of zoom level 1, the third and fourth bit are level 2, …
-    for (uint32_t z = 0; z < zoom; ++z) {
-        quadkey |= ((x & (1ULL << z)) << z);
-        quadkey |= ((y & (1ULL << z)) << (z + 1));
-    }
-    return quadkey;
-}
-
-xy_coord_t expire_tiles::quadkey_to_xy(uint64_t quadkey_coord, uint32_t zoom)
-{
-    xy_coord_t result;
-    for (uint32_t z = zoom; z > 0; --z) {
-        /* The quadkey contains Y and X bits interleaved in following order: YXYX...
-         * We have to pick out the bit representing the y/x bit of the current zoom
-         * level and then shift it back to the right on its position in a y-/x-only
-         * coordinate.*/
-        result.y = result.y + static_cast<uint32_t>(
-                                  (quadkey_coord & (1ULL << (2 * z - 1))) >> z);
-        result.x = result.x +
-                   static_cast<uint32_t>(
-                       (quadkey_coord & (1ULL << (2 * (z - 1)))) >> (z - 1));
-    }
-    return result;
 }
 
 void expire_tiles::expire_tile(uint32_t x, uint32_t y)
 {
     // Only try to insert to tile into the set if the last inserted tile
     // is different from this tile.
-    if (last_tile_x != x || last_tile_y != y) {
-        m_dirty_tiles.insert(xy_to_quadkey(x, y, maxzoom));
-        last_tile_x = x;
-        last_tile_y = y;
+    tile_t const new_tile{maxzoom, x, y};
+    if (!m_prev_tile.valid() || m_prev_tile != new_tile) {
+        m_dirty_tiles.insert(new_tile.quadkey());
+        m_prev_tile = new_tile;
     }
 }
 

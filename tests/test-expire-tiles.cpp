@@ -13,54 +13,10 @@
 
 #include "expire-tiles.hpp"
 #include "reprojection.hpp"
+#include "tile.hpp"
 
-static constexpr double EARTH_CIRCUMFERENCE = 40075016.68;
 static std::shared_ptr<reprojection>
     defproj(reprojection::create_projection(PROJ_SPHERE_MERC));
-
-class xyz
-{
-public:
-    xyz(uint32_t z_, int64_t x_, int64_t y_) : z(z_), x(x_), y(y_) {}
-
-    bool operator==(xyz const &other) const noexcept
-    {
-        return ((z == other.z) && (x == other.x) && (y == other.y));
-    }
-
-    bool operator<(xyz const &other) const noexcept
-    {
-        if (z < other.z) {
-            return true;
-        }
-        if (z > other.z) {
-            return false;
-        }
-        if (x < other.x) {
-            return true;
-        }
-        if (x > other.x) {
-            return false;
-        }
-        if (y < other.y) {
-            return true;
-        }
-
-        return false;
-    }
-
-    void to_centroid(double &cx, double &cy) const noexcept
-    {
-        double const datum = 0.5 * (1U << z);
-        double const scale = EARTH_CIRCUMFERENCE / (1U << z);
-        cx = ((x + 0.5) - datum) * scale;
-        cy = (datum - (y + 0.5)) * scale;
-    }
-
-private:
-    uint32_t z;
-    int64_t x, y;
-};
 
 struct tile_output_set
 {
@@ -75,59 +31,52 @@ struct tile_output_set
         return *this;
     }
 
-    void output_dirty_tile(int64_t x, int64_t y, uint32_t zoom)
-    {
-        tiles.insert(xyz{zoom, x, y});
-    }
+    void output_dirty_tile(tile_t const &tile) { tiles.insert(tile); }
 
     void expire_centroids(expire_tiles &et)
     {
         for (auto const &t : tiles) {
-            double x0 = NAN;
-            double y0 = NAN;
-            t.to_centroid(x0, y0);
-            et.from_bbox(x0, y0, x0, y0);
+            auto const p = t.center();
+            et.from_bbox(p.x(), p.y(), p.x(), p.y());
         }
     }
 
     static tile_output_set generate_random(uint32_t zoom, size_t count)
     {
         tile_output_set set;
-        int const cmask = (1 << zoom) - 1;
+        auto const cmask = (1UL << zoom) - 1U;
 
         do {
-            set.output_dirty_tile(rand() & cmask, rand() & cmask, zoom);
+            set.output_dirty_tile(
+                tile_t{zoom, static_cast<uint32_t>(rand() & cmask),
+                       static_cast<uint32_t>(rand() & cmask)});
         } while (set.tiles.size() < count);
 
         return set;
     }
 
-    std::set<xyz> tiles;
+    std::set<tile_t> tiles;
 };
 
-void check_quadkey_to_xy(uint64_t quadkey_expected, uint32_t x, uint32_t y,
-                         uint32_t zoom)
+static void check_quadkey(uint64_t quadkey_expected,
+                          tile_t const &tile) noexcept
 {
-    CHECK(expire_tiles::xy_to_quadkey(x, y, zoom) == quadkey_expected);
-
-    xy_coord_t xy = expire_tiles::quadkey_to_xy(quadkey_expected, zoom);
-    CHECK(xy.x == x);
-    CHECK(xy.y == y);
+    CHECK(tile.quadkey() == quadkey_expected);
+    auto const t = tile_t::from_quadkey(quadkey_expected, tile.zoom());
+    CHECK(t == tile);
 }
 
 TEST_CASE("xy to quadkey", "[NoDB]")
 {
-    check_quadkey_to_xy(0x27, 3, 5, 3);
-    check_quadkey_to_xy(0xffffffff, 65535, 65535, 16);
-    // This test prevents problems which occur if 32-bit integers are used
-    // instead of 64-bit integers.
-    check_quadkey_to_xy(0xfffffffff, 262143, 262143, 18);
-    check_quadkey_to_xy(0x3fffffff0, 131068, 131068, 18);
+    check_quadkey(0x27, tile_t{3, 3, 5});
+    check_quadkey(0xffffffff, tile_t{16, 65535, 65535});
+    check_quadkey(0xfffffffff, tile_t{18, 262143, 262143});
+    check_quadkey(0x3fffffff0, tile_t{18, 131068, 131068});
 }
 
 TEST_CASE("simple expire z1", "[NoDB]")
 {
-    uint32_t minzoom = 1;
+    uint32_t const minzoom = 1;
     expire_tiles et(minzoom, 20000, defproj);
 
     // as big a bbox as possible at the origin to dirty all four
@@ -139,15 +88,15 @@ TEST_CASE("simple expire z1", "[NoDB]")
     CHECK(set.tiles.size() == 4);
 
     auto itr = set.tiles.begin();
-    CHECK(*(itr++) == xyz(1, 0, 0));
-    CHECK(*(itr++) == xyz(1, 0, 1));
-    CHECK(*(itr++) == xyz(1, 1, 0));
-    CHECK(*(itr++) == xyz(1, 1, 1));
+    CHECK(*(itr++) == tile_t(1, 0, 0));
+    CHECK(*(itr++) == tile_t(1, 0, 1));
+    CHECK(*(itr++) == tile_t(1, 1, 0));
+    CHECK(*(itr++) == tile_t(1, 1, 1));
 }
 
 TEST_CASE("simple expire z3", "[NoDB]")
 {
-    uint32_t minzoom = 3;
+    uint32_t const minzoom = 3;
     expire_tiles et(minzoom, 20000, defproj);
 
     // as big a bbox as possible at the origin to dirty all four
@@ -159,15 +108,15 @@ TEST_CASE("simple expire z3", "[NoDB]")
     CHECK(set.tiles.size() == 4);
 
     auto itr = set.tiles.begin();
-    CHECK(*(itr++) == xyz(3, 3, 3));
-    CHECK(*(itr++) == xyz(3, 3, 4));
-    CHECK(*(itr++) == xyz(3, 4, 3));
-    CHECK(*(itr++) == xyz(3, 4, 4));
+    CHECK(*(itr++) == tile_t(3, 3, 3));
+    CHECK(*(itr++) == tile_t(3, 3, 4));
+    CHECK(*(itr++) == tile_t(3, 4, 3));
+    CHECK(*(itr++) == tile_t(3, 4, 4));
 }
 
 TEST_CASE("simple expire z18", "[NoDB]")
 {
-    uint32_t minzoom = 18;
+    uint32_t const minzoom = 18;
     expire_tiles et(18, 20000, defproj);
 
     // dirty a smaller bbox this time, as at z18 the scale is
@@ -179,10 +128,10 @@ TEST_CASE("simple expire z18", "[NoDB]")
     CHECK(set.tiles.size() == 4);
 
     auto itr = set.tiles.begin();
-    CHECK(*(itr++) == xyz(18, 131071, 131071));
-    CHECK(*(itr++) == xyz(18, 131071, 131072));
-    CHECK(*(itr++) == xyz(18, 131072, 131071));
-    CHECK(*(itr++) == xyz(18, 131072, 131072));
+    CHECK(*(itr++) == tile_t(18, 131071, 131071));
+    CHECK(*(itr++) == tile_t(18, 131071, 131072));
+    CHECK(*(itr++) == tile_t(18, 131072, 131071));
+    CHECK(*(itr++) == tile_t(18, 131072, 131072));
 }
 
 /**
@@ -190,7 +139,7 @@ TEST_CASE("simple expire z18", "[NoDB]")
  */
 TEST_CASE("simple expire z17 and z18", "[NoDB]")
 {
-    uint32_t minzoom = 17;
+    uint32_t const minzoom = 17;
     expire_tiles et(18, 20000, defproj);
 
     // dirty a smaller bbox this time, as at z18 the scale is
@@ -202,14 +151,14 @@ TEST_CASE("simple expire z17 and z18", "[NoDB]")
     CHECK(set.tiles.size() == 8);
 
     auto itr = set.tiles.begin();
-    CHECK(*(itr++) == xyz(17, 65535, 65535));
-    CHECK(*(itr++) == xyz(17, 65535, 65536));
-    CHECK(*(itr++) == xyz(17, 65536, 65535));
-    CHECK(*(itr++) == xyz(17, 65536, 65536));
-    CHECK(*(itr++) == xyz(18, 131071, 131071));
-    CHECK(*(itr++) == xyz(18, 131071, 131072));
-    CHECK(*(itr++) == xyz(18, 131072, 131071));
-    CHECK(*(itr++) == xyz(18, 131072, 131072));
+    CHECK(*(itr++) == tile_t(17, 65535, 65535));
+    CHECK(*(itr++) == tile_t(17, 65535, 65536));
+    CHECK(*(itr++) == tile_t(17, 65536, 65535));
+    CHECK(*(itr++) == tile_t(17, 65536, 65536));
+    CHECK(*(itr++) == tile_t(18, 131071, 131071));
+    CHECK(*(itr++) == tile_t(18, 131071, 131072));
+    CHECK(*(itr++) == tile_t(18, 131072, 131071));
+    CHECK(*(itr++) == tile_t(18, 131072, 131072));
 }
 
 /**
@@ -218,7 +167,7 @@ TEST_CASE("simple expire z17 and z18", "[NoDB]")
  */
 TEST_CASE("simple expire z17 and z18 in one superior tile", "[NoDB]")
 {
-    uint32_t minzoom = 17;
+    uint32_t const minzoom = 17;
     expire_tiles et(18, 20000, defproj);
 
     et.from_bbox(-163, 140, -140, 164);
@@ -229,11 +178,11 @@ TEST_CASE("simple expire z17 and z18 in one superior tile", "[NoDB]")
 
     auto itr = set.tiles.begin();
 
-    CHECK(*(itr++) == xyz(17, 65535, 65535));
-    CHECK(*(itr++) == xyz(18, 131070, 131070));
-    CHECK(*(itr++) == xyz(18, 131070, 131071));
-    CHECK(*(itr++) == xyz(18, 131071, 131070));
-    CHECK(*(itr++) == xyz(18, 131071, 131071));
+    CHECK(*(itr++) == tile_t(17, 65535, 65535));
+    CHECK(*(itr++) == tile_t(18, 131070, 131070));
+    CHECK(*(itr++) == tile_t(18, 131070, 131071));
+    CHECK(*(itr++) == tile_t(18, 131071, 131070));
+    CHECK(*(itr++) == tile_t(18, 131071, 131071));
 }
 
 /**
@@ -241,7 +190,8 @@ TEST_CASE("simple expire z17 and z18 in one superior tile", "[NoDB]")
  */
 TEST_CASE("expire centroids", "[NoDB]")
 {
-    uint32_t zoom = 18;
+    uint32_t const zoom = 18;
+
     for (int i = 0; i < 100; ++i) {
         expire_tiles et(zoom, 20000, defproj);
 
@@ -262,7 +212,7 @@ TEST_CASE("expire centroids", "[NoDB]")
  */
 TEST_CASE("merge expire sets", "[NoDB]")
 {
-    uint32_t zoom = 18;
+    uint32_t const zoom = 18;
 
     for (int i = 0; i < 100; ++i) {
         expire_tiles et(zoom, 20000, defproj);
@@ -296,7 +246,7 @@ TEST_CASE("merge expire sets", "[NoDB]")
  */
 TEST_CASE("merge identical expire sets", "[NoDB]")
 {
-    uint32_t zoom = 18;
+    uint32_t const zoom = 18;
 
     for (int i = 0; i < 100; ++i) {
         expire_tiles et(zoom, 20000, defproj);
@@ -322,7 +272,7 @@ TEST_CASE("merge identical expire sets", "[NoDB]")
  */
 TEST_CASE("merge overlapping expire sets", "[NoDB]")
 {
-    uint32_t zoom = 18;
+    uint32_t const zoom = 18;
 
     for (int i = 0; i < 100; ++i) {
         expire_tiles et(zoom, 20000, defproj);
@@ -360,7 +310,7 @@ TEST_CASE("merge overlapping expire sets", "[NoDB]")
  */
 TEST_CASE("merge with complete flag", "[NoDB]")
 {
-    uint32_t zoom = 18;
+    uint32_t const zoom = 18;
 
     expire_tiles et(zoom, 20000, defproj);
     expire_tiles et0(zoom, 20000, defproj);

@@ -33,6 +33,7 @@ target_sources(osm2pgsql_lib PRIVATE
   taginfo.cpp
   tagtransform-c.cpp
   tagtransform.cpp
+  tile.cpp
   thread-pool.cpp
   util.cpp
   wildcmp.cpp
