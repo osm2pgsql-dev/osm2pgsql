@@ -1660,8 +1660,11 @@ void output_flex_t::init_lua(std::string const &filename)
                        m_options.append ? "append" : "create");
     luaX_add_table_int(lua_state(), "stage", 1);
 
-    std::string const dir_path =
+    std::string dir_path =
         boost::filesystem::path{filename}.parent_path().string();
+    if (!dir_path.empty()) {
+        dir_path += boost::filesystem::path::preferred_separator;
+    }
     luaX_add_table_str(lua_state(), "config_dir", dir_path.c_str());
 
     luaX_add_table_func(lua_state(), "define_table",
