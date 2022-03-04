@@ -42,18 +42,17 @@ public:
     void output_dirty_tile(tile_t const &tile);
 };
 
-struct expire_tiles
+class expire_tiles
 {
+public:
     expire_tiles(uint32_t maxzoom, double maxbbox,
                  const std::shared_ptr<reprojection> &projection);
 
-    bool enabled() const noexcept { return maxzoom != 0; }
+    bool enabled() const noexcept { return m_maxzoom != 0; }
 
     void from_geometry(geom::geometry_t const &geom, osmid_t osm_id);
 
     int from_bbox(geom::box_t const &box);
-    int from_bbox(double min_lon, double min_lat, double max_lon,
-                  double max_lat);
 
     /**
      * Expire tiles based on an osm id.
@@ -90,7 +89,7 @@ struct expire_tiles
     template <class TILE_WRITER>
     void output_and_destroy(TILE_WRITER &output_writer, uint32_t minzoom)
     {
-        assert(minzoom <= maxzoom);
+        assert(minzoom <= m_maxzoom);
         // build a sorted vector of all expired tiles
         std::vector<uint64_t> tiles_maxzoom(m_dirty_tiles.begin(),
                                             m_dirty_tiles.end());
@@ -101,10 +100,10 @@ struct expire_tiles
          *
          * last_quadkey is initialized with a value which is not expected to exist
          * (larger than largest possible quadkey). */
-        uint64_t last_quadkey = 1ULL << (2 * maxzoom);
+        uint64_t last_quadkey = 1ULL << (2 * m_maxzoom);
         std::size_t count = 0;
         for (auto const quadkey : tiles_maxzoom) {
-            for (uint32_t dz = 0; dz <= maxzoom - minzoom; ++dz) {
+            for (uint32_t dz = 0; dz <= m_maxzoom - minzoom; ++dz) {
                 // scale down to the current zoom level
                 uint64_t qt_current = quadkey >> (dz * 2);
                 /* If dz > 0, there are propably multiple elements whose quadkey
@@ -115,7 +114,7 @@ struct expire_tiles
                     continue;
                 }
                 auto const tile =
-                    tile_t::from_quadkey(qt_current, maxzoom - dz);
+                    tile_t::from_quadkey(qt_current, m_maxzoom - dz);
                 output_writer.output_dirty_tile(tile);
                 ++count;
             }
@@ -135,7 +134,8 @@ private:
     /**
      * Converts from target coordinates to tile coordinates.
      */
-    void coords_to_tile(double lon, double lat, double *tilex, double *tiley);
+    void coords_to_tile(geom::point_t const &point, double *tilex,
+                        double *tiley);
 
     /**
      * Expire a single tile.
@@ -145,15 +145,15 @@ private:
      */
     void expire_tile(uint32_t x, uint32_t y);
     uint32_t normalise_tile_x_coord(int x) const;
-    void from_line(double lon_a, double lat_a, double lon_b, double lat_b);
+    void from_line(geom::point_t const &a, geom::point_t const &b);
 
     void from_point_list(geom::point_list_t const &list);
 
-    double tile_width;
-    double max_bbox;
-    int map_width;
-    uint32_t maxzoom;
-    std::shared_ptr<reprojection> projection;
+    double m_tile_width;
+    double m_max_bbox;
+    int m_map_width;
+    uint32_t m_maxzoom;
+    std::shared_ptr<reprojection> m_projection;
 
     /// The tile which has been added last to the unordered set.
     tile_t m_prev_tile;

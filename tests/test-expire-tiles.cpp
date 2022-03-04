@@ -33,11 +33,11 @@ struct tile_output_set
 
     void output_dirty_tile(tile_t const &tile) { tiles.insert(tile); }
 
-    void expire_centroids(expire_tiles &et)
+    void expire_centroids(expire_tiles *et)
     {
         for (auto const &t : tiles) {
             auto const p = t.center();
-            et.from_bbox(p.x(), p.y(), p.x(), p.y());
+            et->from_bbox({p.x(), p.y(), p.x(), p.y()});
         }
     }
 
@@ -66,7 +66,7 @@ static void check_quadkey(uint64_t quadkey_expected,
     CHECK(t == tile);
 }
 
-TEST_CASE("xy to quadkey", "[NoDB]")
+TEST_CASE("tile to quadkey", "[NoDB]")
 {
     check_quadkey(0x27, tile_t{3, 3, 5});
     check_quadkey(0xffffffff, tile_t{16, 65535, 65535});
@@ -77,11 +77,11 @@ TEST_CASE("xy to quadkey", "[NoDB]")
 TEST_CASE("simple expire z1", "[NoDB]")
 {
     uint32_t const minzoom = 1;
-    expire_tiles et(minzoom, 20000, defproj);
+    expire_tiles et{minzoom, 20000, defproj};
 
     // as big a bbox as possible at the origin to dirty all four
     // quadrants of the world.
-    et.from_bbox(-10000, -10000, 10000, 10000);
+    et.from_bbox({-10000, -10000, 10000, 10000});
     tile_output_set set;
     et.output_and_destroy(set, minzoom);
 
@@ -97,11 +97,11 @@ TEST_CASE("simple expire z1", "[NoDB]")
 TEST_CASE("simple expire z3", "[NoDB]")
 {
     uint32_t const minzoom = 3;
-    expire_tiles et(minzoom, 20000, defproj);
+    expire_tiles et{minzoom, 20000, defproj};
 
     // as big a bbox as possible at the origin to dirty all four
     // quadrants of the world.
-    et.from_bbox(-10000, -10000, 10000, 10000);
+    et.from_bbox({-10000, -10000, 10000, 10000});
     tile_output_set set;
     et.output_and_destroy(set, minzoom);
 
@@ -117,11 +117,11 @@ TEST_CASE("simple expire z3", "[NoDB]")
 TEST_CASE("simple expire z18", "[NoDB]")
 {
     uint32_t const minzoom = 18;
-    expire_tiles et(18, 20000, defproj);
+    expire_tiles et{18, 20000, defproj};
 
     // dirty a smaller bbox this time, as at z18 the scale is
     // pretty small.
-    et.from_bbox(-1, -1, 1, 1);
+    et.from_bbox({-1, -1, 1, 1});
     tile_output_set set;
     et.output_and_destroy(set, minzoom);
 
@@ -140,11 +140,11 @@ TEST_CASE("simple expire z18", "[NoDB]")
 TEST_CASE("simple expire z17 and z18", "[NoDB]")
 {
     uint32_t const minzoom = 17;
-    expire_tiles et(18, 20000, defproj);
+    expire_tiles et{18, 20000, defproj};
 
     // dirty a smaller bbox this time, as at z18 the scale is
     // pretty small.
-    et.from_bbox(-1, -1, 1, 1);
+    et.from_bbox({-1, -1, 1, 1});
     tile_output_set set;
     et.output_and_destroy(set, minzoom);
 
@@ -168,9 +168,9 @@ TEST_CASE("simple expire z17 and z18", "[NoDB]")
 TEST_CASE("simple expire z17 and z18 in one superior tile", "[NoDB]")
 {
     uint32_t const minzoom = 17;
-    expire_tiles et(18, 20000, defproj);
+    expire_tiles et{18, 20000, defproj};
 
-    et.from_bbox(-163, 140, -140, 164);
+    et.from_bbox({-163, 140, -140, 164});
     tile_output_set set;
     et.output_and_destroy(set, minzoom);
 
@@ -193,10 +193,10 @@ TEST_CASE("expire centroids", "[NoDB]")
     uint32_t const zoom = 18;
 
     for (int i = 0; i < 100; ++i) {
-        expire_tiles et(zoom, 20000, defproj);
+        expire_tiles et{zoom, 20000, defproj};
 
         auto check_set = tile_output_set::generate_random(zoom, 100);
-        check_set.expire_centroids(et);
+        check_set.expire_centroids(&et);
 
         tile_output_set set;
         et.output_and_destroy(set, zoom);
@@ -215,15 +215,15 @@ TEST_CASE("merge expire sets", "[NoDB]")
     uint32_t const zoom = 18;
 
     for (int i = 0; i < 100; ++i) {
-        expire_tiles et(zoom, 20000, defproj);
-        expire_tiles et1(zoom, 20000, defproj);
-        expire_tiles et2(zoom, 20000, defproj);
+        expire_tiles et{zoom, 20000, defproj};
+        expire_tiles et1{zoom, 20000, defproj};
+        expire_tiles et2{zoom, 20000, defproj};
 
         auto check_set1 = tile_output_set::generate_random(zoom, 100);
-        check_set1.expire_centroids(et1);
+        check_set1.expire_centroids(&et1);
 
         auto check_set2 = tile_output_set::generate_random(zoom, 100);
-        check_set2.expire_centroids(et2);
+        check_set2.expire_centroids(&et2);
 
         et.merge_and_destroy(et1);
         et.merge_and_destroy(et2);
@@ -249,13 +249,13 @@ TEST_CASE("merge identical expire sets", "[NoDB]")
     uint32_t const zoom = 18;
 
     for (int i = 0; i < 100; ++i) {
-        expire_tiles et(zoom, 20000, defproj);
-        expire_tiles et1(zoom, 20000, defproj);
-        expire_tiles et2(zoom, 20000, defproj);
+        expire_tiles et{zoom, 20000, defproj};
+        expire_tiles et1{zoom, 20000, defproj};
+        expire_tiles et2{zoom, 20000, defproj};
 
         auto check_set = tile_output_set::generate_random(zoom, 100);
-        check_set.expire_centroids(et1);
-        check_set.expire_centroids(et2);
+        check_set.expire_centroids(&et1);
+        check_set.expire_centroids(&et2);
 
         et.merge_and_destroy(et1);
         et.merge_and_destroy(et2);
@@ -275,19 +275,19 @@ TEST_CASE("merge overlapping expire sets", "[NoDB]")
     uint32_t const zoom = 18;
 
     for (int i = 0; i < 100; ++i) {
-        expire_tiles et(zoom, 20000, defproj);
-        expire_tiles et1(zoom, 20000, defproj);
-        expire_tiles et2(zoom, 20000, defproj);
+        expire_tiles et{zoom, 20000, defproj};
+        expire_tiles et1{zoom, 20000, defproj};
+        expire_tiles et2{zoom, 20000, defproj};
 
         auto check_set1 = tile_output_set::generate_random(zoom, 100);
-        check_set1.expire_centroids(et1);
+        check_set1.expire_centroids(&et1);
 
         auto check_set2 = tile_output_set::generate_random(zoom, 100);
-        check_set2.expire_centroids(et2);
+        check_set2.expire_centroids(&et2);
 
         auto check_set3 = tile_output_set::generate_random(zoom, 100);
-        check_set3.expire_centroids(et1);
-        check_set3.expire_centroids(et2);
+        check_set3.expire_centroids(&et1);
+        check_set3.expire_centroids(&et2);
 
         et.merge_and_destroy(et1);
         et.merge_and_destroy(et2);
@@ -312,15 +312,15 @@ TEST_CASE("merge with complete flag", "[NoDB]")
 {
     uint32_t const zoom = 18;
 
-    expire_tiles et(zoom, 20000, defproj);
-    expire_tiles et0(zoom, 20000, defproj);
-    expire_tiles et1(zoom, 20000, defproj);
-    expire_tiles et2(zoom, 20000, defproj);
+    expire_tiles et{zoom, 20000, defproj};
+    expire_tiles et0{zoom, 20000, defproj};
+    expire_tiles et1{zoom, 20000, defproj};
+    expire_tiles et2{zoom, 20000, defproj};
 
     // et1&2 are two halves of et0's box
-    et0.from_bbox(-10000, -10000, 10000, 10000);
-    et1.from_bbox(-10000, -10000, 0, 10000);
-    et2.from_bbox(0, -10000, 10000, 10000);
+    et0.from_bbox({-10000, -10000, 10000, 10000});
+    et1.from_bbox({-10000, -10000, 0, 10000});
+    et2.from_bbox({0, -10000, 10000, 10000});
 
     et.merge_and_destroy(et1);
     et.merge_and_destroy(et2);
