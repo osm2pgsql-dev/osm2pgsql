@@ -13,6 +13,7 @@
 #include "geom.hpp"
 #include "reprojection.hpp"
 
+#include <utility>
 #include <vector>
 
 /**
@@ -31,6 +32,24 @@ double distance(point_t p1, point_t p2) noexcept;
  * between those points.
  */
 point_t interpolate(point_t p1, point_t p2, double frac) noexcept;
+
+/**
+ * Iterate over all segments (connections between two points) in a point list
+ * and call a function with both points.
+ *
+ * \pre \code !list.empty() \endcode
+ */
+template <typename FUNC>
+void for_each_segment(point_list_t const &list, FUNC&& func)
+{
+    assert(!list.empty());
+    auto it = list.cbegin();
+    auto prev = it;
+    for (++it; it != list.cend(); ++it) {
+        std::forward<FUNC>(func)(*prev, *it);
+        prev = it;
+    }
+}
 
 /**
  * Transform a geometry in 4326 into some other projection.

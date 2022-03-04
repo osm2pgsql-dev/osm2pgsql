@@ -1262,8 +1262,7 @@ void output_flex_t::add_row(table_connection_t *table_connection,
 
     auto const geoms = geom::split_multi(geom, split_multi);
     for (auto const &sgeom : geoms) {
-        auto const wkb = geom_to_ewkb(sgeom);
-        m_expire.from_wkb(wkb, id);
+        m_expire.from_geometry(sgeom, id);
         write_row(table_connection, object.type(), id, sgeom,
                   table.geom_column().srid());
     }

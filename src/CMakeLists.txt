@@ -8,6 +8,7 @@ target_sources(osm2pgsql_lib PRIVATE
   expire-tiles.cpp
   gazetteer-style.cpp
   geom.cpp
+  geom-box.cpp
   geom-from-osm.cpp
   geom-functions.cpp
   input.cpp

@@ -67,7 +67,7 @@ void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
 
         auto const wkb = geom_to_ewkb(projected_geom);
         if (!wkb.empty()) {
-            m_expire.from_wkb(wkb, way.id());
+            m_expire.from_geometry(projected_geom, way.id());
             if (m_enable_way_area) {
                 double const area = calculate_area(m_options.reproject_area,
                                                    geom, projected_geom);
@@ -82,8 +82,8 @@ void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
         auto const geoms = geom::split_multi(geom::segmentize(
             geom::transform(geom::create_linestring(way), *m_proj), split_at));
         for (auto const &sgeom : geoms) {
+            m_expire.from_geometry(sgeom, way.id());
             auto const wkb = geom_to_ewkb(sgeom);
-            m_expire.from_wkb(wkb, way.id());
             m_tables[t_line]->write_row(way.id(), *tags, wkb);
             if (roads) {
                 m_tables[t_roads]->write_row(way.id(), *tags, wkb);
@@ -164,9 +164,9 @@ void output_pgsql_t::node_add(osmium::Node const &node)
         return;
     }
 
-    auto const wkb =
-        geom_to_ewkb(geom::transform(geom::create_point(node), *m_proj));
-    m_expire.from_wkb(wkb, node.id());
+    auto const geom = geom::transform(geom::create_point(node), *m_proj);
+    m_expire.from_geometry(geom, node.id());
+    auto const wkb = geom_to_ewkb(geom);
     m_tables[t_point]->write_row(node.id(), outtags, wkb);
 }
 
@@ -268,8 +268,8 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
         }
         auto const geoms = geom::split_multi(projected_geom);
         for (auto const &sgeom : geoms) {
+            m_expire.from_geometry(sgeom, -rel.id());
             auto const wkb = geom_to_ewkb(sgeom);
-            m_expire.from_wkb(wkb, -rel.id());
             m_tables[t_line]->write_row(-rel.id(), outtags, wkb);
             if (roads) {
                 m_tables[t_roads]->write_row(-rel.id(), outtags, wkb);
@@ -283,8 +283,8 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
             geom::create_multipolygon(rel, m_buffer), !m_options.enable_multi);
         for (auto const &sgeom : geoms) {
             auto const projected_geom = geom::transform(sgeom, *m_proj);
+            m_expire.from_geometry(projected_geom, -rel.id());
             auto const wkb = geom_to_ewkb(projected_geom);
-            m_expire.from_wkb(wkb, -rel.id());
             if (m_enable_way_area) {
                 double const area = calculate_area(m_options.reproject_area,
                                                    sgeom, projected_geom);
