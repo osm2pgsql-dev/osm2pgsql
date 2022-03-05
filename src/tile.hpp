@@ -128,17 +128,14 @@ public:
     }
 
     /**
-     * Return quadkey for this tile. The two highest bits are the bits of
-     * zoom level 1, the third and fourth bit are level 2, etc.
+     * Return quadkey for this tile. The quadkey contains the interleaved
+     * bits from the x and y values, similar to what's used for Bing maps:
+     * https://docs.microsoft.com/en-us/bingmaps/articles/bing-maps-tile-system
      */
     uint64_t quadkey() const noexcept;
 
     /**
      * Construct tile from quadkey.
-     * The quadkey contains Y and X bits interleaved in following order: YXYX...
-     * We have to pick out the bit representing the y/x bit of the current zoom
-     * level and then shift it back to the right on its position in a y-/x-only
-     * coordinate.
      */
     static tile_t from_quadkey(uint64_t quadkey, uint32_t zoom) noexcept;
 
