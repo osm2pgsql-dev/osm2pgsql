@@ -315,7 +315,6 @@ void expire_tiles::merge_and_destroy(expire_tiles &other)
     } else {
         m_dirty_tiles.insert(other.m_dirty_tiles.begin(),
                              other.m_dirty_tiles.end());
+        other.m_dirty_tiles.clear();
     }
-
-    other.m_dirty_tiles.clear();
 }
