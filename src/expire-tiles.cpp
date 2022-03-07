@@ -95,13 +95,12 @@ uint32_t expire_tiles::normalise_tile_x_coord(int x) const
     return static_cast<uint32_t>(x);
 }
 
-void expire_tiles::coords_to_tile(geom::point_t const &point, double *tilex,
-                                  double *tiley)
+geom::point_t expire_tiles::coords_to_tile(geom::point_t const &point)
 {
     auto const c = m_projection->target_to_tile(point);
 
-    *tilex = m_map_width * (0.5 + c.x() / EARTH_CIRCUMFERENCE);
-    *tiley = m_map_width * (0.5 - c.y() / EARTH_CIRCUMFERENCE);
+    return {m_map_width * (0.5 + c.x() / EARTH_CIRCUMFERENCE),
+            m_map_width * (0.5 - c.y() / EARTH_CIRCUMFERENCE)};
 }
 
 void expire_tiles::from_point_list(geom::point_list_t const &list)
@@ -155,38 +154,24 @@ void expire_tiles::from_geometry(geom::geometry_t const &geom, osmid_t osm_id)
  */
 void expire_tiles::from_line(geom::point_t const &a, geom::point_t const &b)
 {
-    double tile_x_a = NAN;
-    double tile_y_a = NAN;
-    double tile_x_b = NAN;
-    double tile_y_b = NAN;
+    auto tilec_a = coords_to_tile(a);
+    auto tilec_b = coords_to_tile(b);
 
-    coords_to_tile(a, &tile_x_a, &tile_y_a);
-    coords_to_tile(b, &tile_x_b, &tile_y_b);
-
-    if (tile_x_a > tile_x_b) {
+    if (tilec_a.x() > tilec_b.x()) {
         /* We always want the line to go from left to right - swap the ends if it doesn't */
-        double temp = tile_x_b;
-        tile_x_b = tile_x_a;
-        tile_x_a = temp;
-        temp = tile_y_b;
-        tile_y_b = tile_y_a;
-        tile_y_a = temp;
+        std::swap(tilec_a, tilec_b);
     }
 
-    double const x_len = tile_x_b - tile_x_a;
+    double const x_len = tilec_b.x() - tilec_a.x();
     if (x_len > m_map_width / 2) {
         /* If the line is wider than half the map, assume it
            crosses the international date line.
            These coordinates get normalised again later */
-        tile_x_a += m_map_width;
-        double temp = tile_x_b;
-        tile_x_b = tile_x_a;
-        tile_x_a = temp;
-        temp = tile_y_b;
-        tile_y_b = tile_y_a;
-        tile_y_a = temp;
+        tilec_a.set_x(tilec_a.x() + m_map_width);
+        std::swap(tilec_a, tilec_b);
     }
-    double const y_len = tile_y_b - tile_y_a;
+
+    double const y_len = tilec_b.y() - tilec_a.y();
     double const hyp_len = sqrt(pow(x_len, 2) + pow(y_len, 2)); /* Pythagoras */
     double const x_step = x_len / hyp_len;
     double const y_step = y_len / hyp_len;
@@ -197,10 +182,10 @@ void expire_tiles::from_line(geom::point_t const &a, geom::point_t const &b)
         if (next_step > hyp_len) {
             next_step = hyp_len;
         }
-        double x1 = tile_x_a + ((double)step * x_step);
-        double y1 = tile_y_a + ((double)step * y_step);
-        double x2 = tile_x_a + ((double)next_step * x_step);
-        double y2 = tile_y_a + ((double)next_step * y_step);
+        double x1 = tilec_a.x() + ((double)step * x_step);
+        double y1 = tilec_a.y() + ((double)step * y_step);
+        double x2 = tilec_a.x() + ((double)next_step * x_step);
+        double y2 = tilec_a.y() + ((double)next_step * y_step);
 
         /* The line (x1,y1),(x2,y2) is up to 1 tile width long
            x1 will always be <= x2
@@ -250,14 +235,14 @@ int expire_tiles::from_bbox(geom::box_t const &box)
     }
 
     /* Convert the box's Mercator coordinates into tile coordinates */
-    double tmp_x = NAN;
-    double tmp_y = NAN;
-    coords_to_tile({box.min_x(), box.max_y()}, &tmp_x, &tmp_y);
-    int min_tile_x = tmp_x - TILE_EXPIRY_LEEWAY;
-    int min_tile_y = tmp_y - TILE_EXPIRY_LEEWAY;
-    coords_to_tile({box.max_x(), box.min_y()}, &tmp_x, &tmp_y);
-    int max_tile_x = tmp_x + TILE_EXPIRY_LEEWAY;
-    int max_tile_y = tmp_y + TILE_EXPIRY_LEEWAY;
+    auto const tmp_min = coords_to_tile({box.min_x(), box.max_y()});
+    int min_tile_x = tmp_min.x() - TILE_EXPIRY_LEEWAY;
+    int min_tile_y = tmp_min.y() - TILE_EXPIRY_LEEWAY;
+
+    auto const tmp_max = coords_to_tile({box.max_x(), box.min_y()});
+    int max_tile_x = tmp_max.x() + TILE_EXPIRY_LEEWAY;
+    int max_tile_y = tmp_max.y() + TILE_EXPIRY_LEEWAY;
+
     if (min_tile_x < 0) {
         min_tile_x = 0;
     }

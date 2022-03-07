@@ -134,8 +134,7 @@ private:
     /**
      * Converts from target coordinates to tile coordinates.
      */
-    void coords_to_tile(geom::point_t const &point, double *tilex,
-                        double *tiley);
+    geom::point_t coords_to_tile(geom::point_t const &point);
 
     /**
      * Expire a single tile.
