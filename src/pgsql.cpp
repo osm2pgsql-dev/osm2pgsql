@@ -167,29 +167,6 @@ pg_conn_t::exec_prepared_internal(char const *stmt, int num_params,
     return res;
 }
 
-pg_result_t pg_conn_t::exec_prepared(char const *stmt, char const *p1, char const *p2) const
-{
-    std::array<const char *, 2> params{{p1, p2}};
-    return exec_prepared_internal(stmt, params.size(), params.data());
-}
-
-pg_result_t pg_conn_t::exec_prepared(char const *stmt, char const *param) const
-{
-    return exec_prepared_internal(stmt, 1, &param);
-}
-
-pg_result_t pg_conn_t::exec_prepared(char const *stmt,
-                                     std::string const &param) const
-{
-    return exec_prepared(stmt, param.c_str());
-}
-
-pg_result_t pg_conn_t::exec_prepared(char const *stmt, osmid_t id) const
-{
-    util::integer_to_buffer buffer{id};
-    return exec_prepared(stmt, buffer.c_str());
-}
-
 std::string tablespace_clause(std::string const &name)
 {
     std::string sql;

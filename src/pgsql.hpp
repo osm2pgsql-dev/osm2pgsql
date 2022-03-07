@@ -18,6 +18,7 @@
  * Helper classes and functions for PostgreSQL access.
  */
 
+#include "format.hpp"
 #include "osmtypes.hpp"
 
 #include <libpq-fe.h>
@@ -104,6 +105,47 @@ private:
     std::unique_ptr<PGresult, pg_result_deleter_t> m_result;
 };
 
+namespace {
+/**
+ * Helper for pg_conn_t::exec_prepared() function. All parameters to
+ * that function are given to the exec_arg::to_str function which will
+ * pass through string-like parameters and convert other parameters to
+ * strings.
+ */
+template <typename T>
+struct exec_arg
+{
+    constexpr static std::size_t const buffers_needed = 1;
+    static char const *to_str(std::vector<std::string> *data, T param)
+    {
+        return data->emplace_back("{}"_format(std::forward<T>(param))).c_str();
+    }
+};
+
+template <>
+struct exec_arg<char const *>
+{
+    constexpr static std::size_t const buffers_needed = 0;
+    static char const *to_str(std::vector<std::string> * /*data*/,
+                              char const *param)
+    {
+        return param;
+    }
+};
+
+template <>
+struct exec_arg<std::string const &>
+{
+    constexpr static std::size_t const buffers_needed = 0;
+    static char const *to_str(std::vector<std::string> * /*data*/,
+                              std::string const &param)
+    {
+        return param.c_str();
+    }
+};
+
+} // anonymous namespace
+
 /**
  * PostgreSQL connection.
  *
@@ -117,26 +159,58 @@ class pg_conn_t
 public:
     explicit pg_conn_t(std::string const &conninfo);
 
-    /// Execute a prepared statement with one parameter.
-    pg_result_t exec_prepared(char const *stmt, char const *param) const;
+    /**
+     * Run the named prepared SQL statement and return the results.
+     *
+     * \param stmt The name of the prepared statement.
+     * \param params Any number of arguments (will be converted to strings
+     *               if necessary).
+     * \throws exception if the command failed.
+     */
+    template <typename... TArgs>
+    pg_result_t exec_prepared(char const *stmt, TArgs... params) const
+    {
+        // We have to convert all non-string parameters into strings and
+        // store them somewhere. We use the exec_params vector for this.
+        // It needs to be large enough to hold all parameters without resizing
+        // so that pointers into the strings in that vector remain valid
+        // after new parameters have been added.
+        constexpr auto const total_buffers_needed =
+            (0 + ... + exec_arg<TArgs>::buffers_needed);
+        std::vector<std::string> exec_params;
+        exec_params.reserve(total_buffers_needed);
 
-    /// Execute a prepared statement with two parameters.
-    pg_result_t exec_prepared(char const *stmt, char const *p1, char const *p2) const;
+        // This array holds the pointers to all parameter strings, either
+        // to the original string parameters or to the recently converted
+        // in the exec_params vector.
+        std::array<char const *, sizeof...(params)> param_ptrs = {
+            exec_arg<TArgs>::to_str(&exec_params,
+                                    std::forward<TArgs>(params))...};
 
-    /// Execute a prepared statement with one string parameter.
-    pg_result_t exec_prepared(char const *stmt, std::string const &param) const;
+        return exec_prepared_internal(stmt, sizeof...(params),
+                                      param_ptrs.data());
+    }
 
-    /// Execute a prepared statement with one integer parameter.
-    pg_result_t exec_prepared(char const *stmt, osmid_t id) const;
-
+    /**
+     * Run the specified SQL query and return the results.
+     *
+     * \param expect The expected status code of the SQL command.
+     * \param sql The SQL command.
+     * \throws exception if the result is not as expected.
+     */
     pg_result_t query(ExecStatusType expect, char const *sql) const;
-
     pg_result_t query(ExecStatusType expect, std::string const &sql) const;
 
     void set_config(char const *setting, char const *value) const;
 
+    /**
+     * Run the specified SQL query. This can only be used for commands that
+     * have no output and return status code PGRES_COMMAND_OK.
+     *
+     * \param sql The SQL command.
+     * \throws exception if the command failed.
+     */
     void exec(char const *sql) const;
-
     void exec(std::string const &sql) const;
 
     void copy_data(std::string const &sql, std::string const &context) const;
