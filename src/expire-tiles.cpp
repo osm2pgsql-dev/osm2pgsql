@@ -73,7 +73,6 @@ expire_tiles::expire_tiles(uint32_t max, double bbox,
 : m_max_bbox(bbox), m_maxzoom(max), m_projection(proj)
 {
     m_map_width = 1U << m_maxzoom;
-    m_tile_width = EARTH_CIRCUMFERENCE / m_map_width;
 }
 
 void expire_tiles::expire_tile(uint32_t x, uint32_t y)
@@ -302,12 +301,6 @@ void expire_tiles::merge_and_destroy(expire_tiles &other)
         throw std::runtime_error{"Unable to merge tile expiry sets when "
                                  "map_width does not match: {} != {}."_format(
                                      m_map_width, other.m_map_width)};
-    }
-
-    if (m_tile_width != other.m_tile_width) {
-        throw std::runtime_error{"Unable to merge tile expiry sets when "
-                                 "tile_width does not match: {} != {}."_format(
-                                     m_tile_width, other.m_tile_width)};
     }
 
     if (m_dirty_tiles.empty()) {

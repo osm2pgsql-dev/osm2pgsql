@@ -149,7 +149,6 @@ private:
 
     void from_point_list(geom::point_list_t const &list);
 
-    double m_tile_width;
     double m_max_bbox;
     int m_map_width;
     uint32_t m_maxzoom;
