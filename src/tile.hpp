@@ -21,6 +21,10 @@
 class tile_t
 {
 public:
+    static constexpr double const earth_circumference = 40075016.68;
+    static constexpr double const half_earth_circumference =
+        earth_circumference / 2;
+
     /// Construct an invalid tile.
     tile_t() noexcept = default;
 
@@ -62,20 +66,32 @@ public:
     /// The width/height of the tile in web mercator (EPSG:3857) coordinates.
     double extent() const noexcept
     {
-        return (2 * extent_max) / static_cast<double>(1UL << m_zoom);
+        return earth_circumference / static_cast<double>(1UL << m_zoom);
     }
 
     /// Minimum X coordinate of this tile in web mercator (EPSG:3857) units.
-    double xmin() const noexcept { return -extent_max + m_x * extent(); }
+    double xmin() const noexcept
+    {
+        return -half_earth_circumference + m_x * extent();
+    }
 
     /// Maximum X coordinate of this tile in web mercator (EPSG:3857) units.
-    double xmax() const noexcept { return -extent_max + (m_x + 1) * extent(); }
+    double xmax() const noexcept
+    {
+        return -half_earth_circumference + (m_x + 1) * extent();
+    }
 
     /// Minimum Y coordinate of this tile in web mercator (EPSG:3857) units.
-    double ymin() const noexcept { return extent_max - (m_y + 1) * extent(); }
+    double ymin() const noexcept
+    {
+        return half_earth_circumference - (m_y + 1) * extent();
+    }
 
     /// Maximum Y coordinate of this tile in web mercator (EPSG:3857) units.
-    double ymax() const noexcept { return extent_max - m_y * extent(); }
+    double ymax() const noexcept
+    {
+        return half_earth_circumference - m_y * extent();
+    }
 
     /**
      * Convert a point from web mercator (EPSG:3857) coordinates to
@@ -140,7 +156,6 @@ public:
     static tile_t from_quadkey(uint64_t quadkey, uint32_t zoom) noexcept;
 
 private:
-    static constexpr double const extent_max = 20037508.342789244;
     static constexpr uint32_t const invalid_zoom =
         std::numeric_limits<uint32_t>::max();
     static constexpr uint32_t const max_zoom = 32;

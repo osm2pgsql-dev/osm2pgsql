@@ -28,10 +28,8 @@
 #include "options.hpp"
 #include "reprojection.hpp"
 #include "table.hpp"
+#include "tile.hpp"
 #include "wkb.hpp"
-
-#define EARTH_CIRCUMFERENCE 40075016.68
-#define HALF_EARTH_CIRCUMFERENCE (EARTH_CIRCUMFERENCE / 2)
 
 // How many tiles worth of space to leave either side of a changed feature
 static constexpr double const tile_expiry_leeway = 0.1;
@@ -98,8 +96,8 @@ geom::point_t expire_tiles::coords_to_tile(geom::point_t const &point)
 {
     auto const c = m_projection->target_to_tile(point);
 
-    return {m_map_width * (0.5 + c.x() / EARTH_CIRCUMFERENCE),
-            m_map_width * (0.5 - c.y() / EARTH_CIRCUMFERENCE)};
+    return {m_map_width * (0.5 + c.x() / tile_t::earth_circumference),
+            m_map_width * (0.5 - c.y() / tile_t::earth_circumference)};
 }
 
 void expire_tiles::from_point_list(geom::point_list_t const &list)
@@ -220,12 +218,13 @@ int expire_tiles::from_bbox(geom::box_t const &box)
 
     double const width = box.width();
     double const height = box.height();
-    if (width > HALF_EARTH_CIRCUMFERENCE + 1) {
+    if (width > tile_t::half_earth_circumference + 1) {
         /* Over half the planet's width within the bounding box - assume the
            box crosses the international date line and split it into two boxes */
-        int ret =
-            from_bbox({-HALF_EARTH_CIRCUMFERENCE, box.min_y(), box.min_x(), box.max_y()});
-        ret += from_bbox({box.max_x(), box.min_y(), HALF_EARTH_CIRCUMFERENCE, box.max_y()});
+        int ret = from_bbox({-tile_t::half_earth_circumference, box.min_y(),
+                             box.min_x(), box.max_y()});
+        ret += from_bbox({box.max_x(), box.min_y(),
+                          tile_t::half_earth_circumference, box.max_y()});
         return ret;
     }
 

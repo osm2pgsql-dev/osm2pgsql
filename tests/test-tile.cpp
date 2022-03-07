@@ -11,8 +11,6 @@
 
 #include "tile.hpp"
 
-static constexpr double const world = 20037508.342789244;
-
 TEST_CASE("invalid tile", "[NoDB]")
 {
     tile_t const tile;
@@ -57,16 +55,16 @@ TEST_CASE("tile_t coordinates zoom=0", "[NoDB]")
 {
     tile_t const tile{0, 0, 0};
 
-    REQUIRE(tile.xmin() == Approx(-world));
-    REQUIRE(tile.ymin() == Approx(-world));
-    REQUIRE(tile.xmax() == Approx(world));
-    REQUIRE(tile.ymax() == Approx(world));
+    REQUIRE(tile.xmin() == Approx(-tile_t::half_earth_circumference));
+    REQUIRE(tile.ymin() == Approx(-tile_t::half_earth_circumference));
+    REQUIRE(tile.xmax() == Approx(tile_t::half_earth_circumference));
+    REQUIRE(tile.ymax() == Approx(tile_t::half_earth_circumference));
 
     REQUIRE(tile.center().x() == Approx(0.0));
     REQUIRE(tile.center().y() == Approx(0.0));
     REQUIRE(tile.center() == geom::point_t{0.0, 0.0});
 
-    REQUIRE(tile.extent() == Approx(world * 2));
+    REQUIRE(tile.extent() == Approx(tile_t::earth_circumference));
 
     geom::point_t const p{12345.6, 7891.0};
     auto const tp = tile.to_tile_coords(p, 256);
@@ -81,17 +79,18 @@ TEST_CASE("tile_t coordinates zoom=2", "[NoDB]")
 {
     tile_t const tile{2, 1, 2};
 
-    REQUIRE(tile.xmin() == Approx(-world / 2));
-    REQUIRE(tile.ymin() == Approx(-world / 2));
+    REQUIRE(tile.xmin() == Approx(-tile_t::half_earth_circumference / 2));
+    REQUIRE(tile.ymin() == Approx(-tile_t::half_earth_circumference / 2));
     REQUIRE(tile.xmax() == Approx(0.0));
     REQUIRE(tile.ymax() == Approx(0.0));
 
-    REQUIRE(tile.center().x() == Approx(-world / 4));
-    REQUIRE(tile.center().y() == Approx(-world / 4));
+    REQUIRE(tile.center().x() == Approx(-tile_t::half_earth_circumference / 4));
+    REQUIRE(tile.center().y() == Approx(-tile_t::half_earth_circumference / 4));
 
-    REQUIRE(tile.extent() == Approx(world / 2));
+    REQUIRE(tile.extent() == Approx(tile_t::half_earth_circumference / 2));
 
-    geom::point_t const p{-world / 4, -world / 8};
+    geom::point_t const p{-tile_t::half_earth_circumference / 4,
+                          -tile_t::half_earth_circumference / 8};
     auto const tp = tile.to_tile_coords(p, 4096);
     REQUIRE(tp.x() == Approx(2048));
     REQUIRE(tp.y() == Approx(2048 + 1024));
