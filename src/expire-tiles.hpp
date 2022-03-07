@@ -45,7 +45,7 @@ public:
 class expire_tiles
 {
 public:
-    expire_tiles(uint32_t maxzoom, double maxbbox,
+    expire_tiles(uint32_t max_zoom, double max_bbox,
                  const std::shared_ptr<reprojection> &projection);
 
     bool enabled() const noexcept { return m_maxzoom != 0; }
@@ -148,15 +148,17 @@ private:
 
     void from_point_list(geom::point_list_t const &list);
 
-    double m_max_bbox;
-    int m_map_width;
-    uint32_t m_maxzoom;
-    std::shared_ptr<reprojection> m_projection;
+    /// This is where we collect all the expired tiles.
+    std::unordered_set<uint64_t> m_dirty_tiles;
 
     /// The tile which has been added last to the unordered set.
     tile_t m_prev_tile;
 
-    std::unordered_set<uint64_t> m_dirty_tiles;
+    std::shared_ptr<reprojection> m_projection;
+
+    double m_max_bbox;
+    uint32_t m_maxzoom;
+    int m_map_width;
 };
 
 #endif // OSM2PGSQL_EXPIRE_TILES_HPP

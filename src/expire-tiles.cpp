@@ -34,7 +34,7 @@
 #define HALF_EARTH_CIRCUMFERENCE (EARTH_CIRCUMFERENCE / 2)
 
 // How many tiles worth of space to leave either side of a changed feature
-#define TILE_EXPIRY_LEEWAY 0.1
+static constexpr double const tile_expiry_leeway = 0.1;
 
 tile_output_t::tile_output_t(char const *filename)
 : outfile(fopen(filename, "a"))
@@ -62,17 +62,16 @@ void tile_output_t::output_dirty_tile(tile_t const &tile)
     fmt::print(outfile, "{}/{}/{}\n", tile.zoom(), tile.x(), tile.y());
 }
 
+expire_tiles::expire_tiles(uint32_t max_zoom, double max_bbox,
+                           const std::shared_ptr<reprojection> &projection)
+: m_projection(projection), m_max_bbox(max_bbox), m_maxzoom(max_zoom),
+  m_map_width(1U << m_maxzoom)
+{}
+
 void expire_tiles::output_and_destroy(char const *filename, uint32_t minzoom)
 {
     tile_output_t output_writer{filename};
     output_and_destroy<tile_output_t>(output_writer, minzoom);
-}
-
-expire_tiles::expire_tiles(uint32_t max, double bbox,
-                           const std::shared_ptr<reprojection> &proj)
-: m_max_bbox(bbox), m_maxzoom(max), m_projection(proj)
-{
-    m_map_width = 1U << m_maxzoom;
 }
 
 void expire_tiles::expire_tile(uint32_t x, uint32_t y)
@@ -197,10 +196,10 @@ void expire_tiles::from_line(geom::point_t const &a, geom::point_t const &b)
             y2 = y1;
             y1 = temp;
         }
-        for (int x = x1 - TILE_EXPIRY_LEEWAY; x <= x2 + TILE_EXPIRY_LEEWAY;
+        for (int x = x1 - tile_expiry_leeway; x <= x2 + tile_expiry_leeway;
              ++x) {
             uint32_t const norm_x = normalise_tile_x_coord(x);
-            for (int y = y1 - TILE_EXPIRY_LEEWAY; y <= y2 + TILE_EXPIRY_LEEWAY;
+            for (int y = y1 - tile_expiry_leeway; y <= y2 + tile_expiry_leeway;
                  ++y) {
                 if (y >= 0) {
                     expire_tile(norm_x, static_cast<uint32_t>(y));
@@ -236,12 +235,12 @@ int expire_tiles::from_bbox(geom::box_t const &box)
 
     /* Convert the box's Mercator coordinates into tile coordinates */
     auto const tmp_min = coords_to_tile({box.min_x(), box.max_y()});
-    int min_tile_x = tmp_min.x() - TILE_EXPIRY_LEEWAY;
-    int min_tile_y = tmp_min.y() - TILE_EXPIRY_LEEWAY;
+    int min_tile_x = tmp_min.x() - tile_expiry_leeway;
+    int min_tile_y = tmp_min.y() - tile_expiry_leeway;
 
     auto const tmp_max = coords_to_tile({box.max_x(), box.min_y()});
-    int max_tile_x = tmp_max.x() + TILE_EXPIRY_LEEWAY;
-    int max_tile_y = tmp_max.y() + TILE_EXPIRY_LEEWAY;
+    int max_tile_x = tmp_max.x() + tile_expiry_leeway;
+    int max_tile_y = tmp_max.y() + tile_expiry_leeway;
 
     if (min_tile_x < 0) {
         min_tile_x = 0;
