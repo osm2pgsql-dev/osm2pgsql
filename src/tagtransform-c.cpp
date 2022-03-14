@@ -149,7 +149,7 @@ bool c_tagtransform_t::check_key(std::vector<taginfo> const &infos,
 }
 
 bool c_tagtransform_t::filter_tags(osmium::OSMObject const &o, bool *polygon,
-                                   bool *roads, taglist_t &out_tags)
+                                   bool *roads, taglist_t *out_tags)
 {
     //assume we dont like this set of tags
     bool filter = true;
@@ -172,7 +172,7 @@ bool c_tagtransform_t::filter_tags(osmium::OSMObject const &o, bool *polygon,
 
         if (o.type() == osmium::item_type::relation &&
             std::strcmp("type", k) == 0) {
-            out_tags.add_tag(k, v);
+            out_tags->add_tag(k, v);
             continue;
         }
         /* Allow named islands to appear as polygons */
@@ -188,17 +188,17 @@ bool c_tagtransform_t::filter_tags(osmium::OSMObject const &o, bool *polygon,
 
         //go through the actual tags found on the item and keep the ones in the export list
         if (check_key(infos, k, &filter, &flags)) {
-            out_tags.add_tag(k, v);
+            out_tags->add_tag(k, v);
         }
     }
     if (m_options->extra_attributes && o.version() > 0) {
-        out_tags.add_attributes(o);
+        out_tags->add_attributes(o);
     }
 
     if (polygon) {
         if (add_area_tag) {
             /* If we need to force this as a polygon, append an area tag */
-            out_tags.add_tag_if_not_exists("area", "yes");
+            out_tags->add_tag_if_not_exists("area", "yes");
             *polygon = true;
         } else {
             auto const *area = o.tags()["area"];
@@ -211,7 +211,7 @@ bool c_tagtransform_t::filter_tags(osmium::OSMObject const &o, bool *polygon,
     }
 
     if (roads && !filter && (o.type() == osmium::item_type::way)) {
-        add_z_order(&out_tags, roads);
+        add_z_order(out_tags, roads);
     }
 
     return filter;

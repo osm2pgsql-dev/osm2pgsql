@@ -30,7 +30,7 @@ public:
     virtual std::unique_ptr<tagtransform_t> clone() const = 0;
 
     virtual bool filter_tags(osmium::OSMObject const &o, bool *polygon,
-                             bool *roads, taglist_t &out_tags) = 0;
+                             bool *roads, taglist_t *out_tags) = 0;
 
     virtual bool filter_rel_member_tags(taglist_t const &rel_tags,
                                         osmium::memory::Buffer const &members,

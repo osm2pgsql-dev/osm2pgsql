@@ -64,7 +64,7 @@ void lua_tagtransform_t::check_lua_function_exists(std::string const &func_name)
 }
 
 bool lua_tagtransform_t::filter_tags(osmium::OSMObject const &o, bool *polygon,
-                                     bool *roads, taglist_t &out_tags)
+                                     bool *roads, taglist_t *out_tags)
 {
     switch (o.type()) {
     case osmium::item_type::node:
@@ -137,7 +137,7 @@ bool lua_tagtransform_t::filter_tags(osmium::OSMObject const &o, bool *polygon,
                 "is due an incorrect data type '{}'."_format(
                     lua_typename(L, ltype))};
         }
-        out_tags.add_tag(key, value);
+        out_tags->add_tag(key, value);
         lua_pop(L, 1);
     }
 

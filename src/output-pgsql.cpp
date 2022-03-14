@@ -103,7 +103,7 @@ void output_pgsql_t::pending_way(osmid_t id)
         bool polygon = false;
         bool roads = false;
         auto &way = m_buffer.get<osmium::Way>(0);
-        if (!m_tagtransform->filter_tags(way, &polygon, &roads, outtags)) {
+        if (!m_tagtransform->filter_tags(way, &polygon, &roads, &outtags)) {
             auto nnodes = middle().nodes_get_list(&(way.nodes()));
             if (nnodes > 1) {
                 pgsql_out_way(way, &outtags, polygon, roads);
@@ -162,7 +162,7 @@ void output_pgsql_t::wait()
 void output_pgsql_t::node_add(osmium::Node const &node)
 {
     taglist_t outtags;
-    if (m_tagtransform->filter_tags(node, nullptr, nullptr, outtags)) {
+    if (m_tagtransform->filter_tags(node, nullptr, nullptr, &outtags)) {
         return;
     }
 
@@ -179,7 +179,7 @@ void output_pgsql_t::way_add(osmium::Way *way)
     taglist_t outtags;
 
     /* Check whether the way is: (1) Exportable, (2) Maybe a polygon */
-    auto filter = m_tagtransform->filter_tags(*way, &polygon, &roads, outtags);
+    auto filter = m_tagtransform->filter_tags(*way, &polygon, &roads, &outtags);
 
     if (!filter) {
         /* Get actual node data and generate output */
@@ -223,7 +223,7 @@ static rolelist_t get_rolelist(osmium::Relation const &rel,
 void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
 {
     taglist_t prefiltered_tags;
-    if (m_tagtransform->filter_tags(rel, nullptr, nullptr, prefiltered_tags)) {
+    if (m_tagtransform->filter_tags(rel, nullptr, nullptr, &prefiltered_tags)) {
         return;
     }
 
