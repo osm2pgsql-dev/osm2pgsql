@@ -129,10 +129,10 @@ private:
     class thread_joiner
     {
 
-        std::vector<std::thread> &m_threads;
+        std::vector<std::thread> *m_threads;
 
     public:
-        explicit thread_joiner(std::vector<std::thread> &threads)
+        explicit thread_joiner(std::vector<std::thread> *threads)
         : m_threads(threads)
         {}
 
@@ -144,7 +144,7 @@ private:
 
         ~thread_joiner()
         {
-            for (auto &thread : m_threads) {
+            for (auto &thread : *m_threads) {
                 if (thread.joinable()) {
                     thread.join();
                 }
