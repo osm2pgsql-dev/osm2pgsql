@@ -151,7 +151,7 @@ public:
     void load_style(std::string const &filename);
     void process_tags(osmium::OSMObject const &o);
     void copy_out(osmium::OSMObject const &o, std::string const &geom,
-                  copy_mgr_t &buffer) const;
+                  copy_mgr_t *buffer) const;
     std::string class_list() const;
 
     bool has_data() const noexcept { return !m_main.empty(); }
