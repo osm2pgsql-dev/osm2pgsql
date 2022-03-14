@@ -164,26 +164,33 @@ add_definitions(-DDEFAULT_STYLE=\"${DEFAULT_STYLE}\")
 # Find necessary libraries
 #############################################################
 
+find_package(Osmium 2.17.3 REQUIRED COMPONENTS io)
+
 if (NOT EXTERNAL_LIBOSMIUM)
-    set(OSMIUM_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/libosmium/include")
+    include_directories("${CMAKE_CURRENT_SOURCE_DIR}/contrib/libosmium/include")
+else()
+    include_directories(SYSTEM ${OSMIUM_INCLUDE_DIRS})
 endif()
 
 if (NOT EXTERNAL_PROTOZERO)
-    set(PROTOZERO_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/protozero/include")
+    include_directories("${CMAKE_CURRENT_SOURCE_DIR}/contrib/protozero/include")
+else()
+    include_directories(SYSTEM ${PROTOZERO_INCLUDE_DIR})
 endif()
 
 if (NOT EXTERNAL_FMT)
-    set(FMT_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/fmt/include")
+    include_directories("${CMAKE_CURRENT_SOURCE_DIR}/contrib/fmt/include")
+else()
+    include_directories(SYSTEM ${FMT_INCLUDE_DIR})
 endif()
 
 if (NOT EXTERNAL_RAPIDJSON)
-    set(RAPIDJSON_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/rapidjson/include")
+    include_directories("${CMAKE_CURRENT_SOURCE_DIR}/contrib/rapidjson/include")
+else()
+    include_directories(SYSTEM ${RAPIDJSON_INCLUDE_DIR})
 endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR})
-
-find_package(Osmium 2.17.3 REQUIRED COMPONENTS io)
-include_directories(SYSTEM ${OSMIUM_INCLUDE_DIRS} ${PROTOZERO_INCLUDE_DIR} ${FMT_INCLUDE_DIR} ${RAPIDJSON_INCLUDE_DIR})
 
 if (WITH_LUA)
     if (WITH_LUAJIT)
