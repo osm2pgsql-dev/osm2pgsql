@@ -40,14 +40,14 @@ static const struct
               {"primary", 37, true},        {"trunk", 38, true},
               {"motorway", 39, true}};
 
-void add_z_order(taglist_t &tags, bool *roads)
+void add_z_order(taglist_t *tags, bool *roads)
 {
-    std::string const *const layer = tags.get("layer");
-    std::string const *const highway = tags.get("highway");
-    bool const bridge = tags.get_bool("bridge", false);
-    bool const tunnel = tags.get_bool("tunnel", false);
-    std::string const *const railway = tags.get("railway");
-    std::string const *const boundary = tags.get("boundary");
+    std::string const *const layer = tags->get("layer");
+    std::string const *const highway = tags->get("highway");
+    bool const bridge = tags->get_bool("bridge", false);
+    bool const tunnel = tags->get_bool("tunnel", false);
+    std::string const *const railway = tags->get("railway");
+    std::string const *const boundary = tags->get("boundary");
 
     int z_order = 0;
 
@@ -83,7 +83,7 @@ void add_z_order(taglist_t &tags, bool *roads)
     }
 
     util::integer_to_buffer z{z_order};
-    tags.add_tag("z_order", z.c_str());
+    tags->add_tag("z_order", z.c_str());
 }
 
 } // anonymous namespace
@@ -211,7 +211,7 @@ bool c_tagtransform_t::filter_tags(osmium::OSMObject const &o, bool *polygon,
     }
 
     if (roads && !filter && (o.type() == osmium::item_type::way)) {
-        add_z_order(out_tags, roads);
+        add_z_order(&out_tags, roads);
     }
 
     return filter;
@@ -331,7 +331,7 @@ bool c_tagtransform_t::filter_rel_member_tags(
         *make_polygon = true;
     }
 
-    add_z_order(out_tags, roads);
+    add_z_order(&out_tags, roads);
 
     return false;
 }
