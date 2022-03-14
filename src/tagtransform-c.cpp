@@ -88,9 +88,8 @@ void add_z_order(taglist_t &tags, bool *roads)
 
 } // anonymous namespace
 
-c_tagtransform_t::c_tagtransform_t(options_t const *options,
-                                   export_list const &exlist)
-: m_options(options), m_export_list(exlist)
+c_tagtransform_t::c_tagtransform_t(options_t const *options, export_list exlist)
+: m_options(options), m_export_list(std::move(exlist))
 {}
 
 std::unique_ptr<tagtransform_t> c_tagtransform_t::clone() const

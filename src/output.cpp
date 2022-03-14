@@ -63,10 +63,11 @@ output_t::create_output(std::shared_ptr<middle_query_t> const &mid,
         "gazetteer, null]."_format(options.output_backend)};
 }
 
-output_t::output_t(std::shared_ptr<middle_query_t> const &mid,
+output_t::output_t(std::shared_ptr<middle_query_t> mid,
                    std::shared_ptr<thread_pool_t> thread_pool,
                    options_t const &options)
-: m_mid(mid), m_thread_pool(std::move(thread_pool)), m_options(options)
+: m_mid(std::move(mid)), m_thread_pool(std::move(thread_pool)),
+  m_options(options)
 {}
 
 output_t::~output_t() = default;

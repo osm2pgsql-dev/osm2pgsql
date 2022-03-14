@@ -82,9 +82,9 @@ static std::string lowercase(std::string const &str)
 
 flex_table_column_t::flex_table_column_t(std::string name,
                                          std::string const &type,
-                                         std::string const &sql_type)
+                                         std::string sql_type)
 : m_name(std::move(name)), m_type_name(lowercase(type)),
-  m_sql_type(sql_type),
+  m_sql_type(std::move(sql_type)),
   m_type(get_column_type_from_string(m_type_name))
 {}
 

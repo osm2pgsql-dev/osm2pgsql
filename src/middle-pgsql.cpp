@@ -590,9 +590,10 @@ void middle_pgsql_t::after_relations()
 }
 
 middle_query_pgsql_t::middle_query_pgsql_t(
-    std::string const &conninfo, std::shared_ptr<node_locations_t> const &cache,
-    std::shared_ptr<node_persistent_cache> const &persistent_cache)
-: m_sql_conn(conninfo), m_cache(cache), m_persistent_cache(persistent_cache)
+    std::string const &conninfo, std::shared_ptr<node_locations_t> cache,
+    std::shared_ptr<node_persistent_cache> persistent_cache)
+: m_sql_conn(conninfo), m_cache(std::move(cache)),
+  m_persistent_cache(std::move(persistent_cache))
 {
     // Disable JIT and parallel workers as they are known to cause
     // problems when accessing the intarrays.
