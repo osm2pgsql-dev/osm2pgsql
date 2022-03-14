@@ -249,7 +249,7 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
     // otherwise one or the other will be true.
     if (m_tagtransform->filter_rel_member_tags(
             prefiltered_tags, m_buffer, xrole, &make_boundary, &make_polygon,
-            &roads, outtags)) {
+            &roads, &outtags)) {
         return;
     }
 
