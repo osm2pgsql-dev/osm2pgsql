@@ -338,7 +338,7 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
             }
         }
 
-        if (flag & (SF_NAME | SF_REF)) {
+        if (flag & static_cast<flag_t>(SF_NAME | SF_REF)) {
             m_names.emplace_back(k, v);
             if (flag & SF_NAME) {
                 is_named = true;
