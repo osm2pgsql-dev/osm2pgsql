@@ -85,7 +85,7 @@ db_copy_thread_t::db_copy_thread_t(std::string const &conninfo)
 {
     // conninfo is captured by copy here, because we don't know wether the
     // reference will still be valid once we get around to running the thread
-    m_worker = std::thread{thread_t{conninfo, m_shared}};
+    m_worker = std::thread{thread_t{conninfo, &m_shared}};
 }
 
 db_copy_thread_t::~db_copy_thread_t() { finish(); }
@@ -119,7 +119,7 @@ void db_copy_thread_t::finish()
     }
 }
 
-db_copy_thread_t::thread_t::thread_t(std::string conninfo, shared &shared)
+db_copy_thread_t::thread_t::thread_t(std::string conninfo, shared *shared)
 : m_conninfo(std::move(conninfo)), m_shared(shared)
 {}
 
@@ -139,13 +139,13 @@ void db_copy_thread_t::thread_t::operator()()
         while (!done) {
             std::unique_ptr<db_cmd_t> item;
             {
-                std::unique_lock<std::mutex> lock{m_shared.queue_mutex};
-                m_shared.queue_cond.wait(
-                    lock, [&] { return !m_shared.worker_queue.empty(); });
+                std::unique_lock<std::mutex> lock{m_shared->queue_mutex};
+                m_shared->queue_cond.wait(
+                    lock, [&] { return !m_shared->worker_queue.empty(); });
 
-                item = std::move(m_shared.worker_queue.front());
-                m_shared.worker_queue.pop_front();
-                m_shared.queue_full_cond.notify_one();
+                item = std::move(m_shared->worker_queue.front());
+                m_shared->worker_queue.pop_front();
+                m_shared->queue_full_cond.notify_one();
             }
 
             switch (item->type) {
