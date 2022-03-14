@@ -79,8 +79,9 @@ TRAMPOLINE(table_add_row, add_row)
 TRAMPOLINE(table_columns, columns)
 TRAMPOLINE(table_tostring, __tostring)
 
-static char const osm2pgsql_table_name[] = "osm2pgsql.table";
-static char const osm2pgsql_object_metatable[] = "osm2pgsql.object_metatable";
+static char const *const osm2pgsql_table_name = "osm2pgsql.table";
+static char const *const osm2pgsql_object_metatable =
+    "osm2pgsql.object_metatable";
 
 prepared_lua_function_t::prepared_lua_function_t(lua_State *lua_state,
                                                  calling_context context,

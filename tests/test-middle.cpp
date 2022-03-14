@@ -10,6 +10,7 @@
 #include <catch.hpp>
 
 #include <algorithm>
+#include <array>
 
 #include <osmium/osm/crc.hpp>
 #include <osmium/osm/crc_zlib.hpp>
@@ -184,7 +185,8 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
 
     SECTION("Set and retrieve a single relation with supporting ways")
     {
-        idlist_t const nds[] = {{4, 5, 13, 14, 342}, {45, 90}, {30, 3, 45}};
+        std::array<idlist_t, 3> const nds = {
+            {{4, 5, 13, 14, 342}, {45, 90}, {30, 3, 45}}};
 
         // set the node
         mid->node(buffer.add_node("n1 x4.1 y12.8"));

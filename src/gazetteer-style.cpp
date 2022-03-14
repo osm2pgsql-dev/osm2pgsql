@@ -8,6 +8,7 @@
  */
 
 #include <algorithm>
+#include <array>
 #include <cstring>
 #include <stdexcept>
 
@@ -465,9 +466,9 @@ void gazetteer_style_t::copy_out(osmium::OSMObject const &o,
         // osm_id
         buffer->add_column(o.id());
         // osm_type
-        char const osm_type[2] = {
+        std::array<char const, 2> const osm_type = {
             (char)toupper(osmium::item_type_to_char(o.type())), '\0'};
-        buffer->add_column(osm_type);
+        buffer->add_column(osm_type.data());
         // class
         buffer->add_column(std::get<0>(tag));
         // type
