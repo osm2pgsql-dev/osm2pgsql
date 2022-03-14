@@ -20,25 +20,25 @@ namespace {
 
 static const struct
 {
-    int offset;
     char const *highway;
+    int offset;
     bool roads;
-} layers[] = {{1, "proposed", false},       {2, "construction", false},
-              {10, "steps", false},         {10, "cycleway", false},
-              {10, "bridleway", false},     {10, "footway", false},
-              {10, "path", false},          {11, "track", false},
-              {15, "service", false},
+} layers[] = {{"proposed", 1, false},       {"construction", 2, false},
+              {"steps", 10, false},         {"cycleway", 10, false},
+              {"bridleway", 10, false},     {"footway", 10, false},
+              {"path", 10, false},          {"track", 11, false},
+              {"service", 15, false},
 
-              {24, "tertiary_link", false}, {25, "secondary_link", true},
-              {27, "primary_link", true},   {28, "trunk_link", true},
-              {29, "motorway_link", true},
+              {"tertiary_link", 24, false}, {"secondary_link", 25, true},
+              {"primary_link", 27, true},   {"trunk_link", 28, true},
+              {"motorway_link", 29, true},
 
-              {30, "raceway", false},       {31, "pedestrian", false},
-              {32, "living_street", false}, {33, "road", false},
-              {33, "unclassified", false},  {33, "residential", false},
-              {34, "tertiary", false},      {36, "secondary", true},
-              {37, "primary", true},        {38, "trunk", true},
-              {39, "motorway", true}};
+              {"raceway", 30, false},       {"pedestrian", 31, false},
+              {"living_street", 32, false}, {"road", 33, false},
+              {"unclassified", 33, false},  {"residential", 33, false},
+              {"tertiary", 34, false},      {"secondary", 36, true},
+              {"primary", 37, true},        {"trunk", 38, true},
+              {"motorway", 39, true}};
 
 void add_z_order(taglist_t &tags, bool *roads)
 {

@@ -93,11 +93,9 @@ public:
         return m_print_help;
     }
 
+    database_options_t database_options;
+
     std::string prefix{"planet_osm"};         ///< prefix for table names
-    std::shared_ptr<reprojection> projection; ///< SRS of projection
-    bool append = false;                      ///< Append to existing data
-    bool slim = false;                        ///< In slim mode
-    int cache = 800;                          ///< Memory usable for cache in MB
 
     /// Pg Tablespace to store indexes on main tables (no default TABLESPACE)
     std::string tblsmain_index{};
@@ -118,31 +116,54 @@ public:
     std::string output_dbschema{};
 
     std::string style{DEFAULT_STYLE}; ///< style file to use
-    uint32_t expire_tiles_zoom = 0;   ///< Zoom level for tile expiry list
 
-    /// Minimum zoom level for tile expiry list
-    uint32_t expire_tiles_zoom_min = 0;
+    /// Name of the flat node file used. Empty if flat node file is not enabled.
+    std::string flat_node_file{};
 
-    /// Max bbox size in either dimension to expire full bbox for a polygon
-    double expire_tiles_max_bbox = 20000.0;
+    std::string tag_transform_script;
 
     /// File name to output expired tiles list to
     std::string expire_tiles_filename{"dirty_tiles"};
 
-    /// add an additional hstore column with objects key/value pairs, and what type of hstore column
-    hstore_column hstore_mode = hstore_column::none;
+    std::string output_backend{"pgsql"};
+    std::string input_format; ///< input file format (default: autodetect)
 
-    bool enable_hstore_index = false; ///< add an index on the hstore column
-
-    /// Output multi-geometries intead of several simple geometries
-    bool enable_multi = false;
+    osmium::Box bbox;
 
     /// list of columns that should be written into their own hstore column
     std::vector<std::string> hstore_columns;
 
-    bool keep_coastlines = false;
-    bool parallel_indexing = true;
+    std::vector<std::string> input_files;
+
+    std::shared_ptr<reprojection> projection; ///< SRS of projection
+
+    /// Max bbox size in either dimension to expire full bbox for a polygon
+    double expire_tiles_max_bbox = 20000.0;
+
+    uint32_t expire_tiles_zoom = 0; ///< Zoom level for tile expiry list
+
+    /// Minimum zoom level for tile expiry list
+    uint32_t expire_tiles_zoom_min = 0;
+
+    int cache = 800; ///< Memory usable for cache in MB
+
     unsigned int num_procs;
+
+    /**
+     * How many bits should the node id be shifted for the way node index?
+     * Use 0 to disable for backwards compatibility.
+     * Currently the default is 0, making osm2pgsql backwards compatible to
+     * earlier versions.
+     */
+    uint8_t way_node_index_id_shift = 0;
+
+    /// add an additional hstore column with objects key/value pairs, and what type of hstore column
+    hstore_column hstore_mode = hstore_column::none;
+
+    bool append = false;                      ///< Append to existing data
+    bool slim = false;                        ///< In slim mode
+    bool extra_attributes = false;
+    bool keep_coastlines = false;
     bool droptemp = false; ///< drop slim mode temp tables after act
 
     /**
@@ -154,31 +175,16 @@ public:
     /// only copy rows that match an explicitly listed key
     bool hstore_match_only = false;
 
+    bool enable_hstore_index = false; ///< add an index on the hstore column
+
+    /// Output multi-geometries intead of several simple geometries
+    bool enable_multi = false;
+
     bool reproject_area = false;
 
-    /// Name of the flat node file used. Empty if flat node file is not enabled.
-    std::string flat_node_file{};
-
-    std::string tag_transform_script;
-
+    bool parallel_indexing = true;
     bool create = false;
     bool pass_prompt = false;
-
-    database_options_t database_options;
-    std::string output_backend{"pgsql"};
-    std::string input_format; ///< input file format (default: autodetect)
-    osmium::Box bbox;
-    bool extra_attributes = false;
-
-    std::vector<std::string> input_files;
-
-    /**
-     * How many bits should the node id be shifted for the way node index?
-     * Use 0 to disable for backwards compatibility.
-     * Currently the default is 0, making osm2pgsql backwards compatible to
-     * earlier versions.
-     */
-    uint8_t way_node_index_id_shift = 0;
 
 private:
 
