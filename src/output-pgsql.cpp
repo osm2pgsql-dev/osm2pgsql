@@ -494,6 +494,6 @@ void output_pgsql_t::merge_expire_trees(output_t *other)
 {
     auto *const opgsql = dynamic_cast<output_pgsql_t *>(other);
     if (opgsql) {
-        m_expire.merge_and_destroy(opgsql->m_expire);
+        m_expire.merge_and_destroy(&opgsql->m_expire);
     }
 }

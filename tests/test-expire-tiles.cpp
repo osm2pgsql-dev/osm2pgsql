@@ -231,8 +231,8 @@ TEST_CASE("merge expire sets", "[NoDB]")
         auto check_set2 = tile_output_set::generate_random(zoom, 100);
         check_set2.expire_centroids(&et2);
 
-        et.merge_and_destroy(et1);
-        et.merge_and_destroy(et2);
+        et.merge_and_destroy(&et1);
+        et.merge_and_destroy(&et2);
 
         tile_output_set check_set;
         check_set += check_set1;
@@ -263,8 +263,8 @@ TEST_CASE("merge identical expire sets", "[NoDB]")
         check_set.expire_centroids(&et1);
         check_set.expire_centroids(&et2);
 
-        et.merge_and_destroy(et1);
-        et.merge_and_destroy(et2);
+        et.merge_and_destroy(&et1);
+        et.merge_and_destroy(&et2);
 
         tile_output_set set;
         et.output_and_destroy(set, zoom);
@@ -295,8 +295,8 @@ TEST_CASE("merge overlapping expire sets", "[NoDB]")
         check_set3.expire_centroids(&et1);
         check_set3.expire_centroids(&et2);
 
-        et.merge_and_destroy(et1);
-        et.merge_and_destroy(et2);
+        et.merge_and_destroy(&et1);
+        et.merge_and_destroy(&et2);
 
         tile_output_set check_set;
         check_set += check_set1;
@@ -328,8 +328,8 @@ TEST_CASE("merge with complete flag", "[NoDB]")
     et1.from_bbox({-10000, -10000, 0, 10000});
     et2.from_bbox({0, -10000, 10000, 10000});
 
-    et.merge_and_destroy(et1);
-    et.merge_and_destroy(et2);
+    et.merge_and_destroy(&et1);
+    et.merge_and_destroy(&et2);
 
     tile_output_set set;
     et.output_and_destroy(set, zoom);
