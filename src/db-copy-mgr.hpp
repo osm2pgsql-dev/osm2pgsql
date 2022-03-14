@@ -333,10 +333,10 @@ private:
         for (char const *c = s; *c; ++c) {
             switch (*c) {
             case '"':
-                m_current->buffer += "\\\\\"";
+                m_current->buffer += R"(\\")";
                 break;
             case '\\':
-                m_current->buffer += "\\\\\\\\";
+                m_current->buffer += R"(\\\\)";
                 break;
             case '\n':
                 m_current->buffer += "\\n";

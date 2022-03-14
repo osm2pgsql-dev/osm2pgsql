@@ -65,7 +65,7 @@ void drop_geom_check_trigger(pg_conn_t *db_connection,
 {
     std::string func_name = qualified_name(schema, table + "_osm2pgsql_valid");
 
-    db_connection->exec("DROP TRIGGER \"{}\" ON {};"_format(
+    db_connection->exec(R"(DROP TRIGGER "{}" ON {};)"_format(
         table + "_osm2pgsql_valid", qualified_name(schema, table)));
 
     db_connection->exec("DROP FUNCTION IF EXISTS {} ();"_format(func_name));
