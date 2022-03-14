@@ -26,10 +26,10 @@ static void read_location(node_persistent_cache const &cache, osmid_t id,
     REQUIRE(osmium::Location(x, y) == cache.get(id));
 }
 
-static void delete_location(node_persistent_cache &cache, osmid_t id)
+static void delete_location(node_persistent_cache *cache, osmid_t id)
 {
-    cache.set(id, osmium::Location{});
-    REQUIRE(osmium::Location{} == cache.get(id));
+    cache->set(id, osmium::Location{});
+    REQUIRE(osmium::Location{} == cache->get(id));
 }
 
 TEST_CASE("Persistent cache", "[NoDB]")
@@ -91,10 +91,10 @@ TEST_CASE("Persistent cache", "[NoDB]")
         write_and_read_location(&cache, 510000, 44, 0.0);
 
         // delete existing
-        delete_location(cache, 11);
+        delete_location(&cache, 11);
 
         // delete non-existing
-        delete_location(cache, 21);
+        delete_location(&cache, 21);
 
         // non-deleted should still be there
         read_location(cache, 10, 10.01, -45.3);
