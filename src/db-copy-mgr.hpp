@@ -24,8 +24,8 @@ template <typename DELETER>
 class db_copy_mgr_t
 {
 public:
-    explicit db_copy_mgr_t(std::shared_ptr<db_copy_thread_t> const &processor)
-    : m_processor(processor)
+    explicit db_copy_mgr_t(std::shared_ptr<db_copy_thread_t> processor)
+    : m_processor(std::move(processor))
     {}
 
     /**

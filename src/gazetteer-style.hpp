@@ -138,8 +138,8 @@ class gazetteer_style_t
         flag_t flag;
         matcher_t type;
 
-        string_with_flag_t(std::string const &n, flag_t f, matcher_t t)
-        : name(n), flag(f), type(t)
+        string_with_flag_t(std::string n, flag_t f, matcher_t t)
+        : name(std::move(n)), flag(f), type(t)
         {}
     };
 

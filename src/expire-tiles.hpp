@@ -46,7 +46,7 @@ class expire_tiles
 {
 public:
     expire_tiles(uint32_t max_zoom, double max_bbox,
-                 const std::shared_ptr<reprojection> &projection);
+                 std::shared_ptr<reprojection> projection);
 
     bool enabled() const noexcept { return m_maxzoom != 0; }
 

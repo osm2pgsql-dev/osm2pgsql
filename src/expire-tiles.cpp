@@ -61,9 +61,9 @@ void tile_output_t::output_dirty_tile(tile_t const &tile)
 }
 
 expire_tiles::expire_tiles(uint32_t max_zoom, double max_bbox,
-                           const std::shared_ptr<reprojection> &projection)
-: m_projection(projection), m_max_bbox(max_bbox), m_maxzoom(max_zoom),
-  m_map_width(1U << m_maxzoom)
+                           std::shared_ptr<reprojection> projection)
+: m_projection(std::move(projection)), m_max_bbox(max_bbox),
+  m_maxzoom(max_zoom), m_map_width(1U << m_maxzoom)
 {}
 
 void expire_tiles::output_and_destroy(char const *filename, uint32_t minzoom)
