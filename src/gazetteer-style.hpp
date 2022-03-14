@@ -105,22 +105,22 @@ class gazetteer_style_t
     using ptag_t = std::pair<char const *, char const *>;
     using pmaintag_t = std::tuple<char const *, char const *, flag_t>;
 
-    enum style_flags
+    enum style_flags : uint16_t
     {
-        SF_MAIN = 1 << 0,
-        SF_MAIN_NAMED = 1 << 1,
-        SF_MAIN_NAMED_KEY = 1 << 2,
-        SF_MAIN_FALLBACK = 1 << 3,
-        SF_MAIN_OPERATOR = 1 << 4,
-        SF_NAME = 1 << 5,
-        SF_REF = 1 << 6,
-        SF_ADDRESS = 1 << 7,
-        SF_ADDRESS_POINT = 1 << 8,
-        SF_POSTCODE = 1 << 9,
-        SF_COUNTRY = 1 << 10,
-        SF_EXTRA = 1 << 11,
-        SF_INTERPOLATION = 1 << 12,
-        SF_BOUNDARY = 1 << 13, // internal flag for boundaries
+        SF_MAIN = 1U << 0U,
+        SF_MAIN_NAMED = 1U << 1U,
+        SF_MAIN_NAMED_KEY = 1U << 2U,
+        SF_MAIN_FALLBACK = 1U << 3U,
+        SF_MAIN_OPERATOR = 1U << 4U,
+        SF_NAME = 1U << 5U,
+        SF_REF = 1U << 6U,
+        SF_ADDRESS = 1U << 7U,
+        SF_ADDRESS_POINT = 1U << 8U,
+        SF_POSTCODE = 1U << 9U,
+        SF_COUNTRY = 1U << 10U,
+        SF_EXTRA = 1U << 11U,
+        SF_INTERPOLATION = 1U << 12U,
+        SF_BOUNDARY = 1U << 13U, // internal flag for boundaries
     };
 
     enum class matcher_t
