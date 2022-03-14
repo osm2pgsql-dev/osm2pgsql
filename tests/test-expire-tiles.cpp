@@ -9,6 +9,7 @@
 
 #include <catch.hpp>
 
+#include <random>
 #include <set>
 
 #include "expire-tiles.hpp"
@@ -43,13 +44,18 @@ struct tile_output_set
 
     static tile_output_set generate_random(uint32_t zoom, size_t count)
     {
+        // Use a random device with a fixed seed. We don't really care about
+        // the quality of random numbers here, we just need to generate valid
+        // OSM test data. The fixed seed ensures that the results are
+        // reproducible.
+        // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp)
+        static std::mt19937_64 rng{47382};
+
+        std::uniform_int_distribution<uint32_t> dist{0, (1U << zoom) - 1U};
         tile_output_set set;
-        auto const cmask = (1UL << zoom) - 1U;
 
         do {
-            set.output_dirty_tile(
-                tile_t{zoom, static_cast<uint32_t>(rand() & cmask),
-                       static_cast<uint32_t>(rand() & cmask)});
+            set.output_dirty_tile(tile_t{zoom, dist(rng), dist(rng)});
         } while (set.tiles.size() < count);
 
         return set;

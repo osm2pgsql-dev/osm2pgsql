@@ -89,16 +89,16 @@ void pg_conn_t::copy_data(std::string const &sql,
     log_sql_data("Copy data to '{}':\n{}", context, sql);
     int const r = PQputCopyData(m_conn.get(), sql.c_str(), (int)sql.size());
 
-    if (r == 1) {
-        return; // success
-    }
-
     switch (r) {
     case 0: // need to wait for write ready
         log_error("{} - COPY unexpectedly busy", context);
         break;
+    case 1: // success
+        return;
     case -1: // error occurred
         log_error("{} - error on COPY: {}", context, error_msg());
+        break;
+    default: // unexpected result
         break;
     }
 

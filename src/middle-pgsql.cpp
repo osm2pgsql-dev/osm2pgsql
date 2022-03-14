@@ -15,13 +15,12 @@
  * emit the final geometry-enabled output formats
 */
 
-#include <stdexcept>
-#include <unordered_map>
-
 #include <cassert>
 #include <cstdlib>
-#include <functional>
 #include <memory>
+#include <stdexcept>
+#include <string>
+#include <unordered_map>
 #include <utility>
 
 #include <osmium/builder/osm_object_builder.hpp>
@@ -643,9 +642,9 @@ void middle_pgsql_t::stop()
     } else if (!m_options->append) {
         // Building the indexes takes time, so do it asynchronously.
         for (auto &table : m_tables) {
-            table.task_set(thread_pool().submit(
-                std::bind(&middle_pgsql_t::table_desc::build_index, &table,
-                          m_options->database_options.conninfo())));
+            table.task_set(thread_pool().submit([&]() {
+                table.build_index(m_options->database_options.conninfo());
+            }));
         }
     }
 }

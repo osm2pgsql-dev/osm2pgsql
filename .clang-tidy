@@ -1,5 +1,5 @@
 ---
-Checks: '*,-android-cloexec-*,-cppcoreguidelines-avoid-magic-numbers,-cppcoreguidelines-avoid-non-const-global-variables,-cppcoreguidelines-owning-memory,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-cppcoreguidelines-pro-type-cstyle-cast,-cppcoreguidelines-pro-type-reinterpret-cast,-cppcoreguidelines-pro-type-static-cast-downcast,-cppcoreguidelines-pro-type-vararg,-fuchsia-*,-google-readability-casting,-google-readability-todo,-hicpp-named-parameter,-hicpp-no-array-decay,-hicpp-vararg,-llvm-include-order,-llvm-header-guard,-llvmlibc-*,-misc-no-recursion,-modernize-use-trailing-return-type,-readability-implicit-bool-conversion,-readability-named-parameter,-readability-magic-numbers'
+Checks: '*,-android-cloexec-*,-cert-err58-cpp,-cppcoreguidelines-avoid-magic-numbers,-cppcoreguidelines-avoid-non-const-global-variables,-cppcoreguidelines-owning-memory,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-cppcoreguidelines-pro-type-cstyle-cast,-cppcoreguidelines-pro-type-reinterpret-cast,-cppcoreguidelines-pro-type-static-cast-downcast,-cppcoreguidelines-pro-type-vararg,-fuchsia-*,-google-readability-casting,-google-readability-todo,-hicpp-named-parameter,-hicpp-no-array-decay,-hicpp-vararg,-llvm-include-order,-llvm-header-guard,-llvmlibc-*,-misc-no-recursion,-modernize-use-nodiscard,-modernize-use-trailing-return-type,-readability-implicit-bool-conversion,-readability-named-parameter,-readability-magic-numbers'
 #
 #  cppcoreguidelines-pro-type-cstyle-cast
 #  google-build-using-namespace
@@ -12,6 +12,10 @@ Checks: '*,-android-cloexec-*,-cppcoreguidelines-avoid-magic-numbers,-cppcoregui
 #
 #  android-cloexec-*
 #    O_CLOEXEC isn't available on Windows
+#
+#  cert-err58-cpp
+#    There are many of these in the test code, most of them from the Catch
+#    framework. Difficult to avoid.
 #
 #  cppcoreguidelines-avoid-magic-numbers
 #  readability-magic-numbers
@@ -44,6 +48,10 @@ Checks: '*,-android-cloexec-*,-cppcoreguidelines-avoid-magic-numbers,-cppcoregui
 #
 #  misc-no-recursion
 #    Nothing wrong with recursion
+#
+#  modernize-use-nodiscard
+#    We have a lot of these. Remove it for the time being because there are
+#    too many to fix quickly. (TODO)
 #
 #  modernize-use-trailing-return-type
 #    We are not that modern...

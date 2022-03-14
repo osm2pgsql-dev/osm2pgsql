@@ -53,6 +53,8 @@ static std::array<column_type_lookup, 25> const column_types = {
 static table_column_type
 get_column_type_from_string(std::string const &type)
 {
+    // Because it doesn't work with MSVC:
+    // NOLINTNEXTLINE(llvm-qualified-auto,readability-qualified-auto)
     auto const it =
         std::find_if(std::begin(column_types), std::end(column_types),
                      [&type](column_type_lookup name_type) {

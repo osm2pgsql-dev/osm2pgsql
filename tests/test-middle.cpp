@@ -857,17 +857,17 @@ TEMPLATE_TEST_CASE("middle: add relation with attributes", "",
 
     // Create some relations we'll use for the tests.
     test_buffer_t buffer;
-    auto &relation30 = buffer.add_relation(
+    auto const &relation30 = buffer.add_relation(
         "r30 v123 c456 i789 t2009-02-13T23:31:30Z Mw10@outer,w11@inner "
         "Ttype=multipolygon,name=Penguin_Park");
 
     // The same relation but with default attributes.
-    auto &relation30_no_attr = buffer.add_relation(
+    auto const &relation30_no_attr = buffer.add_relation(
         "r30 Mw10@outer,w11@inner Ttype=multipolygon,name=Penguin_Park");
 
     // The same relation but with attributes in tags.
     // The order of the tags is important here!
-    auto &relation30_attr_tags = buffer.add_relation(
+    auto const &relation30_attr_tags = buffer.add_relation(
         "r30 Mw10@outer,w11@inner "
         "Ttype=multipolygon,name=Penguin_Park,osm_user=,osm_uid=789,"
         "osm_version=123,osm_timestamp=2009-02-13T23:31:30Z,osm_changeset=456");

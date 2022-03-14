@@ -322,14 +322,11 @@ bool c_tagtransform_t::filter_rel_member_tags(
                 out_tags.add_tag_if_not_exists("nwn_ref", *relref);
             }
         }
-    } else if (is_boundary) {
+    } else if (is_boundary || (is_multipolygon && out_tags.contains("boundary"))) {
         /* Boundaries will get converted into multiple geometries:
          - Linear features will end up in the line and roads tables (useful for admin boundaries)
          - Polygon features also go into the polygon table (useful for national_forests)
          The edges of the polygon also get treated as linear fetaures allowing these to be rendered seperately. */
-        *make_boundary = true;
-    } else if (is_multipolygon && out_tags.contains("boundary")) {
-        /* Treat type=multipolygon exactly like type=boundary if it has a boundary tag. */
         *make_boundary = true;
     } else if (is_multipolygon) {
         *make_polygon = true;
