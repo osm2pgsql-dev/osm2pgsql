@@ -84,7 +84,7 @@ struct counting_output_t : public output_null_t
     clone(std::shared_ptr<middle_query_t> const &,
           std::shared_ptr<db_copy_thread_t> const &) const override
     {
-        return std::make_shared<counting_output_t>(m_options);
+        return std::make_shared<counting_output_t>(*get_options());
     }
 
     void node_add(osmium::Node const &n) override

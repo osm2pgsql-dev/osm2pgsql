@@ -22,8 +22,8 @@ enum class ColumnType
 
 struct Column
 {
-    Column(std::string const &n, std::string const &tn, ColumnType t)
-    : name(n), type_name(tn), type(t)
+    Column(std::string n, std::string tn, ColumnType t)
+    : name(std::move(n)), type_name(std::move(tn)), type(t)
     {}
 
     std::string name;

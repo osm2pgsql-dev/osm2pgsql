@@ -23,7 +23,7 @@
 
 void output_gazetteer_t::delete_unused_classes(char osm_type, osmid_t osm_id)
 {
-    if (m_options.append) {
+    if (get_options()->append) {
         m_copy.prepare();
 
         assert(m_style.has_data());
@@ -35,7 +35,7 @@ void output_gazetteer_t::delete_unused_classes(char osm_type, osmid_t osm_id)
 
 void output_gazetteer_t::delete_unused_full(char osm_type, osmid_t osm_id)
 {
-    if (m_options.append) {
+    if (get_options()->append) {
         m_copy.prepare();
         m_copy.delete_object(osm_type, osm_id);
     }
@@ -44,10 +44,10 @@ void output_gazetteer_t::delete_unused_full(char osm_type, osmid_t osm_id)
 void output_gazetteer_t::start()
 {
     /* (Re)create the table unless we are appending */
-    if (!m_options.append) {
-        int const srid = m_options.projection->target_srs();
+    if (!get_options()->append) {
+        int const srid = get_options()->projection->target_srs();
 
-        pg_conn_t conn{m_options.database_options.conninfo()};
+        pg_conn_t conn{get_options()->database_options.conninfo()};
 
         /* Drop any existing table */
         conn.exec("DROP TABLE IF EXISTS place CASCADE");
@@ -65,14 +65,14 @@ void output_gazetteer_t::start()
             "  address hstore,"
             "  extratags hstore," +
             "  geometry Geometry(Geometry,{}) NOT NULL"_format(srid) + ")" +
-            tablespace_clause(m_options.tblsmain_data);
+            tablespace_clause(get_options()->tblsmain_data);
 
         conn.exec(sql);
 
         std::string const index_sql =
             "CREATE INDEX place_id_idx ON place"
             " USING BTREE (osm_type, osm_id)" +
-            tablespace_clause(m_options.tblsmain_index);
+            tablespace_clause(get_options()->tblsmain_index);
         conn.exec(index_sql);
     }
 }

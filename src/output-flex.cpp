@@ -1449,13 +1449,15 @@ void output_flex_t::stop()
 {
     for (auto &table : m_table_connections) {
         table.task_set(thread_pool().submit([&]() {
-            table.stop(m_options.slim && !m_options.droptemp, m_options.append);
+            table.stop(get_options()->slim && !get_options()->droptemp,
+                       get_options()->append);
         }));
     }
 
-    if (m_options.expire_tiles_zoom_min > 0) {
-        m_expire.output_and_destroy(m_options.expire_tiles_filename.c_str(),
-                                    m_options.expire_tiles_zoom_min);
+    if (get_options()->expire_tiles_zoom_min > 0) {
+        m_expire.output_and_destroy(
+            get_options()->expire_tiles_filename.c_str(),
+            get_options()->expire_tiles_zoom_min);
     }
 }
 
@@ -1572,7 +1574,7 @@ void output_flex_t::relation_modify(osmium::Relation const &rel)
 void output_flex_t::init_clone()
 {
     for (auto &table : m_table_connections) {
-        table.connect(m_options.database_options.conninfo());
+        table.connect(get_options()->database_options.conninfo());
         table.prepare();
     }
 }
@@ -1580,8 +1582,8 @@ void output_flex_t::init_clone()
 void output_flex_t::start()
 {
     for (auto &table : m_table_connections) {
-        table.connect(m_options.database_options.conninfo());
-        table.start(m_options.append);
+        table.connect(get_options()->database_options.conninfo());
+        table.start(get_options()->append);
     }
 }
 
@@ -1618,7 +1620,7 @@ output_flex_t::output_flex_t(
     assert(copy_thread);
 
     if (!is_clone) {
-        init_lua(m_options.style);
+        init_lua(get_options()->style);
 
         // If the osm2pgsql.select_relation_members() Lua function is defined
         // it means we need two-stage processing which in turn means we need
@@ -1656,7 +1658,7 @@ void output_flex_t::init_lua(std::string const &filename)
 
     luaX_add_table_str(lua_state(), "version", get_osm2pgsql_short_version());
     luaX_add_table_str(lua_state(), "mode",
-                       m_options.append ? "append" : "create");
+                       get_options()->append ? "append" : "create");
     luaX_add_table_int(lua_state(), "stage", 1);
 
     std::string dir_path =
@@ -1755,7 +1757,7 @@ void output_flex_t::reprocess_marked()
 
     log_info("Reprocess marked ways (stage 2)...");
 
-    if (!m_options.append) {
+    if (!get_options()->append) {
         util::timer_t timer;
 
         for (auto &table : m_table_connections) {

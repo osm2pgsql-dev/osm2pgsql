@@ -53,7 +53,7 @@ class flex_table_column_t
 {
 public:
     flex_table_column_t(std::string name, std::string const &type,
-                        std::string const &sql_type);
+                        std::string sql_type);
 
     std::string const &name() const noexcept { return m_name; }
 

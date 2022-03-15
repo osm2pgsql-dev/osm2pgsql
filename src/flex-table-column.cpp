@@ -53,6 +53,8 @@ static std::array<column_type_lookup, 25> const column_types = {
 static table_column_type
 get_column_type_from_string(std::string const &type)
 {
+    // Because it doesn't work with MSVC:
+    // NOLINTNEXTLINE(llvm-qualified-auto,readability-qualified-auto)
     auto const it =
         std::find_if(std::begin(column_types), std::end(column_types),
                      [&type](column_type_lookup name_type) {
@@ -80,9 +82,9 @@ static std::string lowercase(std::string const &str)
 
 flex_table_column_t::flex_table_column_t(std::string name,
                                          std::string const &type,
-                                         std::string const &sql_type)
+                                         std::string sql_type)
 : m_name(std::move(name)), m_type_name(lowercase(type)),
-  m_sql_type(sql_type),
+  m_sql_type(std::move(sql_type)),
   m_type(get_column_type_from_string(m_type_name))
 {}
 

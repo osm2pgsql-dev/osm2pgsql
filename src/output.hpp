@@ -37,7 +37,7 @@ public:
                   std::shared_ptr<thread_pool_t> thread_pool,
                   options_t const &options);
 
-    output_t(std::shared_ptr<middle_query_t> const &mid,
+    output_t(std::shared_ptr<middle_query_t> mid,
              std::shared_ptr<thread_pool_t> thread_pool,
              options_t const &options);
 
@@ -86,8 +86,6 @@ public:
     virtual void way_delete(osmid_t id) = 0;
     virtual void relation_delete(osmid_t id) = 0;
 
-    const options_t *get_options() const;
-
     virtual void merge_expire_trees(output_t *other);
 
     struct output_requirements const &get_requirements() const noexcept
@@ -97,6 +95,7 @@ public:
 
 private:
     std::shared_ptr<middle_query_t> m_mid;
+    options_t const *m_options;
 
 protected:
     thread_pool_t &thread_pool() const noexcept
@@ -111,8 +110,9 @@ protected:
         return *m_mid;
     }
 
+    const options_t *get_options() const noexcept { return m_options; };
+
     std::shared_ptr<thread_pool_t> m_thread_pool;
-    const options_t m_options;
     output_requirements m_output_requirements{};
 };
 

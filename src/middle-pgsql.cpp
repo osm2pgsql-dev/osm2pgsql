@@ -15,13 +15,12 @@
  * emit the final geometry-enabled output formats
 */
 
-#include <stdexcept>
-#include <unordered_map>
-
 #include <cassert>
 #include <cstdlib>
-#include <functional>
 #include <memory>
+#include <stdexcept>
+#include <string>
+#include <unordered_map>
 #include <utility>
 
 #include <osmium/builder/osm_object_builder.hpp>
@@ -591,9 +590,10 @@ void middle_pgsql_t::after_relations()
 }
 
 middle_query_pgsql_t::middle_query_pgsql_t(
-    std::string const &conninfo, std::shared_ptr<node_locations_t> const &cache,
-    std::shared_ptr<node_persistent_cache> const &persistent_cache)
-: m_sql_conn(conninfo), m_cache(cache), m_persistent_cache(persistent_cache)
+    std::string const &conninfo, std::shared_ptr<node_locations_t> cache,
+    std::shared_ptr<node_persistent_cache> persistent_cache)
+: m_sql_conn(conninfo), m_cache(std::move(cache)),
+  m_persistent_cache(std::move(persistent_cache))
 {
     // Disable JIT and parallel workers as they are known to cause
     // problems when accessing the intarrays.
@@ -643,9 +643,9 @@ void middle_pgsql_t::stop()
     } else if (!m_options->append) {
         // Building the indexes takes time, so do it asynchronously.
         for (auto &table : m_tables) {
-            table.task_set(thread_pool().submit(
-                std::bind(&middle_pgsql_t::table_desc::build_index, &table,
-                          m_options->database_options.conninfo())));
+            table.task_set(thread_pool().submit([&]() {
+                table.build_index(m_options->database_options.conninfo());
+            }));
         }
     }
 }

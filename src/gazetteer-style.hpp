@@ -44,8 +44,8 @@ class db_deleter_place_t
         osmid_t osm_id;
         char osm_type;
 
-        item_t(char t, osmid_t i, std::string const &c)
-        : classes(c), osm_id(i), osm_type(t)
+        item_t(char t, osmid_t i, std::string c)
+        : classes(std::move(c)), osm_id(i), osm_type(t)
         {}
 
         item_t(char t, osmid_t i) : osm_id(i), osm_type(t) {}

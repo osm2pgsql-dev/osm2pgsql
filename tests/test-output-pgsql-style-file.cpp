@@ -62,7 +62,7 @@ TEST_CASE("Parse style file with single node entry")
     REQUIRE(enable_way_area);
 
     REQUIRE(exlist.get(osmium::item_type::node).size() == 1);
-    REQUIRE(exlist.get(osmium::item_type::way).size() == 0);
+    REQUIRE(exlist.get(osmium::item_type::way).empty());
 
     auto const &ex = exlist.get(osmium::item_type::node).front();
     REQUIRE(ex.name == "access");
@@ -219,7 +219,7 @@ TEST_CASE("Parse style file with invalid data types")
 
     REQUIRE(enable_way_area);
 
-    REQUIRE(exlist.get(osmium::item_type::node).size() == 0);
+    REQUIRE(exlist.get(osmium::item_type::node).empty());
     REQUIRE(exlist.get(osmium::item_type::way).size() == 1);
 
     auto const &ways = exlist.get(osmium::item_type::way);

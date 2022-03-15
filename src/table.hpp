@@ -27,11 +27,12 @@ using hstores_t = std::vector<std::string>;
 class table_t
 {
 public:
-    table_t(std::string const &name, std::string const &type,
-            columns_t const &columns, hstores_t const &hstore_columns, int srid,
-            bool append, hstore_column hstore_mode,
+    table_t(std::string const &name, std::string type, columns_t columns,
+            hstores_t hstore_columns, int srid, bool append,
+            hstore_column hstore_mode,
             std::shared_ptr<db_copy_thread_t> const &copy_thread,
             std::string const &schema);
+
     table_t(table_t const &other,
             std::shared_ptr<db_copy_thread_t> const &copy_thread);
 

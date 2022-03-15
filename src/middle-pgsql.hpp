@@ -34,9 +34,8 @@ class middle_query_pgsql_t : public middle_query_t
 {
 public:
     middle_query_pgsql_t(
-        std::string const &conninfo,
-        std::shared_ptr<node_locations_t> const &cache,
-        std::shared_ptr<node_persistent_cache> const &persistent_cache);
+        std::string const &conninfo, std::shared_ptr<node_locations_t> cache,
+        std::shared_ptr<node_persistent_cache> persistent_cache);
 
     size_t nodes_get_list(osmium::WayNodeList *nodes) const override;
 

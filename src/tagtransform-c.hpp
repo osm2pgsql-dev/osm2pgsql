@@ -16,7 +16,7 @@
 class c_tagtransform_t : public tagtransform_t
 {
 public:
-    c_tagtransform_t(options_t const *options, export_list const &exlist);
+    c_tagtransform_t(options_t const *options, export_list exlist);
 
     std::unique_ptr<tagtransform_t> clone() const override;
 

@@ -46,7 +46,7 @@ enum wkb_byte_order_type_t : uint8_t
 };
 
 template <typename T>
-static void str_push(std::string *data, T value)
+void str_push(std::string *data, T value)
 {
     data->append(reinterpret_cast<char const *const>(&value), sizeof(T));
 }
@@ -58,7 +58,7 @@ static void str_push(std::string *data, T value)
  *
  * \pre \code data != nullptr \endcode
  */
-static void write_header(std::string *data, geometry_type type, uint32_t srid)
+void write_header(std::string *data, geometry_type type, uint32_t srid)
 {
     str_push(data, Endian);
     if (srid) {
@@ -76,12 +76,12 @@ static void write_header(std::string *data, geometry_type type, uint32_t srid)
  *
  * \pre \code data != nullptr \endcode
  */
-static void write_length(std::string *data, std::size_t length)
+void write_length(std::string *data, std::size_t length)
 {
     str_push(data, static_cast<uint32_t>(length));
 }
 
-static void write_points(std::string *data, geom::point_list_t const &points)
+void write_points(std::string *data, geom::point_list_t const &points)
 {
     write_length(data, points.size());
     for (auto const &point : points) {
@@ -90,7 +90,7 @@ static void write_points(std::string *data, geom::point_list_t const &points)
     }
 }
 
-static void write_linestring(std::string *data, geom::linestring_t const &geom,
+void write_linestring(std::string *data, geom::linestring_t const &geom,
                              uint32_t srid)
 {
     assert(data);
@@ -99,7 +99,7 @@ static void write_linestring(std::string *data, geom::linestring_t const &geom,
     write_points(data, geom);
 }
 
-static void write_polygon(std::string *data, geom::polygon_t const &geom,
+void write_polygon(std::string *data, geom::polygon_t const &geom,
                           uint32_t srid)
 {
     assert(data);
@@ -343,7 +343,7 @@ private:
     {
         check_bytes(sizeof(double) * 2);
 
-        std::array<double, 2> data;
+        std::array<double, 2> data{};
         std::memcpy(&data[0], m_it, sizeof(double) * 2);
         m_it += sizeof(double) * 2;
 

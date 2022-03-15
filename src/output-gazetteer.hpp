@@ -31,8 +31,8 @@ class output_gazetteer_t : public output_t
     output_gazetteer_t(output_gazetteer_t const *other,
                        std::shared_ptr<middle_query_t> const &cloned_mid,
                        std::shared_ptr<db_copy_thread_t> const &copy_thread)
-    : output_t(cloned_mid, other->m_thread_pool, other->m_options),
-      m_copy(copy_thread), m_proj(other->m_options.projection),
+    : output_t(cloned_mid, other->m_thread_pool, *other->get_options()),
+      m_copy(copy_thread), m_proj(other->get_options()->projection),
       m_osmium_buffer(PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes)
     {}
 
