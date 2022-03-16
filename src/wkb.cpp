@@ -353,7 +353,7 @@ private:
 
     void parse_point_list(geom::point_list_t *points, uint32_t min_points)
     {
-        auto num_points = parse_length();
+        auto const num_points = parse_length();
         if (num_points < min_points) {
             throw std::runtime_error{
                 "Invalid WKB geometry: {} are not"
@@ -361,14 +361,14 @@ private:
                                                               min_points)};
         }
         points->reserve(num_points);
-        while (num_points-- > 0) {
+        for (uint32_t i = 0; i < num_points; ++i) {
             parse_point(&points->emplace_back());
         }
     }
 
     void parse_polygon(geom::polygon_t *polygon)
     {
-        auto num_rings = parse_length();
+        auto const num_rings = parse_length();
         if (num_rings == 0) {
             throw std::runtime_error{
                 "Invalid WKB geometry: Polygon without rings"};
@@ -376,7 +376,7 @@ private:
         parse_point_list(&polygon->outer(), 4);
 
         polygon->inners().reserve(num_rings - 1);
-        while (--num_rings > 0) {
+        for (uint32_t i = 1; i < num_rings; ++i) {
             parse_point_list(&polygon->inners().emplace_back(), 4);
         }
     }
@@ -384,14 +384,14 @@ private:
     void parse_multi_linestring(geom::geometry_t *geom)
     {
         auto &multilinestring = geom->set<geom::multilinestring_t>();
-        auto num_geoms = parse_length();
+        auto const num_geoms = parse_length();
         if (num_geoms == 0) {
             throw std::runtime_error{
                 "Invalid WKB geometry: Multilinestring without linestrings"};
         }
 
         multilinestring.reserve(num_geoms);
-        while (num_geoms-- > 0) {
+        for (uint32_t i = 0; i < num_geoms; ++i) {
             auto &linestring = multilinestring.emplace_back();
             uint32_t const type = parse_header();
             if (type != geometry_type::wkb_line) {
@@ -406,14 +406,14 @@ private:
     void parse_multi_polygon(geom::geometry_t *geom)
     {
         auto &multipolygon = geom->set<geom::multipolygon_t>();
-        auto num_geoms = parse_length();
+        auto const num_geoms = parse_length();
         if (num_geoms == 0) {
             throw std::runtime_error{
                 "Invalid WKB geometry: Multipolygon without polygons"};
         }
 
         multipolygon.reserve(num_geoms);
-        while (num_geoms-- > 0) {
+        for (uint32_t i = 0; i < num_geoms; ++i) {
             auto &polygon = multipolygon.emplace_back();
             uint32_t const type = parse_header();
             if (type != geometry_type::wkb_polygon) {
