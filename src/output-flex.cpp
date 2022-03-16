@@ -1802,6 +1802,6 @@ void output_flex_t::merge_expire_trees(output_t *other)
 {
     auto *opgsql = dynamic_cast<output_flex_t *>(other);
     if (opgsql) {
-        m_expire.merge_and_destroy(opgsql->m_expire);
+        m_expire.merge_and_destroy(&opgsql->m_expire);
     }
 }

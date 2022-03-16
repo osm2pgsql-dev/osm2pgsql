@@ -41,16 +41,17 @@ bool full_dependency_manager_t::has_pending() const noexcept
     return !m_ways_pending_tracker.empty() || !m_rels_pending_tracker.empty();
 }
 
-idlist_t full_dependency_manager_t::get_ids(osmium::index::IdSetSmall<osmid_t> &tracker)
+idlist_t
+full_dependency_manager_t::get_ids(osmium::index::IdSetSmall<osmid_t> *tracker)
 {
-    tracker.sort_unique();
+    tracker->sort_unique();
 
     idlist_t list;
-    list.reserve(tracker.size());
+    list.reserve(tracker->size());
 
-    std::copy(tracker.cbegin(), tracker.cend(), std::back_inserter(list));
+    std::copy(tracker->cbegin(), tracker->cend(), std::back_inserter(list));
 
-    tracker.clear();
+    tracker->clear();
 
     return list;
 }

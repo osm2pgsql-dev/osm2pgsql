@@ -29,7 +29,7 @@ std::chrono::milliseconds task_result_t::wait()
 }
 
 thread_pool_t::thread_pool_t(unsigned int num_threads)
-: m_work_queue(max_queue_size, "work"), m_joiner(m_threads)
+: m_work_queue(max_queue_size, "work"), m_joiner(&m_threads)
 {
     assert(num_threads > 0);
     try {

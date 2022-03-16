@@ -105,7 +105,7 @@ bool output_gazetteer_t::process_node(osmium::Node const &node)
     auto const wkb =
         geom_to_ewkb(geom::transform(geom::create_point(node), *m_proj));
     delete_unused_classes('N', node.id());
-    m_style.copy_out(node, wkb, m_copy);
+    m_style.copy_out(node, wkb, &m_copy);
 
     return true;
 }
@@ -148,7 +148,7 @@ bool output_gazetteer_t::process_way(osmium::Way *way)
     }
 
     delete_unused_classes('W', way->id());
-    m_style.copy_out(*way, geom_to_ewkb(geom), m_copy);
+    m_style.copy_out(*way, geom_to_ewkb(geom), &m_copy);
 
     return true;
 }
@@ -212,7 +212,7 @@ bool output_gazetteer_t::process_relation(osmium::Relation const &rel)
     }
 
     delete_unused_classes('R', rel.id());
-    m_style.copy_out(rel, geom_to_ewkb(geom), m_copy);
+    m_style.copy_out(rel, geom_to_ewkb(geom), &m_copy);
 
     return true;
 }

@@ -142,7 +142,7 @@ inline char const *decode_upto(char const *src, char *dst)
 
 template <typename T>
 void pgsql_parse_tags(char const *string, osmium::memory::Buffer *buffer,
-                      T &obuilder)
+                      T *obuilder)
 {
     if (*string++ != '{') {
         return;
@@ -150,7 +150,7 @@ void pgsql_parse_tags(char const *string, osmium::memory::Buffer *buffer,
 
     char key[1024];
     char val[1024];
-    osmium::builder::TagListBuilder builder{*buffer, &obuilder};
+    osmium::builder::TagListBuilder builder{*buffer, obuilder};
 
     while (*string != '}') {
         string = decode_upto(string, key);
@@ -166,14 +166,14 @@ void pgsql_parse_tags(char const *string, osmium::memory::Buffer *buffer,
 }
 
 void pgsql_parse_members(char const *string, osmium::memory::Buffer *buffer,
-                         osmium::builder::RelationBuilder &obuilder)
+                         osmium::builder::RelationBuilder *obuilder)
 {
     if (*string++ != '{') {
         return;
     }
 
     char role[1024];
-    osmium::builder::RelationMemberListBuilder builder{*buffer, &obuilder};
+    osmium::builder::RelationMemberListBuilder builder{*buffer, obuilder};
 
     while (*string != '}') {
         char type = string[0];
@@ -190,10 +190,10 @@ void pgsql_parse_members(char const *string, osmium::memory::Buffer *buffer,
 }
 
 void pgsql_parse_nodes(char const *string, osmium::memory::Buffer *buffer,
-                       osmium::builder::WayBuilder &builder)
+                       osmium::builder::WayBuilder *obuilder)
 {
     if (*string++ == '{') {
-        osmium::builder::WayNodeListBuilder wnl_builder{*buffer, &builder};
+        osmium::builder::WayNodeListBuilder wnl_builder{*buffer, obuilder};
         while (*string != '}') {
             char *ptr = nullptr;
             wnl_builder.add_node_ref(std::strtoll(string, &ptr, 10));
@@ -411,8 +411,8 @@ bool middle_query_pgsql_t::way_get(osmid_t id,
         osmium::builder::WayBuilder builder{*buffer};
         builder.set_id(id);
 
-        pgsql_parse_nodes(res.get_value(0, 0), buffer, builder);
-        pgsql_parse_tags(res.get_value(0, 1), buffer, builder);
+        pgsql_parse_nodes(res.get_value(0, 0), buffer, &builder);
+        pgsql_parse_tags(res.get_value(0, 1), buffer, &builder);
     }
 
     buffer->commit();
@@ -462,8 +462,8 @@ middle_query_pgsql_t::rel_members_get(osmium::Relation const &rel,
                     osmium::builder::WayBuilder builder{*buffer};
                     builder.set_id(m.ref());
 
-                    pgsql_parse_nodes(res.get_value(j, 1), buffer, builder);
-                    pgsql_parse_tags(res.get_value(j, 2), buffer, builder);
+                    pgsql_parse_nodes(res.get_value(j, 1), buffer, &builder);
+                    pgsql_parse_tags(res.get_value(j, 2), buffer, &builder);
                 }
 
                 buffer->commit();
@@ -542,8 +542,8 @@ bool middle_query_pgsql_t::relation_get(osmid_t id,
         osmium::builder::RelationBuilder builder{*buffer};
         builder.set_id(id);
 
-        pgsql_parse_members(res.get_value(0, 0), buffer, builder);
-        pgsql_parse_tags(res.get_value(0, 1), buffer, builder);
+        pgsql_parse_members(res.get_value(0, 0), buffer, &builder);
+        pgsql_parse_tags(res.get_value(0, 1), buffer, &builder);
     }
 
     buffer->commit();

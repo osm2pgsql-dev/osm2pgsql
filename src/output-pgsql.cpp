@@ -103,7 +103,7 @@ void output_pgsql_t::pending_way(osmid_t id)
         bool polygon = false;
         bool roads = false;
         auto &way = m_buffer.get<osmium::Way>(0);
-        if (!m_tagtransform->filter_tags(way, &polygon, &roads, outtags)) {
+        if (!m_tagtransform->filter_tags(way, &polygon, &roads, &outtags)) {
             auto nnodes = middle().nodes_get_list(&(way.nodes()));
             if (nnodes > 1) {
                 pgsql_out_way(way, &outtags, polygon, roads);
@@ -162,7 +162,7 @@ void output_pgsql_t::wait()
 void output_pgsql_t::node_add(osmium::Node const &node)
 {
     taglist_t outtags;
-    if (m_tagtransform->filter_tags(node, nullptr, nullptr, outtags)) {
+    if (m_tagtransform->filter_tags(node, nullptr, nullptr, &outtags)) {
         return;
     }
 
@@ -179,7 +179,7 @@ void output_pgsql_t::way_add(osmium::Way *way)
     taglist_t outtags;
 
     /* Check whether the way is: (1) Exportable, (2) Maybe a polygon */
-    auto filter = m_tagtransform->filter_tags(*way, &polygon, &roads, outtags);
+    auto filter = m_tagtransform->filter_tags(*way, &polygon, &roads, &outtags);
 
     if (!filter) {
         /* Get actual node data and generate output */
@@ -223,7 +223,7 @@ static rolelist_t get_rolelist(osmium::Relation const &rel,
 void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
 {
     taglist_t prefiltered_tags;
-    if (m_tagtransform->filter_tags(rel, nullptr, nullptr, prefiltered_tags)) {
+    if (m_tagtransform->filter_tags(rel, nullptr, nullptr, &prefiltered_tags)) {
         return;
     }
 
@@ -249,7 +249,7 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
     // otherwise one or the other will be true.
     if (m_tagtransform->filter_rel_member_tags(
             prefiltered_tags, m_buffer, xrole, &make_boundary, &make_polygon,
-            &roads, outtags)) {
+            &roads, &outtags)) {
         return;
     }
 
@@ -494,6 +494,6 @@ void output_pgsql_t::merge_expire_trees(output_t *other)
 {
     auto *const opgsql = dynamic_cast<output_pgsql_t *>(other);
     if (opgsql) {
-        m_expire.merge_and_destroy(opgsql->m_expire);
+        m_expire.merge_and_destroy(&opgsql->m_expire);
     }
 }

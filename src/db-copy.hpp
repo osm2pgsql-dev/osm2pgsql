@@ -275,7 +275,7 @@ private:
     class thread_t
     {
     public:
-        thread_t(std::string conninfo, shared &shared);
+        thread_t(std::string conninfo, shared *shared);
 
         void operator()();
 
@@ -292,7 +292,7 @@ private:
         std::shared_ptr<db_target_descr_t> m_inflight;
 
         // These are shared with the db_copy_thread_t in the main program.
-        shared &m_shared;
+        shared *m_shared;
     };
 
     std::thread m_worker;

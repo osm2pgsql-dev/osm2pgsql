@@ -127,7 +127,7 @@ public:
     * merge the list of expired tiles in the other object into this
     * object, destroying the list in the other object.
     */
-    void merge_and_destroy(expire_tiles &other);
+    void merge_and_destroy(expire_tiles *other);
 
 private:
 

@@ -99,16 +99,16 @@ public:
 
     idlist_t get_pending_way_ids() override
     {
-        return get_ids(m_ways_pending_tracker);
+        return get_ids(&m_ways_pending_tracker);
     }
 
     idlist_t get_pending_relation_ids() override
     {
-        return get_ids(m_rels_pending_tracker);
+        return get_ids(&m_rels_pending_tracker);
     }
 
 private:
-    static idlist_t get_ids(osmium::index::IdSetSmall<osmid_t> &tracker);
+    static idlist_t get_ids(osmium::index::IdSetSmall<osmid_t> *tracker);
 
     std::shared_ptr<middle_t> m_object_store;
 

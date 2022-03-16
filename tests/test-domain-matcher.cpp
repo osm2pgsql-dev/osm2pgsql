@@ -17,16 +17,16 @@
 
 #include <cstring>
 
-static osmium::Tag &fill_buffer(osmium::memory::Buffer &buffer, char const *key,
+static osmium::Tag &fill_buffer(osmium::memory::Buffer *buffer, char const *key,
                                 char const *value)
 {
     {
-        osmium::builder::TagListBuilder builder{buffer};
+        osmium::builder::TagListBuilder builder{*buffer};
         builder.add_tag(key, value);
     }
-    buffer.commit();
+    buffer->commit();
 
-    return *buffer.get<osmium::TagList>(0).begin();
+    return *buffer->get<osmium::TagList>(0).begin();
 }
 
 TEST_CASE("DomainMatcher: name", "[NoDB]")
@@ -34,7 +34,7 @@ TEST_CASE("DomainMatcher: name", "[NoDB]")
     osmium::memory::Buffer buffer{1024};
     DomainMatcher matcher{"bridge"};
 
-    auto const &tag = fill_buffer(buffer, "bridge:name", "Golden Gate Bridge");
+    auto const &tag = fill_buffer(&buffer, "bridge:name", "Golden Gate Bridge");
     char const *result = matcher(tag);
 
     REQUIRE(result);
@@ -47,7 +47,7 @@ TEST_CASE("DomainMatcher: name with language", "[NoDB]")
     DomainMatcher matcher{"bridge"};
 
     auto const &tag =
-        fill_buffer(buffer, "bridge:name:en", "The Bridge on the River Kwai");
+        fill_buffer(&buffer, "bridge:name:en", "The Bridge on the River Kwai");
     char const *result = matcher(tag);
 
     REQUIRE(result);
@@ -59,7 +59,7 @@ TEST_CASE("DomainMatcher: no :name", "[NoDB]")
     osmium::memory::Buffer buffer{1024};
     DomainMatcher matcher{"bridge"};
 
-    auto const &tag = fill_buffer(buffer, "bridge_name", "A Bridge Too Far");
+    auto const &tag = fill_buffer(&buffer, "bridge_name", "A Bridge Too Far");
     char const *result = matcher(tag);
 
     REQUIRE_FALSE(result);
@@ -71,7 +71,7 @@ TEST_CASE("DomainMatcher: empty matcher", "[NoDB]")
     DomainMatcher matcher{""};
 
     auto const &tag =
-        fill_buffer(buffer, "bridge:name", "Tacoma Narrows Bridge");
+        fill_buffer(&buffer, "bridge:name", "Tacoma Narrows Bridge");
     char const *result = matcher(tag);
 
     REQUIRE_FALSE(result);
@@ -83,7 +83,7 @@ TEST_CASE("DomainMatcher: names", "[NoDB]")
     DomainMatcher matcher{"bridge"};
 
     auto const &tag =
-        fill_buffer(buffer, "bridge:names", "Seven Bridges of Königsberg");
+        fill_buffer(&buffer, "bridge:names", "Seven Bridges of Königsberg");
     char const *result = matcher(tag);
 
     REQUIRE_FALSE(result);
@@ -94,7 +94,7 @@ TEST_CASE("DomainMatcher: not matching", "[NoDB]")
     osmium::memory::Buffer buffer{1024};
     DomainMatcher matcher{"bridge"};
 
-    auto const &tag = fill_buffer(buffer, "the_bridge_tag", "Pont du Gard");
+    auto const &tag = fill_buffer(&buffer, "the_bridge_tag", "Pont du Gard");
     char const *result = matcher(tag);
 
     REQUIRE_FALSE(result);
@@ -105,7 +105,7 @@ TEST_CASE("DomainMatcher: empty tag", "[NoDB]")
     osmium::memory::Buffer buffer{1024};
     DomainMatcher matcher{"bridge"};
 
-    auto const &tag = fill_buffer(buffer, "", "London Bridge");
+    auto const &tag = fill_buffer(&buffer, "", "London Bridge");
     char const *result = matcher(tag);
 
     REQUIRE_FALSE(result);

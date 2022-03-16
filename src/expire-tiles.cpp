@@ -278,19 +278,19 @@ int expire_tiles::from_result(pg_result_t const &result, osmid_t osm_id)
     return num_tuples;
 }
 
-void expire_tiles::merge_and_destroy(expire_tiles &other)
+void expire_tiles::merge_and_destroy(expire_tiles *other)
 {
-    if (m_map_width != other.m_map_width) {
+    if (m_map_width != other->m_map_width) {
         throw std::runtime_error{"Unable to merge tile expiry sets when "
                                  "map_width does not match: {} != {}."_format(
-                                     m_map_width, other.m_map_width)};
+                                     m_map_width, other->m_map_width)};
     }
 
     if (m_dirty_tiles.empty()) {
-        m_dirty_tiles = std::move(other.m_dirty_tiles);
+        m_dirty_tiles = std::move(other->m_dirty_tiles);
     } else {
-        m_dirty_tiles.insert(other.m_dirty_tiles.begin(),
-                             other.m_dirty_tiles.end());
-        other.m_dirty_tiles.clear();
+        m_dirty_tiles.insert(other->m_dirty_tiles.begin(),
+                             other->m_dirty_tiles.end());
+        other->m_dirty_tiles.clear();
     }
 }
