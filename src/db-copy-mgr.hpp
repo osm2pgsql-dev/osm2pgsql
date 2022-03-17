@@ -24,8 +24,8 @@ template <typename DELETER>
 class db_copy_mgr_t
 {
 public:
-    explicit db_copy_mgr_t(std::shared_ptr<db_copy_thread_t> const &processor)
-    : m_processor(processor)
+    explicit db_copy_mgr_t(std::shared_ptr<db_copy_thread_t> processor)
+    : m_processor(std::move(processor))
     {}
 
     /**
@@ -333,10 +333,10 @@ private:
         for (char const *c = s; *c; ++c) {
             switch (*c) {
             case '"':
-                m_current->buffer += "\\\\\"";
+                m_current->buffer += R"(\\")";
                 break;
             case '\\':
-                m_current->buffer += "\\\\\\\\";
+                m_current->buffer += R"(\\\\)";
                 break;
             case '\n':
                 m_current->buffer += "\\n";

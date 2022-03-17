@@ -247,7 +247,7 @@ void table_connection_t::stop(bool updateable, bool append)
         m_db_connection->exec(sql);
 
         m_db_connection->exec("DROP TABLE {}"_format(table().full_name()));
-        m_db_connection->exec("ALTER TABLE {} RENAME TO \"{}\""_format(
+        m_db_connection->exec(R"(ALTER TABLE {} RENAME TO "{}")"_format(
             table().full_tmp_name(), table().name()));
         m_id_index_created = false;
 
@@ -263,7 +263,7 @@ void table_connection_t::stop(bool updateable, bool append)
 
         // Use fillfactor 100 for un-updateable imports
         m_db_connection->exec(
-            "CREATE INDEX ON {} USING GIST (\"{}\") {} {}"_format(
+            R"(CREATE INDEX ON {} USING GIST ("{}") {} {})"_format(
                 table().full_name(), table().geom_column().name(),
                 (updateable ? "" : "WITH (fillfactor = 100)"),
                 tablespace_clause(table().index_tablespace())));

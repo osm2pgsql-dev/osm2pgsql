@@ -12,6 +12,8 @@
 #include "common-import.hpp"
 #include "common-options.hpp"
 
+#include <array>
+
 static testing::db::import_t db;
 
 TEST_CASE("compute Z order")
@@ -21,8 +23,8 @@ TEST_CASE("compute Z order")
 
     auto conn = db.db().connect();
 
-    char const *expected[] = {"motorway", "trunk", "primary", "secondary",
-                              "tertiary"};
+    std::array<char const *, 5> const expected = {
+        "motorway", "trunk", "primary", "secondary", "tertiary"};
 
     for (unsigned i = 0; i < 5; ++i) {
         auto const sql = "SELECT highway FROM osm2pgsql_test_line"

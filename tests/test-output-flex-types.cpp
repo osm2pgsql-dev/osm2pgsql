@@ -12,6 +12,8 @@
 #include "common-import.hpp"
 #include "common-options.hpp"
 
+#include <array>
+
 static testing::db::import_t db;
 
 static char const *const conf_file = "test_output_flex_types.lua";
@@ -205,8 +207,9 @@ TEST_CASE("Adding a function should always fail")
 {
     testing::opt_t const options = testing::opt_t().flex(conf_file);
 
-    std::string const types[] = {"ttext", "tbool", "tint2", "tint4", "tint8",
-                                 "treal", "thstr", "tdirn", "tsqlt"};
+    std::array<std::string, 9> const types = {"ttext", "tbool", "tint2",
+                                              "tint4", "tint8", "treal",
+                                              "thstr", "tdirn", "tsqlt"};
 
     for (auto const &type : types) {
         auto const line =
@@ -252,8 +255,8 @@ TEST_CASE("Adding a table should fail except for hstore and json/jsonb")
 {
     testing::opt_t const options = testing::opt_t().flex(conf_file);
 
-    std::string const types[] = {"ttext", "tbool", "tint2", "tint4",
-                                 "tint8", "treal", "tdirn", "tsqlt"};
+    std::array<std::string, 8> const types = {
+        "ttext", "tbool", "tint2", "tint4", "tint8", "treal", "tdirn", "tsqlt"};
 
     for (auto const &type : types) {
         auto const line =

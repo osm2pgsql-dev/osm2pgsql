@@ -107,12 +107,12 @@ void table_t::start(std::string const &conninfo, std::string const &table_space)
 
         //first with the regular columns
         for (auto const &column : m_columns) {
-            sql += "\"{}\" {},"_format(column.name, column.type_name);
+            sql += R"("{}" {},)"_format(column.name, column.type_name);
         }
 
         //then with the hstore columns
         for (auto const &hcolumn : m_hstore_columns) {
-            sql += "\"{}\" hstore,"_format(hcolumn);
+            sql += R"("{}" hstore,)"_format(hcolumn);
         }
 
         //add tags column
@@ -225,7 +225,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
         m_sql_conn->exec(sql);
 
         m_sql_conn->exec("DROP TABLE {}"_format(qual_name));
-        m_sql_conn->exec("ALTER TABLE {} RENAME TO \"{}\""_format(
+        m_sql_conn->exec(R"(ALTER TABLE {} RENAME TO "{}")"_format(
             qual_tmp_name, m_target->name));
 
         log_info("Creating geometry index on table '{}'...", m_target->name);
@@ -258,7 +258,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
             }
             for (auto const &hcolumn : m_hstore_columns) {
                 m_sql_conn->exec(
-                    "CREATE INDEX ON {} USING GIN (\"{}\") {}"_format(
+                    R"(CREATE INDEX ON {} USING GIN ("{}") {})"_format(
                         qual_name, hcolumn,
                         tablespace_clause(table_space_index)));
             }
