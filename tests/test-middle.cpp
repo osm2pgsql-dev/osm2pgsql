@@ -153,8 +153,8 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         // set nodes
         for (osmid_t i = 1; i <= 10; ++i) {
             nds.push_back(i);
-            auto const &node = buffer.add_node(
-                "n{} x{} y{}"_format(i, lon - i * 0.003, lat + i * 0.001));
+            auto const &node = buffer.add_node("n{} x{:.7f} y{:.7f}"_format(
+                i, lon - i * 0.003, lat + i * 0.001));
             mid->node(node);
         }
         mid->after_nodes();
@@ -176,7 +176,10 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
 
         REQUIRE(mid_q->nodes_get_list(&(way.nodes())) == nds.size());
         for (osmid_t i = 1; i <= 10; ++i) {
-            CHECK(way.nodes()[(size_t)i - 1].ref() == i);
+            auto const &nr = way.nodes()[static_cast<size_t>(i) - 1];
+            CHECK(nr.ref() == i);
+            CHECK(nr.location().lon() == Approx(lon - i * 0.003));
+            CHECK(nr.location().lat() == Approx(lat + i * 0.001));
         }
 
         // other ways are not retrievable
