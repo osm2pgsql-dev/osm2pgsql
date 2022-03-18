@@ -69,8 +69,8 @@ add_hash(copy_mgr_t *mgr, std::shared_ptr<db_target_descr_t> const &t, int id,
 
     mgr->add_column(id);
     mgr->new_hash();
-    for (auto const &v : values) {
-        mgr->add_hash_elem(v.first, v.second);
+    for (auto const &[k, v] : values) {
+        mgr->add_hash_elem(k, v);
     }
     mgr->finish_hash();
     mgr->finish_line();
@@ -190,10 +190,10 @@ TEST_CASE("copy_mgr_t")
 
         auto c = db.connect();
 
-        for (auto const &v : values) {
+        for (auto const &[k, v] : values) {
             auto const res = c.result_as_string(
-                "SELECT h->'{}' FROM test_copy_mgr"_format(v.first));
-            CHECK(res == v.second);
+                "SELECT h->'{}' FROM test_copy_mgr"_format(k));
+            CHECK(res == v);
         }
     }
 }
