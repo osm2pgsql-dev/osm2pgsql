@@ -40,7 +40,7 @@ target_sources(osm2pgsql_lib PRIVATE
   wkb.cpp
 )
 
-if (LUA_FOUND OR LUAJIT_FOUND)
+if (WITH_LUA)
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
                  "${CMAKE_CURRENT_SOURCE_DIR}/init.lua")
     file(READ "${CMAKE_CURRENT_SOURCE_DIR}/init.lua" LUA_INIT_CODE)

@@ -7,7 +7,6 @@
  * For a full list of authors see the git log.
  */
 
-#include "config.h"
 #include "format.hpp"
 #include "logging.hpp"
 #include "options.hpp"
