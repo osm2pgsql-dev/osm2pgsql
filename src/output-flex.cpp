@@ -1302,20 +1302,19 @@ void output_flex_t::pending_way(osmid_t id)
         return;
     }
 
-    m_buffer.clear();
-    if (!middle().way_get(id, &m_buffer)) {
+    osmium::memory::Buffer buffer{0, osmium::memory::Buffer::auto_grow::yes};
+    if (!middle().way_get(id, &buffer)) {
         return;
     }
 
     way_delete(id);
 
-    auto &way = m_buffer.get<osmium::Way>(0);
+    auto &way = buffer.get<osmium::Way>(0);
 
     m_context_way = &way;
     get_mutex_and_call_lua_function(m_process_way, way);
     m_context_way = nullptr;
     m_num_way_nodes = std::numeric_limits<std::size_t>::max();
-    m_buffer.clear();
 }
 
 void output_flex_t::select_relation_members(osmium::Relation const &relation)
@@ -1786,13 +1785,14 @@ void output_flex_t::reprocess_marked()
     log_info(
         "There are {} ways to reprocess..."_format(m_stage2_way_ids->size()));
 
+    osmium::memory::Buffer buffer{0, osmium::memory::Buffer::auto_grow::yes};
     for (osmid_t const id : *m_stage2_way_ids) {
-        m_buffer.clear();
-        if (!middle().way_get(id, &m_buffer)) {
+        if (!middle().way_get(id, &buffer)) {
             continue;
         }
-        auto &way = m_buffer.get<osmium::Way>(0);
+        auto &way = buffer.get<osmium::Way>(0);
         way_modify(&way);
+        buffer.clear();
     }
 
     // We don't need these any more so can free the memory.
