@@ -40,3 +40,73 @@ TEST_CASE("PostGIS version")
     auto const postgis_version = get_postgis_version(conn);
     REQUIRE(postgis_version.major >= 2);
 }
+
+TEST_CASE("query with SELECT should work")
+{
+    auto conn = db.db().connect();
+    auto const result = conn.query(PGRES_TUPLES_OK, "SELECT 42");
+    REQUIRE(result.status() == PGRES_TUPLES_OK);
+    REQUIRE(result.num_fields() == 1);
+    REQUIRE(result.num_tuples() == 1);
+    REQUIRE(result.get_value_as_string(0, 0) == "42");
+}
+
+TEST_CASE("query with invalid SQL should fail")
+{
+    auto conn = db.db().connect();
+    REQUIRE_THROWS(conn.query(PGRES_TUPLES_OK, "NOT-VALID-SQL"));
+}
+
+TEST_CASE("exec with invalid SQL should fail")
+{
+    auto conn = db.db().connect();
+    REQUIRE_THROWS(conn.exec("XYZ"));
+}
+
+TEST_CASE("exec_prepared without parameters should work")
+{
+    auto conn = db.db().connect();
+    conn.exec("PREPARE test AS SELECT 42");
+
+    auto const result = conn.exec_prepared("test");
+    REQUIRE(result.status() == PGRES_TUPLES_OK);
+    REQUIRE(result.num_fields() == 1);
+    REQUIRE(result.num_tuples() == 1);
+    REQUIRE(result.get_value_as_string(0, 0) == "42");
+}
+
+TEST_CASE("exec_prepared with single string parameters should work")
+{
+    auto conn = db.db().connect();
+    conn.exec("PREPARE test(int) AS SELECT $1");
+
+    auto const result = conn.exec_prepared("test", "17");
+    REQUIRE(result.status() == PGRES_TUPLES_OK);
+    REQUIRE(result.num_fields() == 1);
+    REQUIRE(result.num_tuples() == 1);
+    REQUIRE(result.get_value_as_string(0, 0) == "17");
+}
+
+TEST_CASE("exec_prepared with string parameters should work")
+{
+    auto conn = db.db().connect();
+    conn.exec("PREPARE test(int, int, int) AS SELECT $1 + $2 + $3");
+
+    auto const result = conn.exec_prepared("test", "1", "2", std::string{"3"});
+    REQUIRE(result.status() == PGRES_TUPLES_OK);
+    REQUIRE(result.num_fields() == 1);
+    REQUIRE(result.num_tuples() == 1);
+    REQUIRE(result.get_value_as_string(0, 0) == "6");
+}
+
+TEST_CASE("exec_prepared with non-string parameters should work")
+{
+    auto conn = db.db().connect();
+    conn.exec("PREPARE test(int, int, int) AS SELECT $1 + $2 + $3");
+
+    auto const result = conn.exec_prepared("test", 1, 2.0, 3ULL);
+    REQUIRE(result.status() == PGRES_TUPLES_OK);
+    REQUIRE(result.num_fields() == 1);
+    REQUIRE(result.num_tuples() == 1);
+    REQUIRE(result.get_value_as_string(0, 0) == "6");
+}
