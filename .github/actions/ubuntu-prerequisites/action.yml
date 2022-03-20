@@ -18,7 +18,6 @@ runs:
           libboost-system-dev \
           libbz2-dev \
           libexpat1-dev \
-          libluajit-5.1-dev \
           libpq-dev \
           libproj-dev \
           pandoc \
@@ -31,10 +30,17 @@ runs:
         if [ "$CC" = clang-8 ]; then sudo apt-get install -yq --no-install-suggests --no-install-recommends clang-8; fi
       shell: bash
 
-    - name: Install lua
+    - name: Install Lua
       run: |
         if [ -n "${LUA_VERSION}" ]; then
           sudo apt-get install -yq --no-install-suggests --no-install-recommends liblua${LUA_VERSION}-dev lua${LUA_VERSION}
+        fi
+      shell: bash
+
+    - name: Install LuaJIT
+      run: |
+        if [ "${LUAJIT_OPTION}" = "ON" ]; then
+          sudo apt-get install -yq --no-install-suggests --no-install-recommends libluajit-5.1-dev
         fi
       shell: bash
 

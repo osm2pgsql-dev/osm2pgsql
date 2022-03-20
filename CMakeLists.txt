@@ -187,15 +187,19 @@ include_directories(SYSTEM ${OSMIUM_INCLUDE_DIRS} ${PROTOZERO_INCLUDE_DIR} ${FMT
 
 if (WITH_LUA)
     if (WITH_LUAJIT)
+        message(STATUS "Building with LuaJIT support")
         find_package(LuaJIT REQUIRED)
         include_directories(SYSTEM ${LUAJIT_INCLUDE_DIR})
-        set(HAVE_LUAJIT 1)
+        add_definitions(-DHAVE_LUAJIT=1)
     else()
+        message(STATUS "Building with Lua support")
         find_package(Lua REQUIRED)
         include_directories(SYSTEM ${LUA_INCLUDE_DIR})
     endif()
-    set(HAVE_LUA 1)
+    add_definitions(-DHAVE_LUA=1)
     find_program(LUA_EXE lua)
+else()
+    message(STATUS "Building without Lua support")
 endif()
 
 find_package(Boost 1.50 REQUIRED COMPONENTS system filesystem)
@@ -271,8 +275,6 @@ message(STATUS "Libraries used to build: ${LIBS}")
 #############################################################
 # Build the library and executable file
 #############################################################
-
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
 add_subdirectory(src)
 

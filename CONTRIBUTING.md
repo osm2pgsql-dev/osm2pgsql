@@ -38,7 +38,7 @@ always be used for code blocks, even one-liners.
 Names should use underscores, not camel case, with class/struct names ending in `_t`.
 Template parameters must use all upper case.
 
-Headers should be included in the order `config.h`, C++ standard library headers,
+Headers should be included in the order C++ standard library headers,
 C library headers, Boost headers, and last osm2pgsql files.
 
 There is a .clang-format configuration available and all code must be run through

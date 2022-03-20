@@ -1,2 +1,0 @@
-#cmakedefine HAVE_LUA 1
-#cmakedefine HAVE_LUAJIT 1

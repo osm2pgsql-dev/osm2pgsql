@@ -71,7 +71,7 @@ set_test(test-wildcard-match LABELS NoDB)
 set_test(test-wkb LABELS NoDB)
 
 # these tests require LUA support
-if (HAVE_LUA)
+if (WITH_LUA)
     set_test(test-output-flex)
     set_test(test-output-flex-area)
     set_test(test-output-flex-attr)
@@ -139,7 +139,7 @@ else()
     message(WARNING "Can not find python, regression test disabled")
 endif()
 
-if (HAVE_LUA)
+if (WITH_LUA)
     if (LUA_EXE)
         message(STATUS "Added test: lua-lib")
         add_test(NAME lua-lib COMMAND ${LUA_EXE} lua/tests.lua

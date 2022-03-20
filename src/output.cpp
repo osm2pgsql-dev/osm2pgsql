@@ -7,8 +7,6 @@
  * For a full list of authors see the git log.
  */
 
-#include "config.h"
-
 #include "db-copy.hpp"
 #include "format.hpp"
 #include "output-gazetteer.hpp"

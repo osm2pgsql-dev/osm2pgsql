@@ -7,7 +7,6 @@
  * For a full list of authors see the git log.
  */
 
-#include "config.h"
 #include "lua-utils.hpp"
 #include "format.hpp"
 

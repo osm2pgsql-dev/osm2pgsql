@@ -216,6 +216,22 @@ jobs:
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
+  ubuntu20-pg13-gcc10-release-nolua:
+    runs-on: ubuntu-20.04
+
+    env:
+      CC: gcc-10
+      CXX: g++-10
+      POSTGRESQL_VERSION: 13
+      POSTGIS_VERSION: 2.5
+      CPP_VERSION: 17
+      BUILD_TYPE: Release
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/build-and-test
+
   windows:
     strategy:
       fail-fast: false
