@@ -704,7 +704,7 @@ void output_flex_t::write_row(table_connection_t *table_connection,
 // Gets all way nodes from the middle the first time this is called.
 std::size_t output_flex_t::get_way_nodes()
 {
-    assert(m_context_way);
+    assert(m_calling_context == calling_context::process_way);
     if (m_num_way_nodes == std::numeric_limits<std::size_t>::max()) {
         m_num_way_nodes = middle().nodes_get_list(&m_context_way->nodes());
     }
@@ -724,7 +724,7 @@ int output_flex_t::app_get_bbox()
         throw std::runtime_error{"No parameter(s) needed for get_box()."};
     }
 
-    if (m_context_node) {
+    if (m_calling_context == calling_context::process_node) {
         lua_pushnumber(lua_state(), m_context_node->location().lon());
         lua_pushnumber(lua_state(), m_context_node->location().lat());
         lua_pushnumber(lua_state(), m_context_node->location().lon());
@@ -732,7 +732,7 @@ int output_flex_t::app_get_bbox()
         return 4;
     }
 
-    if (m_context_way) {
+    if (m_calling_context == calling_context::process_way) {
         get_way_nodes();
         auto const bbox = m_context_way->envelope();
         if (bbox.valid()) {
@@ -1040,19 +1040,19 @@ int output_flex_t::table_add_row()
     }
     lua_remove(lua_state(), 1);
 
-    if (m_context_node) {
+    if (m_calling_context == calling_context::process_node) {
         if (!table.matches_type(osmium::item_type::node)) {
             throw std::runtime_error{
                 "Trying to add node to table '{}'."_format(table.name())};
         }
         add_row(&table_connection, *m_context_node);
-    } else if (m_context_way) {
+    } else if (m_calling_context == calling_context::process_way) {
         if (!table.matches_type(osmium::item_type::way)) {
             throw std::runtime_error{
                 "Trying to add way to table '{}'."_format(table.name())};
         }
         add_row(&table_connection, *m_context_way);
-    } else if (m_context_relation) {
+    } else if (m_calling_context == calling_context::process_relation) {
         if (!table.matches_type(osmium::item_type::relation)) {
             throw std::runtime_error{
                 "Trying to add relation to table '{}'."_format(table.name())};
