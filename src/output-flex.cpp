@@ -1318,17 +1318,14 @@ void output_flex_t::pending_way(osmid_t id)
     m_buffer.clear();
 }
 
-void output_flex_t::select_relation_members(osmium::Relation const &relation)
+void output_flex_t::select_relation_members()
 {
     if (!m_select_relation_members) {
         return;
     }
 
     std::lock_guard<std::mutex> guard{lua_mutex};
-
-    m_context_relation = &relation;
-    call_lua_function(m_select_relation_members, relation);
-    m_context_relation = nullptr;
+    call_lua_function(m_select_relation_members, *m_context_relation);
 
     // If the function returned nil there is nothing to be marked.
     if (lua_type(lua_state(), -1) == LUA_TNIL) {
@@ -1390,8 +1387,9 @@ void output_flex_t::select_relation_members(osmid_t id)
     if (!middle().relation_get(id, &m_rels_buffer)) {
         return;
     }
+    m_context_relation = &m_rels_buffer.get<osmium::Relation>(0);
 
-    select_relation_members(m_rels_buffer.get<osmium::Relation>(0));
+    select_relation_members();
 
     m_rels_buffer.clear();
 }
@@ -1405,15 +1403,14 @@ void output_flex_t::pending_relation(osmid_t id)
     if (!middle().relation_get(id, &m_rels_buffer)) {
         return;
     }
-    auto const &relation = m_rels_buffer.get<osmium::Relation>(0);
+    m_context_relation = &m_rels_buffer.get<osmium::Relation>(0);
 
-    select_relation_members(relation);
+    select_relation_members();
     delete_from_tables(osmium::item_type::relation, id);
 
     if (m_process_relation) {
-        m_context_relation = &relation;
-        get_mutex_and_call_lua_function(m_process_relation, relation);
-        m_context_relation = nullptr;
+        get_mutex_and_call_lua_function(m_process_relation,
+                                        *m_context_relation);
     }
 
     m_rels_buffer.clear();
@@ -1428,12 +1425,10 @@ void output_flex_t::pending_relation_stage1c(osmid_t id)
     if (!middle().relation_get(id, &m_rels_buffer)) {
         return;
     }
-    auto const &relation = m_rels_buffer.get<osmium::Relation>(0);
+    m_context_relation = &m_rels_buffer.get<osmium::Relation>(0);
 
     m_disable_add_row = true;
-    m_context_relation = &relation;
-    get_mutex_and_call_lua_function(m_process_relation, relation);
-    m_context_relation = nullptr;
+    get_mutex_and_call_lua_function(m_process_relation, *m_context_relation);
     m_disable_add_row = false;
 
     m_rels_buffer.clear();
@@ -1500,11 +1495,9 @@ void output_flex_t::relation_add(osmium::Relation const &relation)
         return;
     }
 
-    select_relation_members(relation);
-
     m_context_relation = &relation;
+    select_relation_members();
     get_mutex_and_call_lua_function(m_process_relation, relation);
-    m_context_relation = nullptr;
 }
 
 void output_flex_t::delete_from_table(table_connection_t *table_connection,

@@ -166,7 +166,7 @@ public:
 
 private:
     void init_clone();
-    void select_relation_members(osmium::Relation const &relation);
+    void select_relation_members();
 
     /**
      * Call a Lua function that was "prepared" earlier with the OSMObject
