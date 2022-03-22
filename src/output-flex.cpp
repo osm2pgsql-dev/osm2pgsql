@@ -1050,19 +1050,23 @@ void output_flex_t::relation_cache_t::init(osmium::Relation const &relation)
 std::size_t
 output_flex_t::relation_cache_t::add_members(middle_query_t const &middle)
 {
-    m_members_buffer.clear();
-    auto const num_ways = middle.rel_members_get(*m_relation, &m_members_buffer,
-                                                 osmium::osm_entity_bits::way);
+    if (m_members_buffer.committed() == 0) {
+        auto const num_ways = middle.rel_members_get(
+            *m_relation, &m_members_buffer, osmium::osm_entity_bits::way);
 
-    if (num_ways == 0) {
-        return 0;
+        if (num_ways == 0) {
+            return 0;
+        }
+
+        for (auto &way : m_members_buffer.select<osmium::Way>()) {
+            middle.nodes_get_list(&(way.nodes()));
+        }
+
+        return num_ways;
     }
 
-    for (auto &way : m_members_buffer.select<osmium::Way>()) {
-        middle.nodes_get_list(&(way.nodes()));
-    }
-
-    return num_ways;
+    auto const ways = m_members_buffer.select<osmium::Way>();
+    return std::distance(ways.cbegin(), ways.cend());
 }
 
 int output_flex_t::table_add_row()
