@@ -1008,6 +1008,21 @@ int output_flex_t::table_tostring()
     return 1;
 }
 
+bool output_flex_t::init_relation_cache(osmid_t id)
+{
+    m_rels_buffer.clear();
+    if (!middle().relation_get(id, &m_rels_buffer)) {
+        return false;
+    }
+    m_context_relation = &m_rels_buffer.get<osmium::Relation>(0);
+    return true;
+}
+
+void output_flex_t::init_relation_cache(osmium::Relation const &relation)
+{
+    m_context_relation = &relation;
+}
+
 int output_flex_t::table_add_row()
 {
     if (m_disable_add_row) {
@@ -1384,14 +1399,11 @@ void output_flex_t::select_relation_members(osmid_t id)
         return;
     }
 
-    if (!middle().relation_get(id, &m_rels_buffer)) {
+    if (!init_relation_cache(id)) {
         return;
     }
-    m_context_relation = &m_rels_buffer.get<osmium::Relation>(0);
 
     select_relation_members();
-
-    m_rels_buffer.clear();
 }
 
 void output_flex_t::pending_relation(osmid_t id)
@@ -1400,10 +1412,9 @@ void output_flex_t::pending_relation(osmid_t id)
         return;
     }
 
-    if (!middle().relation_get(id, &m_rels_buffer)) {
+    if (!init_relation_cache(id)) {
         return;
     }
-    m_context_relation = &m_rels_buffer.get<osmium::Relation>(0);
 
     select_relation_members();
     delete_from_tables(osmium::item_type::relation, id);
@@ -1412,8 +1423,6 @@ void output_flex_t::pending_relation(osmid_t id)
         get_mutex_and_call_lua_function(m_process_relation,
                                         *m_context_relation);
     }
-
-    m_rels_buffer.clear();
 }
 
 void output_flex_t::pending_relation_stage1c(osmid_t id)
@@ -1422,16 +1431,13 @@ void output_flex_t::pending_relation_stage1c(osmid_t id)
         return;
     }
 
-    if (!middle().relation_get(id, &m_rels_buffer)) {
+    if (!init_relation_cache(id)) {
         return;
     }
-    m_context_relation = &m_rels_buffer.get<osmium::Relation>(0);
 
     m_disable_add_row = true;
     get_mutex_and_call_lua_function(m_process_relation, *m_context_relation);
     m_disable_add_row = false;
-
-    m_rels_buffer.clear();
 }
 
 void output_flex_t::sync()
@@ -1495,7 +1501,7 @@ void output_flex_t::relation_add(osmium::Relation const &relation)
         return;
     }
 
-    m_context_relation = &relation;
+    init_relation_cache(relation);
     select_relation_members();
     get_mutex_and_call_lua_function(m_process_relation, relation);
 }

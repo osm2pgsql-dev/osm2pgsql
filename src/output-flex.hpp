@@ -216,6 +216,9 @@ private:
 
     lua_State *lua_state() noexcept { return m_lua_state.get(); }
 
+    bool init_relation_cache(osmid_t id);
+    void init_relation_cache(osmium::Relation const &relation);
+
     std::shared_ptr<std::vector<flex_table_t>> m_tables;
     std::vector<table_connection_t> m_table_connections;
 
