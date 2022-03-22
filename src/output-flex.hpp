@@ -212,9 +212,11 @@ private:
                            osmium::item_type type, osmid_t osm_id);
     void delete_from_tables(osmium::item_type type, osmid_t osm_id);
 
-    std::size_t get_way_nodes();
-
     lua_State *lua_state() noexcept { return m_lua_state.get(); }
+
+    bool init_way_cache(osmid_t id);
+    void init_way_cache(osmium::Way *way);
+    std::size_t add_nodes_to_way_cache();
 
     bool init_relation_cache(osmid_t id);
     void init_relation_cache(osmium::Relation const &relation);

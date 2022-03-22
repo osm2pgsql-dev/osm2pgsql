@@ -701,17 +701,6 @@ void output_flex_t::write_row(table_connection_t *table_connection,
     copy_mgr->finish_line();
 }
 
-// Gets all way nodes from the middle the first time this is called.
-std::size_t output_flex_t::get_way_nodes()
-{
-    assert(m_calling_context == calling_context::process_way);
-    if (m_num_way_nodes == std::numeric_limits<std::size_t>::max()) {
-        m_num_way_nodes = middle().nodes_get_list(&m_context_way->nodes());
-    }
-
-    return m_num_way_nodes;
-}
-
 int output_flex_t::app_get_bbox()
 {
     if (m_calling_context != calling_context::process_node &&
@@ -733,7 +722,7 @@ int output_flex_t::app_get_bbox()
     }
 
     if (m_calling_context == calling_context::process_way) {
-        get_way_nodes();
+        add_nodes_to_way_cache();
         auto const bbox = m_context_way->envelope();
         if (bbox.valid()) {
             lua_pushnumber(lua_state(), bbox.bottom_left().lon());
@@ -1008,6 +997,33 @@ int output_flex_t::table_tostring()
     return 1;
 }
 
+bool output_flex_t::init_way_cache(osmid_t id)
+{
+    m_buffer.clear();
+    m_num_way_nodes = std::numeric_limits<std::size_t>::max();
+    if (!middle().way_get(id, &m_buffer)) {
+        return false;
+    }
+    m_context_way = &m_buffer.get<osmium::Way>(0);
+    return true;
+}
+
+void output_flex_t::init_way_cache(osmium::Way *way)
+{
+    m_num_way_nodes = std::numeric_limits<std::size_t>::max();
+    m_context_way = way;
+}
+
+std::size_t output_flex_t::add_nodes_to_way_cache()
+{
+    assert(m_calling_context == calling_context::process_way);
+    if (m_num_way_nodes == std::numeric_limits<std::size_t>::max()) {
+        m_num_way_nodes = middle().nodes_get_list(&m_context_way->nodes());
+    }
+
+    return m_num_way_nodes;
+}
+
 bool output_flex_t::init_relation_cache(osmid_t id)
 {
     m_rels_buffer.clear();
@@ -1220,7 +1236,7 @@ geom::geometry_t output_flex_t::run_transform(reprojection const &proj,
                                               geom_transform_t const *transform,
                                               osmium::Way const & /*way*/)
 {
-    if (get_way_nodes() <= 1U) {
+    if (add_nodes_to_way_cache() <= 1U) {
         return {};
     }
 
@@ -1326,20 +1342,13 @@ void output_flex_t::pending_way(osmid_t id)
         return;
     }
 
-    m_buffer.clear();
-    if (!middle().way_get(id, &m_buffer)) {
+    if (!init_way_cache(id)) {
         return;
     }
 
     way_delete(id);
 
-    auto &way = m_buffer.get<osmium::Way>(0);
-
-    m_context_way = &way;
-    get_mutex_and_call_lua_function(m_process_way, way);
-    m_context_way = nullptr;
-    m_num_way_nodes = std::numeric_limits<std::size_t>::max();
-    m_buffer.clear();
+    get_mutex_and_call_lua_function(m_process_way, *m_context_way);
 }
 
 void output_flex_t::select_relation_members()
@@ -1498,10 +1507,8 @@ void output_flex_t::way_add(osmium::Way *way)
         return;
     }
 
-    m_context_way = way;
-    get_mutex_and_call_lua_function(m_process_way, *way);
-    m_context_way = nullptr;
-    m_num_way_nodes = std::numeric_limits<std::size_t>::max();
+    init_way_cache(way);
+    get_mutex_and_call_lua_function(m_process_way, *m_context_way);
 }
 
 void output_flex_t::relation_add(osmium::Relation const &relation)
@@ -1795,12 +1802,10 @@ void output_flex_t::reprocess_marked()
         "There are {} ways to reprocess..."_format(m_stage2_way_ids->size()));
 
     for (osmid_t const id : *m_stage2_way_ids) {
-        m_buffer.clear();
-        if (!middle().way_get(id, &m_buffer)) {
+        if (!init_way_cache(id)) {
             continue;
         }
-        auto &way = m_buffer.get<osmium::Way>(0);
-        way_modify(&way);
+        way_modify(m_context_way);
     }
 
     // We don't need these any more so can free the memory.
