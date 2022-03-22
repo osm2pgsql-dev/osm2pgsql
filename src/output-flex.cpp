@@ -1023,6 +1023,23 @@ void output_flex_t::init_relation_cache(osmium::Relation const &relation)
     m_context_relation = &relation;
 }
 
+std::size_t output_flex_t::add_members_to_relation_cache()
+{
+    m_buffer.clear();
+    auto const num_ways = middle().rel_members_get(
+        *m_context_relation, &m_buffer, osmium::osm_entity_bits::way);
+
+    if (num_ways == 0) {
+        return 0;
+    }
+
+    for (auto &way : m_buffer.select<osmium::Way>()) {
+        middle().nodes_get_list(&(way.nodes()));
+    }
+
+    return num_ways;
+}
+
 int output_flex_t::table_add_row()
 {
     if (m_disable_add_row) {
@@ -1214,16 +1231,8 @@ geom::geometry_t output_flex_t::run_transform(reprojection const &proj,
                                               geom_transform_t const *transform,
                                               osmium::Relation const &relation)
 {
-    m_buffer.clear();
-    auto const num_ways = middle().rel_members_get(
-        relation, &m_buffer, osmium::osm_entity_bits::way);
-
-    if (num_ways == 0) {
+    if (add_members_to_relation_cache() == 0) {
         return {};
-    }
-
-    for (auto &way : m_buffer.select<osmium::Way>()) {
-        middle().nodes_get_list(&(way.nodes()));
     }
 
     return transform->convert(proj, relation, m_buffer);

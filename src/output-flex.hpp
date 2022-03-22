@@ -218,6 +218,7 @@ private:
 
     bool init_relation_cache(osmid_t id);
     void init_relation_cache(osmium::Relation const &relation);
+    std::size_t add_members_to_relation_cache();
 
     std::shared_ptr<std::vector<flex_table_t>> m_tables;
     std::vector<table_connection_t> m_table_connections;
