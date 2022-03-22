@@ -722,8 +722,8 @@ int output_flex_t::app_get_bbox()
     }
 
     if (m_calling_context == calling_context::process_way) {
-        add_nodes_to_way_cache();
-        auto const bbox = m_context_way->envelope();
+        m_way_cache.add_nodes(middle());
+        auto const bbox = m_way_cache.get().envelope();
         if (bbox.valid()) {
             lua_pushnumber(lua_state(), bbox.bottom_left().lon());
             lua_pushnumber(lua_state(), bbox.bottom_left().lat());
@@ -997,60 +997,69 @@ int output_flex_t::table_tostring()
     return 1;
 }
 
-bool output_flex_t::init_way_cache(osmid_t id)
+bool output_flex_t::way_cache_t::init(middle_query_t const &middle, osmid_t id)
 {
     m_buffer.clear();
     m_num_way_nodes = std::numeric_limits<std::size_t>::max();
-    if (!middle().way_get(id, &m_buffer)) {
+
+    if (!middle.way_get(id, &m_buffer)) {
         return false;
     }
-    m_context_way = &m_buffer.get<osmium::Way>(0);
+    m_way = &m_buffer.get<osmium::Way>(0);
     return true;
 }
 
-void output_flex_t::init_way_cache(osmium::Way *way)
+void output_flex_t::way_cache_t::init(osmium::Way *way)
 {
+    m_buffer.clear();
     m_num_way_nodes = std::numeric_limits<std::size_t>::max();
-    m_context_way = way;
+
+    m_way = way;
 }
 
-std::size_t output_flex_t::add_nodes_to_way_cache()
+std::size_t output_flex_t::way_cache_t::add_nodes(middle_query_t const &middle)
 {
-    assert(m_calling_context == calling_context::process_way);
     if (m_num_way_nodes == std::numeric_limits<std::size_t>::max()) {
-        m_num_way_nodes = middle().nodes_get_list(&m_context_way->nodes());
+        m_num_way_nodes = middle.nodes_get_list(&m_way->nodes());
     }
 
     return m_num_way_nodes;
 }
 
-bool output_flex_t::init_relation_cache(osmid_t id)
+bool output_flex_t::relation_cache_t::init(middle_query_t const &middle,
+                                           osmid_t id)
 {
-    m_rels_buffer.clear();
-    if (!middle().relation_get(id, &m_rels_buffer)) {
+    m_relation_buffer.clear();
+    m_members_buffer.clear();
+
+    if (!middle.relation_get(id, &m_relation_buffer)) {
         return false;
     }
-    m_context_relation = &m_rels_buffer.get<osmium::Relation>(0);
+    m_relation = &m_relation_buffer.get<osmium::Relation>(0);
     return true;
 }
 
-void output_flex_t::init_relation_cache(osmium::Relation const &relation)
+void output_flex_t::relation_cache_t::init(osmium::Relation const &relation)
 {
-    m_context_relation = &relation;
+    m_relation_buffer.clear();
+    m_members_buffer.clear();
+
+    m_relation = &relation;
 }
 
-std::size_t output_flex_t::add_members_to_relation_cache()
+std::size_t
+output_flex_t::relation_cache_t::add_members(middle_query_t const &middle)
 {
-    m_buffer.clear();
-    auto const num_ways = middle().rel_members_get(
-        *m_context_relation, &m_buffer, osmium::osm_entity_bits::way);
+    m_members_buffer.clear();
+    auto const num_ways = middle.rel_members_get(*m_relation, &m_members_buffer,
+                                                 osmium::osm_entity_bits::way);
 
     if (num_ways == 0) {
         return 0;
     }
 
-    for (auto &way : m_buffer.select<osmium::Way>()) {
-        middle().nodes_get_list(&(way.nodes()));
+    for (auto &way : m_members_buffer.select<osmium::Way>()) {
+        middle.nodes_get_list(&(way.nodes()));
     }
 
     return num_ways;
@@ -1099,13 +1108,13 @@ int output_flex_t::table_add_row()
             throw std::runtime_error{
                 "Trying to add way to table '{}'."_format(table.name())};
         }
-        add_row(&table_connection, *m_context_way);
+        add_row(&table_connection, m_way_cache.get());
     } else if (m_calling_context == calling_context::process_relation) {
         if (!table.matches_type(osmium::item_type::relation)) {
             throw std::runtime_error{
                 "Trying to add relation to table '{}'."_format(table.name())};
         }
-        add_row(&table_connection, *m_context_relation);
+        add_row(&table_connection, m_relation_cache.get());
     }
 
     return 0;
@@ -1236,22 +1245,23 @@ geom::geometry_t output_flex_t::run_transform(reprojection const &proj,
                                               geom_transform_t const *transform,
                                               osmium::Way const & /*way*/)
 {
-    if (add_nodes_to_way_cache() <= 1U) {
+    if (m_way_cache.add_nodes(middle()) <= 1U) {
         return {};
     }
 
-    return transform->convert(proj, *m_context_way);
+    return transform->convert(proj, m_way_cache.get());
 }
 
 geom::geometry_t output_flex_t::run_transform(reprojection const &proj,
                                               geom_transform_t const *transform,
                                               osmium::Relation const &relation)
 {
-    if (add_members_to_relation_cache() == 0) {
+    if (m_relation_cache.add_members(middle()) == 0) {
         return {};
     }
 
-    return transform->convert(proj, relation, m_buffer);
+    return transform->convert(proj, relation,
+                              m_relation_cache.members_buffer());
 }
 
 template <typename OBJECT>
@@ -1342,13 +1352,13 @@ void output_flex_t::pending_way(osmid_t id)
         return;
     }
 
-    if (!init_way_cache(id)) {
+    if (!m_way_cache.init(middle(), id)) {
         return;
     }
 
     way_delete(id);
 
-    get_mutex_and_call_lua_function(m_process_way, *m_context_way);
+    get_mutex_and_call_lua_function(m_process_way, m_way_cache.get());
 }
 
 void output_flex_t::select_relation_members()
@@ -1358,7 +1368,7 @@ void output_flex_t::select_relation_members()
     }
 
     std::lock_guard<std::mutex> guard{lua_mutex};
-    call_lua_function(m_select_relation_members, *m_context_relation);
+    call_lua_function(m_select_relation_members, m_relation_cache.get());
 
     // If the function returned nil there is nothing to be marked.
     if (lua_type(lua_state(), -1) == LUA_TNIL) {
@@ -1417,7 +1427,7 @@ void output_flex_t::select_relation_members(osmid_t id)
         return;
     }
 
-    if (!init_relation_cache(id)) {
+    if (!m_relation_cache.init(middle(), id)) {
         return;
     }
 
@@ -1430,7 +1440,7 @@ void output_flex_t::pending_relation(osmid_t id)
         return;
     }
 
-    if (!init_relation_cache(id)) {
+    if (!m_relation_cache.init(middle(), id)) {
         return;
     }
 
@@ -1439,7 +1449,7 @@ void output_flex_t::pending_relation(osmid_t id)
 
     if (m_process_relation) {
         get_mutex_and_call_lua_function(m_process_relation,
-                                        *m_context_relation);
+                                        m_relation_cache.get());
     }
 }
 
@@ -1449,12 +1459,12 @@ void output_flex_t::pending_relation_stage1c(osmid_t id)
         return;
     }
 
-    if (!init_relation_cache(id)) {
+    if (!m_relation_cache.init(middle(), id)) {
         return;
     }
 
     m_disable_add_row = true;
-    get_mutex_and_call_lua_function(m_process_relation, *m_context_relation);
+    get_mutex_and_call_lua_function(m_process_relation, m_relation_cache.get());
     m_disable_add_row = false;
 }
 
@@ -1507,8 +1517,8 @@ void output_flex_t::way_add(osmium::Way *way)
         return;
     }
 
-    init_way_cache(way);
-    get_mutex_and_call_lua_function(m_process_way, *m_context_way);
+    m_way_cache.init(way);
+    get_mutex_and_call_lua_function(m_process_way, m_way_cache.get());
 }
 
 void output_flex_t::relation_add(osmium::Relation const &relation)
@@ -1517,7 +1527,7 @@ void output_flex_t::relation_add(osmium::Relation const &relation)
         return;
     }
 
-    init_relation_cache(relation);
+    m_relation_cache.init(relation);
     select_relation_members();
     get_mutex_and_call_lua_function(m_process_relation, relation);
 }
@@ -1627,8 +1637,6 @@ output_flex_t::output_flex_t(
   m_stage2_way_ids(std::move(stage2_way_ids)), m_copy_thread(copy_thread),
   m_lua_state(std::move(lua_state)),
   m_expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection),
-  m_buffer(32768, osmium::memory::Buffer::auto_grow::yes),
-  m_rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes),
   m_process_node(process_node), m_process_way(process_way),
   m_process_relation(process_relation),
   m_select_relation_members(select_relation_members)
@@ -1802,10 +1810,13 @@ void output_flex_t::reprocess_marked()
         "There are {} ways to reprocess..."_format(m_stage2_way_ids->size()));
 
     for (osmid_t const id : *m_stage2_way_ids) {
-        if (!init_way_cache(id)) {
+        if (!m_way_cache.init(middle(), id)) {
             continue;
         }
-        way_modify(m_context_way);
+        way_delete(id);
+        if (m_process_way) {
+            get_mutex_and_call_lua_function(m_process_way, m_way_cache.get());
+        }
     }
 
     // We don't need these any more so can free the memory.
