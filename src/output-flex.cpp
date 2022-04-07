@@ -1047,26 +1047,22 @@ void output_flex_t::relation_cache_t::init(osmium::Relation const &relation)
     m_relation = &relation;
 }
 
-std::size_t
-output_flex_t::relation_cache_t::add_members(middle_query_t const &middle)
+bool output_flex_t::relation_cache_t::add_members(middle_query_t const &middle)
 {
     if (m_members_buffer.committed() == 0) {
         auto const num_ways = middle.rel_members_get(
             *m_relation, &m_members_buffer, osmium::osm_entity_bits::way);
 
         if (num_ways == 0) {
-            return 0;
+            return false;
         }
 
         for (auto &way : m_members_buffer.select<osmium::Way>()) {
             middle.nodes_get_list(&(way.nodes()));
         }
-
-        return num_ways;
     }
 
-    auto const ways = m_members_buffer.select<osmium::Way>();
-    return std::distance(ways.cbegin(), ways.cend());
+    return true;
 }
 
 int output_flex_t::table_add_row()
@@ -1260,7 +1256,7 @@ geom::geometry_t output_flex_t::run_transform(reprojection const &proj,
                                               geom_transform_t const *transform,
                                               osmium::Relation const &relation)
 {
-    if (m_relation_cache.add_members(middle()) == 0) {
+    if (!m_relation_cache.add_members(middle())) {
         return {};
     }
 
