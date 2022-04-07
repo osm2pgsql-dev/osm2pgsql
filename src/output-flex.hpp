@@ -166,7 +166,7 @@ public:
 
 private:
     void init_clone();
-    void select_relation_members(osmium::Relation const &relation);
+    void select_relation_members();
 
     /**
      * Call a Lua function that was "prepared" earlier with the OSMObject
@@ -212,9 +212,50 @@ private:
                            osmium::item_type type, osmid_t osm_id);
     void delete_from_tables(osmium::item_type type, osmid_t osm_id);
 
-    std::size_t get_way_nodes();
-
     lua_State *lua_state() noexcept { return m_lua_state.get(); }
+
+    class way_cache_t
+    {
+    public:
+        bool init(middle_query_t const &middle, osmid_t id);
+        void init(osmium::Way *way);
+        std::size_t add_nodes(middle_query_t const &middle);
+        osmium::Way const &get() const noexcept { return *m_way; }
+
+    private:
+        osmium::memory::Buffer m_buffer{32768,
+                                        osmium::memory::Buffer::auto_grow::yes};
+        osmium::Way *m_way = nullptr;
+        std::size_t m_num_way_nodes = std::numeric_limits<std::size_t>::max();
+
+    }; // way_cache_t
+
+    class relation_cache_t
+    {
+    public:
+        bool init(middle_query_t const &middle, osmid_t id);
+        void init(osmium::Relation const &relation);
+        std::size_t add_members(middle_query_t const &middle);
+        osmium::Relation const &get() const noexcept
+        {
+            return *m_relation;
+        }
+        osmium::memory::Buffer const &members_buffer() const noexcept
+        {
+            return m_members_buffer;
+        }
+
+    private:
+        // This buffer is used for the relation only. Members are stored in
+        // m_members_buffer. If we would store more objects in this buffer,
+        // it might autogrow which would invalidate the m_relation pointer.
+        osmium::memory::Buffer m_relation_buffer{
+            1024, osmium::memory::Buffer::auto_grow::yes};
+        osmium::memory::Buffer m_members_buffer{
+            32768, osmium::memory::Buffer::auto_grow::yes};
+        osmium::Relation const *m_relation = nullptr;
+
+    }; // relation_cache_t
 
     std::shared_ptr<std::vector<flex_table_t>> m_tables;
     std::vector<table_connection_t> m_table_connections;
@@ -231,19 +272,9 @@ private:
 
     expire_tiles m_expire;
 
-    osmium::memory::Buffer m_buffer;
-
-    // This buffer is used for one relation at a time only. Members of the
-    // relation are stored in m_buffer instead. If we would store more objects
-    // in this buffer, it might autogrow which would invalidate the reference
-    // we take to the relation inside.
-    osmium::memory::Buffer m_rels_buffer;
-
+    way_cache_t m_way_cache;
+    relation_cache_t m_relation_cache;
     osmium::Node const *m_context_node = nullptr;
-    osmium::Way *m_context_way = nullptr;
-    osmium::Relation const *m_context_relation = nullptr;
-
-    std::size_t m_num_way_nodes = std::numeric_limits<std::size_t>::max();
 
     prepared_lua_function_t m_process_node;
     prepared_lua_function_t m_process_way;
