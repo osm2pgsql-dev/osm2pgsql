@@ -40,14 +40,16 @@ public:
                                 bool *roads, taglist_t *out_tags) override;
 
 private:
+    constexpr static char const *const node_func = "filter_tags_node";
+    constexpr static char const *const way_func = "filter_tags_way";
+    constexpr static char const *const rel_func = "filter_basic_tags_rel";
+    constexpr static char const *const rel_mem_func =
+        "filter_tags_relation_member";
+
     void open_style();
-    void check_lua_function_exists(std::string const &func_name);
+    void check_lua_function_exists(char const *func_name);
 
     lua_State *L = nullptr;
-    std::string m_node_func;
-    std::string m_way_func;
-    std::string m_rel_func;
-    std::string m_rel_mem_func;
     std::string m_lua_file;
     bool m_extra_attributes;
 };

@@ -18,10 +18,7 @@ extern "C"
 #include "tagtransform-lua.hpp"
 
 lua_tagtransform_t::lua_tagtransform_t(options_t const *options)
-: m_node_func("filter_tags_node"), m_way_func("filter_tags_way"),
-  m_rel_func("filter_basic_tags_rel"),
-  m_rel_mem_func("filter_tags_relation_member"),
-  m_lua_file(options->tag_transform_script),
+: m_lua_file(options->tag_transform_script),
   m_extra_attributes(options->extra_attributes)
 {
     open_style();
@@ -36,10 +33,10 @@ void lua_tagtransform_t::open_style()
             "Lua tag transform style error: {}."_format(lua_tostring(L, -1))};
     }
 
-    check_lua_function_exists(m_node_func);
-    check_lua_function_exists(m_way_func);
-    check_lua_function_exists(m_rel_func);
-    check_lua_function_exists(m_rel_mem_func);
+    check_lua_function_exists(node_func);
+    check_lua_function_exists(way_func);
+    check_lua_function_exists(rel_func);
+    check_lua_function_exists(rel_mem_func);
 }
 
 lua_tagtransform_t::~lua_tagtransform_t() { lua_close(L); }
@@ -52,9 +49,9 @@ std::unique_ptr<tagtransform_t> lua_tagtransform_t::clone() const
     return std::unique_ptr<tagtransform_t>(c.release());
 }
 
-void lua_tagtransform_t::check_lua_function_exists(std::string const &func_name)
+void lua_tagtransform_t::check_lua_function_exists(char const *func_name)
 {
-    lua_getglobal(L, func_name.c_str());
+    lua_getglobal(L, func_name);
     if (!lua_isfunction(L, -1)) {
         throw std::runtime_error{
             "Tag transform style does not contain a function {}."_format(
@@ -68,13 +65,13 @@ bool lua_tagtransform_t::filter_tags(osmium::OSMObject const &o, bool *polygon,
 {
     switch (o.type()) {
     case osmium::item_type::node:
-        lua_getglobal(L, m_node_func.c_str());
+        lua_getglobal(L, node_func);
         break;
     case osmium::item_type::way:
-        lua_getglobal(L, m_way_func.c_str());
+        lua_getglobal(L, way_func);
         break;
     case osmium::item_type::relation:
-        lua_getglobal(L, m_rel_func.c_str());
+        lua_getglobal(L, rel_func);
         break;
     default:
         throw std::runtime_error{"Unknown OSM type."};
@@ -154,7 +151,7 @@ bool lua_tagtransform_t::filter_rel_member_tags(
     bool *roads, taglist_t *out_tags)
 {
     size_t const num_members = member_roles.size();
-    lua_getglobal(L, m_rel_mem_func.c_str());
+    lua_getglobal(L, rel_mem_func);
 
     lua_newtable(L); /* relations key value table */
 
