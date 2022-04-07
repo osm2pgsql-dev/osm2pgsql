@@ -21,10 +21,9 @@ extern "C"
 
 class lua_tagtransform_t : public tagtransform_t
 {
-    lua_tagtransform_t(lua_tagtransform_t const &other) = default;
-
 public:
-    explicit lua_tagtransform_t(options_t const *options);
+    explicit lua_tagtransform_t(std::string const *tag_transform_script,
+                                bool extra_attributes);
 
     ~lua_tagtransform_t() override;
 
@@ -46,11 +45,10 @@ private:
     constexpr static char const *const rel_mem_func =
         "filter_tags_relation_member";
 
-    void open_style();
     void check_lua_function_exists(char const *func_name);
 
     lua_State *L = nullptr;
-    std::string m_lua_file;
+    std::string const *m_lua_file;
     bool m_extra_attributes;
 };
 

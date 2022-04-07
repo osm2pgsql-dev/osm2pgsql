@@ -27,7 +27,8 @@ tagtransform_t::make_tagtransform(options_t const *options,
 #ifdef HAVE_LUA
         log_debug("Using lua based tag transformations with script {}",
                   options->tag_transform_script);
-        return std::make_unique<lua_tagtransform_t>(options);
+        return std::make_unique<lua_tagtransform_t>(
+            &options->tag_transform_script, options->extra_attributes);
 #else
         throw std::runtime_error{"Error: Could not init lua tag transform, as "
                                  "lua support was not compiled into this "

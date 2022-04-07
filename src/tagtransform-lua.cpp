@@ -17,18 +17,13 @@ extern "C"
 #include "options.hpp"
 #include "tagtransform-lua.hpp"
 
-lua_tagtransform_t::lua_tagtransform_t(options_t const *options)
-: m_lua_file(options->tag_transform_script),
-  m_extra_attributes(options->extra_attributes)
-{
-    open_style();
-}
-
-void lua_tagtransform_t::open_style()
+lua_tagtransform_t::lua_tagtransform_t(std::string const *tag_transform_script,
+                                       bool extra_attributes)
+: m_lua_file(tag_transform_script), m_extra_attributes(extra_attributes)
 {
     L = luaL_newstate();
     luaL_openlibs(L);
-    if (luaL_dofile(L, m_lua_file.c_str())) {
+    if (luaL_dofile(L, m_lua_file->c_str())) {
         throw std::runtime_error{
             "Lua tag transform style error: {}."_format(lua_tostring(L, -1))};
     }
@@ -43,10 +38,7 @@ lua_tagtransform_t::~lua_tagtransform_t() { lua_close(L); }
 
 std::unique_ptr<tagtransform_t> lua_tagtransform_t::clone() const
 {
-    auto c = std::unique_ptr<lua_tagtransform_t>(new lua_tagtransform_t(*this));
-    c->open_style();
-
-    return std::unique_ptr<tagtransform_t>(c.release());
+    return std::make_unique<lua_tagtransform_t>(m_lua_file, m_extra_attributes);
 }
 
 void lua_tagtransform_t::check_lua_function_exists(char const *func_name)
