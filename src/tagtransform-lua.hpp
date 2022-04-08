@@ -47,7 +47,15 @@ private:
 
     void check_lua_function_exists(char const *func_name);
 
-    lua_State *L = nullptr;
+    struct lua_state_deleter_t
+    {
+        void operator()(lua_State *state) const noexcept { lua_close(state); }
+    };
+
+    lua_State *lua_state() noexcept { return m_lua_state.get(); }
+
+    std::unique_ptr<lua_State, lua_state_deleter_t> m_lua_state;
+
     std::string const *m_lua_file;
     bool m_extra_attributes;
 };
