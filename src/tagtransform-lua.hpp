@@ -25,7 +25,7 @@ public:
     explicit lua_tagtransform_t(std::string const *tag_transform_script,
                                 bool extra_attributes);
 
-    ~lua_tagtransform_t() override;
+    ~lua_tagtransform_t() noexcept override = default;
 
     std::unique_ptr<tagtransform_t> clone() const override;
 

@@ -14,8 +14,9 @@ extern "C"
 }
 
 #include "format.hpp"
-#include "options.hpp"
 #include "tagtransform-lua.hpp"
+
+#include <stdexcept>
 
 lua_tagtransform_t::lua_tagtransform_t(std::string const *tag_transform_script,
                                        bool extra_attributes)
@@ -33,8 +34,6 @@ lua_tagtransform_t::lua_tagtransform_t(std::string const *tag_transform_script,
     check_lua_function_exists(rel_func);
     check_lua_function_exists(rel_mem_func);
 }
-
-lua_tagtransform_t::~lua_tagtransform_t() = default;
 
 std::unique_ptr<tagtransform_t> lua_tagtransform_t::clone() const
 {
