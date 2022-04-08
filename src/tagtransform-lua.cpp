@@ -52,6 +52,42 @@ void lua_tagtransform_t::check_lua_function_exists(char const *func_name)
     lua_pop(lua_state(), 1);
 }
 
+/**
+ * Read tags from the Lua table on the stack and write them to out_tags
+ */
+static void get_out_tags(lua_State *lua_state, taglist_t *out_tags)
+{
+    lua_pushnil(lua_state);
+    while (lua_next(lua_state, -2) != 0) {
+        auto const key_type = lua_type(lua_state, -2);
+        // They key must be a string, otherwise the lua_tostring() function
+        // below will change it to a string and the lua_next() iteration will
+        // break.
+        if (key_type != LUA_TSTRING) {
+            throw std::runtime_error{
+                "Basic tag processing found incorrect data type"
+                "'{}', use a string."_format(
+                    lua_typename(lua_state, key_type))};
+        }
+
+        auto const value_type = lua_type(lua_state, -1);
+        // They key must be a string or number (which will automatically be
+        // converted to a string).
+        if (value_type != LUA_TSTRING && value_type != LUA_TNUMBER) {
+            throw std::runtime_error{
+                "Basic tag processing found incorrect data type"
+                "'{}', use a string."_format(
+                    lua_typename(lua_state, value_type))};
+        }
+
+        char const *const key = lua_tostring(lua_state, -2);
+        char const *const value = lua_tostring(lua_state, -1);
+        out_tags->add_tag(key, value);
+        lua_pop(lua_state, 1);
+    }
+    lua_pop(lua_state, 1);
+}
+
 bool lua_tagtransform_t::filter_tags(osmium::OSMObject const &o, bool *polygon,
                                      bool *roads, taglist_t *out_tags)
 {
@@ -110,31 +146,10 @@ bool lua_tagtransform_t::filter_tags(osmium::OSMObject const &o, bool *polygon,
         lua_pop(lua_state(), 1);
     }
 
-    lua_pushnil(lua_state());
-    while (lua_next(lua_state(), -2) != 0) {
-        char const *const key = lua_tostring(lua_state(), -2);
-        char const *const value = lua_tostring(lua_state(), -1);
-        if (key == nullptr) {
-            int const ltype = lua_type(lua_state(), -2);
-            throw std::runtime_error{
-                "Basic tag processing returned NULL key. Possibly this is "
-                "due an incorrect data type '{}'."_format(
-                    lua_typename(lua_state(), ltype))};
-        }
-        if (value == nullptr) {
-            int const ltype = lua_type(lua_state(), -1);
-            throw std::runtime_error{
-                "Basic tag processing returned NULL value. Possibly this "
-                "is due an incorrect data type '{}'."_format(
-                    lua_typename(lua_state(), ltype))};
-        }
-        out_tags->add_tag(key, value);
-        lua_pop(lua_state(), 1);
-    }
+    get_out_tags(lua_state(), out_tags);
 
-    bool const filter = lua_tointeger(lua_state(), -2);
-
-    lua_pop(lua_state(), 2);
+    bool const filter = lua_tointeger(lua_state(), -1);
+    lua_pop(lua_state(), 1);
 
     return filter;
 }
@@ -196,17 +211,9 @@ bool lua_tagtransform_t::filter_rel_member_tags(
     // obsolete member superseded is ignored.
     lua_pop(lua_state(), 1);
 
-    lua_pushnil(lua_state());
-    while (lua_next(lua_state(), -2) != 0) {
-        char const *const key = lua_tostring(lua_state(), -2);
-        char const *const value = lua_tostring(lua_state(), -1);
-        out_tags->add_tag(key, value);
-        lua_pop(lua_state(), 1);
-    }
-    lua_pop(lua_state(), 1);
+    get_out_tags(lua_state(), out_tags);
 
     bool const filter = lua_tointeger(lua_state(), -1);
-
     lua_pop(lua_state(), 1);
 
     return filter;
