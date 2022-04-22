@@ -9,7 +9,6 @@ Nominatim, or general analysis.
 See the [documentation](https://osm2pgsql.org/doc/) for instructions on how
 to install and run osm2pgsql.
 
-[![Appveyor Build Status](https://ci.appveyor.com/api/projects/status/7abwls7hfmb83axj/branch/master?svg=true)](https://ci.appveyor.com/project/openstreetmap/osm2pgsql/branch/master)
 [![Github Actions Build Status](https://github.com/openstreetmap/osm2pgsql/workflows/CI/badge.svg?branch=master)](https://github.com/openstreetmap/osm2pgsql/actions)
 [![Packaging Status](https://repology.org/badge/tiny-repos/osm2pgsql.svg)](https://repology.org/project/osm2pgsql/versions)
 
