@@ -235,11 +235,19 @@ private:
     public:
         bool init(middle_query_t const &middle, osmid_t id);
         void init(osmium::Relation const &relation);
-        std::size_t add_members(middle_query_t const &middle);
+
+        /**
+         * Add members of relation to cache when it is first called.
+         *
+         * \returns True if at least one member was found, false otherwise
+         */
+        bool add_members(middle_query_t const &middle);
+
         osmium::Relation const &get() const noexcept
         {
             return *m_relation;
         }
+
         osmium::memory::Buffer const &members_buffer() const noexcept
         {
             return m_members_buffer;

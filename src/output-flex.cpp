@@ -701,12 +701,25 @@ void output_flex_t::write_row(table_connection_t *table_connection,
     copy_mgr->finish_line();
 }
 
+/**
+ * Helper function to push the lon/lat of the specified location onto the
+ * Lua stack
+ */
+static void push_location(lua_State *lua_state,
+                          osmium::Location location) noexcept
+{
+    lua_pushnumber(lua_state, location.lon());
+    lua_pushnumber(lua_state, location.lat());
+}
+
 int output_flex_t::app_get_bbox()
 {
     if (m_calling_context != calling_context::process_node &&
-        m_calling_context != calling_context::process_way) {
-        throw std::runtime_error{"The function get_bbox() can only be called"
-                                 " from process_node() or process_way()."};
+        m_calling_context != calling_context::process_way &&
+        m_calling_context != calling_context::process_relation) {
+        throw std::runtime_error{
+            "The function get_bbox() can only be called from the "
+            "process_node/way/relation() functions."};
     }
 
     if (lua_gettop(lua_state()) > 1) {
@@ -714,10 +727,8 @@ int output_flex_t::app_get_bbox()
     }
 
     if (m_calling_context == calling_context::process_node) {
-        lua_pushnumber(lua_state(), m_context_node->location().lon());
-        lua_pushnumber(lua_state(), m_context_node->location().lat());
-        lua_pushnumber(lua_state(), m_context_node->location().lon());
-        lua_pushnumber(lua_state(), m_context_node->location().lat());
+        push_location(lua_state(), m_context_node->location());
+        push_location(lua_state(), m_context_node->location());
         return 4;
     }
 
@@ -725,10 +736,32 @@ int output_flex_t::app_get_bbox()
         m_way_cache.add_nodes(middle());
         auto const bbox = m_way_cache.get().envelope();
         if (bbox.valid()) {
-            lua_pushnumber(lua_state(), bbox.bottom_left().lon());
-            lua_pushnumber(lua_state(), bbox.bottom_left().lat());
-            lua_pushnumber(lua_state(), bbox.top_right().lon());
-            lua_pushnumber(lua_state(), bbox.top_right().lat());
+            push_location(lua_state(), bbox.bottom_left());
+            push_location(lua_state(), bbox.top_right());
+            return 4;
+        }
+        return 0;
+    }
+
+    if (m_calling_context == calling_context::process_relation) {
+        m_relation_cache.add_members(middle());
+        osmium::Box bbox;
+
+        // Bounding boxes of all the member nodes
+        for (auto const &wnl :
+             m_relation_cache.members_buffer().select<osmium::WayNodeList>()) {
+            bbox.extend(wnl.envelope());
+        }
+
+        // Bounding boxes of all the member ways
+        for (auto const &way :
+             m_relation_cache.members_buffer().select<osmium::Way>()) {
+            bbox.extend(way.nodes().envelope());
+        }
+
+        if (bbox.valid()) {
+            push_location(lua_state(), bbox.bottom_left());
+            push_location(lua_state(), bbox.top_right());
             return 4;
         }
     }
@@ -1047,26 +1080,27 @@ void output_flex_t::relation_cache_t::init(osmium::Relation const &relation)
     m_relation = &relation;
 }
 
-std::size_t
-output_flex_t::relation_cache_t::add_members(middle_query_t const &middle)
+bool output_flex_t::relation_cache_t::add_members(middle_query_t const &middle)
 {
     if (m_members_buffer.committed() == 0) {
-        auto const num_ways = middle.rel_members_get(
-            *m_relation, &m_members_buffer, osmium::osm_entity_bits::way);
+        auto const num_members = middle.rel_members_get(
+            *m_relation, &m_members_buffer,
+            osmium::osm_entity_bits::node | osmium::osm_entity_bits::way);
 
-        if (num_ways == 0) {
-            return 0;
+        if (num_members == 0) {
+            return false;
+        }
+
+        for (auto &nodes : m_members_buffer.select<osmium::WayNodeList>()) {
+            middle.nodes_get_list(&nodes);
         }
 
         for (auto &way : m_members_buffer.select<osmium::Way>()) {
             middle.nodes_get_list(&(way.nodes()));
         }
-
-        return num_ways;
     }
 
-    auto const ways = m_members_buffer.select<osmium::Way>();
-    return std::distance(ways.cbegin(), ways.cend());
+    return true;
 }
 
 int output_flex_t::table_add_row()
@@ -1260,7 +1294,7 @@ geom::geometry_t output_flex_t::run_transform(reprojection const &proj,
                                               geom_transform_t const *transform,
                                               osmium::Relation const &relation)
 {
-    if (m_relation_cache.add_members(middle()) == 0) {
+    if (!m_relation_cache.add_members(middle())) {
         return {};
     }
 
