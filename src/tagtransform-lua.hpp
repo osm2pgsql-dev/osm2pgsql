@@ -21,12 +21,11 @@ extern "C"
 
 class lua_tagtransform_t : public tagtransform_t
 {
-    lua_tagtransform_t(lua_tagtransform_t const &other) = default;
-
 public:
-    explicit lua_tagtransform_t(options_t const *options);
+    explicit lua_tagtransform_t(std::string const *tag_transform_script,
+                                bool extra_attributes);
 
-    ~lua_tagtransform_t() override;
+    ~lua_tagtransform_t() noexcept override = default;
 
     std::unique_ptr<tagtransform_t> clone() const override;
 
@@ -40,15 +39,24 @@ public:
                                 bool *roads, taglist_t *out_tags) override;
 
 private:
-    void open_style();
-    void check_lua_function_exists(std::string const &func_name);
+    constexpr static char const *const node_func = "filter_tags_node";
+    constexpr static char const *const way_func = "filter_tags_way";
+    constexpr static char const *const rel_func = "filter_basic_tags_rel";
+    constexpr static char const *const rel_mem_func =
+        "filter_tags_relation_member";
 
-    lua_State *L = nullptr;
-    std::string m_node_func;
-    std::string m_way_func;
-    std::string m_rel_func;
-    std::string m_rel_mem_func;
-    std::string m_lua_file;
+    void check_lua_function_exists(char const *func_name);
+
+    struct lua_state_deleter_t
+    {
+        void operator()(lua_State *state) const noexcept { lua_close(state); }
+    };
+
+    lua_State *lua_state() noexcept { return m_lua_state.get(); }
+
+    std::unique_ptr<lua_State, lua_state_deleter_t> m_lua_state;
+
+    std::string const *m_lua_file;
     bool m_extra_attributes;
 };
 
