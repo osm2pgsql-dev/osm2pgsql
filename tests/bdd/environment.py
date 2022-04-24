@@ -77,6 +77,7 @@ def before_scenario(context, scenario):
 
     context.db = use_fixture(test_db, context)
     context.import_file = None
+    context.import_data = {'n': [], 'w': [], 'r': []}
     context.osm2pgsql_params = []
     context.workdir = use_fixture(working_directory, context)
 

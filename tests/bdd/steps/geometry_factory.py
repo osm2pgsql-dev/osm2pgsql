@@ -64,21 +64,47 @@ class GeometryFactory:
         return ','.join([self.mk_wkt_point(x) for x in geom.split(',')])
 
 
-    def set_grid(self, lines, grid_step):
+    def set_grid(self, lines, grid_step, origin_x, origin_y):
         """ Replace the grid with one from the given lines.
         """
         self.grid = {}
-        y = 0
+        y = origin_y
         for line in lines:
-            x = 0
+            x = origin_x
             for pt_id in line:
                 if pt_id.isdigit():
                     self.grid[int(pt_id)] = (x, y)
                 x += grid_step
-            y += grid_step
+            y -= grid_step
+
+        self.grid_precision = 1
+        while grid_step < 0:
+            self.grid_precision += 1
+            grid_step /= 10
 
 
     def grid_node(self, nodeid):
         """ Get the coordinates for the given grid node.
         """
         return self.grid.get(nodeid)
+
+
+    def complete_node_list(self, nodes):
+        todos = set(self.grid.keys())
+
+        for i in range(len(nodes)):
+            line = nodes[i]
+            nid = int(line[1:].split(' ')[0])
+
+            if ' x' not in line:
+                assert ' y' not in line
+
+                coords = self.grid_node(nid)
+                assert coords is not None, f"Coordinates missing for node {node}"
+                nodes[i] = f"{line} x{coords[0]:f.{self.grid_precision}} y{coords[1]:f.{self.grid_precision}}"
+
+            todos.discard(nid)
+
+        for nid in todos:
+            coords = self.grid_node(nid)
+            nodes.append(f"n{nid} x{coords[0]:.{self.grid_precision}f} y{coords[1]:.{self.grid_precision}f}")

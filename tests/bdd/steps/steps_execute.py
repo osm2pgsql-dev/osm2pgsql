@@ -9,21 +9,44 @@ Steps for executing osm2pgsql.
 """
 import subprocess
 
-@given("the (?P<use_default>default )?lua tagtransform")
-def setup_lua_tagtransform(context, use_default):
-    assert use_default, "inline tag transform not implemented"
+def get_import_file(context):
+    if context.import_file is not None:
+        return str(context.import_file)
 
-    if use_default:
-        context.osm2pgsql_params.extend(('--tag-transform-script',
-                                         str(context.default_data_dir / 'style.lua')))
+    context.geometry_factory.complete_node_list(context.import_data['n'])
+
+    # sort by OSM id
+    for obj in context.import_data.values():
+        obj.sort(key=lambda l: int(l.split(' ')[0][1:]))
+
+    data_file = context.workdir / "inline_import_data.opl"
+    with data_file.open('w') as fd:
+        for typ in ('n', 'w', 'r'):
+            for line in context.import_data[typ]:
+                fd.write(line)
+                fd.write('\n')
+
+    return str(data_file)
+
+@given("the default lua tagtransform")
+def setup_lua_tagtransform(context):
+    context.osm2pgsql_params.extend(('--tag-transform-script',
+                                    str(context.default_data_dir / 'style.lua')))
+
+@given("the lua style")
+def setup_inline_lua_style(context):
+    outfile = context.workdir / 'inline_style.lua'
+    outfile.write_text(context.text)
+    context.osm2pgsql_params.extend(('-S', str(outfile)))
+
 
 @when("running osm2pgsql (?P<output>\w+)(?: with parameters)?")
 def run_osm2pgsql(context, output):
     assert output in ('flex', 'pgsql', 'gazetteer', 'none')
-    assert context.import_file is not None
 
     cmdline = [str(context.config.userdata['BINARY'])]
     cmdline.extend(('-d', context.config.userdata['TEST_DB']))
+    cmdline.extend(('-O', output))
     cmdline.extend(context.osm2pgsql_params)
 
     if context.table:
@@ -39,7 +62,7 @@ def run_osm2pgsql(context, output):
         if '-S' not in cmdline:
             cmdline.extend(('-S', str(context.default_data_dir / 'default.style')))
 
-    cmdline.append(context.import_file)
+    cmdline.append(get_import_file(context))
 
     proc = subprocess.Popen(cmdline,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
