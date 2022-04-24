@@ -22,12 +22,16 @@ def table_exists(conn, table):
     return num == 1
 
 
-@then("table (?P<table>.+) has (?P<row_num>\d+) rows")
-def db_table_row_count(context, table, row_num):
+@then("table (?P<table>.+) has (?P<row_num>\d+) rows(?P<has_where> with condition)?")
+def db_table_row_count(context, table, row_num, has_where):
     assert table_exists(context.db, table)
 
-    actual = scalar(context.db,
-                    sql.SQL("SELECT count(*) FROM {}").format(sql.Identifier(table)))
+    query = sql.SQL("SELECT count(*) FROM {}").format(sql.Identifier(table))
+
+    if has_where:
+        query = sql.SQL("{} WHERE {}").format(query, sql.SQL(context.text))
+
+    actual = scalar(context.db, query)
 
     assert actual == int(row_num),\
            f"Table {table}: expected {row_num} rows, got {actual}"
@@ -45,7 +49,7 @@ def db_table_sum_up(context, table, formula, result):
            f"Table {table}: expected sum {result}, got {actual}"
 
 
-@then("there (?:is|are) (?P<exists>no )tables? (?P<tables>.+)")
+@then("there (?:is|are) (?P<exists>no )?tables? (?P<tables>.+)")
 def db_table_existance(context, exists, tables):
     for table in tables.split(','):
         table = table.strip()

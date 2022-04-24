@@ -25,7 +25,8 @@ USER_CONFIG = {
     'TEST_DATA_DIR': TEST_BASE_DIR / 'data',
     'SRC_DIR': (TEST_BASE_DIR / '..').resolve(),
     'KEEP_TEST_DB': False,
-    'TEST_DB': 'osm2pgsql-test'
+    'TEST_DB': 'osm2pgsql-test',
+    'HAVE_TABLESPACE': True
 }
 
 use_step_matcher('re')
@@ -56,6 +57,13 @@ def before_all(context):
     # set up -D options
     for k,v in USER_CONFIG.items():
         context.config.userdata.setdefault(k, v)
+
+    if context.config.userdata['HAVE_TABLESPACE']:
+        with _connect_db(context, 'postgres') as conn:
+            with conn.cursor() as cur:
+                cur.execute("""SELECT spcname FROM pg_tablespace
+                               WHERE spcname = 'tablespacetest'""")
+                context.config.userdata['HAVE_TABLESPACE'] = cur.rowcount > 0
 
     context.geometry_factory = GeometryFactory()
     context.test_data_dir = Path(context.config.userdata['TEST_DATA_DIR']).resolve()
