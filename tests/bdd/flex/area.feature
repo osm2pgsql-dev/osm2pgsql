@@ -60,7 +60,7 @@ Feature: Tests for area column type
             | 3857      | 4326      | 192987010.0  | 0.01         | 1547130000.0  | 0.08          |
             | 3857      | 3857      | 192987010.0  | 192987010.0  | 1547130000.0  | 1547130000.0  |
 
-        @config.generic_proj
+        @config.have_proj
         Examples: Generic projection
             | geom proj | area proj | st_area poly | area poly    | st_area multi | area multi    |
             | 4326      | 25832     | 0.01         | 79600737.537 | 0.08          | 635499542.954 |

@@ -6,6 +6,7 @@
 # For a full list of authors see the git log.
 from contextlib import closing
 from pathlib import Path
+import subprocess
 import tempfile
 
 from behave import *
@@ -26,7 +27,9 @@ USER_CONFIG = {
     'SRC_DIR': (TEST_BASE_DIR / '..').resolve(),
     'KEEP_TEST_DB': False,
     'TEST_DB': 'osm2pgsql-test',
-    'HAVE_TABLESPACE': True
+    'HAVE_TABLESPACE': True,
+    'HAVE_LUA': True,
+    'HAVE_PROJ': True
 }
 
 use_step_matcher('re')
@@ -65,6 +68,20 @@ def before_all(context):
                                WHERE spcname = 'tablespacetest'""")
                 context.config.userdata['HAVE_TABLESPACE'] = cur.rowcount > 0
 
+    # Get the osm2pgsql configuration
+    proc = subprocess.Popen([str(context.config.userdata['BINARY']), '--version'],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    _, serr = proc.communicate()
+    ver_info = serr.decode('utf-8')
+    if proc.returncode != 0:
+        raise RuntimeError('Cannot run osm2pgsql')
+
+    if context.config.userdata['HAVE_LUA']:
+        context.config.userdata['HAVE_LUA'] = 'Lua support not included' not in ver_info
+
+    if context.config.userdata['HAVE_PROJ']:
+        context.config.userdata['HAVE_PROJ'] = 'Proj [disabled]' not in ver_info
+
     context.geometry_factory = GeometryFactory()
     context.test_data_dir = Path(context.config.userdata['TEST_DATA_DIR']).resolve()
     context.default_data_dir = Path(context.config.userdata['SRC_DIR']).resolve()
@@ -73,6 +90,12 @@ def before_all(context):
 def before_scenario(context, scenario):
     """ Set up a fresh, empty test database.
     """
+    if 'config.have_proj' in scenario.tags and not context.config.userdata['HAVE_PROJ']:
+        scenario.skip("Generic proj library not configured.")
+
+    if 'config.have_lua' in scenario.tags and not context.config.userdata['HAVE_LUA']:
+        scenario.skip("Lua support not compiled in.")
+
     _drop_db(context, context.config.userdata['TEST_DB'], recreate_immediately=True)
 
     context.db = use_fixture(test_db, context)
