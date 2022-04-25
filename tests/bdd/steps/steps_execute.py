@@ -48,6 +48,11 @@ def setup_inline_lua_style(context):
     context.osm2pgsql_params.extend(('-S', str(outfile)))
 
 
+@given("the style file '(?P<style>.+)'")
+def setup_style_file(context, style):
+    context.osm2pgsql_params.extend(('-S', str(context.test_data_dir / style)))
+
+
 @when("running osm2pgsql (?P<output>\w+)(?: with parameters)?")
 def run_osm2pgsql(context, output):
     assert output in ('flex', 'pgsql', 'gazetteer', 'none')
