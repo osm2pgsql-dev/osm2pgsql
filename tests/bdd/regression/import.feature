@@ -119,7 +119,6 @@ Feature: Imports of the test database
             | <param1> |
             | <param2> |
             | <param3> |
-            | <param4> |
 
         Then table planet_osm_point has 1342 rows
         And table planet_osm_line has 3231 rows
@@ -134,20 +133,20 @@ Feature: Imports of the test database
         And there are tables planet_osm_nodes, planet_osm_ways, planet_osm_rels
 
         Examples:
-            | param1              | param2 | param3 | param4 |
-            | --number-processes  | 16     |        |        |
-            | --number-processes  | 8      | -C1    | --cache-strategy=dense |
-            | -C0                 |        |        |        |
-            | -z                  | name:  |        |        |
-            | --hstore-match-only | -k     |        |        |
-            | --hstore-match-only | -x     | -k     |        |
+            | param1              | param2 | param3 |
+            | --number-processes  | 16     |        |
+            | --number-processes  | 8      | -C1    |
+            | -C0                 |        |        |
+            | -z                  | name:  |        |
+            | --hstore-match-only | -k     |        |
+            | --hstore-match-only | -x     | -k     |
 
         Examples: Tablespaces
-            | param1                 | param2         | param3 | param4 |
-            | --tablespace-main-data | tablespacetest |        |        |
-            | --tablespace-main-index| tablespacetest |        |        |
-            | --tablespace-slim-data | tablespacetest |        |        |
-            | --tablespace-slim-index| tablespacetest |        |        |
+            | param1                 | param2         | param3 |
+            | --tablespace-main-data | tablespacetest |        |
+            | --tablespace-main-index| tablespacetest |        |
+            | --tablespace-slim-data | tablespacetest |        |
+            | --tablespace-slim-index| tablespacetest |        |
 
 
     Scenario: Import slim with hstore and extra tags
