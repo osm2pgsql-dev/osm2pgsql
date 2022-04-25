@@ -13,7 +13,7 @@ jobs:
       - name: Install prerequisites
         run: |
           brew install lua boost postgis pandoc
-          pip3 install psycopg2
+          pip3 install psycopg2 behave
           pg_ctl -D /usr/local/var/postgres start
         shell: bash
 
