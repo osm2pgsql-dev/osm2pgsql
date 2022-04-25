@@ -123,6 +123,18 @@ endif()
 
 
 find_package(PythonInterp 3)
+find_program(BEHAVE_BIN NAMES behave)
+
+if (BEHAVE_BIN)
+    foreach(BDD_TEST IN ITEMS regression flex)
+        add_test(NAME bdd-${BDD_TEST}
+                 COMMAND behave -DBINARY=$<TARGET_FILE:osm2pgsql> ${BDD_TEST}
+                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bdd)
+        message(STATUS "Added test: bdd-${BDD_TEST}")
+    endforeach(BDD_TEST)
+else()
+    message(WARNING "Cannot find behave, BDD tests disabled")
+endif()
 
 if (PYTHONINTERP_FOUND)
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/regression-test.py.in
