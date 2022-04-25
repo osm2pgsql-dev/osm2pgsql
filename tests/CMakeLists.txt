@@ -132,6 +132,9 @@ if (BEHAVE_BIN)
                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bdd)
         message(STATUS "Added test: bdd-${BDD_TEST}")
     endforeach(BDD_TEST)
+
+    set_tests_properties(bdd-regression
+                         PROPERTIES FIXTURES_REQUIRED Tablespace)
 else()
     message(WARNING "Cannot find behave, BDD tests disabled")
 endif()
