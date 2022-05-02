@@ -92,10 +92,10 @@ function osm2pgsql.process_way(object)
     end
 
     -- Get the type of "highway" and remove it from the tags
-    local type = object:grab_tag('highway')
+    local highway_type = object:grab_tag('highway')
 
     -- We are only interested in highways of the given types
-    if not types[type] then
+    if not types[highway_type] then
         return
     end
 
@@ -104,7 +104,7 @@ function osm2pgsql.process_way(object)
 
     highways:add_row({
         name = name,
-        type = type,
+        type = highway_type,
 
         -- The 'maxspeed' column gets the maxspeed in km/h
         maxspeed = parse_speed(object.tags.maxspeed),

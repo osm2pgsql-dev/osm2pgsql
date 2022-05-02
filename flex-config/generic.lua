@@ -248,13 +248,13 @@ function osm2pgsql.process_way(object)
 end
 
 function osm2pgsql.process_relation(object)
-    local type = object:grab_tag('type')
+    local relation_type = object:grab_tag('type')
 
     if clean_tags(object.tags) then
         return
     end
 
-    if type == 'route' then
+    if relation_type == 'route' then
         tables.routes:add_row({
             tags = object.tags,
             geom = { create = 'line' }
@@ -262,7 +262,7 @@ function osm2pgsql.process_relation(object)
         return
     end
 
-    if type == 'boundary' or (type == 'multipolygon' and object.tags.boundary) then
+    if relation_type == 'boundary' or (relation_type == 'multipolygon' and object.tags.boundary) then
         tables.boundaries:add_row({
             tags = object.tags,
             geom = { create = 'line' }
@@ -270,7 +270,7 @@ function osm2pgsql.process_relation(object)
         return
     end
 
-    if type == 'multipolygon' then
+    if relation_type == 'multipolygon' then
         tables.polygons:add_row({
             tags = object.tags,
             geom = { create = 'area' }

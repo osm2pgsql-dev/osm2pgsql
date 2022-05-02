@@ -633,11 +633,10 @@ function osm2pgsql.process_relation(object)
         return
     end
 
-    local type = object.tags.type
-    if (type ~= 'route') and (type ~= 'multipolygon') and (type ~= 'boundary') then
+    local rtype = object:grab_tag('type')
+    if (rtype ~= 'route') and (rtype ~= 'multipolygon') and (rtype ~= 'boundary') then
         return
     end
-    object.tags.type = nil
 
     local output
     local output_hstore = {}
@@ -660,7 +659,7 @@ function osm2pgsql.process_relation(object)
         return
     end
 
-    if enable_legacy_route_processing and (hstore or hstore_all) and type == 'route' then
+    if enable_legacy_route_processing and (hstore or hstore_all) and rtype == 'route' then
         if not object.tags.route_name then
             output_hstore.route_name = object.tags.name
         end
@@ -701,11 +700,11 @@ function osm2pgsql.process_relation(object)
 
     local make_boundary = false
     local make_polygon = false
-    if type == 'boundary' then
+    if rtype == 'boundary' then
         make_boundary = true
-    elseif type == 'multipolygon' and object.tags.boundary then
+    elseif rtype == 'multipolygon' and object.tags.boundary then
         make_boundary = true
-    elseif type == 'multipolygon' then
+    elseif rtype == 'multipolygon' then
         make_polygon = true
     end
 
