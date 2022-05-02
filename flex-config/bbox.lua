@@ -132,7 +132,7 @@ function osm2pgsql.process_relation(object)
     -- Store boundary relations as multilinestrings
     if relation_type == 'boundary' then
         tables.boundaries:add_row({
-            type = relation_type,
+            type = object.tags.boundary,
             bbox = format_bbox(object),
             tags = object.tags,
             geom = { create = 'line' }
