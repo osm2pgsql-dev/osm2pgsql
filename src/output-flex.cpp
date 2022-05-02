@@ -1357,6 +1357,14 @@ void output_flex_t::add_row(table_connection_t *table_connection,
     }
 }
 
+void output_flex_t::remember_memory_used_by_lua() noexcept
+{
+    int const mem = lua_gc(lua_state(), LUA_GCCOUNT, 0);
+    if (mem > m_lua_memory_max) {
+        m_lua_memory_max = mem;
+    }
+}
+
 void output_flex_t::call_lua_function(prepared_lua_function_t func,
                                       osmium::OSMObject const &object)
 {
@@ -1375,6 +1383,11 @@ void output_flex_t::call_lua_function(prepared_lua_function_t func,
     }
 
     m_calling_context = calling_context::main;
+
+    if (++m_lua_memory_counter > 1000) {
+        m_lua_memory_counter = 0;
+        remember_memory_used_by_lua();
+    }
 }
 
 void output_flex_t::get_mutex_and_call_lua_function(
@@ -1515,6 +1528,12 @@ void output_flex_t::sync()
 
 void output_flex_t::stop()
 {
+    remember_memory_used_by_lua();
+    lua_gc(lua_state(), LUA_GCCOLLECT, 0); // run Lua garbage collection
+    log_debug(
+        "Lua program final use: {} MBytes, max use estimated: {} MBytes",
+        lua_gc(lua_state(), LUA_GCCOUNT, 0) / 1024, m_lua_memory_max / 1024);
+
     for (auto &table : m_table_connections) {
         table.task_set(thread_pool().submit([&]() {
             table.stop(get_options()->slim && !get_options()->droptemp,
@@ -1834,9 +1853,7 @@ void output_flex_t::reprocess_marked()
             util::human_readable_duration(timer.stop())));
     }
 
-    lua_gc(lua_state(), LUA_GCCOLLECT, 0);
-    log_debug("Lua program uses {} MBytes",
-              lua_gc(lua_state(), LUA_GCCOUNT, 0) / 1024);
+    remember_memory_used_by_lua();
 
     lua_getglobal(lua_state(), "osm2pgsql");
     lua_pushinteger(lua_state(), 2);

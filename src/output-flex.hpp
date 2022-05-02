@@ -214,6 +214,8 @@ private:
 
     lua_State *lua_state() noexcept { return m_lua_state.get(); }
 
+    void remember_memory_used_by_lua() noexcept;
+
     class way_cache_t
     {
     public:
@@ -290,6 +292,9 @@ private:
     prepared_lua_function_t m_select_relation_members;
 
     calling_context m_calling_context = calling_context::main;
+
+    std::size_t m_lua_memory_counter = 0;
+    int m_lua_memory_max = 0;
 
     /**
      * This is set before calling stage1c process_relation() to disable the
