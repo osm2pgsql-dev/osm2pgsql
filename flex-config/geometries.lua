@@ -157,10 +157,10 @@ function osm2pgsql.process_relation(object)
         return
     end
 
-    local type = object:grab_tag('type')
+    local relation_type = object:grab_tag('type')
 
     -- Store boundary relations as multilinestrings
-    if type == 'boundary' then
+    if relation_type == 'boundary' then
         tables.boundaries:add_row({
             type = object:grab_tag('boundary'),
             tags = object.tags,
@@ -173,7 +173,7 @@ function osm2pgsql.process_relation(object)
     end
 
     -- Store multipolygon relations as polygons
-    if type == 'multipolygon' then
+    if relation_type == 'multipolygon' then
         tables.polygons:add_row({
             tags = object.tags,
             -- For relations there is no clear definition what their geometry
