@@ -90,6 +90,9 @@ def setup_style_file(context, style):
 def execute_osm2pgsql_sucessfully(context, output):
     returncode = run_osm2pgsql(context, output)
 
+    if context.scenario.status == "skipped":
+        return
+
     assert returncode == 0,\
            f"osm2psql failed with error code {returncode}.\n"\
            f"Output:\n{context.osm2psql_outdata[0]}\n{context.osm2psql_outdata[1]}\n"
@@ -98,6 +101,9 @@ def execute_osm2pgsql_sucessfully(context, output):
 @then("running osm2pgsql (?P<output>\w+)(?: with parameters)? fails")
 def execute_osm2pgsql_with_failure(context, output):
     returncode = run_osm2pgsql(context, output)
+
+    if context.scenario.status == "skipped":
+        return
 
     assert returncode != 0, "osm2pgsql unexpectedly succeeded"
 
