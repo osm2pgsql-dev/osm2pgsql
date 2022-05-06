@@ -7,12 +7,13 @@
 """
 Steps for executing osm2pgsql.
 """
+from io import StringIO
 from pathlib import Path
 import subprocess
 
 def get_import_file(context):
     if context.import_file is not None:
-        return str(context.import_file)
+        return str(context.import_file), None
 
     context.geometry_factory.complete_node_list(context.import_data['n'])
 
@@ -20,15 +21,14 @@ def get_import_file(context):
     for obj in context.import_data.values():
         obj.sort(key=lambda l: int(l.split(' ')[0][1:]))
 
-    data_file = context.workdir / "inline_import_data.opl"
-    with data_file.open('w') as fd:
-        for typ in ('n', 'w', 'r'):
-            for line in context.import_data[typ]:
-                fd.write(line)
-                fd.write('\n')
-            context.import_data[typ].clear()
+    fd = StringIO()
+    for typ in ('n', 'w', 'r'):
+        for line in context.import_data[typ]:
+            fd.write(line)
+            fd.write('\n')
+        context.import_data[typ].clear()
 
-    return str(data_file)
+    return '-', fd.getvalue()
 
 
 def run_osm2pgsql(context, output):
@@ -54,12 +54,19 @@ def run_osm2pgsql(context, output):
         if '-S' not in cmdline:
             cmdline.extend(('-S', str(context.default_data_dir / 'default.style')))
 
-    cmdline.append(get_import_file(context))
+    data_file, data_stdin = get_import_file(context)
+
+    if data_stdin is not None:
+        data_stdin = data_stdin.encode('utf-8')
+        cmdline.extend(('-r', 'opl'))
+
+    cmdline.append(data_file)
 
     proc = subprocess.Popen(cmdline, cwd=str(context.workdir),
+                            stdin=subprocess.PIPE,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    outdata = proc.communicate()
+    outdata = proc.communicate(input=data_stdin)
 
     context.osm2psql_outdata = [d.decode('utf-8').replace('\\n', '\n') for d in outdata]
 
