@@ -12,7 +12,7 @@ from typing import Iterable
 
 from psycopg2 import sql
 
-@then("table (?P<table>.+) has (?P<row_num>\d+) rows(?P<has_where> with condition)?")
+@then("table (?P<table>.+) has (?P<row_num>\d+) rows?(?P<has_where> with condition)?")
 def db_table_row_count(context, table, row_num, has_where):
     assert table_exists(context.db, table)
 
@@ -27,13 +27,18 @@ def db_table_row_count(context, table, row_num, has_where):
            f"Table {table}: expected {row_num} rows, got {actual}"
 
 
-@then("the sum of '(?P<formula>.+)' in table (?P<table>.+) is (?P<result>\d+)")
-def db_table_sum_up(context, table, formula, result):
+@then("the sum of '(?P<formula>.+)' in table (?P<table>.+) is (?P<result>\d+)(?P<has_where> with condition)?")
+def db_table_sum_up(context, table, formula, result, has_where):
     assert table_exists(context.db, table)
 
-    actual = scalar(context.db,
-                    sql.SQL("SELECT round(sum({})) FROM {}")
-                       .format(sql.SQL(formula), sql.Identifier(table)))
+    query = sql.SQL("SELECT round(sum({})) FROM {}")\
+               .format(sql.SQL(formula), sql.Identifier(table))
+
+    if has_where:
+        query = sql.SQL("{} WHERE {}").format(query, sql.SQL(context.text))
+
+
+    actual = scalar(context.db, query)
 
     assert actual == int(result),\
            f"Table {table}: expected sum {result}, got {actual}"
@@ -62,8 +67,23 @@ def db_check_table_content(context, table):
 
     linenr = 1
     for row in context.table.rows:
-        assert any(r == row for r in actuals), f"{linenr}. entry not found in table. Full content:\n{actuals}"
+        assert any(r == row for r in actuals),\
+               f"{linenr}. entry not found in table. Full content:\n{actuals}"
         linenr += 1
+
+@then("(?P<query>SELECT .*)")
+def db_check_sql_statement(context, query):
+    with context.db.cursor() as cur:
+        cur.execute(query)
+
+        actuals = list(DBRow(r, context.table.headings) for r in cur)
+
+    linenr = 1
+    for row in context.table.rows:
+        assert any(r == row for r in actuals),\
+               f"{linenr}. entry not found in table. Full content:\n{actuals}"
+        linenr += 1
+
 
 ### Helper functions and classes
 
@@ -92,6 +112,8 @@ class DBRow:
 
             if isinstance(value, float):
                 self.data.append(DBValueFloat(value, props))
+            elif value is None:
+                self.data.append(None)
             else:
                 self.data.append(str(value))
 
@@ -99,7 +121,8 @@ class DBRow:
         if not isinstance(other, Iterable):
             return False
 
-        return all(a == b for a, b in zip(self.data, other))
+        return all((a is None) if b == 'NULL' else (a == b)
+                   for a, b in zip(self.data, other))
 
     def __repr__(self):
         return '\n[' + ', '.join(str(s) for s in self.data) + ']'

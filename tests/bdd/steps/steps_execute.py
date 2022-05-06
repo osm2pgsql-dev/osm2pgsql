@@ -7,6 +7,7 @@
 """
 Steps for executing osm2pgsql.
 """
+from pathlib import Path
 import subprocess
 
 def get_import_file(context):
@@ -32,7 +33,7 @@ def get_import_file(context):
 def run_osm2pgsql(context, output):
     assert output in ('flex', 'pgsql', 'gazetteer', 'none')
 
-    cmdline = [str(context.config.userdata['BINARY'])]
+    cmdline = [str(Path(context.config.userdata['BINARY']).resolve())]
     cmdline.extend(('-d', context.config.userdata['TEST_DB']))
     cmdline.extend(('-O', output))
     cmdline.extend(context.osm2pgsql_params)
@@ -52,7 +53,7 @@ def run_osm2pgsql(context, output):
 
     cmdline.append(get_import_file(context))
 
-    proc = subprocess.Popen(cmdline,
+    proc = subprocess.Popen(cmdline, cwd=str(context.workdir),
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     outdata = proc.communicate()
@@ -60,6 +61,10 @@ def run_osm2pgsql(context, output):
     context.osm2psql_outdata = [d.decode('utf-8').replace('\\n', '\n') for d in outdata]
 
     return proc.returncode
+
+@given("no lua tagtransform")
+def do_not_setup_tagtransform(context):
+    pass
 
 @given("the default lua tagtransform")
 def setup_lua_tagtransform(context):
