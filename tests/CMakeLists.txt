@@ -73,7 +73,6 @@ set_test(test-wkb LABELS NoDB)
 # these tests require LUA support
 if (WITH_LUA)
     set_test(test-output-flex)
-    set_test(test-output-flex-area)
     set_test(test-output-flex-attr)
     set_test(test-output-flex-bbox)
     set_test(test-output-flex-cluster)
