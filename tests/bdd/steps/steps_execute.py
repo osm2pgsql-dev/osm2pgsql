@@ -27,6 +27,9 @@ def get_import_file(context):
                 fd.write(line)
                 fd.write('\n')
 
+    # Remove import data (but not the grid)
+    context.import_data = {'n': [], 'w': [], 'r': []}
+
     return str(data_file)
 
 
