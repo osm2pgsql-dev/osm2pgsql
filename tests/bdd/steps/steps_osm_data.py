@@ -29,9 +29,13 @@ def osm_define_node_grid(context, step, origin_x, origin_y):
                                       step, x, y)
 
 
-@given("the OSM data")
-def osm_define_data(context):
-    for line in context.text.split('\n'):
+@given("the (?P<formatted>python-formatted )?OSM data")
+def osm_define_data(context, formatted):
+    data = context.text
+    if formatted:
+        data = eval('f"""' + data + '"""')
+
+    for line in data.split('\n'):
         if line:
             assert line[0] in ('n', 'w', 'r')
             context.import_data[line[0]].append(line)

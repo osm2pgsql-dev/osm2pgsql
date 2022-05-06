@@ -82,7 +82,6 @@ def before_all(context):
     if context.config.userdata['HAVE_PROJ']:
         context.config.userdata['HAVE_PROJ'] = 'Proj [disabled]' not in ver_info
 
-    context.geometry_factory = GeometryFactory()
     context.test_data_dir = Path(context.config.userdata['TEST_DATA_DIR']).resolve()
     context.default_data_dir = Path(context.config.userdata['SRC_DIR']).resolve()
 
@@ -96,13 +95,12 @@ def before_scenario(context, scenario):
     if 'config.have_lua' in scenario.tags and not context.config.userdata['HAVE_LUA']:
         scenario.skip("Lua support not compiled in.")
 
-    _drop_db(context, context.config.userdata['TEST_DB'], recreate_immediately=True)
-
     context.db = use_fixture(test_db, context)
     context.import_file = None
     context.import_data = {'n': [], 'w': [], 'r': []}
     context.osm2pgsql_params = []
     context.workdir = use_fixture(working_directory, context)
+    context.geometry_factory = GeometryFactory()
 
 
 @fixture

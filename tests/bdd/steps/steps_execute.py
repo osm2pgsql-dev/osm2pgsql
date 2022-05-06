@@ -26,9 +26,7 @@ def get_import_file(context):
             for line in context.import_data[typ]:
                 fd.write(line)
                 fd.write('\n')
-
-    # Remove import data (but not the grid)
-    context.import_data = {'n': [], 'w': [], 'r': []}
+            context.import_data[typ].clear()
 
     return str(data_file)
 
@@ -37,14 +35,16 @@ def run_osm2pgsql(context, output):
     assert output in ('flex', 'pgsql', 'gazetteer', 'none')
 
     cmdline = [str(Path(context.config.userdata['BINARY']).resolve())]
-    cmdline.extend(('-d', context.config.userdata['TEST_DB']))
     cmdline.extend(('-O', output))
     cmdline.extend(context.osm2pgsql_params)
 
     if context.table:
         cmdline.extend(f for f in context.table.headings if f)
         for row in context.table:
-            cmdline.extend(f for f in row if f)
+            cmdline.extend(f.format(**context.config.userdata) for f in row if f)
+
+    if '-d' not in cmdline and '--database' not in cmdline:
+        cmdline.extend(('-d', context.config.userdata['TEST_DB']))
 
     if 'tablespacetest' in cmdline and not context.config.userdata['HAVE_TABLESPACE']:
        context.scenario.skip('tablespace tablespacetest not available')

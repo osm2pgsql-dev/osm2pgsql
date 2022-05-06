@@ -12,11 +12,21 @@ from typing import Iterable
 
 from psycopg2 import sql
 
+@given("the database schema (?P<schema>.+)")
+def create_db_schema(context, schema):
+    with context.db.cursor() as cur:
+        cur.execute("CREATE SCHEMA " + schema)
+
 @then("table (?P<table>.+) has (?P<row_num>\d+) rows?(?P<has_where> with condition)?")
 def db_table_row_count(context, table, row_num, has_where):
     assert table_exists(context.db, table)
 
-    query = sql.SQL("SELECT count(*) FROM {}").format(sql.Identifier(table))
+    if '.' in table:
+        schema, tablename = table.split('.', 2)
+        query = sql.SQL("SELECT count(*) FROM {}.{}")\
+                   .format(sql.Identifier(schema), sql.Identifier(tablename))
+    else:
+        query = sql.SQL("SELECT count(*) FROM {}").format(sql.Identifier(table))
 
     if has_where:
         query = sql.SQL("{} WHERE {}").format(query, sql.SQL(context.text))
@@ -95,8 +105,15 @@ def scalar(conn, sql, args=None):
         return cur.fetchone()[0]
 
 def table_exists(conn, table):
-    num = scalar(conn, "SELECT count(*) FROM pg_tables WHERE tablename = %s",
-                (table, ))
+    if '.' in table:
+        schema, tablename = table.split('.', 2)
+    else:
+        schema = 'public'
+        tablename = table
+
+    num = scalar(conn, """SELECT count(*) FROM pg_tables
+                          WHERE tablename = %s AND schemaname = %s""",
+                (tablename, schema))
     return num == 1
 
 
