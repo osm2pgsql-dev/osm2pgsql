@@ -122,11 +122,10 @@ if (NOT WIN32)
 endif()
 
 
-find_package(PythonInterp 3)
 find_program(BEHAVE_BIN NAMES behave)
 
 if (BEHAVE_BIN)
-    foreach(BDD_TEST IN ITEMS regression flex)
+    foreach(BDD_TEST IN ITEMS regression flex parameters)
         add_test(NAME bdd-${BDD_TEST}
                  COMMAND behave -DBINARY=$<TARGET_FILE:osm2pgsql> ${BDD_TEST}
                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bdd)
@@ -137,21 +136,6 @@ if (BEHAVE_BIN)
                          PROPERTIES FIXTURES_REQUIRED Tablespace)
 else()
     message(WARNING "Cannot find behave, BDD tests disabled")
-endif()
-
-if (PYTHONINTERP_FOUND)
-    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/regression-test.py.in
-                   ${CMAKE_CURRENT_BINARY_DIR}/regression-test.py)
-
-    add_test(NAME regression-test-pbf
-             COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/regression-test.py -v)
-    set_tests_properties(regression-test-pbf PROPERTIES TIMEOUT ${TESTING_TIMEOUT})
-    set_tests_properties(regression-test-pbf
-                         PROPERTIES FIXTURES_REQUIRED Tablespace)
-    set_tests_properties(regression-test-pbf PROPERTIES ENVIRONMENT OSM2PGSQL_BINARY=$<TARGET_FILE:osm2pgsql>)
-    message(STATUS "Added test: regression-test-pbf (needs Python with psycopg2 module)")
-else()
-    message(WARNING "Can not find python, regression test disabled")
 endif()
 
 if (WITH_LUA)

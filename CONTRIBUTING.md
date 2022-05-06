@@ -85,12 +85,6 @@ The code comes with a suite of tests. They are only compiled and run when
 Tests are executed by calling `ctest`. You can call `ctest` with `-L NoDB` to
 only run tests that don't need a database.
 
-Regression tests require python and psycopg to be installed. On Ubuntu run:
-
-```sh
-sudo apt-get install python3-psycopg2
-```
-
 Most of these tests depend on being able to set up a database and run osm2pgsql
 against it. This is most easily done using `pg_virtualenv`. Just run
 
