@@ -3,4 +3,4 @@ build
 docs/html
 docs/latex
 
-tests/__pycache__
+__pycache__
