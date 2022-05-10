@@ -35,7 +35,7 @@ USER_CONFIG = {
 use_step_matcher('re')
 
 def _connect_db(context, dbname):
-    """ Connect to the given database and return the conntection
+    """ Connect to the given database and return the connection
         object as a context manager that automatically closes.
         Note that the connection does not commit automatically.
     """

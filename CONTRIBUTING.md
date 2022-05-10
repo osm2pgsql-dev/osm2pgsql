@@ -148,7 +148,7 @@ Per default, behave assumes that the build directory is under `osm2pgsql/build`.
 If your setup works like that, you can leave out the -D parameter.
 
 To run a single test, simply add the name of the test file, followed by a
-column an the line number of the test:
+column and the line number of the test:
 
 ```sh
 behave flex/area.feature:71
@@ -156,7 +156,7 @@ behave flex/area.feature:71
 
 If you need to inspect the database that a test produces, you can add
 `-DKEEP_TEST_DB` and behave won't remove the database after the test is
-finished. This makes of course only sense, when running a sinlge test.
+finished. This makes of course only sense, when running a single test.
 When running under pg_virtualenv, don't forget to keep the virtual environment
 as well. You can use the handy `-s` switch:
 

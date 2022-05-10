@@ -14,7 +14,7 @@ Feature: Tests for various DB connection parameters
 
         Examples:
             | connection_parameter    |
-            | {TEST_DB} |
-            | dbname={TEST_DB} |
+            | {TEST_DB}               |
+            | dbname={TEST_DB}        |
             | postgresql:///{TEST_DB} |
             | postgres:///{TEST_DB}   |
