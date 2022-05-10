@@ -35,7 +35,7 @@ class GeometryFactory:
         else:
             out = "POLYGON(({}))".format(self.mk_wkt_points(geom.strip('() ')))
 
-        return "ST_SetSRID('{}'::geometry, 4326)".format(out)
+        return f"'SRID=4326;{out}'::geometry"
 
 
     def mk_wkt_point(self, point):
