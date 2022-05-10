@@ -73,7 +73,6 @@ set_test(test-wkb LABELS NoDB)
 # these tests require LUA support
 if (WITH_LUA)
     set_test(test-output-flex)
-    set_test(test-output-flex-area)
     set_test(test-output-flex-attr)
     set_test(test-output-flex-bbox)
     set_test(test-output-flex-cluster)
@@ -122,21 +121,20 @@ if (NOT WIN32)
 endif()
 
 
-find_package(PythonInterp 3)
+find_program(BEHAVE_BIN NAMES behave)
 
-if (PYTHONINTERP_FOUND)
-    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/regression-test.py.in
-                   ${CMAKE_CURRENT_BINARY_DIR}/regression-test.py)
+if (BEHAVE_BIN)
+    foreach(BDD_TEST IN ITEMS regression flex command-line)
+        add_test(NAME bdd-${BDD_TEST}
+                 COMMAND behave -DBINARY=$<TARGET_FILE:osm2pgsql> ${BDD_TEST}
+                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bdd)
+        message(STATUS "Added test: bdd-${BDD_TEST}")
+    endforeach(BDD_TEST)
 
-    add_test(NAME regression-test-pbf
-             COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/regression-test.py -v)
-    set_tests_properties(regression-test-pbf PROPERTIES TIMEOUT ${TESTING_TIMEOUT})
-    set_tests_properties(regression-test-pbf
+    set_tests_properties(bdd-regression
                          PROPERTIES FIXTURES_REQUIRED Tablespace)
-    set_tests_properties(regression-test-pbf PROPERTIES ENVIRONMENT OSM2PGSQL_BINARY=$<TARGET_FILE:osm2pgsql>)
-    message(STATUS "Added test: regression-test-pbf (needs Python with psycopg2 module)")
 else()
-    message(WARNING "Can not find python, regression test disabled")
+    message(WARNING "Cannot find behave, BDD tests disabled")
 endif()
 
 if (WITH_LUA)
