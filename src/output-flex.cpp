@@ -1825,6 +1825,7 @@ void output_flex_t::reprocess_marked()
         for (auto &table : m_table_connections) {
             if (table.table().matches_type(osmium::item_type::way) &&
                 table.table().has_id_column()) {
+                table.analyze();
                 table.create_id_index();
             }
         }

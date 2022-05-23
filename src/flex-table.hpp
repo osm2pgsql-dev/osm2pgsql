@@ -253,6 +253,8 @@ public:
 
     void prepare();
 
+    void analyze();
+
     void create_id_index();
 
     pg_result_t get_geom_by_id(osmium::item_type type, osmid_t id) const;

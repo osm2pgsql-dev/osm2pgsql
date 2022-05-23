@@ -274,7 +274,7 @@ void table_connection_t::stop(bool updateable, bool append)
     }
 
     log_info("Analyzing table '{}'...", table().name());
-    analyze_table(*m_db_connection, table().schema(), table().name());
+    analyze();
 
     teardown();
 }
@@ -285,6 +285,11 @@ void table_connection_t::prepare()
     if (table().has_id_column() && table().has_geom_column()) {
         m_db_connection->exec(table().build_sql_prepare_get_wkb());
     }
+}
+
+void table_connection_t::analyze()
+{
+    analyze_table(*m_db_connection, table().schema(), table().name());
 }
 
 void table_connection_t::create_id_index()
