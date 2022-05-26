@@ -65,8 +65,8 @@ def db_table_existance(context, exists, tables):
             assert table_exists(context.db, table), f"Table '{table}' not found"
 
 
-@then("table (?P<table>.+) contains")
-def db_check_table_content(context, table):
+@then("table (?P<table>.+) contains(?P<exact> exactly)?")
+def db_check_table_content(context, table, exact):
     assert table_exists(context.db, table)
 
     rows = sql.SQL(', '.join(h.rsplit('@')[0] for h in context.table.headings))
@@ -78,9 +78,15 @@ def db_check_table_content(context, table):
 
     linenr = 1
     for row in context.table.rows:
-        assert any(r == row for r in actuals),\
-               f"{linenr}. entry not found in table. Full content:\n{actuals}"
+        try:
+            actuals.remove(row)
+        except ValueError:
+            assert False,\
+                   f"{linenr}. entry not found in table. Full content:\n{actuals}"
         linenr += 1
+
+    assert not exact or not actuals,\
+           f"Unexpected lines in row:\n{actuals}"
 
 @then("(?P<query>SELECT .*)")
 def db_check_sql_statement(context, query):
