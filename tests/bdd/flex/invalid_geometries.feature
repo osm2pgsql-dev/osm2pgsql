@@ -24,10 +24,6 @@ Feature: Test handling of invalid geometries
             }
 
             function osm2pgsql.process_way(object)
-                if not next(object.tags) then
-                    return
-                end
-
                 if object.tags.natural then
                     tables.polygon:add_row({
                         tags = object.tags,

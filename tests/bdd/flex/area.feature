@@ -25,15 +25,7 @@ Feature: Tests for area column type
                 }
             }
 
-            function is_empty(some_table)
-                return next(some_table) == nil
-            end
-
             function osm2pgsql.process_way(object)
-                if is_empty(object.tags) then
-                    return
-                end
-
                 polygons:add_row({
                     name = object.tags.name,
                     geom = { create = 'area' }
