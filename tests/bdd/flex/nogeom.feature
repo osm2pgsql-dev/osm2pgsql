@@ -20,9 +20,9 @@ Feature: Handling of tables without geometry
             | --slim |
 
         Then table osm2pgsql_test_pois contains exactly
-            | node_id | tags->'name' |
-            | 10      | NULL         |
-            | 11      | NULL         |
+            | node_id | tags->'name' | tags->'amenity' |
+            | 10      | NULL         | restaurant      |
+            | 11      | NULL         | post_box        |
 
         Given the OSM data
             """
@@ -33,9 +33,9 @@ Feature: Handling of tables without geometry
             | --slim | --append |
 
         Then table osm2pgsql_test_pois contains exactly
-            | node_id | tags->'name' |
-            | 10      | Schwanen     |
-            | 11      | NULL         |
+            | node_id | tags->'name' | tags->'amenity' |
+            | 10      | Schwanen     | restaurant      |
+            | 11      | NULL         | post_box        |
 
 
 
