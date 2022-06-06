@@ -6,15 +6,10 @@ Feature: Handling of errors in the Lua script
     Scenario: Missing geom transform in table with geometry should lead to an error
         Given the lua style
             """
-            local test_table = osm2pgsql.define_table{
-                name = 'osm2pgsql_test_polygon',
-                ids = { type = 'area', id_column = 'osm_id' },
-                columns = {
-                    { column = 'tags', type = 'hstore' },
-                    { column = 'geom', type = 'geometry' },
-                    { column = 'area', type = 'area' },
-                }
-            }
+            local test_table = osm2pgsql.define_area_table('osm2pgsql_test_lua', {
+                { column = 'tags', type = 'hstore' },
+                { column = 'geom', type = 'geometry' }
+            })
 
             function osm2pgsql.process_way(object)
                 test_table:add_row({
