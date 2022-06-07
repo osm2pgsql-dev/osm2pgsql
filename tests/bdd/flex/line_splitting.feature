@@ -38,13 +38,14 @@ Feature: Test splitting of lines
         When running osm2pgsql flex
 
         Then table osm2pgsql_test_line contains exactly
-            | way_id | ST_Length(geom) |
-            | 20     | 1.0             |
-            | 21     | 2.5             |
+            | way_id | ST_Length(geom) | ST_AsText(geom) |
+            | 20     | 1.0             | 10, 11          |
+            | 21     | 2.5             | 10, 12          |
 
         And table osm2pgsql_test_split contains exactly
-            | way_id | ST_Length(geom) |
-            | 20     | 1.0             |
-            | 21     | 1.0             |
-            | 21     | 1.0             |
-            | 21     | 0.5             |
+            | way_id | ST_Length(geom) | ST_AsText(geom)      |
+            | 20     | 1.0             | 10, 11               |
+            | 21     | 1.0             | 20.0 20.0, 21.0 20.0 |
+            | 21     | 1.0             | 21.0 20.0, 22.0 20.0 |
+            | 21     | 0.5             | 22.0 20.0, 22.5 20.0 |
+

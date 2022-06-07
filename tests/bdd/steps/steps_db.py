@@ -185,7 +185,7 @@ class DBValueGeometry:
         elif other.find('(') < 0:
             geom = self._parse_input_line(other)
         else:
-            geom = [self._parse_input_line(ln) for ln in geom.strip()[1:-1].split('),(')]
+            geom = [self._parse_input_line(ln) for ln in other.strip()[1:-1].split('),(')]
 
         return self.value == geom
 

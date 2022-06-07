@@ -25,15 +25,7 @@ Feature: Handling of multiple geometries
                 }
             }
 
-            function is_empty(some_table)
-                return next(some_table) == nil
-            end
-
             function osm2pgsql.process_way(object)
-                if is_empty(object.tags) then
-                    return
-                end
-
                 polygons:add_row({
                     name = object.tags.name,
                     geom = { create = 'area' }
@@ -64,19 +56,11 @@ Feature: Handling of multiple geometries
                 ids = { type = 'area', id_column = 'osm_id' },
                 columns = {
                     { column = 'name', type = 'text' },
-                    { column = 'geom', type = '<geometry_type>' }
+                    { column = 'geom', type = '<geometry_type>', projection = 4326 }
                 }
             }
 
-            function is_empty(some_table)
-                return next(some_table) == nil
-            end
-
             function osm2pgsql.process_way(object)
-                if is_empty(object.tags) then
-                    return
-                end
-
                 polygons:add_row({
                     name = object.tags.name,
                     geom = { create = 'area' }
@@ -93,11 +77,11 @@ Feature: Handling of multiple geometries
         When running osm2pgsql flex
 
         Then table osm2pgsql_test_polygon contains exactly
-            | osm_id | ST_GeometryType(geom) |
-            | 20     | ST_Polygon            |
-            | -30    | ST_Polygon            |
-            | -31    | ST_Polygon            |
-            | -31    | ST_Polygon            |
+            | osm_id | ST_GeometryType(geom) | ST_AsText(geom)      |
+            | 20     | ST_Polygon            | (10, 11, 12, 13, 10) |
+            | -30    | ST_Polygon            | (10, 11, 12, 13, 10) |
+            | -31    | ST_Polygon            | (10, 11, 12, 13, 10) |
+            | -31    | ST_Polygon            | (14, 15, 16, 17, 14) |
 
         Examples:
             | geometry_type |
@@ -117,15 +101,7 @@ Feature: Handling of multiple geometries
                 }
             }
 
-            function is_empty(some_table)
-                return next(some_table) == nil
-            end
-
             function osm2pgsql.process_way(object)
-                if is_empty(object.tags) then
-                    return
-                end
-
                 polygons:add_row({
                     name = object.tags.name,
                     geom = { create = 'area' }
@@ -160,15 +136,7 @@ Feature: Handling of multiple geometries
                 }
             }
 
-            function is_empty(some_table)
-                return next(some_table) == nil
-            end
-
             function osm2pgsql.process_way(object)
-                if is_empty(object.tags) then
-                    return
-                end
-
                 polygons:add_row({
                     name = object.tags.name,
                     geom = { create = 'area' }

@@ -10,24 +10,7 @@ Feature: Test flex config without clustering
                 { column = 'geom', type = 'point' },
             }, { cluster = 'no' })
 
-            function is_empty(some_table)
-                return next(some_table) == nil
-            end
-
-            function clean_tags(tags)
-                tags.odbl = nil
-                tags.created_by = nil
-                tags.source = nil
-                tags['source:ref'] = nil
-                tags['source:name'] = nil
-            end
-
             function osm2pgsql.process_node(data)
-                clean_tags(data.tags)
-                if is_empty(data.tags) then
-                    return
-                end
-
                 dtable:add_row({
                     tags = data.tags
                 })
@@ -36,9 +19,9 @@ Feature: Test flex config without clustering
 
     Scenario: Import non-slim without clustering
         When running osm2pgsql flex
-        Then table osm2pgsql_test_point has 1362 rows
+        Then table osm2pgsql_test_point has 1562 rows
 
     Scenario: Import slim without clustering
         When running osm2pgsql flex with parameters
             | --slim |
-        Then table osm2pgsql_test_point has 1362 rows
+        Then table osm2pgsql_test_point has 1562 rows

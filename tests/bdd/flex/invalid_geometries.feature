@@ -24,10 +24,6 @@ Feature: Test handling of invalid geometries
             }
 
             function osm2pgsql.process_way(object)
-                if not next(object.tags) then
-                    return
-                end
-
                 if object.tags.natural then
                     tables.polygon:add_row({
                         tags = object.tags,
@@ -66,9 +62,9 @@ Feature: Test handling of invalid geometries
 
         Then table osm2pgsql_test_polygon has 0 rows
         Then table osm2pgsql_test_line contains exactly
-            | osm_id |
-            | 20     |
-            | 21     |
+            | osm_id | ST_AsText(geom) |
+            | 20     | 10, 12          |
+            | 21     | 10, 12          |
 
 
     Scenario: Invalid area geometry from way should be ignored
@@ -86,9 +82,9 @@ Feature: Test handling of invalid geometries
 
         Then table osm2pgsql_test_line has 0 rows
         Then table osm2pgsql_test_polygon contains exactly
-            | osm_id |
-            | 20     |
-            | 21     |
+            | osm_id | ST_AsText(geom)  |
+            | 20     | (10, 11, 12, 10) |
+            | 21     | (10, 11, 12, 10) |
 
 
     Scenario: Area with self-intersection from way should be ignored
