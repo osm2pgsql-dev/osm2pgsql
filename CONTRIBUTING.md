@@ -147,6 +147,12 @@ behave -DBINARY=<your build directory>/osm2pgsql
 Per default, behave assumes that the build directory is under `osm2pgsql/build`.
 If your setup works like that, you can leave out the -D parameter.
 
+To make this a bit easier a shell script `run-behave` is provided in your
+build directory which sets those correct paths and calls `behave`. If run
+with `-p` as first option it will wrap the call to `behave` in a call to
+`pg_virtualenv` for your convenience. All other command line parameters of
+`run-behave` will be passed through to behave.
+
 To run a single test, simply add the name of the test file, followed by a
 column and the line number of the test:
 
