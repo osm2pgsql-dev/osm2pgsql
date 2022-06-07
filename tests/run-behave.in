@@ -1,0 +1,10 @@
+#!/bin/sh
+
+if [ "$1" = "-p" ]; then
+    pgv=pg_virtualenv
+    shift
+fi
+
+cd @PROJECT_SOURCE_DIR@/tests/bdd
+exec $pgv behave -DBINARY=@PROJECT_BINARY_DIR@/osm2pgsql "$@"
+

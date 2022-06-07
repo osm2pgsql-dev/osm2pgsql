@@ -314,6 +314,10 @@ if (BUILD_TESTS)
         set(TESTING_TIMEOUT 1200)
     endif()
     add_subdirectory(tests)
+    configure_file(
+        ${PROJECT_SOURCE_DIR}/tests/run-behave.in
+        ${PROJECT_BINARY_DIR}/run-behave
+    )
 else()
     message(STATUS "Tests disabled. Set BUILD_TESTS=ON to enable tests.")
 endif()
