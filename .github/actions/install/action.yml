@@ -1,0 +1,26 @@
+---
+name: Install osm2pgsql & check installation
+
+runs:
+  using: composite
+
+  steps:
+    - name: install
+      run: sudo make install
+      shell: bash --noprofile --norc -euxo pipefail {0}
+      working-directory: build
+
+    - name: check
+      run: |
+        export INSTALL_PREFIX=${INSTALL_PREFIX:-/usr/local}
+
+        test -d ${INSTALL_PREFIX}/bin
+        test -e ${INSTALL_PREFIX}/bin/osm2pgsql
+        test -e ${INSTALL_PREFIX}/bin/osm2pgsql-replication
+        test -d ${INSTALL_PREFIX}/share/man/man1
+        test -f ${INSTALL_PREFIX}/share/man/man1/osm2pgsql.1
+        test -f ${INSTALL_PREFIX}/share/man/man1/osm2pgsql-replication.1
+        test -d ${INSTALL_PREFIX}/share/osm2pgsql
+        test -f ${INSTALL_PREFIX}/share/osm2pgsql/default.style
+        test -f ${INSTALL_PREFIX}/share/osm2pgsql/empty.style
+      shell: bash --noprofile --norc -euxo pipefail {0}

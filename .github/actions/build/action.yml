@@ -1,0 +1,44 @@
+---
+name: Build osm2pgsql
+
+runs:
+  using: composite
+
+  steps:
+    - name: create build directory
+      run: mkdir build
+      shell: bash
+
+    - name: configure
+      run: |
+        export CMAKE_OPTIONS="${CMAKE_OPTIONS:--LA}"
+        export CXXFLAGS=${CXXFLAGS:--pedantic -Werror -Wextra}
+
+        if [ -z "${LUA_VERSION:-}" ]; then
+          CMAKE_OPTIONS="${CMAKE_OPTIONS} -DWITH_LUA=OFF"
+        else
+          CMAKE_OPTIONS="${CMAKE_OPTIONS} -DWITH_LUAJIT=${LUAJIT_OPTION:-OFF}"
+        fi
+        if [ -n "${USE_PROJ_LIB:-}" ]; then
+          CMAKE_OPTIONS="${CMAKE_OPTIONS} -DUSE_PROJ_LIB=${USE_PROJ_LIB}"
+        fi
+        if [ -n "${CPP_VERSION:-}" ]; then
+          CMAKE_OPTIONS="${CMAKE_OPTIONS} -DCMAKE_CXX_STANDARD=${CPP_VERSION}"
+        fi
+        if [ -n "${BUILD_TESTS:-}" ]; then
+          CMAKE_OPTIONS="${CMAKE_OPTIONS} -DBUILD_TESTS=${BUILD_TESTS}"
+        fi
+        if [ -n "${BUILD_TYPE:-}" ]; then
+          CMAKE_OPTIONS="${CMAKE_OPTIONS} -DCMAKE_BUILD_TYPE=${BUILD_TYPE}"
+        fi
+        cmake \
+          ${CMAKE_OPTIONS} \
+          -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX:-/usr/local} \
+          ..
+      shell: bash --noprofile --norc -euxo pipefail {0}
+      working-directory: build
+
+    - name: build
+      run: make -j4 all man
+      shell: bash
+      working-directory: build

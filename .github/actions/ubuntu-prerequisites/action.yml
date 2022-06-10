@@ -1,19 +1,20 @@
-name: 'Install Prerequisites on Ubuntu'
+---
+name: Install Prerequisites on Ubuntu
 
 runs:
-  using: "composite"
+  using: composite
 
   steps:
     - name: Remove preinstalled postgresql
       run: |
-        sudo apt-get remove -yq postgresql*
+        sudo apt-get purge -qq postgresql*
         sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
         sudo apt-get update -qq
-      shell: bash
+      shell: bash --noprofile --norc -euxo pipefail {0}
 
     - name: Install software
       run: |
-        sudo apt-get install -yq --no-install-suggests --no-install-recommends \
+        sudo apt-get install -qq --no-install-suggests --no-install-recommends \
           libboost-filesystem-dev \
           libboost-system-dev \
           libbz2-dev \
@@ -24,32 +25,50 @@ runs:
           postgresql-${POSTGRESQL_VERSION} \
           postgresql-${POSTGRESQL_VERSION}-postgis-${POSTGIS_VERSION} \
           postgresql-${POSTGRESQL_VERSION}-postgis-${POSTGIS_VERSION}-scripts \
-          postgresql-client postgresql-contrib-${POSTGRESQL_VERSION} \
+          postgresql-client-${POSTGRESQL_VERSION} \
+          postgresql-contrib-${POSTGRESQL_VERSION} \
           python3-psycopg2 \
+          python3-pyosmium \
           python3-setuptools \
           zlib1g-dev
         pip3 install behave
-        if [ "$CC" = clang-8 ]; then sudo apt-get install -yq --no-install-suggests --no-install-recommends clang-8; fi
-      shell: bash
+      shell: bash --noprofile --norc -euxo pipefail {0}
+
+    - name: Install compiler and set CC/CXX
+      run: |
+        if [ -z "${CC:-}" ]; then
+          export CC=gcc
+          echo "CC=${CC}" >> $GITHUB_ENV
+        fi
+        if [ "${CC:0:3}" == "gcc" ]; then
+          export CXX=${CC/gcc/g++}
+          echo "CXX=${CXX}" >> $GITHUB_ENV
+          sudo apt-get install -qq --no-install-suggests --no-install-recommends ${CC} ${CXX}
+        elif [ "${CC:0:5}" == "clang" ]; then
+          export CXX=${CC/clang/clang++}
+          echo "CXX=${CXX}" >> $GITHUB_ENV
+          sudo apt-get install -qq --no-install-suggests --no-install-recommends ${CC}
+        fi
+      shell: bash --noprofile --norc -euxo pipefail {0}
 
     - name: Install Lua
       run: |
-        if [ -n "${LUA_VERSION}" ]; then
-          sudo apt-get install -yq --no-install-suggests --no-install-recommends liblua${LUA_VERSION}-dev lua${LUA_VERSION}
+        if [ -n "${LUA_VERSION:-}" ]; then
+          sudo apt-get install -qq --no-install-suggests --no-install-recommends liblua${LUA_VERSION}-dev lua${LUA_VERSION}
         fi
-      shell: bash
+      shell: bash --noprofile --norc -euxo pipefail {0}
 
     - name: Install LuaJIT
       run: |
-        if [ "${LUAJIT_OPTION}" = "ON" ]; then
-          sudo apt-get install -yq --no-install-suggests --no-install-recommends libluajit-5.1-dev
+        if [ "${LUAJIT_OPTION:-}" = "ON" ]; then
+          sudo apt-get install -qq --no-install-suggests --no-install-recommends libluajit-5.1-dev
         fi
-      shell: bash
+      shell: bash --noprofile --norc -euxo pipefail {0}
 
     - name: Adapt postgresql configuration
       run: |
         echo 'fsync = off' | sudo tee /etc/postgresql/${POSTGRESQL_VERSION}/main/conf.d/local.conf
-        echo 'synchronous_commit = off' | sudo tee -a /etc/postgresql/${POSTGRESQL_VERSION}/main/conf.d/local.conf
         echo 'full_page_writes = off' | sudo tee -a /etc/postgresql/${POSTGRESQL_VERSION}/main/conf.d/local.conf
         echo 'shared_buffers = 1GB' | sudo tee -a /etc/postgresql/${POSTGRESQL_VERSION}/main/conf.d/local.conf
-      shell: bash
+        echo 'synchronous_commit = off' | sudo tee -a /etc/postgresql/${POSTGRESQL_VERSION}/main/conf.d/local.conf
+      shell: bash --noprofile --norc -euxo pipefail {0}

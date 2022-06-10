@@ -1,0 +1,27 @@
+---
+name: Test osm2pgsql
+
+inputs:
+  wrapper:
+    description: Wrapper to use around tests
+    required: false
+
+runs:
+  using: composite
+
+  steps:
+    - name: test
+      env:
+        WRAPPER: ${{ inputs.wrapper }}
+      run: |
+        CTEST_CMD="ctest --output-on-failure"
+
+        if [ "${WRAPPER}" == "pg_virtualenv" ]; then
+          ${WRAPPER} -v ${POSTGRESQL_VERSION} ${CTEST_CMD}
+        elif [ -n "${WRAPPER}" ]; then
+          ${WRAPPER} ${CTEST_CMD}
+        else
+           ${CTEST_CMD}
+        fi
+      shell: bash --noprofile --norc -euxo pipefail {0}
+      working-directory: build

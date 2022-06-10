@@ -2,6 +2,7 @@ name: Set up postgresql on Windows
 
 runs:
   using: composite
+
   steps:
     - name: Download postgis
       run: |
@@ -12,6 +13,13 @@ runs:
       run: |
         echo "Root: $PGROOT, Bin: $PGBIN"
         cp -r c:/postgis_archive/postgis-bundle-*/* "$PGROOT"
+      shell: bash
+    - name: Configure PostgreSQL
+      run: |
+        echo "fsync = off" >> "$PGROOT\data\postgresql.conf"
+        echo "full_page_writes = off" >> "$PGROOT\data\postgresql.conf"
+        echo "shared_buffers = 1GB" >> "$PGROOT\data\postgresql.conf"
+        echo "synchronous_commit = off" >> "$PGROOT\data\postgresql.conf"
       shell: bash
     - name: Start PostgreSQL on Windows
       run: |

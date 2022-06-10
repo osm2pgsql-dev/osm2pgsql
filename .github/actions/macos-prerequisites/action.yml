@@ -1,0 +1,34 @@
+---
+name: Install Prerequisites on macOS
+
+runs:
+  using: composite
+
+  steps:
+    - name: Install software
+      run: |
+        brew install boost lua pandoc postgis
+        pip3 install behave psycopg2
+      shell: bash --noprofile --norc -euxo pipefail {0}
+
+    - name: Start database
+      run: |
+        mkdir -p ${PGDATA}
+        pg_ctl init --pgdata=${PGDATA}
+        echo "fsync = off" >> ${PGDATA}/postgresql.conf
+        echo "full_page_writes = off" >> ${PGDATA}/postgresql.conf
+        echo "shared_buffers = 1GB" >> ${PGDATA}/postgresql.conf
+        echo "synchronous_commit = off" >> ${PGDATA}/postgresql.conf
+        echo "unix_socket_directories = ''" >> ${PGDATA}/postgresql.conf
+        pg_ctl start --pgdata=${PGDATA}
+      shell: bash --noprofile --norc -euxo pipefail {0}
+
+    - name: Setup database
+      run: |
+        pg_isready --timeout=30
+        mkdir -m 777 /tmp/tst
+        psql -c "CREATE TABLESPACE tablespacetest LOCATION '/tmp/tst'"
+        psql -c "CREATE EXTENSION hstore"
+        psql -c "CREATE EXTENSION postgis"
+        psql -c "SELECT PostGIS_Full_Version()"
+      shell: bash --noprofile --norc -euxo pipefail {0}

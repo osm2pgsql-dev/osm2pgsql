@@ -1,262 +1,232 @@
+---
 name: CI
 
-on: [ push, pull_request ]
+on: [push, pull_request]
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
-  macos:
-    runs-on: macos-latest
+  macOS:
     env:
-      LUA_VERSION: 5.4
-    steps:
-      - uses: actions/checkout@v2
+      BUILD_TESTS: ON
+      BUILD_TYPE: ${{ matrix.build_type || 'Debug' }}
+      LUA_VERSION: ${{ matrix.lua_version || '' }}
+      LUAJIT_OPTION: ${{ matrix.luajit_option && 'ON' || 'OFF' }}
+      PGDATA: /tmp/postgresql/data
+      PGDATABASE: postgres
+      PGHOST: localhost
 
-      - name: Install prerequisites
-        run: |
-          brew install lua boost postgis pandoc
-          pip3 install psycopg2 behave
-          pg_ctl -D /usr/local/var/postgres start
-        shell: bash
+    name: macos${{ matrix.image_tag }}
 
-      - name: Setup database
-        run: |
-          psql -d postgres -c 'CREATE EXTENSION postgis'
-          psql -d postgres -c 'CREATE EXTENSION hstore'
-          psql -d postgres -c 'SELECT PostGIS_Full_Version()'
-          mkdir -m 700 $GITHUB_WORKSPACE/tablespacetest
-          psql -d postgres -c "CREATE TABLESPACE tablespacetest LOCATION '$GITHUB_WORKSPACE/tablespacetest'"
-        shell: bash
+    runs-on: macos-${{ matrix.image_tag }}
 
-      - uses: ./.github/actions/build-and-test
-        with:
-          test-wrapper: ''
-        env:
-          PGHOST: /tmp
-
-
-  ubuntu18-pg95-gcc7-jit:
-    runs-on: ubuntu-18.04
-
-    env:
-      CC: gcc-7
-      CXX: g++-7
-      LUA_VERSION: 5.3
-      LUAJIT_OPTION: ON
-      POSTGRESQL_VERSION: 9.5
-      POSTGIS_VERSION: 2.4
-      BUILD_TYPE: Release
-
-    steps:
-      - uses: actions/checkout@v2
-      - uses: ./.github/actions/ubuntu-prerequisites
-      - uses: ./.github/actions/build-and-test
-
-  ubuntu18-pg96-clang8-jit:
-    runs-on: ubuntu-18.04
-
-    env:
-      CC: clang-8
-      CXX: clang++-8
-      LUA_VERSION: 5.3
-      LUAJIT_OPTION: ON
-      POSTGRESQL_VERSION: 9.6
-      POSTGIS_VERSION: 2.4
-      BUILD_TYPE: Release
-
-    steps:
-      - uses: actions/checkout@v2
-      - uses: ./.github/actions/ubuntu-prerequisites
-      - uses: ./.github/actions/build-and-test
-
-  ubuntu18-pg10-gcc9:
-    runs-on: ubuntu-18.04
-
-    env:
-      CC: gcc-9
-      CXX: g++-9
-      LUA_VERSION: 5.3
-      LUAJIT_OPTION: OFF
-      POSTGRESQL_VERSION: 10
-      POSTGIS_VERSION: 3
-      CPP_VERSION: 17
-      BUILD_TYPE: Debug
-
-    steps:
-      - uses: actions/checkout@v2
-      - uses: ./.github/actions/ubuntu-prerequisites
-      - uses: ./.github/actions/build-and-test
-
-
-  ubuntu18-pg11-clang9:
-    runs-on: ubuntu-18.04
-
-    env:
-      CC: clang-9
-      CXX: clang++-9
-      LUA_VERSION: 5.3
-      LUAJIT_OPTION: OFF
-      POSTGRESQL_VERSION: 11
-      POSTGIS_VERSION: 2.5
-      CPP_VERSION: 17
-      BUILD_TYPE: Debug
-
-    steps:
-      - uses: actions/checkout@v2
-      - uses: ./.github/actions/ubuntu-prerequisites
-      - uses: ./.github/actions/build-and-test
-
-  ubuntu20-pg12-gcc10-jit:
-    runs-on: ubuntu-20.04
-
-    env:
-      CC: gcc-10
-      CXX: g++-10
-      LUA_VERSION: 5.3
-      LUAJIT_OPTION: ON
-      POSTGRESQL_VERSION: 12
-      POSTGIS_VERSION: 2.5
-      CPP_VERSION: 17
-      BUILD_TYPE: Debug
-
-    steps:
-      - uses: actions/checkout@v2
-      - uses: ./.github/actions/ubuntu-prerequisites
-      - uses: ./.github/actions/build-and-test
-
-
-  ubuntu20-pg13-clang10-jit:
-    runs-on: ubuntu-20.04
-
-    env:
-      CC: clang-10
-      CXX: clang++-10
-      LUA_VERSION: 5.3
-      LUAJIT_OPTION: ON
-      POSTGRESQL_VERSION: 13
-      POSTGIS_VERSION: 3
-      CPP_VERSION: 17
-      BUILD_TYPE: Debug
-
-    steps:
-      - uses: actions/checkout@v2
-      - uses: ./.github/actions/ubuntu-prerequisites
-      - uses: ./.github/actions/build-and-test
-
-  ubuntu20-pg13-clang10-proj6:
-    runs-on: ubuntu-20.04
-
-    env:
-      CC: clang-10
-      CXX: clang++-10
-      LUA_VERSION: 5.3
-      LUAJIT_OPTION: OFF
-      POSTGRESQL_VERSION: 13
-      POSTGIS_VERSION: 3
-      CPP_VERSION: 17
-      USE_PROJ_LIB: 6
-      BUILD_TYPE: Debug
-
-    steps:
-      - uses: actions/checkout@v2
-      - uses: ./.github/actions/ubuntu-prerequisites
-      - uses: ./.github/actions/build-and-test
-
-  ubuntu20-pg13-clang10-noproj:
-    runs-on: ubuntu-20.04
-
-    env:
-      CC: clang-10
-      CXX: clang++-10
-      LUA_VERSION: 5.3
-      LUAJIT_OPTION: OFF
-      POSTGRESQL_VERSION: 13
-      POSTGIS_VERSION: 3
-      CPP_VERSION: 17
-      USE_PROJ_LIB: off
-      BUILD_TYPE: Debug
-
-    steps:
-      - uses: actions/checkout@v2
-      - uses: ./.github/actions/ubuntu-prerequisites
-      - uses: ./.github/actions/build-and-test
-
-  ubuntu20-pg13-clang10-cpp17:
-    runs-on: ubuntu-20.04
-
-    env:
-      CC: clang-10
-      CXX: clang++-10
-      LUA_VERSION: 5.3
-      LUAJIT_OPTION: OFF
-      POSTGRESQL_VERSION: 14
-      POSTGIS_VERSION: 3
-      CPP_VERSION: 17
-      USE_PROJ_LIB: 6
-      BUILD_TYPE: Debug
-
-    steps:
-      - uses: actions/checkout@v2
-      - uses: ./.github/actions/ubuntu-prerequisites
-      - uses: ./.github/actions/build-and-test
-
-  ubuntu20-pg13-gcc10-release:
-    runs-on: ubuntu-20.04
-
-    env:
-      CC: gcc-10
-      CXX: g++-10
-      LUA_VERSION: 5.3
-      LUAJIT_OPTION: ON
-      POSTGRESQL_VERSION: 13
-      POSTGIS_VERSION: 2.5
-      CPP_VERSION: 17
-      BUILD_TYPE: Release
-
-    steps:
-      - uses: actions/checkout@v2
-      - uses: ./.github/actions/ubuntu-prerequisites
-      - uses: ./.github/actions/build-and-test
-
-  ubuntu20-pg13-gcc10-release-nolua:
-    runs-on: ubuntu-20.04
-
-    env:
-      CC: gcc-10
-      CXX: g++-10
-      POSTGRESQL_VERSION: 13
-      POSTGIS_VERSION: 2.5
-      CPP_VERSION: 17
-      BUILD_TYPE: Release
-
-    steps:
-      - uses: actions/checkout@v2
-      - uses: ./.github/actions/ubuntu-prerequisites
-      - uses: ./.github/actions/build-and-test
-
-  windows:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2019, windows-2022]
-    runs-on: ${{ matrix.os }}
+        image_tag:
+          - 10.15
+          - 11
+          - 12
+        lua_version:
+          - 5.4
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/macos-prerequisites
+      - uses: ./.github/actions/build
+      - uses: ./.github/actions/test
+
+  Ubuntu:
+    env:
+      BUILD_TESTS: ON
+      BUILD_TYPE: ${{ matrix.build_type || 'Debug' }}
+      CC: ${{ matrix.cc || 'gcc' }}
+      CPP_VERSION: ${{ matrix.cpp_version || '' }}
+      DEBIAN_FRONTEND: noninteractive
+      LUA_VERSION: ${{ matrix.lua_version || '' }}
+      LUAJIT_OPTION: ${{ matrix.luajit_option && 'ON' || 'OFF' }}
+      POSTGIS_VERSION: ${{ matrix.postgis_version || '3' }}
+      POSTGRESQL_VERSION: ${{ matrix.postgresql_version || '14' }}
+      USE_PROJ_LIB: ${{ matrix.use_proj_lib || '' }}
+
+    name: >-
+      ubuntu${{ matrix.image_tag }}
+      pg${{ matrix.postgresql_version || '13' }}
+      ${{ matrix.cc || 'gcc' }}
+      ${{ matrix.build_type == 'Release' && 'release' || '' }}
+      ${{ matrix.lua_version && format('lua{0}', matrix.lua_version) || 'nolua' }}
+      ${{ matrix.luajit_option && 'jit' || '' }}
+      ${{ matrix.cpp_version && format('cpp{0}', matrix.cpp_version) || '' }}
+      ${{ matrix.use_proj_lib && (matrix.use_proj_lib == 'off' && 'noproj' || format('proj{0}', matrix.use_proj_lib)) || '' }}
+
+    runs-on: ubuntu-${{ matrix.image_tag }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        image_tag:
+          # - 18.04  # Clang 6.0.0  | GCC 7.5.0
+          # - 20.04  # Clang 10.0.0 | GCC 9.4.0
+          - 22.04  # Clang 14.0.0 | GCC 11.2.0
+        cc:
+          - clang
+          - gcc
+        lua_version:
+          - 5.4
+          - false
+        luajit_option:
+          - false
+          - true
+        postgis_version:
+          - 3
+        postgresql_version:
+          - 14
+        exclude:
+          - lua_version: false
+            luajit_option: true
+        include:
+          # ubuntu18-pg95-gcc7-jit
+          - build_type: Release
+            cc: gcc-7
+            image_tag: 18.04
+            lua_version: 5.3
+            luajit_option: true
+            postgis_version: 2.5
+            postgresql_version: 9.5
+          # ubuntu18-pg96-clang8-jit
+          - build_type: Release
+            cc: clang-8
+            image_tag: 18.04
+            lua_version: 5.3
+            luajit_option: true
+            postgis_version: 2.5
+            postgresql_version: 9.6
+          # ubuntu18-pg10-gcc9
+          - build_type: Debug
+            cc: gcc-9
+            cpp_version: 17
+            image_tag: 18.04
+            lua_version: 5.3
+            luajit_option: false
+            postgis_version: 3
+            postgresql_version: 10
+          # ubuntu18-pg11-clang9
+          - build_type: Debug
+            cc: clang-9
+            cpp_version: 17
+            image_tag: 18.04
+            lua_version: false
+            luajit_option: false
+            postgis_version: 2.5
+            postgresql_version: 11
+          # ubuntu20-pg12-gcc10-jit
+          - build_type: Debug
+            cc: gcc-10
+            cpp_version: 17
+            image_tag: 20.04
+            lua_version: 5.3
+            luajit_option: true
+            postgis_version: 2.5
+            postgresql_version: 12
+          # ubuntu20-pg13-clang10-jit
+          - build_type: Debug
+            cc: clang-10
+            cpp_version: 17
+            image_tag: 20.04
+            lua_version: 5.3
+            luajit_option: true
+            postgis_version: 3
+            postgresql_version: 13
+          # ubuntu20-pg13-clang10-proj6
+          - build_type: Debug
+            cc: clang-10
+            cpp_version: 17
+            image_tag: 20.04
+            lua_version: 5.3
+            luajit_option: false
+            postgis_version: 3
+            postgresql_version: 13
+            use_proj_lib: 6
+          # ubuntu20-pg13-clang10-noproj
+          - build_type: Debug
+            cc: clang-10
+            cpp_version: 17
+            image_tag: 20.04
+            lua_version: 5.3
+            luajit_option: false
+            postgis_version: 3
+            postgresql_version: 13
+            use_proj_lib: off
+          # ubuntu20-pg14-clang10-cpp17
+          - build_type: Debug
+            cc: clang-10
+            cpp_version: 17
+            image_tag: 20.04
+            lua_version: 5.3
+            luajit_option: false
+            postgis_version: 3
+            postgresql_version: 14
+            use_proj_lib: 6
+          # ubuntu20-pg13-gcc10-release
+          - build_type: Release
+            cc: gcc-10
+            cpp_version: 17
+            image_tag: 20.04
+            lua_version: 5.3
+            luajit_option: true
+            postgis_version: 2.5
+            postgresql_version: 13
+          # ubuntu20-pg13-gcc10-release-nolua
+          - build_type: Release
+            cc: gcc-10
+            cpp_version: 17
+            image_tag: 20.04
+            lua_version: false
+            luajit_option: false
+            postgis_version: 2.5
+            postgresql_version: 13
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/build
+      - uses: ./.github/actions/test
+        with:
+          wrapper: pg_virtualenv
+
+  Windows:
     env:
       GETOPT_INCLUDE_DIR: ${{ github.workspace }}/../wingetopt/src
       GETOPT_LIBRARY: ${{ github.workspace }}/../wingetopt/build/Release/wingetopt.lib
-      VCPKG_DEFAULT_BINARY_CACHE: C:/vcpkg_binary_cache
+      VCPKG_DEFAULT_BINARY_CACHE: C:\vcpkg_binary_cache
+
+    name: windows${{ matrix.image_tag }}
+
+    runs-on: windows-${{ matrix.image_tag }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        image_tag: [2019, 2022]
+
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v2
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v3
         with:
-          path: |
-            C:/vcpkg_binary_cache
-          key: vcpkg-binary-cache-${{ matrix.os }}
-      - uses: actions/cache@v2
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-binary-cache-windows-${{ matrix.image_tag }}
+      - uses: actions/cache@v3
         with:
           path: |
             C:/postgis.zip
           key: postgis-cache
       - name: Prepare cache
-        run: if [ ! -d C:/vcpkg_binary_cache ]; then mkdir C:/vcpkg_binary_cache; fi
-        shell: bash
+        run: |
+          if [ ! -d "${VCPKG_DEFAULT_BINARY_CACHE}" ]; then
+            mkdir "${VCPKG_DEFAULT_BINARY_CACHE}"
+          fi
       - uses: ./.github/actions/win-postgres
       - uses: ./.github/actions/win-install
       - uses: ./.github/actions/win-getopt
@@ -268,40 +238,45 @@ jobs:
           mkdir c:/artifact/
           mkdir c:/artifact/osm2pgsql-bin
           cp -r Release/* ../README.md ../COPYING ../*.style ../scripts ../flex-config c:/artifact/osm2pgsql-bin/
-        shell: bash
         working-directory: build
-        if: matrix.os == 'windows-2022'
+        if: matrix.image_tag == '2022'
       - name: 'Upload Artifact'
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: osm2pgsql-win64
           path: c:/artifact
-        if: matrix.os == 'windows-2022'
+        if: matrix.image_tag == '2022'
 
   windows-package:
-    needs: windows
-    runs-on: windows-2022
     env:
+      OSMFILE: monaco-latest.osm.bz2
       OSMURL: https://download.geofabrik.de/europe/monaco-latest.osm.bz2
+
+    name: windows2022 (Install & import OSM data)
+
+    needs: Windows
+
+    runs-on: windows-2022
+
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v2
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v3
         with:
           path: |
             C:/postgis.zip
           key: postgis-cache
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: osm2pgsql-win64
       - uses: ./.github/actions/win-postgres
       - name: Set up database
         run: |
           & $env:PGBIN\createdb osm
-          & $env:PGBIN\psql -d osm -c "CREATE EXTENSION hstore; CREATE EXTENSION postgis;"
+          & $env:PGBIN\psql -d osm -c "CREATE EXTENSION hstore;"
+          & $env:PGBIN\psql -d osm -c "CREATE EXTENSION postgis;"
         shell: pwsh
       - name: Get test data
-        run: (new-object net.webclient).DownloadFile($env:OSMURL, "testfile.osm.bz2")
-      - name: Exceute osm2pgsql
-        run: ./osm2pgsql-bin/osm2pgsql --slim -d osm testfile.osm.bz2
-        shell: bash
-
+        run: (new-object net.webclient).DownloadFile($env:OSMURL, $env:OSMFILE)
+        shell: pwsh
+      - name: Execute osm2pgsql
+        run: ./osm2pgsql-bin/osm2pgsql --slim -d osm ${OSMFILE}

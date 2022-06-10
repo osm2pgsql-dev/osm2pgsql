@@ -1,79 +1,56 @@
+---
 name: Test install
 
-on: [ push, pull_request ]
+on: [push, pull_request]
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
   ubuntu-test-install:
-    runs-on: ubuntu-20.04
-
     env:
-      LUA_VERSION: 5.3
-      POSTGRESQL_VERSION: 12
-      POSTGIS_VERSION: 3
       BUILD_TYPE: Release
-      CXXFLAGS: -pedantic -Wextra -Werror
-      PREFIX: /usr/local
-      OSMURL: https://download.geofabrik.de/europe/monaco-latest.osm.pbf
+      INSTALL_PREFIX: /usr
+      LUA_VERSION: 5.3
       OSMFILE: monaco-latest.osm.pbf
+      OSMURL: https://download.geofabrik.de/europe/monaco-latest.osm.pbf
+      POSTGIS_VERSION: 3
+      POSTGRESQL_VERSION: 12
+
+    name: Build, install & import OSM data (Ubuntu ${{ matrix.image_tag }})
+
+    runs-on: ubuntu-${{ matrix.image_tag }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        image_tag:
+          - 18.04  # Clang 6.0.0  | GCC 7.5.0
+          - 20.04  # Clang 10.0.0 | GCC 9.4.0
+          - 22.04  # Clang 14.0.0 | GCC 11.2.0
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Show installed PostgreSQL packages
-        run: apt-cache search postgresql | sort
-      - name: Install prerequisites
-        run: |
-          sudo apt-get purge -yq postgresql*
-          sudo apt-get install -yq --no-install-suggests --no-install-recommends \
-            libboost-filesystem-dev \
-            libboost-system-dev \
-            libbz2-dev \
-            libexpat1-dev \
-            liblua${LUA_VERSION}-dev \
-            libluajit-5.1-dev \
-            libpq-dev \
-            libproj-dev \
-            lua${LUA_VERSION} \
-            pandoc \
-            postgresql-${POSTGRESQL_VERSION} \
-            postgresql-${POSTGRESQL_VERSION}-postgis-${POSTGIS_VERSION} \
-            postgresql-${POSTGRESQL_VERSION}-postgis-${POSTGIS_VERSION}-scripts \
-            postgresql-client-${POSTGRESQL_VERSION} \
-            python3-pyosmium \
-            python3-psycopg2 \
-            zlib1g-dev
-      - name: Run CMake
-        run: |
-          mkdir build
-          cd build
-          cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE
-      - name: Build osm2pgsql
-        working-directory: build
-        run: make -j3 all man
-      - name: Install osm2pgsql
-        working-directory: build
-        run: sudo make install
-      - name: Check osm2pgsql install
-        run: |
-          test -d $PREFIX/bin
-          test -e $PREFIX/bin/osm2pgsql
-          test -e $PREFIX/bin/osm2pgsql-replication
-          test -d $PREFIX/share/man/man1
-          test -f $PREFIX/share/man/man1/osm2pgsql.1
-          test -f $PREFIX/share/man/man1/osm2pgsql-replication.1
-          test -d $PREFIX/share/osm2pgsql
-          test -f $PREFIX/share/osm2pgsql/default.style
-          test -f $PREFIX/share/osm2pgsql/empty.style
+        run: dpkg --list | grep -i -e postgis -e postgresql | sort
+      - name: Disregard stringop-overread warnings (Ubuntu 22.04/GCC 11)
+        run: echo "CXXFLAGS=-pedantic -Werror -Wextra -Wno-stringop-overread" >> $GITHUB_ENV
+        if: matrix.image_tag == 22.04
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/build
+      - uses: ./.github/actions/install
       - name: Set up test databases
         run: |
           sudo systemctl start postgresql
           sudo -u postgres createuser runner
           sudo -u postgres createdb -O runner o2ptest
-          sudo -u postgres psql o2ptest -c "CREATE EXTENSION postgis;"
           sudo -u postgres psql o2ptest -c "CREATE EXTENSION hstore;"
+          sudo -u postgres psql o2ptest -c "CREATE EXTENSION postgis;"
+        working-directory: /tmp
       - name: Remove repository
         # Remove contents of workspace to be sure the install runs independently
-        working-directory: /
-        run: rm -fr "${{github.workspace}}"/*
+        run: rm -frv "${GITHUB_WORKSPACE}"/*
       - name: Show man pages
         run: |
           man -P cat osm2pgsql
@@ -82,13 +59,18 @@ jobs:
         run: wget --quiet $OSMURL
         working-directory: /tmp
       - name: Test run of osm2pgsql
-        run: $PREFIX/bin/osm2pgsql -d o2ptest --slim $OSMFILE
+        run: |
+          ${INSTALL_PREFIX}/bin/osm2pgsql \
+            -v -d o2ptest --slim $OSMFILE
         working-directory: /tmp
       - name: Test run osm2pgsql-replication
         run: |
-          $PREFIX/bin/osm2pgsql-replication init -v -d o2ptest
-          $PREFIX/bin/osm2pgsql-replication status -v -d o2ptest
-          $PREFIX/bin/osm2pgsql-replication update -v -d o2ptest --once --max-diff-size=1
-          $PREFIX/bin/osm2pgsql-replication status -v -d o2ptest --json
+          ${INSTALL_PREFIX}/bin/osm2pgsql-replication init \
+            -v -d o2ptest
+          ${INSTALL_PREFIX}/bin/osm2pgsql-replication status \
+            -v -d o2ptest
+          ${INSTALL_PREFIX}/bin/osm2pgsql-replication update \
+            -v -d o2ptest --once --max-diff-size=1
+          ${INSTALL_PREFIX}/bin/osm2pgsql-replication status \
+            -v -d o2ptest --json
         working-directory: /tmp
-
