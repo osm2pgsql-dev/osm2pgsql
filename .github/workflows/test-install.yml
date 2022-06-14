@@ -11,6 +11,7 @@ jobs:
   ubuntu-test-install:
     env:
       BUILD_TYPE: Release
+      CXXFLAGS: -pedantic -Werror -Wextra
       INSTALL_PREFIX: /usr
       LUA_VERSION: 5.3
       OSMFILE: monaco-latest.osm.pbf
@@ -35,7 +36,7 @@ jobs:
       - name: Show installed PostgreSQL packages
         run: dpkg --list | grep -i -e postgis -e postgresql | sort
       - name: Disregard stringop-overread warnings (Ubuntu 22.04/GCC 11)
-        run: echo "CXXFLAGS=-pedantic -Werror -Wextra -Wno-stringop-overread" >> $GITHUB_ENV
+        run: echo "CXXFLAGS=${CXXFLAGS} -Wno-stringop-overread" >> $GITHUB_ENV
         if: matrix.image_tag == 22.04
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build

@@ -9,7 +9,7 @@ runs:
       run: |
         brew install boost lua pandoc postgis
         pip3 install behave psycopg2
-      shell: bash --noprofile --norc -euxo pipefail {0}
+      shell: bash
 
     - name: Start database
       run: |

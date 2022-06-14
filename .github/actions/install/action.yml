@@ -7,12 +7,12 @@ runs:
   steps:
     - name: install
       run: sudo make install
-      shell: bash --noprofile --norc -euxo pipefail {0}
+      shell: bash
       working-directory: build
 
     - name: check
       run: |
-        export INSTALL_PREFIX=${INSTALL_PREFIX:-/usr/local}
+        INSTALL_PREFIX=${INSTALL_PREFIX:-/usr/local}
 
         test -d ${INSTALL_PREFIX}/bin
         test -e ${INSTALL_PREFIX}/bin/osm2pgsql

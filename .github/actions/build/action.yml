@@ -11,8 +11,7 @@ runs:
 
     - name: configure
       run: |
-        export CMAKE_OPTIONS="${CMAKE_OPTIONS:--LA}"
-        export CXXFLAGS=${CXXFLAGS:--pedantic -Werror -Wextra}
+        CMAKE_OPTIONS="${CMAKE_OPTIONS:--LA}"
 
         if [ -z "${LUA_VERSION:-}" ]; then
           CMAKE_OPTIONS="${CMAKE_OPTIONS} -DWITH_LUA=OFF"
@@ -31,14 +30,28 @@ runs:
         if [ -n "${BUILD_TYPE:-}" ]; then
           CMAKE_OPTIONS="${CMAKE_OPTIONS} -DCMAKE_BUILD_TYPE=${BUILD_TYPE}"
         fi
+        if [ -n "${INSTALL_PREFIX:-}" ]; then
+          CMAKE_OPTIONS="${CMAKE_OPTIONS} -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}"
+        fi
         cmake \
           ${CMAKE_OPTIONS} \
-          -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX:-/usr/local} \
           ..
       shell: bash --noprofile --norc -euxo pipefail {0}
       working-directory: build
 
     - name: build
-      run: make -j4 all man
-      shell: bash
+      run: |
+        CMAKE_BUILD_OPTIONS="${CMAKE_BUILD_OPTIONS:-}"
+
+        if [ -n "${BUILD_PARALLEL_LEVEL:-}" ]; then
+          CMAKE_BUILD_OPTIONS="${CMAKE_BUILD_OPTIONS} --parallel ${BUILD_PARALLEL_LEVEL}"
+        fi
+        if [ -n "${BUILD_TARGET:-}" ]; then
+          CMAKE_BUILD_OPTIONS="${CMAKE_BUILD_OPTIONS} --target ${BUILD_TARGET}"
+        fi
+        if [ -n "${BUILD_TYPE:-}" ]; then
+          CMAKE_BUILD_OPTIONS="${CMAKE_BUILD_OPTIONS} --config ${BUILD_TYPE}"
+        fi
+        cmake --build . ${CMAKE_BUILD_OPTIONS}
+      shell: bash --noprofile --norc -euxo pipefail {0}
       working-directory: build

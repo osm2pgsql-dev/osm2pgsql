@@ -16,6 +16,10 @@ runs:
       run: |
         CTEST_CMD="ctest --output-on-failure"
 
+        if [ -n "${BUILD_TYPE:-}" ]; then
+          CTEST_CMD="${CTEST_CMD} --build-config ${BUILD_TYPE}"
+        fi
+
         if [ "${WRAPPER}" == "pg_virtualenv" ]; then
           ${WRAPPER} -v ${POSTGRESQL_VERSION} ${CTEST_CMD}
         elif [ -n "${WRAPPER}" ]; then

@@ -1,0 +1,59 @@
+---
+name: Install Prerequisites on Windows
+
+runs:
+  using: composite
+
+  steps:
+    - name: Install software
+      run: |
+        vcpkg install \
+          boost-filesystem:x64-windows \
+          boost-property-tree:x64-windows \
+          boost-system:x64-windows \
+          bzip2:x64-windows \
+          expat:x64-windows \
+          libpq:x64-windows \
+          lua:x64-windows \
+          proj4:x64-windows \
+          zlib:x64-windows
+        python -m pip install behave psycopg2
+      shell: bash
+
+    - name: Clone wingetopt
+      env:
+        WINGETOPT_VER: v0.95
+      run: |
+        git clone \
+          --branch ${WINGETOPT_VER} \
+          --depth 1 \
+          --quiet \
+          https://github.com/alex85k/wingetopt
+        mkdir wingetopt/build
+      shell: bash --noprofile --norc -euxo pipefail {0}
+      working-directory: ..
+
+    - name: Configure wingetopt
+      run: |
+        cmake ${CMAKE_OPTIONS:-} ..
+      shell: bash --noprofile --norc -euxo pipefail {0}
+      working-directory: ../wingetopt/build
+
+    - name: Build wingetopt
+      run: |
+        CMAKE_BUILD_OPTIONS="${CMAKE_BUILD_OPTIONS:-}"
+
+        if [ -n "${BUILD_TYPE:-}" ]; then
+          CMAKE_BUILD_OPTIONS="${CMAKE_BUILD_OPTIONS} --config ${BUILD_TYPE}"
+        fi
+        cmake --build . ${CMAKE_BUILD_OPTIONS}
+      shell: bash --noprofile --norc -euxo pipefail {0}
+      working-directory: ../wingetopt/build
+
+    - name: Add GETOPT_INCLUDE_DIR & GETOPT_LIBRARY to CMAKE_OPTIONS
+      run: |
+        CMAKE_OPTIONS="${CMAKE_OPTIONS} -DGETOPT_INCLUDE_DIR=${PWD}/src -DGETOPT_LIBRARY=${PWD}/build/Release/wingetopt.lib"
+
+        echo "CMAKE_OPTIONS=${CMAKE_OPTIONS}" >> $GITHUB_ENV
+      shell: bash --noprofile --norc -euxo pipefail {0}
+      working-directory: ../wingetopt
