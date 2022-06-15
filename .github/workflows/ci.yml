@@ -269,6 +269,7 @@ jobs:
         shell: pwsh
       - name: Get test data
         run: (new-object net.webclient).DownloadFile($env:OSMURL, "testfile.osm.bz2")
+        shell: pwsh
       - name: Exceute osm2pgsql
         run: ./osm2pgsql-bin/osm2pgsql --slim -d osm testfile.osm.bz2
         shell: bash
