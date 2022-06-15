@@ -1,7 +1,6 @@
----
 name: CI
 
-on: [push, pull_request]
+on: [ push, pull_request ]
 
 defaults:
   run:
@@ -273,3 +272,4 @@ jobs:
       - name: Exceute osm2pgsql
         run: ./osm2pgsql-bin/osm2pgsql --slim -d osm testfile.osm.bz2
         shell: bash
+

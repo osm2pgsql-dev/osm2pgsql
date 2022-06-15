@@ -1,82 +1,81 @@
----
-name: Build and test osm2pgsql
+name: 'Build and test osm2pgsq'
 
 inputs:
   test-wrapper:
-    description: Wrapper to use around tests
+    description: 'Wrapper to use around tests'
     required: false
 
 runs:
-  using: composite
+    using: "composite"
 
-  steps:
-    - name: create build directory
-      run: mkdir build
-      shell: bash
+    steps:
+      - name: create build directory
+        run: mkdir build
+        shell: bash
 
-    - name: configure
-      run: |
-        CMAKE_OPTIONS="${CMAKE_OPTIONS:--LA}"
+      - name: configure
+        run: |
+          CMAKE_OPTIONS="${CMAKE_OPTIONS:--LA}"
 
-        if [ -z "${LUA_VERSION:-}" ]; then
-          CMAKE_OPTIONS="${CMAKE_OPTIONS} -DWITH_LUA=OFF"
-        else
-          CMAKE_OPTIONS="${CMAKE_OPTIONS} -DWITH_LUAJIT=${LUAJIT_OPTION:-OFF}"
-        fi
-        if [ -n "${USE_PROJ_LIB:-}" ]; then
-          CMAKE_OPTIONS="${CMAKE_OPTIONS} -DUSE_PROJ_LIB=${USE_PROJ_LIB}"
-        fi
-        if [ -n "${CPP_VERSION:-}" ]; then
-          CMAKE_OPTIONS="${CMAKE_OPTIONS} -DCMAKE_CXX_STANDARD=${CPP_VERSION}"
-        fi
-        if [ -n "${BUILD_TESTS:-}" ]; then
-          CMAKE_OPTIONS="${CMAKE_OPTIONS} -DBUILD_TESTS=${BUILD_TESTS}"
-        fi
-        if [ -n "${BUILD_TYPE:-}" ]; then
-          CMAKE_OPTIONS="${CMAKE_OPTIONS} -DCMAKE_BUILD_TYPE=${BUILD_TYPE}"
-        fi
-        if [ -n "${INSTALL_PREFIX:-}" ]; then
-          CMAKE_OPTIONS="${CMAKE_OPTIONS} -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}"
-        fi
-        cmake \
-          ${CMAKE_OPTIONS} \
-          ..
-      shell: bash --noprofile --norc -euxo pipefail {0}
-      working-directory: build
+          if [ -z "${LUA_VERSION:-}" ]; then
+            CMAKE_OPTIONS="${CMAKE_OPTIONS} -DWITH_LUA=OFF"
+          else
+            CMAKE_OPTIONS="${CMAKE_OPTIONS} -DWITH_LUAJIT=${LUAJIT_OPTION:-OFF}"
+          fi
+          if [ -n "${USE_PROJ_LIB:-}" ]; then
+            CMAKE_OPTIONS="${CMAKE_OPTIONS} -DUSE_PROJ_LIB=${USE_PROJ_LIB}"
+          fi
+          if [ -n "${CPP_VERSION:-}" ]; then
+            CMAKE_OPTIONS="${CMAKE_OPTIONS} -DCMAKE_CXX_STANDARD=${CPP_VERSION}"
+          fi
+          if [ -n "${BUILD_TESTS:-}" ]; then
+            CMAKE_OPTIONS="${CMAKE_OPTIONS} -DBUILD_TESTS=${BUILD_TESTS}"
+          fi
+          if [ -n "${BUILD_TYPE:-}" ]; then
+            CMAKE_OPTIONS="${CMAKE_OPTIONS} -DCMAKE_BUILD_TYPE=${BUILD_TYPE}"
+          fi
+          if [ -n "${INSTALL_PREFIX:-}" ]; then
+            CMAKE_OPTIONS="${CMAKE_OPTIONS} -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}"
+          fi
+          cmake \
+            ${CMAKE_OPTIONS} \
+            ..
+        shell: bash --noprofile --norc -euxo pipefail {0}
+        working-directory: build
 
-    - name: build
-      run: |
-        CMAKE_BUILD_OPTIONS="${CMAKE_BUILD_OPTIONS:-}"
+      - name: build
+        run: |
+          CMAKE_BUILD_OPTIONS="${CMAKE_BUILD_OPTIONS:-}"
 
-        if [ -n "${BUILD_PARALLEL_LEVEL:-}" ]; then
-          CMAKE_BUILD_OPTIONS="${CMAKE_BUILD_OPTIONS} --parallel ${BUILD_PARALLEL_LEVEL}"
-        fi
-        if [ -n "${BUILD_TARGET:-}" ]; then
-          CMAKE_BUILD_OPTIONS="${CMAKE_BUILD_OPTIONS} --target ${BUILD_TARGET}"
-        fi
-        if [ -n "${BUILD_TYPE:-}" ]; then
-          CMAKE_BUILD_OPTIONS="${CMAKE_BUILD_OPTIONS} --config ${BUILD_TYPE}"
-        fi
-        cmake --build . ${CMAKE_BUILD_OPTIONS}
-      shell: bash --noprofile --norc -euxo pipefail {0}
-      working-directory: build
+          if [ -n "${BUILD_PARALLEL_LEVEL:-}" ]; then
+            CMAKE_BUILD_OPTIONS="${CMAKE_BUILD_OPTIONS} --parallel ${BUILD_PARALLEL_LEVEL}"
+          fi
+          if [ -n "${BUILD_TARGET:-}" ]; then
+            CMAKE_BUILD_OPTIONS="${CMAKE_BUILD_OPTIONS} --target ${BUILD_TARGET}"
+          fi
+          if [ -n "${BUILD_TYPE:-}" ]; then
+            CMAKE_BUILD_OPTIONS="${CMAKE_BUILD_OPTIONS} --config ${BUILD_TYPE}"
+          fi
+          cmake --build . ${CMAKE_BUILD_OPTIONS}
+        shell: bash --noprofile --norc -euxo pipefail {0}
+        working-directory: build
 
-    - name: test
-      env:
-        WRAPPER: ${{ inputs.test-wrapper }}
-      run: |
-        CTEST_CMD="ctest --output-on-failure"
+      - name: test
+        env:
+          WRAPPER: ${{ inputs.test-wrapper }}
+        run: |
+          CTEST_CMD="ctest --output-on-failure"
 
-        if [ -n "${BUILD_TYPE:-}" ]; then
-          CTEST_CMD="${CTEST_CMD} --build-config ${BUILD_TYPE}"
-        fi
+          if [ -n "${BUILD_TYPE:-}" ]; then
+            CTEST_CMD="${CTEST_CMD} --build-config ${BUILD_TYPE}"
+          fi
 
-        if [ "${WRAPPER}" == "pg_virtualenv" ]; then
-          ${WRAPPER} -v ${POSTGRESQL_VERSION} ${CTEST_CMD}
-        elif [ -n "${WRAPPER}" ]; then
-          ${WRAPPER} ${CTEST_CMD}
-        else
-           ${CTEST_CMD}
-        fi
-      shell: bash --noprofile --norc -euxo pipefail {0}
-      working-directory: build
+          if [ "${WRAPPER}" == "pg_virtualenv" ]; then
+            ${WRAPPER} -v ${POSTGRESQL_VERSION} ${CTEST_CMD}
+          elif [ -n "${WRAPPER}" ]; then
+            ${WRAPPER} ${CTEST_CMD}
+          else
+             ${CTEST_CMD}
+          fi
+        shell: bash --noprofile --norc -euxo pipefail {0}
+        working-directory: build
