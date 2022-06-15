@@ -75,7 +75,7 @@ runs:
           elif [ -n "${WRAPPER}" ]; then
             ${WRAPPER} ${CTEST_CMD}
           else
-             ${CTEST_CMD}
+            ${CTEST_CMD}
           fi
         shell: bash --noprofile --norc -euxo pipefail {0}
         working-directory: build
