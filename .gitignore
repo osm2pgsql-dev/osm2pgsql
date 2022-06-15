@@ -1,5 +1,4 @@
 build
-!.github/actions/build
 
 docs/html
 docs/latex
