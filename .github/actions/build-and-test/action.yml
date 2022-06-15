@@ -1,5 +1,10 @@
 ---
-name: Build osm2pgsql
+name: Build and test osm2pgsql
+
+inputs:
+  test-wrapper:
+    description: Wrapper to use around tests
+    required: false
 
 runs:
   using: composite
@@ -53,5 +58,25 @@ runs:
           CMAKE_BUILD_OPTIONS="${CMAKE_BUILD_OPTIONS} --config ${BUILD_TYPE}"
         fi
         cmake --build . ${CMAKE_BUILD_OPTIONS}
+      shell: bash --noprofile --norc -euxo pipefail {0}
+      working-directory: build
+
+    - name: test
+      env:
+        WRAPPER: ${{ inputs.test-wrapper }}
+      run: |
+        CTEST_CMD="ctest --output-on-failure"
+
+        if [ -n "${BUILD_TYPE:-}" ]; then
+          CTEST_CMD="${CTEST_CMD} --build-config ${BUILD_TYPE}"
+        fi
+
+        if [ "${WRAPPER}" == "pg_virtualenv" ]; then
+          ${WRAPPER} -v ${POSTGRESQL_VERSION} ${CTEST_CMD}
+        elif [ -n "${WRAPPER}" ]; then
+          ${WRAPPER} ${CTEST_CMD}
+        else
+           ${CTEST_CMD}
+        fi
       shell: bash --noprofile --norc -euxo pipefail {0}
       working-directory: build

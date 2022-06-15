@@ -38,8 +38,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/macos-prerequisites
-      - uses: ./.github/actions/build
-      - uses: ./.github/actions/test
+      - uses: ./.github/actions/build-and-test
 
   Ubuntu:
     env:
@@ -197,10 +196,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/ubuntu-prerequisites
-      - uses: ./.github/actions/build
-      - uses: ./.github/actions/test
+      - uses: ./.github/actions/build-and-test
         with:
-          wrapper: pg_virtualenv
+          test-wrapper: pg_virtualenv
 
   windows:
     strategy:
