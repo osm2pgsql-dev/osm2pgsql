@@ -36,7 +36,7 @@ jobs:
           - 5.4
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v2
       - uses: ./.github/actions/macos-prerequisites
       - uses: ./.github/actions/build-and-test
 
@@ -194,7 +194,7 @@ jobs:
             postgresql_version: 13
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v2
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
         with:
