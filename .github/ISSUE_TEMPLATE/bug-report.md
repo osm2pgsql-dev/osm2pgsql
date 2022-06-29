@@ -7,6 +7,8 @@ assignees: ''
 
 ---
 
+<!-- Please don't use screenshots. Copy and paste the *text* output here if that's needed for context. -->
+
 ## What version of osm2pgsql are you using?
 
 <!-- Paste output of `osm2pgsql --version` here. Please use the [latest
