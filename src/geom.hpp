@@ -258,4 +258,16 @@ private:
 
 } // namespace geom
 
+// This magic is used for visiting geometries. For an explanation see for
+// instance here:
+// https://arne-mertz.de/2018/05/overload-build-a-variant-visitor-on-the-fly/
+template <class... Ts>
+struct overloaded : Ts...
+{
+    using Ts::operator()...;
+};
+
+template <class... Ts>
+overloaded(Ts...) -> overloaded<Ts...>;
+
 #endif // OSM2PGSQL_GEOM_HPP
