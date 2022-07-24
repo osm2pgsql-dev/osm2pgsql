@@ -50,6 +50,7 @@ tables.ways = osm2pgsql.define_way_table('ways', {
 -- running in "append" mode, osm2pgsql will automatically update this table
 -- using the way/relation ids.
 tables.polygons = osm2pgsql.define_area_table('polygons', {
+    { column = 'type', type = 'text' },
     { column = 'tags', type = 'jsonb' },
     -- The type of the `geom` column is `geometry`, because we need to store
     -- polygons AND multipolygons
@@ -117,6 +118,7 @@ function osm2pgsql.process_way(object)
     -- real stylesheet we'd have to also look at the tags...
     if object.is_closed then
         tables.polygons:add_row({
+            type = object.type,
             tags = object.tags,
             geom = { create = 'area' }
         })
@@ -142,6 +144,7 @@ function osm2pgsql.process_relation(object)
     if object.tags.type == 'multipolygon' or
        object.tags.type == 'boundary' then
          tables.polygons:add_row({
+            type = object.type,
             tags = object.tags,
             geom = { create = 'area' }
         })

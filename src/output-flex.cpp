@@ -113,15 +113,18 @@ static void push_osm_object_to_lua_stack(lua_State *lua_state,
     assert(lua_state);
 
     /**
-     * Table will have 7 fields (id, version, timestamp, changeset, uid, user,
-     * tags) for all object types plus 2 (is_closed, nodes) for ways or 1
-     * (members) for relations.
+     * Table will always have at least 3 fields (id, type, tags). And 5 more if
+     * with_attributes is true (version, timestamp, changeset, uid, user). For
+     * ways there are 2 more (is_closed, nodes), for relations 1 more (members).
      */
-    constexpr int const max_table_size = 9;
+    constexpr int const max_table_size = 10;
 
     lua_createtable(lua_state, 0, max_table_size);
 
     luaX_add_table_int(lua_state, "id", object.id());
+
+    luaX_add_table_str(lua_state, "type",
+                       osmium::item_type_to_name(object.type()));
 
     if (with_attributes) {
         if (object.version() != 0U) {
