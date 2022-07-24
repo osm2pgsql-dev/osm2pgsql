@@ -376,6 +376,28 @@ def update(conn, args):
         osm2pgsql.extend(('-H', args.host))
     if args.port:
         osm2pgsql.extend(('-P', args.port))
+
+    with conn.cursor() as cur:
+        cur.execute("SELECT Find_SRID('public', '{}_point', 'way')".format(args.prefix))
+        srid = cur.fetchone()[0] if cur.rowcount == 1 else None
+        
+        if srid is None:
+            LOG.fatal("Could not find the SRID of the data.")
+            return 1
+
+    LOG.debug("SRID of data: {}".format(srid))
+
+    EPSG_LAT_LONG = 4326
+    EPSG_WEB_MERCATOR = 3857
+
+    if srid == EPSG_WEB_MERCATOR:
+        # we can leave the default behavior
+        pass
+    elif srid == EPSG_LAT_LONG:
+        osm2pgsql.append('--latlong')
+    else:
+        osm2pgsql.extend(('--proj', str(srid)))
+
     osm2pgsql.append(str(outfile))
     LOG.debug("Calling osm2pgsql with: %s", ' '.join(osm2pgsql))
 
