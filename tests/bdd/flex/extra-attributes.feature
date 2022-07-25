@@ -14,6 +14,7 @@ Feature: Tests for including extra attributes
                 name = 'osm2pgsql_test_attr',
                 ids = { type = 'way', id_column = 'way_id' },
                 columns = {
+                    { column = 'type', type = 'text' },
                     { column = 'tags', type = 'hstore' },
                     { column = 'version', type = 'int4' },
                     { column = 'changeset', type = 'int4' },
@@ -35,8 +36,8 @@ Feature: Tests for including extra attributes
             | --slim |
 
         Then table osm2pgsql_test_attr contains
-            | way_id | tags->'highway' | version | changeset | timestamp | uid  | "user" |
-            | 20     | primary         | NULL    | NULL      | NULL      | NULL | NULL   |
+            | type | way_id | tags->'highway' | version | changeset | timestamp | uid  | "user" |
+            | way  | 20     | primary         | NULL    | NULL      | NULL      | NULL | NULL   |
 
         Given the grid
             |    |    |
@@ -45,8 +46,8 @@ Feature: Tests for including extra attributes
             | --slim | --append |
 
         Then table osm2pgsql_test_attr contains
-            | way_id | tags->'highway' | version | changeset | timestamp | uid  | "user" |
-            | 20     | primary         | NULL    | NULL      | NULL      | NULL | NULL   |
+            | type |  way_id | tags->'highway' | version | changeset | timestamp | uid  | "user" |
+            | way  |  20     | primary         | NULL    | NULL      | NULL      | NULL | NULL   |
 
 
     Scenario: Importing data with extra attributes
@@ -54,8 +55,8 @@ Feature: Tests for including extra attributes
             | --slim | -x |
 
         Then table osm2pgsql_test_attr contains
-            | way_id | tags->'highway' | version | changeset | timestamp  | uid  | "user" |
-            | 20     | primary         | 1       | 31        | 1578832496 | 17   | test   |
+            | type |  way_id | tags->'highway' | version | changeset | timestamp  | uid  | "user" |
+            | way  |  20     | primary         | 1       | 31        | 1578832496 | 17   | test   |
 
         Given the grid
             |    |    |
@@ -64,6 +65,6 @@ Feature: Tests for including extra attributes
             | --slim | --append | -x |
 
         Then table osm2pgsql_test_attr contains
-            | way_id | tags->'highway' | version | changeset | timestamp  | uid | "user" |
-            | 20     | primary         | 1       | 31        | 1578832496 | 17  | test   |
+            | type |  way_id | tags->'highway' | version | changeset | timestamp  | uid | "user" |
+            | way  |  20     | primary         | 1       | 31        | 1578832496 | 17  | test   |
 
