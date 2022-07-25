@@ -13,7 +13,7 @@
 #define FMT_HEADER_ONLY
 #include <fmt/format.h>
 
-inline auto operator"" _format(const char *s, std::size_t n)
+inline constexpr auto operator"" _format(const char *s, std::size_t n)
 {
     return [=](auto &&...args) {
 #if FMT_VERSION < 80100
