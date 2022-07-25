@@ -5,8 +5,10 @@ on: [ push, pull_request ]
 jobs:
   macos:
     runs-on: macos-latest
+
     env:
       LUA_VERSION: 5.4
+
     steps:
       - uses: actions/checkout@v2
 
@@ -238,10 +240,12 @@ jobs:
       matrix:
         os: [windows-2019, windows-2022]
     runs-on: ${{ matrix.os }}
+
     env:
       GETOPT_INCLUDE_DIR: ${{ github.workspace }}/../wingetopt/src
       GETOPT_LIBRARY: ${{ github.workspace }}/../wingetopt/build/Release/wingetopt.lib
       VCPKG_DEFAULT_BINARY_CACHE: C:/vcpkg_binary_cache
+
     steps:
       - uses: actions/checkout@v2
       - uses: actions/cache@v2
@@ -281,8 +285,10 @@ jobs:
   windows-package:
     needs: windows
     runs-on: windows-2022
+
     env:
       OSMURL: https://download.geofabrik.de/europe/monaco-latest.osm.bz2
+
     steps:
       - uses: actions/checkout@v2
       - uses: actions/cache@v2
@@ -301,7 +307,7 @@ jobs:
         shell: pwsh
       - name: Get test data
         run: (new-object net.webclient).DownloadFile($env:OSMURL, "testfile.osm.bz2")
-      - name: Exceute osm2pgsql
+      - name: Execute osm2pgsql
         run: ./osm2pgsql-bin/osm2pgsql --slim -d osm testfile.osm.bz2
         shell: bash
 

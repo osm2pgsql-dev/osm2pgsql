@@ -22,3 +22,4 @@ Feature: Handling of errors in the Lua script
             """
             Missing geometry transformation for column 'geom'
             """
+

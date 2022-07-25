@@ -12,3 +12,4 @@ Feature: Tests for bad input data
 
         Then table planet_osm_nodes has 1 row
         Then table planet_osm_rels has 0 rows
+

@@ -13,3 +13,4 @@ Feature: Errors for invalid command line parameter combinations
             """
             --append and --create options can not be used at the same time
             """
+

@@ -2,6 +2,7 @@ name: Windows getopt
 
 runs:
   using: composite
+
   steps:
     - name: Install wingetopt
       env:
@@ -10,6 +11,7 @@ runs:
         git clone --quiet --depth 1 https://github.com/alex85k/wingetopt -b $WINGETOPT_VER ../wingetopt
         mkdir ../wingetopt/build
       shell: bash
+
     - name: Build wingetopt
       run: |
         cmake -LA .. -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake

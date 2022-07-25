@@ -66,3 +66,4 @@ Feature: Test forward propagation of changes
             """
         Then table planet_osm_roads has 1 row
         Then table planet_osm_polygon has 2 rows
+

@@ -11,3 +11,4 @@ Feature: Importing data into different DB schemas
             | --output-pgsql-schema=osm |
 
         Then table osm.planet_osm_point has 1 row
+

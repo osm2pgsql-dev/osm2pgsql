@@ -170,4 +170,3 @@ Feature: Import and update of multipolygon areas
             | -3     | residential | Name_rel11| 9286                |
             | 83     | farmland    | NULL      | 24859               |
 
-

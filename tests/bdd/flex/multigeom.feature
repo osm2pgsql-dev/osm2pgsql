@@ -159,4 +159,3 @@ Feature: Handling of multiple geometries
             | -31    | ST_MultiPolygon       |
             | -31    | ST_MultiPolygon       |
 
-

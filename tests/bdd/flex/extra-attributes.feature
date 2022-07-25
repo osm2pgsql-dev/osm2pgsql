@@ -67,5 +67,3 @@ Feature: Tests for including extra attributes
             | way_id | tags->'highway' | version | changeset | timestamp  | uid | "user" |
             | 20     | primary         | 1       | 31        | 1578832496 | 17  | test   |
 
-
-
