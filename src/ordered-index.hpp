@@ -108,11 +108,11 @@ public:
      */
     std::size_t get(osmid_t id) const noexcept
     {
-        auto const p = get_internal(id);
-        if (p.first != id) {
+        auto const [iid, offset] = get_internal(id);
+        if (iid != id) {
             return not_found_value();
         }
-        return p.second;
+        return offset;
     }
 
     /**
