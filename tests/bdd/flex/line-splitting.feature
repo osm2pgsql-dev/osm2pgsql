@@ -17,7 +17,7 @@ Feature: Test splitting of lines
 
             function osm2pgsql.process_way(object)
                 tables.line:add_row({
-                    tags= object.tags,
+                    tags = object.tags,
                     geom = { create = 'line' }
                 })
                 tables.split:add_row({

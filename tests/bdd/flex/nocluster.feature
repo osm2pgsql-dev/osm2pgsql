@@ -25,3 +25,4 @@ Feature: Test flex config without clustering
         When running osm2pgsql flex with parameters
             | --slim |
         Then table osm2pgsql_test_point has 1562 rows
+

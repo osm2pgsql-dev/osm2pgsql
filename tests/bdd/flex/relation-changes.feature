@@ -241,3 +241,4 @@ Feature: Handling changes to relations
         Then table osm2pgsql_test_relations contains exactly
             | area_id | tags->'natural' | tags->'landuse' |
             | -30     | NULL            | forest          |
+

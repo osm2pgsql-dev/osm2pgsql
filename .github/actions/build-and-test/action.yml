@@ -1,4 +1,4 @@
-name: 'Build and test osm2pgsq'
+name: Build and test osm2pgsq
 
 inputs:
   test-wrapper:
@@ -7,7 +7,7 @@ inputs:
     default: pg_virtualenv
 
 runs:
-    using: "composite"
+    using: composite
 
     steps:
       - name: create build directory

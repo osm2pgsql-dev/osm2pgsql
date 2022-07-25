@@ -1,10 +1,10 @@
-name: 'Install Prerequisites on Ubuntu'
+name: Install Prerequisites on Ubuntu
 
 runs:
-  using: "composite"
+  using: composite
 
   steps:
-    - name: Remove preinstalled postgresql
+    - name: Remove preinstalled PostgreSQL
       run: |
         sudo apt-get remove -yq postgresql*
         sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
@@ -46,7 +46,7 @@ runs:
         fi
       shell: bash
 
-    - name: Adapt postgresql configuration
+    - name: Adapt PostgreSQL configuration
       run: |
         echo 'fsync = off' | sudo tee /etc/postgresql/${POSTGRESQL_VERSION}/main/conf.d/local.conf
         echo 'synchronous_commit = off' | sudo tee -a /etc/postgresql/${POSTGRESQL_VERSION}/main/conf.d/local.conf

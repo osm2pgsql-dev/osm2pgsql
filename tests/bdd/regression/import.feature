@@ -181,3 +181,4 @@ Feature: Imports of the test database
             tags ? 'osm_uid' AND
             tags ? 'osm_changeset'
             """
+

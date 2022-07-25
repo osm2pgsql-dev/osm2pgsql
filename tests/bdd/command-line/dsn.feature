@@ -18,3 +18,4 @@ Feature: Tests for various DB connection parameters
             | dbname={TEST_DB}        |
             | postgresql:///{TEST_DB} |
             | postgres:///{TEST_DB}   |
+

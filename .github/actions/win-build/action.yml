@@ -2,6 +2,7 @@ name: Windows build
 
 runs:
   using: composite
+
   steps:
     - name: Build
       run: cmake --build . --config Release --verbose

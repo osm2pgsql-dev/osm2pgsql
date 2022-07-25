@@ -37,5 +37,3 @@ Feature: Handling of tables without geometry
             | 10      | Schwanen     | restaurant      |
             | 11      | NULL         | post_box        |
 
-
-
