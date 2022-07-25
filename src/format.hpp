@@ -13,7 +13,15 @@
 #define FMT_HEADER_ONLY
 #include <fmt/format.h>
 
-// NOLINTNEXTLINE(google-global-names-in-headers,google-build-using-namespace)
-using namespace fmt::literals;
+inline auto operator"" _format(const char *s, std::size_t n)
+{
+    return [=](auto &&...args) {
+#if FMT_VERSION < 80100
+        return fmt::format(std::string_view{s, n}, args...);
+#else
+        return fmt::format(fmt::runtime(std::string_view{s, n}), args...);
+#endif
+    };
+}
 
 #endif // OSM2PGSQL_FORMAT_HPP
