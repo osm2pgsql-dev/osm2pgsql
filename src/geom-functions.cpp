@@ -7,6 +7,7 @@
  * For a full list of authors see the git log.
  */
 
+#include "geom-boost-adaptor.hpp"
 #include "geom-functions.hpp"
 
 #include <algorithm>
@@ -28,6 +29,32 @@ point_t interpolate(point_t p1, point_t p2, double frac) noexcept
 {
     return point_t{frac * (p1.x() - p2.x()) + p2.x(),
                    frac * (p1.y() - p2.y()) + p2.y()};
+}
+
+std::string_view geometry_type(geometry_t const &geom)
+{
+    using namespace std::literals::string_view_literals;
+    return geom.visit(overloaded{
+        [&](geom::nullgeom_t const & /*input*/) { return "NULL"sv; },
+        [&](geom::point_t const & /*input*/) { return "POINT"sv; },
+        [&](geom::linestring_t const & /*input*/) { return "LINESTRING"sv; },
+        [&](geom::polygon_t const & /*input*/) { return "POLYGON"sv; },
+        [&](geom::multipoint_t const & /*input*/) { return "MULTIPOINT"sv; },
+        [&](geom::multilinestring_t const & /*input*/) {
+            return "MULTILINESTRING"sv;
+        },
+        [&](geom::multipolygon_t const & /*input*/) {
+            return "MULTIPOLYGON"sv;
+        },
+        [&](geom::collection_t const & /*input*/) {
+            return "GEOMETRYCOLLECTION"sv;
+        }});
+}
+
+std::size_t num_geometries(geometry_t const &geom)
+{
+    return geom.visit(
+        overloaded{[&](auto const &input) { return input.num_geometries(); }});
 }
 
 namespace {
@@ -515,6 +542,21 @@ geometry_t line_merge(geometry_t geom)
     if (linestrings.num_geometries() == 0) {
         output.reset();
     }
+
+    return output;
+}
+
+geometry_t centroid(geometry_t const &geom)
+{
+    geom::geometry_t output{point_t{}, geom.srid()};
+    auto &center = output.get<point_t>();
+
+    geom.visit(overloaded{
+        [&](geom::nullgeom_t const & /*input*/) { output.reset(); },
+        [&](geom::collection_t const & /*input*/) {
+            throw std::runtime_error{"not implemented yet"};
+        },
+        [&](auto const &input) { boost::geometry::centroid(input, center); }});
 
     return output;
 }

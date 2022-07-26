@@ -14,38 +14,8 @@
 #include "geom-from-osm.hpp"
 #include "geom-functions.hpp"
 #include "geom.hpp"
-#include "reprojection.hpp"
 
 #include <array>
-
-TEST_CASE("geom::distance", "[NoDB]")
-{
-    geom::point_t const p1{10, 10};
-    geom::point_t const p2{20, 10};
-    geom::point_t const p3{13, 14};
-
-    REQUIRE(geom::distance(p1, p1) == Approx(0.0));
-    REQUIRE(geom::distance(p1, p2) == Approx(10.0));
-    REQUIRE(geom::distance(p1, p3) == Approx(5.0));
-}
-
-TEST_CASE("geom::interpolate", "[NoDB]")
-{
-    geom::point_t const p1{10, 10};
-    geom::point_t const p2{20, 10};
-
-    auto const i1 = geom::interpolate(p1, p1, 0.5);
-    REQUIRE(i1.x() == 10);
-    REQUIRE(i1.y() == 10);
-
-    auto const i2 = geom::interpolate(p1, p2, 0.5);
-    REQUIRE(i2.x() == 15);
-    REQUIRE(i2.y() == 10);
-
-    auto const i3 = geom::interpolate(p2, p1, 0.5);
-    REQUIRE(i3.x() == 15);
-    REQUIRE(i3.y() == 10);
-}
 
 TEST_CASE("geom::linestring_t", "[NoDB]")
 {
@@ -64,6 +34,18 @@ TEST_CASE("geom::linestring_t", "[NoDB]")
     REQUIRE(it->y() == 22);
     ++it;
     REQUIRE(it == ls1.cend());
+
+    REQUIRE(ls1.num_geometries() == 1);
+}
+
+TEST_CASE("line geometry", "[NoDB]")
+{
+    geom::geometry_t const geom{geom::linestring_t{{1, 1}, {2, 2}}};
+
+    REQUIRE(num_geometries(geom) == 1);
+    REQUIRE(area(geom) == Approx(0.0));
+    REQUIRE(geometry_type(geom) == "LINESTRING");
+    REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{1.5, 1.5}});
 }
 
 TEST_CASE("geom::segmentize w/o split", "[NoDB]")
@@ -73,6 +55,7 @@ TEST_CASE("geom::segmentize w/o split", "[NoDB]")
     auto const geom = geom::segmentize(geom::geometry_t{line}, 10.0);
 
     REQUIRE(geom.is_multilinestring());
+    REQUIRE(num_geometries(geom) == 1);
     auto const &ml = geom.get<geom::multilinestring_t>();
     REQUIRE(ml.num_geometries() == 1);
     REQUIRE(ml[0] == line);
@@ -182,6 +165,9 @@ TEST_CASE("create_multilinestring with single line", "[NoDB]")
         geom::line_merge(geom::create_multilinestring(buffer.buffer()));
 
     REQUIRE(geom.is_multilinestring());
+    REQUIRE(geometry_type(geom) == "MULTILINESTRING");
+    REQUIRE(num_geometries(geom) == 1);
+    REQUIRE(area(geom) == Approx(0.0));
     auto const &ml = geom.get<geom::multilinestring_t>();
     REQUIRE(ml.num_geometries() == 1);
     REQUIRE(ml[0] == expected);
