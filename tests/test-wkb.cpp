@@ -83,6 +83,37 @@ TEST_CASE("wkb: polygon with inner rings", "[NoDB]")
             geom.get<geom::polygon_t>().inners().front());
 }
 
+TEST_CASE("wkb: point as multipoint", "[NoDB]")
+{
+    geom::geometry_t geom{geom::point_t{1.2, 2.3}, 47};
+
+    auto const result = ewkb_to_geom(geom_to_ewkb(geom, true));
+    REQUIRE(result.is_multipoint());
+    REQUIRE(result.srid() == 47);
+    auto const &rmp = result.get<geom::multipoint_t>();
+    REQUIRE(rmp.num_geometries() == 1);
+
+    REQUIRE(rmp[0] == geom.get<geom::point_t>());
+}
+
+TEST_CASE("wkb: multipoint", "[NoDB]")
+{
+    geom::geometry_t geom{geom::multipoint_t{}, 46};
+
+    auto &mp = geom.get<geom::multipoint_t>();
+    mp.emplace_back(geom::point_t{{1.2, 2.3}});
+    mp.emplace_back(geom::point_t{{7.0, 7.0}});
+
+    auto const result = ewkb_to_geom(geom_to_ewkb(geom));
+    REQUIRE(result.is_multipoint());
+    REQUIRE(result.srid() == 46);
+    auto const &rmp = result.get<geom::multipoint_t>();
+    REQUIRE(rmp.num_geometries() == 2);
+
+    REQUIRE(rmp[0] == mp[0]);
+    REQUIRE(rmp[1] == mp[1]);
+}
+
 TEST_CASE("wkb: linestring as multilinestring", "[NoDB]")
 {
     geom::geometry_t geom{

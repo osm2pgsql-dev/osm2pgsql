@@ -207,15 +207,19 @@ public:
 
     std::string operator()(geom::point_t const &geom) const
     {
-        // 9 byte header plus one set of coordinates
-        constexpr const std::size_t size = 9 + 2 * 8;
-
         std::string data;
 
-        data.reserve(size);
-        write_point(&data, geom, m_srid);
-
-        assert(data.size() == size);
+        if (m_ensure_multi) {
+            write_header(&data, wkb_multi_point, m_srid);
+            write_length(&data, 1);
+            write_point(&data, geom);
+        } else {
+            // 9 byte header plus one set of coordinates
+            constexpr const std::size_t size = 9 + 2 * 8;
+            data.reserve(size);
+            write_point(&data, geom, m_srid);
+            assert(data.size() == size);
+        }
 
         return data;
     }
@@ -317,7 +321,7 @@ public:
             parse_polygon(&geom.set<geom::polygon_t>());
             break;
         case geometry_type::wkb_multi_point:
-            // XXX not implemented yet
+            parse_multi_point(&geom);
             break;
         case geometry_type::wkb_multi_line:
             parse_multi_linestring(&geom);
@@ -445,6 +449,28 @@ private:
         polygon->inners().reserve(num_rings - 1);
         for (uint32_t i = 1; i < num_rings; ++i) {
             parse_point_list(&polygon->inners().emplace_back(), 4);
+        }
+    }
+
+    void parse_multi_point(geom::geometry_t *geom)
+    {
+        auto &multipoint = geom->set<geom::multipoint_t>();
+        auto const num_geoms = parse_length();
+        if (num_geoms == 0) {
+            throw std::runtime_error{
+                "Invalid WKB geometry: Multipoint without points"};
+        }
+
+        multipoint.reserve(num_geoms);
+        for (uint32_t i = 0; i < num_geoms; ++i) {
+            auto &point = multipoint.emplace_back();
+            uint32_t const type = parse_header();
+            if (type != geometry_type::wkb_point) {
+                throw std::runtime_error{
+                    "Invalid WKB geometry: Multipoint containing"
+                    " something other than point: {}"_format(type)};
+            }
+            parse_point(&point);
         }
     }
 
