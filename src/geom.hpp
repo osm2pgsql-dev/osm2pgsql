@@ -81,40 +81,41 @@ private:
 }; // class point_t
 
 /// This type is used as the basis for linestrings and rings.
-using point_list_t = std::vector<point_t>;
+class point_list_t : public std::vector<point_t>
+{
+public:
+    point_list_t() = default;
 
-bool operator==(point_list_t const &a, point_list_t const &b) noexcept;
-bool operator!=(point_list_t const &a, point_list_t const &b) noexcept;
+    template <typename Iterator>
+    point_list_t(Iterator begin, Iterator end)
+    : std::vector<point_t>(begin, end)
+    {}
+
+    point_list_t(std::initializer_list<point_t> list)
+    : std::vector<point_t>(list.begin(), list.end())
+    {}
+
+    static std::size_t num_geometries() noexcept { return 1; }
+
+    friend bool operator==(point_list_t const &a,
+                           point_list_t const &b) noexcept;
+
+    friend bool operator!=(point_list_t const &a,
+                           point_list_t const &b) noexcept;
+
+}; // class point_list_t
 
 class linestring_t : public point_list_t
 {
 public:
-    linestring_t() = default;
-
-    template <typename Iterator>
-    linestring_t(Iterator begin, Iterator end) : point_list_t(begin, end)
-    {}
-
-    linestring_t(std::initializer_list<point_t> list)
-    : point_list_t(list.begin(), list.end())
-    {}
-
-    static std::size_t num_geometries() noexcept { return 1; }
+    using point_list_t::point_list_t;
 
 }; // class linestring_t
 
 class ring_t : public point_list_t
 {
 public:
-    ring_t() = default;
-
-    template <typename Iterator>
-    ring_t(Iterator begin, Iterator end) : point_list_t(begin, end)
-    {}
-
-    ring_t(std::initializer_list<point_t> list)
-    : point_list_t(list.begin(), list.end())
-    {}
+    using point_list_t::point_list_t;
 
 }; // class ring_t
 
@@ -137,17 +138,9 @@ public:
 
     void add_inner_ring(ring_t &&ring) { m_inners.push_back(std::move(ring)); }
 
-    friend bool operator==(polygon_t const &a, polygon_t const &b) noexcept
-    {
-        return (a.outer() == b.outer()) &&
-               std::equal(a.inners().cbegin(), a.inners().cend(),
-                          b.inners().cbegin(), b.inners().cend());
-    }
+    friend bool operator==(polygon_t const &a, polygon_t const &b) noexcept;
 
-    friend bool operator!=(polygon_t const &a, polygon_t const &b) noexcept
-    {
-        return !(a == b);
-    }
+    friend bool operator!=(polygon_t const &a, polygon_t const &b) noexcept;
 
 private:
     ring_t m_outer;
