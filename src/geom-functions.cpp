@@ -301,7 +301,7 @@ double area(geometry_t const &geom)
         }
     }
 
-    return total;
+    return std::abs(total);
 }
 
 namespace {
