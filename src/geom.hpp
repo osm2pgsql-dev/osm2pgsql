@@ -29,6 +29,19 @@ namespace geom {
 
 class nullgeom_t
 {
+public:
+    static std::size_t num_geometries() noexcept { return 0; }
+
+    constexpr friend bool operator==(nullgeom_t, nullgeom_t) noexcept
+    {
+        return true;
+    }
+
+    constexpr friend bool operator!=(nullgeom_t, nullgeom_t) noexcept
+    {
+        return false;
+    }
+
 }; // class nullgeom_t
 
 class point_t
@@ -41,6 +54,8 @@ public:
     {}
 
     constexpr point_t(double x, double y) noexcept : m_x(x), m_y(y) {}
+
+    static std::size_t num_geometries() noexcept { return 1; }
 
     constexpr double x() const noexcept { return m_x; }
     constexpr double y() const noexcept { return m_y; }
@@ -83,6 +98,8 @@ public:
     : point_list_t(list.begin(), list.end())
     {}
 
+    static std::size_t num_geometries() noexcept { return 1; }
+
 }; // class linestring_t
 
 class ring_t : public point_list_t
@@ -106,6 +123,8 @@ public:
     polygon_t() = default;
 
     explicit polygon_t(ring_t &&ring) : m_outer(std::move(ring)) {}
+
+    static std::size_t num_geometries() noexcept { return 1; }
 
     ring_t const &outer() const noexcept { return m_outer; }
 
