@@ -14,7 +14,8 @@
 
 TEST_CASE("wkb: nullgeom", "[NoDB]")
 {
-    geom::geometry_t geom{};
+    geom::geometry_t const geom{};
+    REQUIRE(geom.is_null());
 
     auto const wkb = geom_to_ewkb(geom);
     REQUIRE(wkb.empty());
@@ -25,25 +26,23 @@ TEST_CASE("wkb: nullgeom", "[NoDB]")
 
 TEST_CASE("wkb: point", "[NoDB]")
 {
-    geom::geometry_t geom{geom::point_t{3.14, 2.17}, 42};
+    geom::geometry_t const geom{geom::point_t{3.14, 2.17}, 42};
 
     auto const result = ewkb_to_geom(geom_to_ewkb(geom));
     REQUIRE(result.is_point());
     REQUIRE(result.srid() == 42);
-
-    REQUIRE(result.get<geom::point_t>() == geom.get<geom::point_t>());
+    REQUIRE(result == geom);
 }
 
 TEST_CASE("wkb: linestring", "[NoDB]")
 {
-    geom::geometry_t geom{
+    geom::geometry_t const geom{
         geom::linestring_t{{1.2, 2.3}, {3.4, 4.5}, {5.6, 6.7}}, 43};
 
     auto const result = ewkb_to_geom(geom_to_ewkb(geom));
     REQUIRE(result.is_linestring());
     REQUIRE(result.srid() == 43);
-
-    REQUIRE(result.get<geom::linestring_t>() == geom.get<geom::linestring_t>());
+    REQUIRE(result == geom);
 }
 
 TEST_CASE("wkb: polygon without inner ring", "[NoDB]")
@@ -56,10 +55,7 @@ TEST_CASE("wkb: polygon without inner ring", "[NoDB]")
     auto const result = ewkb_to_geom(geom_to_ewkb(geom));
     REQUIRE(result.is_polygon());
     REQUIRE(result.srid() == 44);
-    REQUIRE(result.get<geom::polygon_t>().inners().empty());
-
-    REQUIRE(result.get<geom::polygon_t>().outer() ==
-            geom.get<geom::polygon_t>().outer());
+    REQUIRE(result == geom);
 }
 
 TEST_CASE("wkb: polygon with inner rings", "[NoDB]")
@@ -75,24 +71,19 @@ TEST_CASE("wkb: polygon with inner rings", "[NoDB]")
     auto const result = ewkb_to_geom(geom_to_ewkb(geom));
     REQUIRE(result.is_polygon());
     REQUIRE(result.srid() == 45);
-    REQUIRE(result.get<geom::polygon_t>().inners().size() == 1);
-
-    REQUIRE(result.get<geom::polygon_t>().outer() ==
-            geom.get<geom::polygon_t>().outer());
-    REQUIRE(result.get<geom::polygon_t>().inners().front() ==
-            geom.get<geom::polygon_t>().inners().front());
+    REQUIRE(result == geom);
 }
 
 TEST_CASE("wkb: point as multipoint", "[NoDB]")
 {
-    geom::geometry_t geom{geom::point_t{1.2, 2.3}, 47};
+    geom::geometry_t const geom{geom::point_t{1.2, 2.3}, 47};
 
     auto const result = ewkb_to_geom(geom_to_ewkb(geom, true));
     REQUIRE(result.is_multipoint());
     REQUIRE(result.srid() == 47);
+
     auto const &rmp = result.get<geom::multipoint_t>();
     REQUIRE(rmp.num_geometries() == 1);
-
     REQUIRE(rmp[0] == geom.get<geom::point_t>());
 }
 
@@ -107,24 +98,20 @@ TEST_CASE("wkb: multipoint", "[NoDB]")
     auto const result = ewkb_to_geom(geom_to_ewkb(geom));
     REQUIRE(result.is_multipoint());
     REQUIRE(result.srid() == 46);
-    auto const &rmp = result.get<geom::multipoint_t>();
-    REQUIRE(rmp.num_geometries() == 2);
-
-    REQUIRE(rmp[0] == mp[0]);
-    REQUIRE(rmp[1] == mp[1]);
+    REQUIRE(result == geom);
 }
 
 TEST_CASE("wkb: linestring as multilinestring", "[NoDB]")
 {
-    geom::geometry_t geom{
+    geom::geometry_t const geom{
         geom::linestring_t{{1.2, 2.3}, {3.4, 4.5}, {5.6, 6.7}}, 43};
 
     auto const result = ewkb_to_geom(geom_to_ewkb(geom, true));
     REQUIRE(result.is_multilinestring());
     REQUIRE(result.srid() == 43);
+
     auto const &rml = result.get<geom::multilinestring_t>();
     REQUIRE(rml.num_geometries() == 1);
-
     REQUIRE(rml[0] == geom.get<geom::linestring_t>());
 }
 
@@ -139,11 +126,7 @@ TEST_CASE("wkb: multilinestring", "[NoDB]")
     auto const result = ewkb_to_geom(geom_to_ewkb(geom));
     REQUIRE(result.is_multilinestring());
     REQUIRE(result.srid() == 46);
-    auto const &rml = result.get<geom::multilinestring_t>();
-    REQUIRE(rml.num_geometries() == 2);
-
-    REQUIRE(rml[0] == ml[0]);
-    REQUIRE(rml[1] == ml[1]);
+    REQUIRE(result == geom);
 }
 
 TEST_CASE("wkb: polygon as multipolygon", "[NoDB]")
@@ -156,11 +139,10 @@ TEST_CASE("wkb: polygon as multipolygon", "[NoDB]")
     auto const result = ewkb_to_geom(geom_to_ewkb(geom, true));
     REQUIRE(result.is_multipolygon());
     REQUIRE(result.srid() == 44);
+
     auto const &rmp = result.get<geom::multipolygon_t>();
     REQUIRE(rmp.num_geometries() == 1);
-
-    REQUIRE(rmp[0].outer() == geom.get<geom::polygon_t>().outer());
-    REQUIRE(rmp[0].inners().empty());
+    REQUIRE(rmp[0] == geom.get<geom::polygon_t>());
 }
 
 TEST_CASE("wkb: multipolygon", "[NoDB]")
@@ -181,21 +163,31 @@ TEST_CASE("wkb: multipolygon", "[NoDB]")
     auto const result = ewkb_to_geom(geom_to_ewkb(geom));
     REQUIRE(result.is_multipolygon());
     REQUIRE(result.srid() == 47);
-    auto const &rmp = result.get<geom::multipolygon_t>();
-    REQUIRE(rmp.num_geometries() == 2);
-
-    REQUIRE(rmp[0].outer() == mp[0].outer());
-    REQUIRE(rmp[0].inners().size() == 1);
-    REQUIRE(rmp[0].inners().front() == mp[0].inners().front());
-
-    REQUIRE(rmp[1].outer() == mp[1].outer());
-    REQUIRE(rmp[1].inners().empty());
+    REQUIRE(result == geom);
 }
 
-TEST_CASE("wkb: invalid", "[NoDB]")
+TEST_CASE("wkb: geometrycollection", "[NoDB]")
 {
-    REQUIRE_THROWS(ewkb_to_geom("INVALID"));
+    geom::geometry_t geom1{geom::point_t{1.0, 2.0}};
+    geom::geometry_t geom2{geom::linestring_t{{1.2, 2.3}, {3.4, 4.5}}};
+    geom::geometry_t geom3{geom::multipolygon_t{}};
+
+    geom3.get<geom::multipolygon_t>().emplace_back(geom::ring_t{
+        {4.0, 4.0}, {5.0, 4.0}, {5.0, 5.0}, {4.0, 5.0}, {4.0, 4.0}});
+
+    geom::geometry_t geom{geom::collection_t{}, 49};
+    auto &c = geom.get<geom::collection_t>();
+    c.add_geometry(std::move(geom1));
+    c.add_geometry(std::move(geom2));
+    c.add_geometry(std::move(geom3));
+
+    auto const result = ewkb_to_geom(geom_to_ewkb(geom));
+    REQUIRE(result.is_collection());
+    REQUIRE(result.srid() == 49);
+    REQUIRE(result == geom);
 }
+
+TEST_CASE("wkb: invalid", "[NoDB]") { REQUIRE_THROWS(ewkb_to_geom("INVALID")); }
 
 TEST_CASE("wkb hex decode of valid hex characters")
 {

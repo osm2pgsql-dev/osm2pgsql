@@ -18,6 +18,7 @@
 
 #include <osmium/osm/location.hpp>
 
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <initializer_list>
@@ -136,6 +137,18 @@ public:
 
     void add_inner_ring(ring_t &&ring) { m_inners.push_back(std::move(ring)); }
 
+    friend bool operator==(polygon_t const &a, polygon_t const &b) noexcept
+    {
+        return (a.outer() == b.outer()) &&
+               std::equal(a.inners().cbegin(), a.inners().cend(),
+                          b.inners().cbegin(), b.inners().cend());
+    }
+
+    friend bool operator!=(polygon_t const &a, polygon_t const &b) noexcept
+    {
+        return !(a == b);
+    }
+
 private:
     ring_t m_outer;
     std::vector<ring_t> m_inners;
@@ -153,6 +166,18 @@ public:
     void add_geometry(GEOM &&geom) { this->push_back(std::move(geom)); }
 
     GEOM &add_geometry() { return this->emplace_back(); }
+
+    friend bool operator==(multigeometry_t const &a,
+                           multigeometry_t const &b) noexcept
+    {
+        return std::equal(a.cbegin(), a.cend(), b.cbegin(), b.cend());
+    }
+
+    friend bool operator!=(multigeometry_t const &a,
+                           multigeometry_t const &b) noexcept
+    {
+        return !(a == b);
+    }
 
 }; // class multigeometry_t
 
@@ -245,6 +270,16 @@ public:
     constexpr auto visit(V &&visitor) const
     {
         return std::visit(std::forward<V>(visitor), m_geom);
+    }
+
+    friend bool operator==(geometry_t const &a, geometry_t const &b) noexcept
+    {
+        return (a.srid() == b.srid()) && (a.m_geom == b.m_geom);
+    }
+
+    friend bool operator!=(geometry_t const &a, geometry_t const &b) noexcept
+    {
+        return !(a == b);
     }
 
 private:

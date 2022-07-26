@@ -295,9 +295,8 @@ private:
 class ewkb_parser_t
 {
 public:
-    explicit ewkb_parser_t(std::string const &wkb)
-    : m_it(wkb.data()), m_end(wkb.data() + wkb.size()),
-      m_max_length(wkb.size() / (sizeof(double) * 2))
+    ewkb_parser_t(char const *it, char const *end)
+    : m_it(it), m_end(end), m_max_length((end - it) / (sizeof(double) * 2))
     {}
 
     geom::geometry_t operator()()
@@ -329,17 +328,18 @@ public:
         case geometry_type::wkb_multi_polygon:
             parse_multi_polygon(&geom);
             break;
+        case geometry_type::wkb_collection:
+            parse_collection(&geom);
+            break;
         default:
             throw std::runtime_error{
                 "Invalid WKB geometry: Unknown geometry type {}"_format(type)};
         }
 
-        if (m_it != m_end) {
-            throw std::runtime_error{"Invalid WKB geometry: Extra data at end"};
-        }
-
         return geom;
     }
+
+    char const *next() const noexcept { return m_it; }
 
 private:
     void check_bytes(uint32_t bytes) const
@@ -518,6 +518,23 @@ private:
         }
     }
 
+    void parse_collection(geom::geometry_t *geom)
+    {
+        auto &collection = geom->set<geom::collection_t>();
+        auto const num_geoms = parse_length();
+        if (num_geoms == 0) {
+            throw std::runtime_error{
+                "Invalid WKB geometry: Geometry collection without geometries"};
+        }
+
+        collection.reserve(num_geoms);
+        for (uint32_t i = 0; i < num_geoms; ++i) {
+            ewkb_parser_t parser{m_it, m_end};
+            collection.add_geometry(parser());
+            m_it = parser.next();
+        }
+    }
+
     char const *m_it;
     char const *m_end;
     uint32_t m_max_length;
@@ -536,8 +553,15 @@ std::string geom_to_ewkb(geom::geometry_t const &geom, bool ensure_multi)
 
 geom::geometry_t ewkb_to_geom(std::string const &wkb)
 {
-    ewkb::ewkb_parser_t parser{wkb};
-    return parser();
+    const char *const end = wkb.data() + wkb.size();
+    ewkb::ewkb_parser_t parser{wkb.data(), end};
+    auto geom = parser();
+
+    if (parser.next() != end) {
+        throw std::runtime_error{"Invalid WKB geometry: Extra data at end"};
+    }
+
+    return geom;
 }
 
 unsigned char decode_hex_char(char c)
