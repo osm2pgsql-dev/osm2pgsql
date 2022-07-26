@@ -292,6 +292,19 @@ private:
 
 }; // class make_ewkb_visitor
 
+/**
+ * Parser for (E)WKB.
+ *
+ * Empty Multi* geometries and Geometry Collections will return a NULL
+ * geometry object.
+ *
+ * Call next() to get a pointer to the next character that is not part of the
+ * geometry any more. If this is not the same as the end pointer given to
+ * the constructor, this means that there is extra data available in the
+ * input data.
+ *
+ * Can only parse (E)WKB in native byte order.
+ */
 class ewkb_parser_t
 {
 public:
@@ -457,8 +470,8 @@ private:
         auto &multipoint = geom->set<geom::multipoint_t>();
         auto const num_geoms = parse_length();
         if (num_geoms == 0) {
-            throw std::runtime_error{
-                "Invalid WKB geometry: Multipoint without points"};
+            geom->reset();
+            return;
         }
 
         multipoint.reserve(num_geoms);
@@ -479,8 +492,8 @@ private:
         auto &multilinestring = geom->set<geom::multilinestring_t>();
         auto const num_geoms = parse_length();
         if (num_geoms == 0) {
-            throw std::runtime_error{
-                "Invalid WKB geometry: Multilinestring without linestrings"};
+            geom->reset();
+            return;
         }
 
         multilinestring.reserve(num_geoms);
@@ -501,8 +514,8 @@ private:
         auto &multipolygon = geom->set<geom::multipolygon_t>();
         auto const num_geoms = parse_length();
         if (num_geoms == 0) {
-            throw std::runtime_error{
-                "Invalid WKB geometry: Multipolygon without polygons"};
+            geom->reset();
+            return;
         }
 
         multipolygon.reserve(num_geoms);
@@ -523,8 +536,8 @@ private:
         auto &collection = geom->set<geom::collection_t>();
         auto const num_geoms = parse_length();
         if (num_geoms == 0) {
-            throw std::runtime_error{
-                "Invalid WKB geometry: Geometry collection without geometries"};
+            geom->reset();
+            return;
         }
 
         collection.reserve(num_geoms);
