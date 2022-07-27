@@ -23,6 +23,7 @@ TEST_CASE("geometry collection with point", "[NoDB]")
     c.add_geometry(geom::geometry_t{geom::point_t{1, 1}});
 
     REQUIRE(geometry_type(geom) == "GEOMETRYCOLLECTION");
+    REQUIRE(dimension(geom) == 0);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(0.0));
     REQUIRE(length(geom) == Approx(0.0));
@@ -40,6 +41,7 @@ TEST_CASE("geometry collection with several geometries", "[NoDB]")
     c.add_geometry(geom::geometry_t{geom::point_t{2, 2}});
 
     REQUIRE(geometry_type(geom) == "GEOMETRYCOLLECTION");
+    REQUIRE(dimension(geom) == 1);
     REQUIRE(num_geometries(geom) == 3);
     REQUIRE(area(geom) == Approx(0.0));
     REQUIRE(length(geom) == Approx(1.41421));
@@ -61,6 +63,7 @@ TEST_CASE("create_collection from OSM data", "[NoDB]")
     auto const geom = geom::create_collection(buffer.buffer());
 
     REQUIRE(geometry_type(geom) == "GEOMETRYCOLLECTION");
+    REQUIRE(dimension(geom) == 1);
     REQUIRE(num_geometries(geom) == 3);
 
     auto const &c = geom.get<geom::collection_t>();
@@ -82,6 +85,7 @@ TEST_CASE("create_collection from no OSM data returns null geometry", "[NoDB]")
     auto const geom = geom::create_collection(buffer.buffer());
 
     REQUIRE(geometry_type(geom) == "NULL");
+    REQUIRE(dimension(geom) == 0);
     REQUIRE(num_geometries(geom) == 0);
 }
 

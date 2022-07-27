@@ -50,6 +50,7 @@ TEST_CASE("create_point from OSM data", "[NoDB]")
 
     REQUIRE(geom.is_point());
     REQUIRE(geometry_type(geom) == "POINT");
+    REQUIRE(dimension(geom) == 0);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(0.0));
     REQUIRE(length(geom) == Approx(0.0));

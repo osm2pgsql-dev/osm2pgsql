@@ -42,6 +42,7 @@ TEST_CASE("line geometry", "[NoDB]")
 {
     geom::geometry_t const geom{geom::linestring_t{{1, 1}, {2, 2}}};
 
+    REQUIRE(dimension(geom) == 1);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(0.0));
     REQUIRE(length(geom) == Approx(1.41421));
@@ -73,6 +74,7 @@ TEST_CASE("create_linestring from OSM data", "[NoDB]")
 
     REQUIRE(geom.is_linestring());
     REQUIRE(geometry_type(geom) == "LINESTRING");
+    REQUIRE(dimension(geom) == 1);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(0.0));
     REQUIRE(length(geom) == Approx(1.41421));

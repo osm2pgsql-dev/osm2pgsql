@@ -28,6 +28,7 @@ TEST_CASE("multipoint_t with a single point", "[NoDB]")
 
     REQUIRE(geom.is_multipoint());
     REQUIRE(geometry_type(geom) == "MULTIPOINT");
+    REQUIRE(dimension(geom) == 0);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(0.0));
     REQUIRE(length(geom) == Approx(0.0));
