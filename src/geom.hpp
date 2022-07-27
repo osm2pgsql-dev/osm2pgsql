@@ -105,11 +105,6 @@ public:
     : std::vector<point_t>(list.begin(), list.end())
     {}
 
-    [[nodiscard]] constexpr static std::size_t num_geometries() noexcept
-    {
-        return 1;
-    }
-
     friend bool operator==(point_list_t const &a,
                            point_list_t const &b) noexcept;
 
@@ -122,6 +117,11 @@ class linestring_t : public point_list_t
 {
 public:
     using point_list_t::point_list_t;
+
+    [[nodiscard]] constexpr static std::size_t num_geometries() noexcept
+    {
+        return 1;
+    }
 
 }; // class linestring_t
 
