@@ -41,7 +41,7 @@ void create_point(geometry_t *geom, osmium::Node const &node);
  * \param node The input node.
  * \returns The created geometry.
  */
-geometry_t create_point(osmium::Node const &node);
+[[nodiscard]] geometry_t create_point(osmium::Node const &node);
 
 /**
  * Create a linestring geometry from a way. Nodes without location are ignored.
@@ -67,7 +67,7 @@ void create_linestring(geometry_t *geom, osmium::Way const &way);
  * \param way The input way.
  * \returns The created geometry.
  */
-geometry_t create_linestring(osmium::Way const &way);
+[[nodiscard]] geometry_t create_linestring(osmium::Way const &way);
 
 /**
  * Create a polygon geometry from a way.
@@ -87,7 +87,7 @@ void create_polygon(geometry_t *geom, osmium::Way const &way);
  * \param way The input way.
  * \returns The created geometry.
  */
-geometry_t create_polygon(osmium::Way const &way);
+[[nodiscard]] geometry_t create_polygon(osmium::Way const &way);
 
 /**
  * Create a multilinestring geometry from a bunch of ways (usually this
@@ -114,7 +114,8 @@ void create_multilinestring(geometry_t *geom,
  * \param ways Buffer containing all the input ways.
  * \returns The created geometry.
  */
-geometry_t create_multilinestring(osmium::memory::Buffer const &ways);
+[[nodiscard]] geometry_t
+create_multilinestring(osmium::memory::Buffer const &ways);
 
 /**
  * Create a (multi)polygon geometry from a relation and member ways.
@@ -139,8 +140,9 @@ void create_multipolygon(geometry_t *geom, osmium::Relation const &relation,
  * \param way_buffer Buffer containing all member ways.
  * \returns The created geometry.
  */
-geometry_t create_multipolygon(osmium::Relation const &relation,
-                               osmium::memory::Buffer const &way_buffer);
+[[nodiscard]] geometry_t
+create_multipolygon(osmium::Relation const &relation,
+                    osmium::memory::Buffer const &way_buffer);
 
 /**
  * Create a geometry collection from a relation and node/way members.
@@ -164,7 +166,8 @@ void create_collection(geometry_t *geom,
  * \param way_buffer Buffer containing all member nodes and ways.
  * \returns The created geometry.
  */
-geometry_t create_collection(osmium::memory::Buffer const &member_buffer);
+[[nodiscard]] geometry_t
+create_collection(osmium::memory::Buffer const &member_buffer);
 
 } // namespace geom
 
