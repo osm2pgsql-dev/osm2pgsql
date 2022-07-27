@@ -92,8 +92,8 @@ TEST_CASE("wkb: multipoint", "[NoDB]")
     geom::geometry_t geom{geom::multipoint_t{}, 46};
 
     auto &mp = geom.get<geom::multipoint_t>();
-    mp.emplace_back(geom::point_t{{1.2, 2.3}});
-    mp.emplace_back(geom::point_t{{7.0, 7.0}});
+    mp.add_geometry(geom::point_t{{1.2, 2.3}});
+    mp.add_geometry(geom::point_t{{7.0, 7.0}});
 
     auto const result = ewkb_to_geom(geom_to_ewkb(geom));
     REQUIRE(result.is_multipoint());
@@ -120,8 +120,8 @@ TEST_CASE("wkb: multilinestring", "[NoDB]")
     geom::geometry_t geom{geom::multilinestring_t{}, 46};
 
     auto &ml = geom.get<geom::multilinestring_t>();
-    ml.emplace_back(geom::linestring_t{{1.2, 2.3}, {3.4, 4.5}, {5.6, 6.7}});
-    ml.emplace_back(geom::linestring_t{{7.0, 7.0}, {8.0, 7.0}, {8.0, 8.0}});
+    ml.add_geometry(geom::linestring_t{{1.2, 2.3}, {3.4, 4.5}, {5.6, 6.7}});
+    ml.add_geometry(geom::linestring_t{{7.0, 7.0}, {8.0, 7.0}, {8.0, 8.0}});
 
     auto const result = ewkb_to_geom(geom_to_ewkb(geom));
     REQUIRE(result.is_multilinestring());
@@ -151,14 +151,14 @@ TEST_CASE("wkb: multipolygon", "[NoDB]")
 
     auto &mp = geom.get<geom::multipolygon_t>();
     {
-        auto &p0 = mp.emplace_back(geom::ring_t{
-            {0.0, 0.0}, {3.0, 0.0}, {3.0, 3.0}, {0.0, 3.0}, {0.0, 0.0}});
+        auto &p0 = mp.add_geometry(geom::polygon_t{geom::ring_t{
+            {0.0, 0.0}, {3.0, 0.0}, {3.0, 3.0}, {0.0, 3.0}, {0.0, 0.0}}});
         p0.add_inner_ring(geom::ring_t{
             {1.0, 1.0}, {2.0, 1.0}, {2.0, 2.0}, {1.0, 2.0}, {1.0, 1.0}});
     }
 
-    mp.emplace_back(geom::ring_t{
-        {4.0, 4.0}, {5.0, 4.0}, {5.0, 5.0}, {4.0, 5.0}, {4.0, 4.0}});
+    mp.add_geometry(geom::polygon_t{geom::ring_t{
+        {4.0, 4.0}, {5.0, 4.0}, {5.0, 5.0}, {4.0, 5.0}, {4.0, 4.0}}});
 
     auto const result = ewkb_to_geom(geom_to_ewkb(geom));
     REQUIRE(result.is_multipolygon());
@@ -172,8 +172,8 @@ TEST_CASE("wkb: geometrycollection", "[NoDB]")
     geom::geometry_t geom2{geom::linestring_t{{1.2, 2.3}, {3.4, 4.5}}};
     geom::geometry_t geom3{geom::multipolygon_t{}};
 
-    geom3.get<geom::multipolygon_t>().emplace_back(geom::ring_t{
-        {4.0, 4.0}, {5.0, 4.0}, {5.0, 5.0}, {4.0, 5.0}, {4.0, 4.0}});
+    geom3.get<geom::multipolygon_t>().add_geometry(geom::polygon_t{geom::ring_t{
+        {4.0, 4.0}, {5.0, 4.0}, {5.0, 5.0}, {4.0, 5.0}, {4.0, 4.0}}});
 
     geom::geometry_t geom{geom::collection_t{}, 49};
     auto &c = geom.get<geom::collection_t>();

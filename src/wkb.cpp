@@ -476,7 +476,7 @@ private:
 
         multipoint.reserve(num_geoms);
         for (uint32_t i = 0; i < num_geoms; ++i) {
-            auto &point = multipoint.emplace_back();
+            auto &point = multipoint.add_geometry();
             uint32_t const type = parse_header();
             if (type != geometry_type::wkb_point) {
                 throw std::runtime_error{
@@ -498,7 +498,7 @@ private:
 
         multilinestring.reserve(num_geoms);
         for (uint32_t i = 0; i < num_geoms; ++i) {
-            auto &linestring = multilinestring.emplace_back();
+            auto &linestring = multilinestring.add_geometry();
             uint32_t const type = parse_header();
             if (type != geometry_type::wkb_line) {
                 throw std::runtime_error{
@@ -520,7 +520,7 @@ private:
 
         multipolygon.reserve(num_geoms);
         for (uint32_t i = 0; i < num_geoms; ++i) {
-            auto &polygon = multipolygon.emplace_back();
+            auto &polygon = multipolygon.add_geometry();
             uint32_t const type = parse_header();
             if (type != geometry_type::wkb_polygon) {
                 throw std::runtime_error{

@@ -237,7 +237,7 @@ static void split_linestring(linestring_t const &line, double split_at,
     }
 
     if (out->size() <= 1) {
-        output->resize(output->num_geometries() - 1);
+        output->remove_last();
     }
 }
 

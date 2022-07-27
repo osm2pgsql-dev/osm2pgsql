@@ -168,31 +168,58 @@ private:
 }; // class polygon_t
 
 template <typename GEOM>
-class multigeometry_t : public std::vector<GEOM>
+class multigeometry_t
 {
 public:
     using const_iterator = typename std::vector<GEOM>::const_iterator;
+    using iterator = typename std::vector<GEOM>::const_iterator;
+    using value_type = GEOM;
 
     [[nodiscard]] std::size_t num_geometries() const noexcept
     {
-        return this->size();
+        return m_geometry.size();
     }
 
-    void add_geometry(GEOM &&geom) { this->push_back(std::move(geom)); }
+    GEOM &add_geometry(GEOM &&geom)
+    {
+        m_geometry.push_back(std::move(geom));
+        return m_geometry.back();
+    }
 
-    [[nodiscard]] GEOM &add_geometry() { return this->emplace_back(); }
+    [[nodiscard]] GEOM &add_geometry() { return m_geometry.emplace_back(); }
 
     [[nodiscard]] friend bool operator==(multigeometry_t const &a,
                                          multigeometry_t const &b) noexcept
     {
-        return std::equal(a.cbegin(), a.cend(), b.cbegin(), b.cend());
+        return a.m_geometry == b.m_geometry;
     }
 
     [[nodiscard]] friend bool operator!=(multigeometry_t const &a,
                                          multigeometry_t const &b) noexcept
     {
-        return !(a == b);
+        return a.m_geometry != b.m_geometry;
     }
+
+    const_iterator begin() const noexcept { return m_geometry.cbegin(); }
+    const_iterator end() const noexcept { return m_geometry.cend(); }
+    const_iterator cbegin() const noexcept { return m_geometry.cbegin(); }
+    const_iterator cend() const noexcept { return m_geometry.cend(); }
+
+    GEOM const &operator[](std::size_t i) const noexcept
+    {
+        return m_geometry[i];
+    }
+
+    void remove_last()
+    {
+        assert(!m_geometry.empty());
+        m_geometry.pop_back();
+    }
+
+    void reserve(std::size_t size) { m_geometry.reserve(size); }
+
+private:
+    std::vector<GEOM> m_geometry;
 
 }; // class multigeometry_t
 
