@@ -9,6 +9,9 @@
 
 #include <catch.hpp>
 
+#include "common-buffer.hpp"
+
+#include "geom-from-osm.hpp"
 #include "geom-functions.hpp"
 #include "geom.hpp"
 
@@ -62,4 +65,78 @@ TEST_CASE("geom::polygon_t", "[NoDB]")
     REQUIRE(area(geom) == Approx(8.0));
     REQUIRE(geometry_type(geom) == "POLYGON");
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{1.5, 1.5}});
+}
+
+TEST_CASE("create_polygon from OSM data", "[NoDB]")
+{
+    test_buffer_t buffer;
+    buffer.add_way("w20 Nn1x1y1,n2x2y1,n3x2y2,n4x1y2,n1x1y1");
+
+    auto const geom = geom::create_polygon(buffer.buffer().get<osmium::Way>(0));
+
+    REQUIRE(geom.is_polygon());
+    REQUIRE(geometry_type(geom) == "POLYGON");
+    REQUIRE(num_geometries(geom) == 1);
+    REQUIRE(area(geom) == Approx(1.0));
+    REQUIRE(
+        geom.get<geom::polygon_t>() ==
+        geom::polygon_t{geom::ring_t{{1, 1}, {2, 1}, {2, 2}, {1, 2}, {1, 1}}});
+    REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{1.5, 1.5}});
+}
+
+TEST_CASE("create_polygon from OSM data (reverse)", "[NoDB]")
+{
+    test_buffer_t buffer;
+    buffer.add_way("w20 Nn1x1y1,n2x1y2,n3x2y2,n4x2y1,n1x1y1");
+
+    auto const geom = geom::create_polygon(buffer.buffer().get<osmium::Way>(0));
+
+    REQUIRE(geom.is_polygon());
+    REQUIRE(geometry_type(geom) == "POLYGON");
+    REQUIRE(num_geometries(geom) == 1);
+    REQUIRE(area(geom) == Approx(1.0));
+    REQUIRE(
+        geom.get<geom::polygon_t>() ==
+        geom::polygon_t{geom::ring_t{{1, 1}, {2, 1}, {2, 2}, {1, 2}, {1, 1}}});
+    REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{1.5, 1.5}});
+}
+
+TEST_CASE("create_polygon from OSM data without locations", "[NoDB]")
+{
+    test_buffer_t buffer;
+    buffer.add_way("w20 Nn1,n2,n3,n1");
+
+    auto const geom = geom::create_polygon(buffer.buffer().get<osmium::Way>(0));
+
+    REQUIRE(geom.is_null());
+}
+
+TEST_CASE("create_polygon from invalid OSM data (single node)", "[NoDB]")
+{
+    test_buffer_t buffer;
+    buffer.add_way("w20 Nn1x1y1");
+
+    auto const geom = geom::create_polygon(buffer.buffer().get<osmium::Way>(0));
+
+    REQUIRE(geom.is_null());
+}
+
+TEST_CASE("create_polygon from invalid OSM data (way node closed)", "[NoDB]")
+{
+    test_buffer_t buffer;
+    buffer.add_way("w20 Nn1x1y1,n2x2y2");
+
+    auto const geom = geom::create_polygon(buffer.buffer().get<osmium::Way>(0));
+
+    REQUIRE(geom.is_null());
+}
+
+TEST_CASE("create_polygon from invalid OSM data (self-intersection)", "[NoDB]")
+{
+    test_buffer_t buffer;
+    buffer.add_way("w20 Nn1x1y1,n2x1y2,n3x2y1,n4x2y2,n1x1y1");
+
+    auto const geom = geom::create_polygon(buffer.buffer().get<osmium::Way>(0));
+
+    REQUIRE(geom.is_null());
 }
