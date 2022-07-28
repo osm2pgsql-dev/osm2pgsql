@@ -51,7 +51,7 @@ TEST_CASE("line geometry", "[NoDB]")
 TEST_CASE("create_linestring from OSM data", "[NoDB]")
 {
     test_buffer_t buffer;
-    buffer.add_node("w20 Nn1x1y1,n2x2y2");
+    buffer.add_way("w20 Nn1x1y1,n2x2y2");
 
     auto const geom =
         geom::create_linestring(buffer.buffer().get<osmium::Way>(0));
@@ -68,7 +68,7 @@ TEST_CASE("create_linestring from OSM data", "[NoDB]")
 TEST_CASE("create_linestring from OSM data without locations", "[NoDB]")
 {
     test_buffer_t buffer;
-    buffer.add_node("w20 Nn1,n2");
+    buffer.add_way("w20 Nn1,n2");
 
     auto const geom =
         geom::create_linestring(buffer.buffer().get<osmium::Way>(0));
@@ -79,7 +79,7 @@ TEST_CASE("create_linestring from OSM data without locations", "[NoDB]")
 TEST_CASE("create_linestring from invalid OSM data", "[NoDB]")
 {
     test_buffer_t buffer;
-    buffer.add_node("w20 Nn1x1y1");
+    buffer.add_way("w20 Nn1x1y1");
 
     auto const geom =
         geom::create_linestring(buffer.buffer().get<osmium::Way>(0));

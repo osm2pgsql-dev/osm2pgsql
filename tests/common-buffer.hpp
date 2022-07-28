@@ -28,11 +28,13 @@ public:
 
     osmium::Node const &add_node(std::string const &data)
     {
+        assert(!data.empty() && data[0] == 'n');
         return m_buffer.get<osmium::Node>(add_opl(data));
     }
 
     osmium::Way &add_way(std::string const &data)
     {
+        assert(!data.empty() && data[0] == 'w');
         return m_buffer.get<osmium::Way>(add_opl(data));
     }
 
@@ -52,6 +54,7 @@ public:
 
     osmium::Relation const &add_relation(std::string const &data)
     {
+        assert(!data.empty() && data[0] == 'r');
         return m_buffer.get<osmium::Relation>(add_opl(data));
     }
 
