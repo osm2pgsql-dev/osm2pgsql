@@ -48,6 +48,45 @@ TEST_CASE("line geometry", "[NoDB]")
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{1.5, 1.5}});
 }
 
+TEST_CASE("create_linestring from OSM data", "[NoDB]")
+{
+    test_buffer_t buffer;
+    buffer.add_node("w20 Nn1x1y1,n2x2y2");
+
+    auto const geom =
+        geom::create_linestring(buffer.buffer().get<osmium::Way>(0));
+
+    REQUIRE(geom.is_linestring());
+    REQUIRE(geometry_type(geom) == "LINESTRING");
+    REQUIRE(num_geometries(geom) == 1);
+    REQUIRE(area(geom) == Approx(0.0));
+    REQUIRE(geom.get<geom::linestring_t>() ==
+            geom::linestring_t{{1, 1}, {2, 2}});
+    REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{1.5, 1.5}});
+}
+
+TEST_CASE("create_linestring from OSM data without locations", "[NoDB]")
+{
+    test_buffer_t buffer;
+    buffer.add_node("w20 Nn1,n2");
+
+    auto const geom =
+        geom::create_linestring(buffer.buffer().get<osmium::Way>(0));
+
+    REQUIRE(geom.is_null());
+}
+
+TEST_CASE("create_linestring from invalid OSM data", "[NoDB]")
+{
+    test_buffer_t buffer;
+    buffer.add_node("w20 Nn1x1y1");
+
+    auto const geom =
+        geom::create_linestring(buffer.buffer().get<osmium::Way>(0));
+
+    REQUIRE(geom.is_null());
+}
+
 TEST_CASE("geom::segmentize w/o split", "[NoDB]")
 {
     geom::linestring_t const line{{0, 0}, {1, 2}, {2, 2}};
