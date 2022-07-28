@@ -105,12 +105,6 @@ public:
     : std::vector<point_t>(list.begin(), list.end())
     {}
 
-    friend bool operator==(point_list_t const &a,
-                           point_list_t const &b) noexcept;
-
-    friend bool operator!=(point_list_t const &a,
-                           point_list_t const &b) noexcept;
-
 }; // class point_list_t
 
 class linestring_t : public point_list_t
