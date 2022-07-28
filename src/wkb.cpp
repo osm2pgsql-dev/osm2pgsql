@@ -81,6 +81,16 @@ void write_length(std::string *data, std::size_t length)
     str_push(data, static_cast<uint32_t>(length));
 }
 
+void write_point(std::string *data, geom::point_t const &geom,
+                 uint32_t srid = 0)
+{
+    assert(data);
+
+    write_header(data, wkb_point, srid);
+    str_push(data, geom.x());
+    str_push(data, geom.y());
+}
+
 void write_points(std::string *data, geom::point_list_t const &points)
 {
     write_length(data, points.size());
@@ -91,7 +101,7 @@ void write_points(std::string *data, geom::point_list_t const &points)
 }
 
 void write_linestring(std::string *data, geom::linestring_t const &geom,
-                             uint32_t srid)
+                      uint32_t srid = 0)
 {
     assert(data);
 
@@ -100,7 +110,7 @@ void write_linestring(std::string *data, geom::linestring_t const &geom,
 }
 
 void write_polygon(std::string *data, geom::polygon_t const &geom,
-                          uint32_t srid)
+                   uint32_t srid = 0)
 {
     assert(data);
 
@@ -109,6 +119,77 @@ void write_polygon(std::string *data, geom::polygon_t const &geom,
     write_points(data, geom.outer());
     for (auto const &ring : geom.inners()) {
         write_points(data, ring);
+    }
+}
+
+void write_multipoint(std::string *data, geom::multipoint_t const &geom,
+                      uint32_t srid = 0)
+{
+    assert(data);
+
+    write_header(data, wkb_multi_point, srid);
+    write_length(data, geom.num_geometries());
+
+    for (auto const &point : geom) {
+        write_point(data, point);
+    }
+}
+
+void write_multilinestring(std::string *data,
+                           geom::multilinestring_t const &geom,
+                           uint32_t srid = 0)
+{
+    assert(data);
+
+    write_header(data, wkb_multi_line, srid);
+    write_length(data, geom.num_geometries());
+
+    for (auto const &line : geom) {
+        write_linestring(data, line);
+    }
+}
+
+void write_multipolygon(std::string *data, geom::multipolygon_t const &geom,
+                        uint32_t srid = 0)
+{
+    assert(data);
+
+    write_header(data, wkb_multi_polygon, srid);
+    write_length(data, geom.num_geometries());
+
+    for (auto const &polygon : geom) {
+        write_polygon(data, polygon);
+    }
+}
+
+void write_collection(std::string *data, geom::collection_t const &geom,
+                      uint32_t srid = 0)
+{
+    assert(data);
+
+    write_header(data, wkb_collection, srid);
+    write_length(data, geom.num_geometries());
+
+    for (auto const &item : geom) {
+        item.visit(overloaded{
+            [&](geom::nullgeom_t const & /*input*/) {},
+            [&](geom::point_t const &input) { write_point(data, input); },
+            [&](geom::linestring_t const &input) {
+                write_linestring(data, input);
+            },
+            [&](geom::polygon_t const &input) { write_polygon(data, input); },
+            [&](geom::multipoint_t const &input) {
+                write_multipoint(data, input);
+            },
+            [&](geom::multilinestring_t const &input) {
+                write_multilinestring(data, input);
+            },
+            [&](geom::multipolygon_t const &input) {
+                write_multipolygon(data, input);
+            },
+            [&](geom::collection_t const &input) {
+                write_collection(data, input);
+            }});
     }
 }
 
@@ -126,17 +207,19 @@ public:
 
     std::string operator()(geom::point_t const &geom) const
     {
-        // 9 byte header plus one set of coordinates
-        constexpr const std::size_t size = 9 + 2 * 8;
-
         std::string data;
 
-        data.reserve(size);
-        write_header(&data, wkb_point, m_srid);
-        str_push(&data, geom.x());
-        str_push(&data, geom.y());
-
-        assert(data.size() == size);
+        if (m_ensure_multi) {
+            write_header(&data, wkb_multi_point, m_srid);
+            write_length(&data, 1);
+            write_point(&data, geom);
+        } else {
+            // 9 byte header plus one set of coordinates
+            constexpr const std::size_t size = 9 + 2 * 8;
+            data.reserve(size);
+            write_point(&data, geom, m_srid);
+            assert(data.size() == size);
+        }
 
         return data;
     }
@@ -150,7 +233,7 @@ public:
             data.reserve(2 * 13 + geom.size() * (2 * 8));
             write_header(&data, wkb_multi_line, m_srid);
             write_length(&data, 1);
-            write_linestring(&data, geom, 0);
+            write_linestring(&data, geom);
         } else {
             // 13 byte header plus n sets of coordinates
             data.reserve(13 + geom.size() * (2 * 8));
@@ -167,7 +250,7 @@ public:
         if (m_ensure_multi) {
             write_header(&data, wkb_multi_polygon, m_srid);
             write_length(&data, 1);
-            write_polygon(&data, geom, 0);
+            write_polygon(&data, geom);
         } else {
             write_polygon(&data, geom, m_srid);
         }
@@ -175,44 +258,32 @@ public:
         return data;
     }
 
-    std::string operator()(geom::multipoint_t const & /*geom*/) const
+    std::string operator()(geom::multipoint_t const &geom) const
     {
-        assert(false);
-        return {}; // XXX not used yet, no implementation
+        std::string data;
+        write_multipoint(&data, geom, m_srid);
+        return data;
     }
 
     std::string operator()(geom::multilinestring_t const &geom) const
     {
         std::string data;
-
-        write_header(&data, wkb_multi_line, m_srid);
-        write_length(&data, geom.num_geometries());
-
-        for (auto const &line : geom) {
-            write_linestring(&data, line, 0);
-        }
-
+        write_multilinestring(&data, geom, m_srid);
         return data;
     }
 
     std::string operator()(geom::multipolygon_t const &geom) const
     {
         std::string data;
-
-        write_header(&data, wkb_multi_polygon, m_srid);
-        write_length(&data, geom.num_geometries());
-
-        for (auto const &polygon : geom) {
-            write_polygon(&data, polygon, 0);
-        }
-
+        write_multipolygon(&data, geom, m_srid);
         return data;
     }
 
-    std::string operator()(geom::collection_t const & /*geom*/) const
+    std::string operator()(geom::collection_t const &geom) const
     {
-        assert(false);
-        return {}; // XXX not used yet, no implementation
+        std::string data;
+        write_collection(&data, geom, m_srid);
+        return data;
     }
 
 private:
@@ -221,12 +292,24 @@ private:
 
 }; // class make_ewkb_visitor
 
+/**
+ * Parser for (E)WKB.
+ *
+ * Empty Multi* geometries and Geometry Collections will return a NULL
+ * geometry object.
+ *
+ * Call next() to get a pointer to the next character that is not part of the
+ * geometry any more. If this is not the same as the end pointer given to
+ * the constructor, this means that there is extra data available in the
+ * input data.
+ *
+ * Can only parse (E)WKB in native byte order.
+ */
 class ewkb_parser_t
 {
 public:
-    explicit ewkb_parser_t(std::string const &wkb)
-    : m_it(wkb.data()), m_end(wkb.data() + wkb.size()),
-      m_max_length(wkb.size() / (sizeof(double) * 2))
+    ewkb_parser_t(char const *it, char const *end)
+    : m_it(it), m_end(end), m_max_length((end - it) / (sizeof(double) * 2))
     {}
 
     geom::geometry_t operator()()
@@ -250,7 +333,7 @@ public:
             parse_polygon(&geom.set<geom::polygon_t>());
             break;
         case geometry_type::wkb_multi_point:
-            // XXX not implemented yet
+            parse_multi_point(&geom);
             break;
         case geometry_type::wkb_multi_line:
             parse_multi_linestring(&geom);
@@ -258,17 +341,18 @@ public:
         case geometry_type::wkb_multi_polygon:
             parse_multi_polygon(&geom);
             break;
+        case geometry_type::wkb_collection:
+            parse_collection(&geom);
+            break;
         default:
             throw std::runtime_error{
                 "Invalid WKB geometry: Unknown geometry type {}"_format(type)};
         }
 
-        if (m_it != m_end) {
-            throw std::runtime_error{"Invalid WKB geometry: Extra data at end"};
-        }
-
         return geom;
     }
+
+    char const *next() const noexcept { return m_it; }
 
 private:
     void check_bytes(uint32_t bytes) const
@@ -381,13 +465,35 @@ private:
         }
     }
 
+    void parse_multi_point(geom::geometry_t *geom)
+    {
+        auto &multipoint = geom->set<geom::multipoint_t>();
+        auto const num_geoms = parse_length();
+        if (num_geoms == 0) {
+            geom->reset();
+            return;
+        }
+
+        multipoint.reserve(num_geoms);
+        for (uint32_t i = 0; i < num_geoms; ++i) {
+            auto &point = multipoint.emplace_back();
+            uint32_t const type = parse_header();
+            if (type != geometry_type::wkb_point) {
+                throw std::runtime_error{
+                    "Invalid WKB geometry: Multipoint containing"
+                    " something other than point: {}"_format(type)};
+            }
+            parse_point(&point);
+        }
+    }
+
     void parse_multi_linestring(geom::geometry_t *geom)
     {
         auto &multilinestring = geom->set<geom::multilinestring_t>();
         auto const num_geoms = parse_length();
         if (num_geoms == 0) {
-            throw std::runtime_error{
-                "Invalid WKB geometry: Multilinestring without linestrings"};
+            geom->reset();
+            return;
         }
 
         multilinestring.reserve(num_geoms);
@@ -408,8 +514,8 @@ private:
         auto &multipolygon = geom->set<geom::multipolygon_t>();
         auto const num_geoms = parse_length();
         if (num_geoms == 0) {
-            throw std::runtime_error{
-                "Invalid WKB geometry: Multipolygon without polygons"};
+            geom->reset();
+            return;
         }
 
         multipolygon.reserve(num_geoms);
@@ -422,6 +528,23 @@ private:
                     " something other than polygon: {}"_format(type)};
             }
             parse_polygon(&polygon);
+        }
+    }
+
+    void parse_collection(geom::geometry_t *geom)
+    {
+        auto &collection = geom->set<geom::collection_t>();
+        auto const num_geoms = parse_length();
+        if (num_geoms == 0) {
+            geom->reset();
+            return;
+        }
+
+        collection.reserve(num_geoms);
+        for (uint32_t i = 0; i < num_geoms; ++i) {
+            ewkb_parser_t parser{m_it, m_end};
+            collection.add_geometry(parser());
+            m_it = parser.next();
         }
     }
 
@@ -443,8 +566,15 @@ std::string geom_to_ewkb(geom::geometry_t const &geom, bool ensure_multi)
 
 geom::geometry_t ewkb_to_geom(std::string const &wkb)
 {
-    ewkb::ewkb_parser_t parser{wkb};
-    return parser();
+    const char *const end = wkb.data() + wkb.size();
+    ewkb::ewkb_parser_t parser{wkb.data(), end};
+    auto geom = parser();
+
+    if (parser.next() != end) {
+        throw std::runtime_error{"Invalid WKB geometry: Extra data at end"};
+    }
+
+    return geom;
 }
 
 unsigned char decode_hex_char(char c)

@@ -13,6 +13,7 @@
 #include "geom.hpp"
 #include "reprojection.hpp"
 
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -50,6 +51,18 @@ void for_each_segment(point_list_t const &list, FUNC&& func)
         prev = it;
     }
 }
+
+/**
+ * Return the type of a geometry as string: NULL, (MULTI)POINT,
+ * (MULTI)LINESTRING, (MULTI)POLYGON, or GEOMETRYCOLLECTION.
+ */
+std::string_view geometry_type(geometry_t const &geom);
+
+/**
+ * Return the number of geometries in this geometry. For the null geometry
+ * this is always 0, for other non-multi geometries this is always 1.
+ */
+std::size_t num_geometries(geometry_t const &geom);
 
 /**
  * Transform a geometry in 4326 into some other projection.
@@ -104,6 +117,14 @@ std::vector<geometry_t> split_multi(geometry_t geom, bool split_multi = true);
  * \returns Result multilinestring.
  */
 geometry_t line_merge(geometry_t geom);
+
+/**
+ * Calculate the centroid of a geometry.
+ *
+ * \param geom Input geometry.
+ * \returns Resulting point geometry.
+ */
+geometry_t centroid(geometry_t const &geom);
 
 } // namespace geom
 

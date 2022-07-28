@@ -18,6 +18,7 @@
 
 #include <osmium/osm/location.hpp>
 
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <initializer_list>
@@ -29,6 +30,19 @@ namespace geom {
 
 class nullgeom_t
 {
+public:
+    static std::size_t num_geometries() noexcept { return 0; }
+
+    constexpr friend bool operator==(nullgeom_t, nullgeom_t) noexcept
+    {
+        return true;
+    }
+
+    constexpr friend bool operator!=(nullgeom_t, nullgeom_t) noexcept
+    {
+        return false;
+    }
+
 }; // class nullgeom_t
 
 class point_t
@@ -41,6 +55,8 @@ public:
     {}
 
     constexpr point_t(double x, double y) noexcept : m_x(x), m_y(y) {}
+
+    static std::size_t num_geometries() noexcept { return 1; }
 
     constexpr double x() const noexcept { return m_x; }
     constexpr double y() const noexcept { return m_y; }
@@ -65,38 +81,41 @@ private:
 }; // class point_t
 
 /// This type is used as the basis for linestrings and rings.
-using point_list_t = std::vector<point_t>;
+class point_list_t : public std::vector<point_t>
+{
+public:
+    point_list_t() = default;
 
-bool operator==(point_list_t const &a, point_list_t const &b) noexcept;
-bool operator!=(point_list_t const &a, point_list_t const &b) noexcept;
+    template <typename Iterator>
+    point_list_t(Iterator begin, Iterator end)
+    : std::vector<point_t>(begin, end)
+    {}
+
+    point_list_t(std::initializer_list<point_t> list)
+    : std::vector<point_t>(list.begin(), list.end())
+    {}
+
+    static std::size_t num_geometries() noexcept { return 1; }
+
+    friend bool operator==(point_list_t const &a,
+                           point_list_t const &b) noexcept;
+
+    friend bool operator!=(point_list_t const &a,
+                           point_list_t const &b) noexcept;
+
+}; // class point_list_t
 
 class linestring_t : public point_list_t
 {
 public:
-    linestring_t() = default;
-
-    template <typename Iterator>
-    linestring_t(Iterator begin, Iterator end) : point_list_t(begin, end)
-    {}
-
-    linestring_t(std::initializer_list<point_t> list)
-    : point_list_t(list.begin(), list.end())
-    {}
+    using point_list_t::point_list_t;
 
 }; // class linestring_t
 
 class ring_t : public point_list_t
 {
 public:
-    ring_t() = default;
-
-    template <typename Iterator>
-    ring_t(Iterator begin, Iterator end) : point_list_t(begin, end)
-    {}
-
-    ring_t(std::initializer_list<point_t> list)
-    : point_list_t(list.begin(), list.end())
-    {}
+    using point_list_t::point_list_t;
 
 }; // class ring_t
 
@@ -107,6 +126,8 @@ public:
 
     explicit polygon_t(ring_t &&ring) : m_outer(std::move(ring)) {}
 
+    static std::size_t num_geometries() noexcept { return 1; }
+
     ring_t const &outer() const noexcept { return m_outer; }
 
     ring_t &outer() noexcept { return m_outer; }
@@ -116,6 +137,10 @@ public:
     std::vector<ring_t> &inners() noexcept { return m_inners; }
 
     void add_inner_ring(ring_t &&ring) { m_inners.push_back(std::move(ring)); }
+
+    friend bool operator==(polygon_t const &a, polygon_t const &b) noexcept;
+
+    friend bool operator!=(polygon_t const &a, polygon_t const &b) noexcept;
 
 private:
     ring_t m_outer;
@@ -134,6 +159,18 @@ public:
     void add_geometry(GEOM &&geom) { this->push_back(std::move(geom)); }
 
     GEOM &add_geometry() { return this->emplace_back(); }
+
+    friend bool operator==(multigeometry_t const &a,
+                           multigeometry_t const &b) noexcept
+    {
+        return std::equal(a.cbegin(), a.cend(), b.cbegin(), b.cend());
+    }
+
+    friend bool operator!=(multigeometry_t const &a,
+                           multigeometry_t const &b) noexcept
+    {
+        return !(a == b);
+    }
 
 }; // class multigeometry_t
 
@@ -228,6 +265,16 @@ public:
         return std::visit(std::forward<V>(visitor), m_geom);
     }
 
+    friend bool operator==(geometry_t const &a, geometry_t const &b) noexcept
+    {
+        return (a.srid() == b.srid()) && (a.m_geom == b.m_geom);
+    }
+
+    friend bool operator!=(geometry_t const &a, geometry_t const &b) noexcept
+    {
+        return !(a == b);
+    }
+
 private:
     std::variant<nullgeom_t, point_t, linestring_t, polygon_t, multipoint_t,
                  multilinestring_t, multipolygon_t, collection_t>
@@ -238,5 +285,17 @@ private:
 }; // class geometry_t
 
 } // namespace geom
+
+// This magic is used for visiting geometries. For an explanation see for
+// instance here:
+// https://arne-mertz.de/2018/05/overload-build-a-variant-visitor-on-the-fly/
+template <class... Ts>
+struct overloaded : Ts...
+{
+    using Ts::operator()...;
+};
+
+template <class... Ts>
+overloaded(Ts...) -> overloaded<Ts...>;
 
 #endif // OSM2PGSQL_GEOM_HPP
