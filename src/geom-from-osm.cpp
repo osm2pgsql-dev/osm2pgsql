@@ -173,4 +173,38 @@ geometry_t create_multipolygon(osmium::Relation const &relation,
     return geom;
 }
 
+void create_collection(geometry_t *geom,
+                       osmium::memory::Buffer const &member_buffer)
+{
+    auto &collection = geom->set<collection_t>();
+
+    for (auto const &obj : member_buffer) {
+        if (obj.type() == osmium::item_type::node) {
+            auto const &node = static_cast<osmium::Node const &>(obj);
+            if (node.location().valid()) {
+                collection.add_geometry(create_point(node));
+            }
+        } else if (obj.type() == osmium::item_type::way) {
+            auto const &way = static_cast<osmium::Way const &>(obj);
+            geometry_t item;
+            auto &line = item.set<linestring_t>();
+            fill_point_list(&line, way.nodes());
+            if (line.size() >= 2U) {
+                collection.add_geometry(std::move(item));
+            }
+        }
+    }
+
+    if (collection.num_geometries() == 0) {
+        geom->reset();
+    }
+}
+
+geometry_t create_collection(osmium::memory::Buffer const &member_buffer)
+{
+    geometry_t geom{};
+    create_collection(&geom, member_buffer);
+    return geom;
+}
+
 } // namespace geom

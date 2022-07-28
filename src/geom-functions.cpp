@@ -554,7 +554,8 @@ geometry_t centroid(geometry_t const &geom)
     geom.visit(overloaded{
         [&](geom::nullgeom_t const & /*input*/) { output.reset(); },
         [&](geom::collection_t const & /*input*/) {
-            throw std::runtime_error{"not implemented yet"};
+            throw std::runtime_error{
+                "Centroid of geometry collection not implemented yet"};
         },
         [&](auto const &input) { boost::geometry::centroid(input, center); }});
 

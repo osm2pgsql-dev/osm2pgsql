@@ -142,6 +142,30 @@ void create_multipolygon(geometry_t *geom, osmium::Relation const &relation,
 geometry_t create_multipolygon(osmium::Relation const &relation,
                                osmium::memory::Buffer const &way_buffer);
 
+/**
+ * Create a geometry collection from a relation and node/way members.
+ *
+ * If the resulting geometry would be empty or invalid, a null geometry is
+ * returned.
+ *
+ * \param geom Pointer to an existing geometry which will be used as output.
+ * \param relation The input relation.
+ * \param way_buffer Buffer containing all member nodes and ways.
+ */
+void create_collection(geometry_t *geom,
+                       osmium::memory::Buffer const &member_buffer);
+
+/**
+ * Create a geometry collection from a relation and node/way members.
+ *
+ * If the resulting geometry would be empty or invalid, a null geometry is
+ * returned.
+ *
+ * \param way_buffer Buffer containing all member nodes and ways.
+ * \returns The created geometry.
+ */
+geometry_t create_collection(osmium::memory::Buffer const &member_buffer);
+
 } // namespace geom
 
 #endif // OSM2PGSQL_GEOM_FROM_OSM_HPP
