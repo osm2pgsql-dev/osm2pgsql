@@ -67,6 +67,18 @@ std::size_t num_geometries(geometry_t const &geom);
 /**
  * Transform a geometry in 4326 into some other projection.
  *
+ * \param output Pointer to output geometry.
+ * \param geom Input geometry.
+ * \param reprojection Target projection.
+ *
+ * \pre \code geom.srid() == 4326 \endcode
+ */
+void transform(geometry_t *output, geometry_t const &geom,
+               reprojection const &reprojection);
+
+/**
+ * Transform a geometry in 4326 into some other projection.
+ *
  * \param geom Input geometry.
  * \param reprojection Target projection.
  * \returns Reprojected geometry.
