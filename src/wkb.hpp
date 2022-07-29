@@ -27,8 +27,8 @@
  * \param ensure_multi Wrap non-multi geometries in multi geometries
  * \returns String with EWKB encoded geometry
  */
-std::string geom_to_ewkb(geom::geometry_t const &geom,
-                         bool ensure_multi = false);
+[[nodiscard]] std::string geom_to_ewkb(geom::geometry_t const &geom,
+                                       bool ensure_multi = false);
 
 /**
  * Convert EWKB geometry to geometry object. If the input is empty, a null
@@ -37,18 +37,18 @@ std::string geom_to_ewkb(geom::geometry_t const &geom,
  * \param wkb Input EWKB geometry in binary format
  * \returns Geometry
  */
-geom::geometry_t ewkb_to_geom(std::string const &wkb);
+[[nodiscard]] geom::geometry_t ewkb_to_geom(std::string const &wkb);
 
 /**
  * Decode one hex character (0-9A-F or 0-9a-f) and return its value. Throw
  * an exception if not a valid hex character.
  */
-unsigned char decode_hex_char(char c);
+[[nodiscard]] unsigned char decode_hex_char(char c);
 
 /**
  * Decode a string of hex characters. Throws an exception if the input is not
  * a valid hex encoding.
  */
-std::string decode_hex(char const *hex);
+[[nodiscard]] std::string decode_hex(char const *hex);
 
 #endif // OSM2PGSQL_WKB_HPP

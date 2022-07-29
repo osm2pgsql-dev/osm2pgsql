@@ -31,14 +31,19 @@ namespace geom {
 class nullgeom_t
 {
 public:
-    static std::size_t num_geometries() noexcept { return 0; }
+    [[nodiscard]] constexpr static std::size_t num_geometries() noexcept
+    {
+        return 0;
+    }
 
-    constexpr friend bool operator==(nullgeom_t, nullgeom_t) noexcept
+    [[nodiscard]] constexpr friend bool operator==(nullgeom_t,
+                                                   nullgeom_t) noexcept
     {
         return true;
     }
 
-    constexpr friend bool operator!=(nullgeom_t, nullgeom_t) noexcept
+    [[nodiscard]] constexpr friend bool operator!=(nullgeom_t,
+                                                   nullgeom_t) noexcept
     {
         return false;
     }
@@ -56,20 +61,25 @@ public:
 
     constexpr point_t(double x, double y) noexcept : m_x(x), m_y(y) {}
 
-    static std::size_t num_geometries() noexcept { return 1; }
+    [[nodiscard]] constexpr static std::size_t num_geometries() noexcept
+    {
+        return 1;
+    }
 
-    constexpr double x() const noexcept { return m_x; }
-    constexpr double y() const noexcept { return m_y; }
+    [[nodiscard]] constexpr double x() const noexcept { return m_x; }
+    [[nodiscard]] constexpr double y() const noexcept { return m_y; }
 
     constexpr void set_x(double value) noexcept { m_x = value; }
     constexpr void set_y(double value) noexcept { m_y = value; }
 
-    constexpr friend bool operator==(point_t a, point_t b) noexcept
+    [[nodiscard]] constexpr friend bool operator==(point_t a,
+                                                   point_t b) noexcept
     {
         return a.x() == b.x() && a.y() == b.y();
     }
 
-    constexpr friend bool operator!=(point_t a, point_t b) noexcept
+    [[nodiscard]] constexpr friend bool operator!=(point_t a,
+                                                   point_t b) noexcept
     {
         return !(a == b);
     }
@@ -95,7 +105,10 @@ public:
     : std::vector<point_t>(list.begin(), list.end())
     {}
 
-    static std::size_t num_geometries() noexcept { return 1; }
+    [[nodiscard]] constexpr static std::size_t num_geometries() noexcept
+    {
+        return 1;
+    }
 
     friend bool operator==(point_list_t const &a,
                            point_list_t const &b) noexcept;
@@ -126,15 +139,21 @@ public:
 
     explicit polygon_t(ring_t &&ring) : m_outer(std::move(ring)) {}
 
-    static std::size_t num_geometries() noexcept { return 1; }
+    [[nodiscard]] constexpr static std::size_t num_geometries() noexcept
+    {
+        return 1;
+    }
 
-    ring_t const &outer() const noexcept { return m_outer; }
+    [[nodiscard]] ring_t const &outer() const noexcept { return m_outer; }
 
-    ring_t &outer() noexcept { return m_outer; }
+    [[nodiscard]] ring_t &outer() noexcept { return m_outer; }
 
-    std::vector<ring_t> const &inners() const noexcept { return m_inners; }
+    [[nodiscard]] std::vector<ring_t> const &inners() const noexcept
+    {
+        return m_inners;
+    }
 
-    std::vector<ring_t> &inners() noexcept { return m_inners; }
+    [[nodiscard]] std::vector<ring_t> &inners() noexcept { return m_inners; }
 
     void add_inner_ring(ring_t &&ring) { m_inners.push_back(std::move(ring)); }
 
@@ -154,20 +173,23 @@ class multigeometry_t : public std::vector<GEOM>
 public:
     using const_iterator = typename std::vector<GEOM>::const_iterator;
 
-    std::size_t num_geometries() const noexcept { return this->size(); }
+    [[nodiscard]] std::size_t num_geometries() const noexcept
+    {
+        return this->size();
+    }
 
     void add_geometry(GEOM &&geom) { this->push_back(std::move(geom)); }
 
-    GEOM &add_geometry() { return this->emplace_back(); }
+    [[nodiscard]] GEOM &add_geometry() { return this->emplace_back(); }
 
-    friend bool operator==(multigeometry_t const &a,
-                           multigeometry_t const &b) noexcept
+    [[nodiscard]] friend bool operator==(multigeometry_t const &a,
+                                         multigeometry_t const &b) noexcept
     {
         return std::equal(a.cbegin(), a.cend(), b.cbegin(), b.cend());
     }
 
-    friend bool operator!=(multigeometry_t const &a,
-                           multigeometry_t const &b) noexcept
+    [[nodiscard]] friend bool operator!=(multigeometry_t const &a,
+                                         multigeometry_t const &b) noexcept
     {
         return !(a == b);
     }
@@ -196,57 +218,57 @@ public:
     : m_geom(std::move(geom)), m_srid(srid)
     {}
 
-    constexpr int srid() const noexcept { return m_srid; }
+    [[nodiscard]] constexpr int srid() const noexcept { return m_srid; }
 
     constexpr void set_srid(int srid) noexcept { m_srid = srid; }
 
-    constexpr bool is_null() const noexcept
+    [[nodiscard]] constexpr bool is_null() const noexcept
     {
         return std::holds_alternative<nullgeom_t>(m_geom);
     }
-    constexpr bool is_point() const noexcept
+    [[nodiscard]] constexpr bool is_point() const noexcept
     {
         return std::holds_alternative<point_t>(m_geom);
     }
-    constexpr bool is_linestring() const noexcept
+    [[nodiscard]] constexpr bool is_linestring() const noexcept
     {
         return std::holds_alternative<linestring_t>(m_geom);
     }
-    constexpr bool is_polygon() const noexcept
+    [[nodiscard]] constexpr bool is_polygon() const noexcept
     {
         return std::holds_alternative<polygon_t>(m_geom);
     }
-    constexpr bool is_multipoint() const noexcept
+    [[nodiscard]] constexpr bool is_multipoint() const noexcept
     {
         return std::holds_alternative<multipoint_t>(m_geom);
     }
-    constexpr bool is_multilinestring() const noexcept
+    [[nodiscard]] constexpr bool is_multilinestring() const noexcept
     {
         return std::holds_alternative<multilinestring_t>(m_geom);
     }
-    constexpr bool is_multipolygon() const noexcept
+    [[nodiscard]] constexpr bool is_multipolygon() const noexcept
     {
         return std::holds_alternative<multipolygon_t>(m_geom);
     }
-    constexpr bool is_collection() const noexcept
+    [[nodiscard]] constexpr bool is_collection() const noexcept
     {
         return std::holds_alternative<collection_t>(m_geom);
     }
 
-    constexpr bool is_multi() const noexcept
+    [[nodiscard]] constexpr bool is_multi() const noexcept
     {
         return is_multipoint() || is_multilinestring() || is_multipolygon() ||
                is_collection();
     }
 
     template <typename T>
-    constexpr T const &get() const
+    [[nodiscard]] constexpr T const &get() const
     {
         return std::get<T>(m_geom);
     }
 
     template <typename T>
-    constexpr T &get()
+    [[nodiscard]] constexpr T &get()
     {
         return std::get<T>(m_geom);
     }
@@ -265,12 +287,14 @@ public:
         return std::visit(std::forward<V>(visitor), m_geom);
     }
 
-    friend bool operator==(geometry_t const &a, geometry_t const &b) noexcept
+    [[nodiscard]] friend bool operator==(geometry_t const &a,
+                                         geometry_t const &b) noexcept
     {
         return (a.srid() == b.srid()) && (a.m_geom == b.m_geom);
     }
 
-    friend bool operator!=(geometry_t const &a, geometry_t const &b) noexcept
+    [[nodiscard]] friend bool operator!=(geometry_t const &a,
+                                         geometry_t const &b) noexcept
     {
         return !(a == b);
     }
