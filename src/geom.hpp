@@ -241,8 +241,13 @@ public:
     constexpr geometry_t() = default;
 
     template <typename T>
-    constexpr explicit geometry_t(T geom, int srid = 4326)
-    : m_geom(std::move(geom)), m_srid(srid)
+    constexpr explicit geometry_t(const T &geom, int srid = 4326)
+    : m_geom(std::in_place_type<T>, geom), m_srid(srid)
+    {}
+
+    template <typename T>
+    constexpr explicit geometry_t(T &&geom, int srid = 4326)
+    : m_geom(std::in_place_type<T>, std::forward<T>(geom)), m_srid(srid)
     {}
 
     [[nodiscard]] constexpr int srid() const noexcept { return m_srid; }
