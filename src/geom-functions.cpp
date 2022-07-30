@@ -562,4 +562,25 @@ geometry_t centroid(geometry_t const &geom)
     return output;
 }
 
+void simplify(geometry_t *output, geometry_t const &geom, double tolerance)
+{
+    if (!geom.is_linestring()) {
+        output->reset();
+        return;
+    }
+
+    output->set<linestring_t>();
+    output->set_srid(geom.srid());
+
+    boost::geometry::simplify(geom.get<linestring_t>(),
+                              output->get<linestring_t>(), tolerance);
+}
+
+geometry_t simplify(geometry_t const &geom, double tolerance)
+{
+    geom::geometry_t output{linestring_t{}, geom.srid()};
+    simplify(&output, geom, tolerance);
+    return output;
+}
+
 } // namespace geom

@@ -192,3 +192,30 @@ TEST_CASE("geom::segmentize with split 1.0 at end", "[NoDB]")
     REQUIRE(ml[2] == expected[2]);
     REQUIRE(ml[3] == expected[3]);
 }
+
+TEST_CASE("geom::simplify", "[NoDB]")
+{
+    geom::geometry_t const input{
+        geom::linestring_t{{0, 0}, {1, 1}, {2, 0}, {3, 1}, {4, 0}, {5, 1}}};
+
+    SECTION("small tolerance leaves linestring as is")
+    {
+        auto const geom = geom::simplify(input, 0.5);
+
+        REQUIRE(geom.is_linestring());
+        auto const &l = geom.get<geom::linestring_t>();
+        REQUIRE(l.size() == 6);
+        REQUIRE(l == input.get<geom::linestring_t>());
+    }
+
+    SECTION("large tolerance simplifies linestring")
+    {
+        auto const geom = geom::simplify(input, 2.0);
+
+        REQUIRE(geom.is_linestring());
+        auto const &l = geom.get<geom::linestring_t>();
+        REQUIRE(l.size() == 2);
+        REQUIRE(l[0] == input.get<geom::linestring_t>()[0]);
+        REQUIRE(l[1] == input.get<geom::linestring_t>()[5]);
+    }
+}
