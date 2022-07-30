@@ -61,7 +61,7 @@ static double calculate_area(bool reproject_area,
 void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
                                    bool polygon, bool roads)
 {
-    if (polygon && way.is_closed()) {
+    if (polygon && !way.nodes().empty() && way.is_closed()) {
         auto const geom = geom::create_polygon(way);
         auto const projected_geom = geom::transform(geom, *m_proj);
 
