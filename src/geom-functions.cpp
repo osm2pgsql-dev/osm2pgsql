@@ -59,75 +59,76 @@ std::size_t num_geometries(geometry_t const &geom)
 
 namespace {
 
+void set_to_same_type(geometry_t *output, geometry_t const &input)
+{
+    input.visit(overloaded{[&](auto in) { output->set<decltype(in)>(); }});
+}
+
 class transform_visitor
 {
 public:
-    explicit transform_visitor(reprojection const *reprojection)
-    : m_reprojection(reprojection)
+    explicit transform_visitor(geometry_t *output,
+                               reprojection const *reprojection)
+    : m_output(output), m_reprojection(reprojection)
     {}
 
-    geometry_t operator()(geom::nullgeom_t const & /*geom*/) const
+    void operator()(nullgeom_t const & /*input*/) const {}
+
+    void operator()(point_t const &input) const
     {
-        return {};
+        m_output->get<point_t>() = project(input);
     }
 
-    geometry_t operator()(geom::point_t const &geom) const
+    void operator()(linestring_t const &input) const
     {
-        return geometry_t{project(geom), srid()};
+        transform_points(&m_output->get<linestring_t>(), input);
     }
 
-    geometry_t operator()(geom::linestring_t const &geom) const
+    void operator()(polygon_t const &input) const
     {
-        geometry_t output{linestring_t{}, srid()};
-        transform_points(&output.get<linestring_t>(), geom);
-        return output;
+        transform_polygon(&m_output->get<polygon_t>(), input);
     }
 
-    geometry_t operator()(geom::polygon_t const &geom) const
+    void operator()(multipoint_t const &input) const
     {
-        geometry_t output{polygon_t{}, srid()};
-        transform_polygon(&output.get<polygon_t>(), geom);
-        return output;
-    }
-
-    geometry_t operator()(geom::multipoint_t const & /*geom*/) const
-    {
-        assert(false);
-        return {};
-    }
-
-    geometry_t operator()(geom::multilinestring_t const &geom) const
-    {
-        geometry_t output{multilinestring_t{}, srid()};
-
-        for (auto const &line : geom) {
-            transform_points(&output.get<multilinestring_t>().add_geometry(),
-                             line);
+        auto &m = m_output->get<multipoint_t>();
+        m.reserve(input.num_geometries());
+        for (auto const point : input) {
+            m.add_geometry(project(point));
         }
-
-        return output;
     }
 
-    geometry_t operator()(geom::multipolygon_t const &geom) const
+    void operator()(multilinestring_t const &input) const
     {
-        geometry_t output{multipolygon_t{}, srid()};
-
-        for (auto const &polygon : geom) {
-            transform_polygon(&output.get<multipolygon_t>().add_geometry(),
-                              polygon);
+        auto &m = m_output->set<multilinestring_t>();
+        m.reserve(input.num_geometries());
+        for (auto const &line : input) {
+            transform_points(&m.add_geometry(), line);
         }
-
-        return output;
     }
 
-    geometry_t operator()(geom::collection_t const & /*geom*/) const
+    void operator()(multipolygon_t const &input) const
     {
-        return {}; // XXX not implemented
+        auto &m = m_output->set<multipolygon_t>();
+        m.reserve(input.num_geometries());
+        for (auto const &polygon : input) {
+            transform_polygon(&m.add_geometry(), polygon);
+        }
+    }
+
+    void operator()(collection_t const &input) const
+    {
+        auto &m = m_output->get<collection_t>();
+        m.reserve(input.num_geometries());
+        for (auto const &geom : input) {
+            auto &new_geom = m.add_geometry();
+            set_to_same_type(&new_geom, geom);
+            new_geom.set_srid(0);
+            geom.visit(transform_visitor{&new_geom, m_reprojection});
+        }
     }
 
 private:
-    int srid() const noexcept { return m_reprojection->target_srs(); }
-
     point_t project(point_t point) const
     {
         return m_reprojection->reproject(point);
@@ -152,16 +153,28 @@ private:
         }
     }
 
+    geometry_t *m_output;
     reprojection const *m_reprojection;
 
 }; // class transform_visitor
 
 } // anonymous namespace
 
-geometry_t transform(geometry_t const &geom, reprojection const &reprojection)
+void transform(geometry_t *output, geometry_t const &input,
+               reprojection const &reprojection)
 {
-    assert(geom.srid() == 4326);
-    return geom.visit(transform_visitor{&reprojection});
+    assert(input.srid() == 4326);
+
+    set_to_same_type(output, input);
+    output->set_srid(reprojection.target_srs());
+    input.visit(transform_visitor{output, &reprojection});
+}
+
+geometry_t transform(geometry_t const &input, reprojection const &reprojection)
+{
+    geometry_t output;
+    transform(&output, input, reprojection);
+    return output;
 }
 
 namespace {
