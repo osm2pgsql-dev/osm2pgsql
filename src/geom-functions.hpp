@@ -138,6 +138,36 @@ geometry_t line_merge(geometry_t geom);
  */
 geometry_t centroid(geometry_t const &geom);
 
+/**
+ * Simplify a linestring geometry using Douglas-Peucker algorithm.
+ *
+ * Geometries might become invalid by using simplify. The simplification
+ * process might create self-intersections.
+ *
+ * Returns null geometry for anything but linestring geometries!
+ *
+ * \param output Pointer to output geometry.
+ * \param geom Input geometry.
+ * \param tolerance Max distance (in units of input coordinates) of a point
+ *                  to other segments to be removed.
+ */
+void simplify(geometry_t *output, geometry_t const &geom, double tolerance);
+
+/**
+ * Simplify a linestring geometry using Douglas-Peucker algorithm.
+ *
+ * Geometries might become invalid by using simplify. The simplification
+ * process might create self-intersections.
+ *
+ * Returns null geometry for anything but linestring geometries!
+ *
+ * \param geom Input geometry.
+ * \param tolerance Max distance (in units of input coordinates) of a point
+ *                  to other segments to be removed.
+ * \returns Simplified geometry.
+ */
+geometry_t simplify(geometry_t const &geom, double tolerance);
+
 } // namespace geom
 
 #endif // OSM2PGSQL_GEOM_FUNCTIONS_HPP
