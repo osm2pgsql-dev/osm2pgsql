@@ -210,12 +210,51 @@ TEST_CASE("geom::simplify", "[NoDB]")
 
     SECTION("large tolerance simplifies linestring")
     {
-        auto const geom = geom::simplify(input, 2.0);
+        auto const geom = geom::simplify(input, 10.0);
 
         REQUIRE(geom.is_linestring());
         auto const &l = geom.get<geom::linestring_t>();
         REQUIRE(l.size() == 2);
         REQUIRE(l[0] == input.get<geom::linestring_t>()[0]);
         REQUIRE(l[1] == input.get<geom::linestring_t>()[5]);
+    }
+}
+
+TEST_CASE("geom::simplify of a loop", "[NoDB]")
+{
+    geom::geometry_t const input{
+        geom::linestring_t{{0, 0}, {0, 1}, {1, 1}, {1, 0}, {0.1, 0.1}, {0, 0}}};
+
+    SECTION("small tolerance leaves linestring as is")
+    {
+        auto const geom = geom::simplify(input, 0.01);
+
+        REQUIRE(geom.is_linestring());
+        auto const &l = geom.get<geom::linestring_t>();
+        REQUIRE(l.size() == 6);
+        REQUIRE(l == input.get<geom::linestring_t>());
+    }
+
+    SECTION("medium tolerance simplifies linestring")
+    {
+        auto const geom = geom::simplify(input, 0.5);
+
+        REQUIRE(geom.is_linestring());
+        auto const &l = geom.get<geom::linestring_t>();
+        REQUIRE(l.size() == 5);
+
+        auto const &il = input.get<geom::linestring_t>();
+        REQUIRE(l[0] == il[0]);
+        REQUIRE(l[1] == il[1]);
+        REQUIRE(l[2] == il[2]);
+        REQUIRE(l[3] == il[3]);
+        REQUIRE(l[4] == il[5]);
+    }
+
+    SECTION("large tolerance breaks linestring, null geometry is returned")
+    {
+        auto const geom = geom::simplify(input, 10.0);
+
+        REQUIRE(geom.is_null());
     }
 }
