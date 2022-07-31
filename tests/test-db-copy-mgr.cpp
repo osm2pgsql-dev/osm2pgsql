@@ -22,7 +22,7 @@ using copy_mgr_t = db_copy_mgr_t<db_deleter_by_id_t>;
 
 static std::shared_ptr<db_target_descr_t> setup_table(std::string const &cols)
 {
-    auto conn = db.connect();
+    auto const conn = db.connect();
     conn.exec("DROP TABLE IF EXISTS test_copy_mgr");
     conn.exec("CREATE TABLE test_copy_mgr (id int8{}{})"_format(
         cols.empty() ? "" : ",", cols));
@@ -36,7 +36,7 @@ static std::shared_ptr<db_target_descr_t> setup_table(std::string const &cols)
 
 template <typename... ARGS>
 void add_row(copy_mgr_t *mgr, std::shared_ptr<db_target_descr_t> const &t,
-             ARGS &&... args)
+             ARGS &&...args)
 {
     mgr->new_line(t);
     mgr->add_columns(std::forward<ARGS>(args)...);
@@ -80,8 +80,8 @@ add_hash(copy_mgr_t *mgr, std::shared_ptr<db_target_descr_t> const &t, int id,
 
 static void check_row(std::vector<std::string> const &row)
 {
-    auto conn = db.connect();
-    auto res = conn.require_row("SELECT * FROM test_copy_mgr");
+    auto const conn = db.connect();
+    auto const res = conn.require_row("SELECT * FROM test_copy_mgr");
 
     for (std::size_t i = 0; i < row.size(); ++i) {
         CHECK(res.get_value(0, (int)i) == row[i]);
@@ -90,11 +90,11 @@ static void check_row(std::vector<std::string> const &row)
 
 TEST_CASE("copy_mgr_t")
 {
-    copy_mgr_t mgr(std::make_shared<db_copy_thread_t>(db.conninfo()));
+    copy_mgr_t mgr{std::make_shared<db_copy_thread_t>(db.conninfo())};
 
     SECTION("Insert null")
     {
-        auto t = setup_table("big int8, t text");
+        auto const t = setup_table("big int8, t text");
 
         mgr.new_line(t);
         mgr.add_column(0);
@@ -103,8 +103,8 @@ TEST_CASE("copy_mgr_t")
         mgr.finish_line();
         mgr.sync();
 
-        auto conn = db.connect();
-        auto res = conn.require_row("SELECT * FROM test_copy_mgr");
+        auto const conn = db.connect();
+        auto const res = conn.require_row("SELECT * FROM test_copy_mgr");
 
         CHECK(res.is_null(0, 1));
         CHECK(res.is_null(0, 2));
@@ -112,7 +112,7 @@ TEST_CASE("copy_mgr_t")
 
     SECTION("Insert numbers")
     {
-        auto t = setup_table("big int8, small smallint");
+        auto const t = setup_table("big int8, small smallint");
 
         add_row(&mgr, t, 34, 0xfff12345678ULL, -4457);
         check_row({"34", "17588196497016", "-4457"});
@@ -120,7 +120,7 @@ TEST_CASE("copy_mgr_t")
 
     SECTION("Insert strings")
     {
-        auto t = setup_table("s0 text, s1 varchar");
+        auto const t = setup_table("s0 text, s1 varchar");
 
         SECTION("Simple strings")
         {
@@ -149,7 +149,7 @@ TEST_CASE("copy_mgr_t")
 
     SECTION("Insert int arrays")
     {
-        auto t = setup_table("a int[]");
+        auto const t = setup_table("a int[]");
 
         add_array<int>(&mgr, t, -9000, {45, -2, 0, 56});
         check_row({"-9000", "{45,-2,0,56}"});
@@ -157,7 +157,7 @@ TEST_CASE("copy_mgr_t")
 
     SECTION("Insert string arrays")
     {
-        auto t = setup_table("a text[]");
+        auto const t = setup_table("a text[]");
 
         add_array<std::string>(&mgr, t, 3,
                                {"foo", "", "with space", "with \"quote\"",
@@ -166,7 +166,7 @@ TEST_CASE("copy_mgr_t")
                         "\\\"quote\\\"\",\"the\t\",\"line\nbreak\","
                         "\"rr\rrr\",\"s\\\\l\"}"});
 
-        auto c = db.connect();
+        auto const c = db.connect();
         CHECK(c.result_as_string("SELECT a[4] FROM test_copy_mgr") ==
               "with \"quote\"");
         CHECK(c.result_as_string("SELECT a[5] FROM test_copy_mgr") == "the\t");
@@ -178,7 +178,7 @@ TEST_CASE("copy_mgr_t")
 
     SECTION("Insert hashes")
     {
-        auto t = setup_table("h hstore");
+        auto const t = setup_table("h hstore");
 
         std::vector<std::pair<std::string, std::string>> const values = {
             {"one", "two"},           {"key 1", "value 1"},
@@ -188,7 +188,7 @@ TEST_CASE("copy_mgr_t")
 
         add_hash(&mgr, t, 42, values);
 
-        auto c = db.connect();
+        auto const c = db.connect();
 
         for (auto const &[k, v] : values) {
             auto const res = c.result_as_string(

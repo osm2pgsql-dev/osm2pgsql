@@ -23,11 +23,11 @@ static int table_count(testing::pg::conn_t const &conn,
 
 TEST_CASE("db_copy_thread_t with db_deleter_by_id_t")
 {
-    auto conn = db.connect();
+    auto const conn = db.connect();
     conn.exec("DROP TABLE IF EXISTS test_copy_thread");
     conn.exec("CREATE TABLE test_copy_thread (id int8)");
 
-    auto table = std::make_shared<db_target_descr_t>();
+    auto const table = std::make_shared<db_target_descr_t>();
     table->name = "test_copy_thread";
     table->id = "id";
 
@@ -150,7 +150,7 @@ TEST_CASE("db_copy_thread_t with db_deleter_by_id_t")
 
 TEST_CASE("db_copy_thread_t with db_deleter_place_t")
 {
-    auto conn = db.connect();
+    auto const conn = db.connect();
     conn.exec("DROP TABLE IF EXISTS test_copy_thread");
     conn.exec("CREATE TABLE test_copy_thread ("
               "osm_type char(1),"
