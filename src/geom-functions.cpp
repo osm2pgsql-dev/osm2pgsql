@@ -582,11 +582,17 @@ void simplify(geometry_t *output, geometry_t const &geom, double tolerance)
         return;
     }
 
-    output->set<linestring_t>();
+    auto &ls = output->set<linestring_t>();
     output->set_srid(geom.srid());
 
-    boost::geometry::simplify(geom.get<linestring_t>(),
-                              output->get<linestring_t>(), tolerance);
+    boost::geometry::simplify(geom.get<linestring_t>(), ls, tolerance);
+
+    // Linestrings with less then 2 nodes are invalid. Older boost::geometry
+    // versions will generate a "line" with two identical points which the
+    // second check finds.
+    if (ls.size() < 2 || ls[0] == ls[1]) {
+        output->reset();
+    }
 }
 
 geometry_t simplify(geometry_t const &geom, double tolerance)
