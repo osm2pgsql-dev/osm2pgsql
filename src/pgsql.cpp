@@ -13,7 +13,6 @@
 #include "pgsql.hpp"
 #include "util.hpp"
 
-#include <array>
 #include <cassert>
 #include <stdexcept>
 #include <string>

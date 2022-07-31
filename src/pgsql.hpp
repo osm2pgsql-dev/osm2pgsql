@@ -19,14 +19,15 @@
  */
 
 #include "format.hpp"
-#include "osmtypes.hpp"
 
 #include <libpq-fe.h>
 
+#include <array>
 #include <cassert>
 #include <map>
 #include <memory>
 #include <string>
+#include <vector>
 
 /**
  * PostgreSQL query result.
