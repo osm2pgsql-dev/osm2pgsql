@@ -196,4 +196,46 @@ TEST_CASE("copy_mgr_t")
             CHECK(res == v);
         }
     }
+
+    SECTION("Insert something and roll back")
+    {
+        auto const t = setup_table("t text");
+
+        mgr.new_line(t);
+        mgr.add_column(0);
+        mgr.add_column("foo");
+        mgr.rollback_line();
+        mgr.sync();
+
+        auto const conn = db.connect();
+        CHECK(conn.get_count("test_copy_mgr") == 0);
+    }
+
+    SECTION("Insert something, insert more, roll back, insert something else")
+    {
+        auto const t = setup_table("t text");
+
+        mgr.new_line(t);
+        mgr.add_column(0);
+        mgr.add_column("good");
+        mgr.finish_line();
+
+        mgr.new_line(t);
+        mgr.add_column(1);
+        mgr.add_column("bad");
+        mgr.rollback_line();
+
+        mgr.new_line(t);
+        mgr.add_column(2);
+        mgr.add_column("better");
+        mgr.finish_line();
+        mgr.sync();
+
+        auto const conn = db.connect();
+        auto const res = conn.query(PGRES_TUPLES_OK,
+                                    "SELECT t FROM test_copy_mgr ORDER BY id");
+        CHECK(res.num_tuples() == 2);
+        CHECK(res.get_value_as_string(0, 0) == "good");
+        CHECK(res.get_value_as_string(1, 0) == "better");
+    }
 }

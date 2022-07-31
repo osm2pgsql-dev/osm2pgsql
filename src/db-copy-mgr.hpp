@@ -43,6 +43,13 @@ public:
 
             m_current = std::make_unique<db_cmd_copy_delete_t<DELETER>>(table);
         }
+        m_committed = m_current->buffer.size();
+    }
+
+    void rollback_line()
+    {
+        assert(m_current);
+        m_current->buffer.resize(m_committed);
     }
 
     /**
@@ -356,6 +363,7 @@ private:
 
     std::shared_ptr<db_copy_thread_t> m_processor;
     std::unique_ptr<db_cmd_copy_delete_t<DELETER>> m_current;
+    std::size_t m_committed = 0;
 };
 
 #endif // OSM2PGSQL_DB_COPY_MGR_HPP
