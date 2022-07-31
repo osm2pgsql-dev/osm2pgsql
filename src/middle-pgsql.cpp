@@ -345,6 +345,38 @@ std::size_t middle_query_pgsql_t::get_way_node_locations_flatnodes(
     return count;
 }
 
+osmium::Location middle_query_pgsql_t::get_node_location_db(osmid_t id) const
+{
+    auto const res =
+        m_sql_conn.exec_prepared("get_node_list", "{{{}}}"_format(id));
+    if (res.num_tuples() == 0) {
+        return osmium::Location{};
+    }
+
+    return osmium::Location{(int)strtol(res.get_value(0, 1), nullptr, 10),
+                            (int)strtol(res.get_value(0, 2), nullptr, 10)};
+}
+
+osmium::Location
+middle_query_pgsql_t::get_node_location_flatnodes(osmid_t id) const
+{
+    if (id >= 0) {
+        return m_persistent_cache->get(id);
+    }
+    return osmium::Location{};
+}
+
+osmium::Location middle_query_pgsql_t::get_node_location(osmid_t id) const
+{
+    auto const loc = m_cache->get(id);
+    if (loc.valid()) {
+        return loc;
+    }
+
+    return m_persistent_cache ? get_node_location_flatnodes(id)
+                              : get_node_location_db(id);
+}
+
 size_t middle_query_pgsql_t::nodes_get_list(osmium::WayNodeList *nodes) const
 {
     return m_persistent_cache ? get_way_node_locations_flatnodes(nodes)

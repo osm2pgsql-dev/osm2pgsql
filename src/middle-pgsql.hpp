@@ -37,6 +37,8 @@ public:
         std::string const &conninfo, std::shared_ptr<node_locations_t> cache,
         std::shared_ptr<node_persistent_cache> persistent_cache);
 
+    osmium::Location get_node_location(osmid_t id) const override;
+
     size_t nodes_get_list(osmium::WayNodeList *nodes) const override;
 
     bool way_get(osmid_t id, osmium::memory::Buffer *buffer) const override;
@@ -51,6 +53,8 @@ public:
     void exec_sql(std::string const &sql_cmd) const;
 
 private:
+    osmium::Location get_node_location_flatnodes(osmid_t id) const;
+    osmium::Location get_node_location_db(osmid_t id) const;
     std::size_t get_way_node_locations_flatnodes(osmium::WayNodeList *nodes) const;
     std::size_t get_way_node_locations_db(osmium::WayNodeList *nodes) const;
 
