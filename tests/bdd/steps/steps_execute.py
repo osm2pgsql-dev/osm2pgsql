@@ -68,7 +68,7 @@ def run_osm2pgsql(context, output):
 
     outdata = proc.communicate(input=data_stdin)
 
-    context.osm2psql_outdata = [d.decode('utf-8').replace('\\n', '\n') for d in outdata]
+    context.osm2pgsql_outdata = [d.decode('utf-8').replace('\\n', '\n') for d in outdata]
 
     return proc.returncode
 
@@ -109,8 +109,8 @@ def execute_osm2pgsql_sucessfully(context, output):
         return
 
     assert returncode == 0,\
-           f"osm2psql failed with error code {returncode}.\n"\
-           f"Output:\n{context.osm2psql_outdata[0]}\n{context.osm2psql_outdata[1]}\n"
+           f"osm2pgsql failed with error code {returncode}.\n"\
+           f"Output:\n{context.osm2pgsql_outdata[0]}\n{context.osm2pgsql_outdata[1]}\n"
 
 
 @then("running osm2pgsql (?P<output>\w+)(?: with parameters)? fails")
@@ -126,9 +126,9 @@ def execute_osm2pgsql_with_failure(context, output):
 @then("the (?P<kind>\w+) output contains")
 def check_program_output(context, kind):
     if kind == 'error':
-        s = context.osm2psql_outdata[1]
+        s = context.osm2pgsql_outdata[1]
     elif kind == 'standard':
-        s = context.osm2psql_outdata[0]
+        s = context.osm2pgsql_outdata[0]
     else:
         assert not "Expect one of error, standard"
 
