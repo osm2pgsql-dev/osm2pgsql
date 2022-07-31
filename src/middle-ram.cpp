@@ -184,6 +184,11 @@ void middle_ram_t::relation(osmium::Relation const &relation)
     }
 }
 
+osmium::Location middle_ram_t::get_node_location(osmid_t id) const
+{
+    return m_node_locations.get(id);
+}
+
 std::size_t middle_ram_t::nodes_get_list(osmium::WayNodeList *nodes) const
 {
     assert(nodes);

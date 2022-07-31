@@ -29,6 +29,11 @@ struct middle_query_t : std::enable_shared_from_this<middle_query_t>
     virtual ~middle_query_t() = 0;
 
     /**
+     * Retrieves node location for the given id.
+     */
+    virtual osmium::Location get_node_location(osmid_t id) const = 0;
+
+    /**
      * Retrieves node locations for the given node list.
      *
      * The locations are saved directly in the input list.

@@ -28,10 +28,10 @@ static testing::pg::tempdb_t db;
 
 namespace {
 
-void expect_location(osmium::Location loc, osmium::Node const &expected)
+void check_locations_are_equal(osmium::Location a, osmium::Location b)
 {
-    CHECK(loc.lat() == Approx(expected.location().lat()));
-    CHECK(loc.lon() == Approx(expected.location().lon()));
+    CHECK(a.lat() == Approx(b.lat()));
+    CHECK(a.lon() == Approx(b.lon()));
 }
 
 } // namespace
@@ -136,11 +136,18 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
 
         // get it back
         REQUIRE(mid_q->nodes_get_list(&nodes) == nodes.size());
-        expect_location(nodes[0].location(), node);
+        check_locations_are_equal(nodes[0].location(), node.location());
 
         // other nodes are not retrievable
         auto &n2 = buffer.add_way("w3 Nn1,n2,n1235").nodes();
         REQUIRE(mid_q->nodes_get_list(&n2) == 0);
+
+        // check the same thing again using get_node_location() function
+        check_locations_are_equal(mid_q->get_node_location(1234),
+                                  node.location());
+        CHECK_FALSE(mid_q->get_node_location(1).valid());
+        CHECK_FALSE(mid_q->get_node_location(2).valid());
+        CHECK_FALSE(mid_q->get_node_location(1235).valid());
     }
 
     SECTION("Set and retrieve a single way")
