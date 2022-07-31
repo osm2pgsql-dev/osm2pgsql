@@ -137,7 +137,7 @@ bool output_gazetteer_t::process_way(osmium::Way *way)
 
     // Get the geometry of the object.
     geom::geometry_t geom;
-    if (way->is_closed()) {
+    if (!way->nodes().empty() && way->is_closed()) {
         geom = geom::transform(geom::create_polygon(*way), *m_proj);
     }
     if (geom.is_null()) {

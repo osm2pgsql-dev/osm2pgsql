@@ -191,7 +191,8 @@ static void push_osm_object_to_lua_stack(lua_State *lua_state,
 
     if (object.type() == osmium::item_type::way) {
         auto const &way = static_cast<osmium::Way const &>(object);
-        luaX_add_table_bool(lua_state, "is_closed", way.is_closed());
+        luaX_add_table_bool(lua_state, "is_closed",
+                            !way.nodes().empty() && way.is_closed());
         luaX_add_table_array(lua_state, "nodes", way.nodes(),
                              [&](osmium::NodeRef const &wn) {
                                  lua_pushinteger(lua_state, wn.ref());
