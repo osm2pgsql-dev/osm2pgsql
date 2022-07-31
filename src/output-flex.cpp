@@ -79,7 +79,7 @@ TRAMPOLINE(table_add_row, add_row)
 TRAMPOLINE(table_columns, columns)
 TRAMPOLINE(table_tostring, __tostring)
 
-static char const *const osm2pgsql_table_name = "osm2pgsql.table";
+static char const *const osm2pgsql_table_name = "osm2pgsql.Table";
 static char const *const osm2pgsql_object_metatable =
     "osm2pgsql.object_metatable";
 
@@ -1711,6 +1711,31 @@ output_flex_t::output_flex_t(
     }
 }
 
+/**
+ * Define the osm2pgsql.Table class/metatable.
+ */
+static void init_table_class(lua_State *lua_state)
+{
+    lua_getglobal(lua_state, "osm2pgsql");
+    if (luaL_newmetatable(lua_state, osm2pgsql_table_name) != 1) {
+        throw std::runtime_error{"Internal error: Lua newmetatable failed."};
+    }
+    lua_pushvalue(lua_state, -1); // Copy of new metatable
+
+    // Add metatable as osm2pgsql.Table so we can access it from Lua
+    lua_setfield(lua_state, -3, "Table");
+
+    // Now add functions to metatable
+    lua_pushvalue(lua_state, -1);
+    lua_setfield(lua_state, -2, "__index");
+    luaX_add_table_func(lua_state, "__tostring", lua_trampoline_table_tostring);
+    luaX_add_table_func(lua_state, "add_row", lua_trampoline_table_add_row);
+    luaX_add_table_func(lua_state, "name", lua_trampoline_table_name);
+    luaX_add_table_func(lua_state, "schema", lua_trampoline_table_schema);
+    luaX_add_table_func(lua_state, "cluster", lua_trampoline_table_cluster);
+    luaX_add_table_func(lua_state, "columns", lua_trampoline_table_columns);
+}
+
 void output_flex_t::init_lua(std::string const &filename)
 {
     m_lua_state.reset(luaL_newstate(),
@@ -1739,19 +1764,7 @@ void output_flex_t::init_lua(std::string const &filename)
 
     lua_setglobal(lua_state(), "osm2pgsql");
 
-    // Define "osmpgsql.table" metatable
-    if (luaL_newmetatable(lua_state(), osm2pgsql_table_name) != 1) {
-        throw std::runtime_error{"Internal error: Lua newmetatable failed."};
-    }
-    lua_pushvalue(lua_state(), -1);
-    lua_setfield(lua_state(), -2, "__index");
-    luaX_add_table_func(lua_state(), "__tostring",
-                        lua_trampoline_table_tostring);
-    luaX_add_table_func(lua_state(), "add_row", lua_trampoline_table_add_row);
-    luaX_add_table_func(lua_state(), "name", lua_trampoline_table_name);
-    luaX_add_table_func(lua_state(), "schema", lua_trampoline_table_schema);
-    luaX_add_table_func(lua_state(), "cluster", lua_trampoline_table_cluster);
-    luaX_add_table_func(lua_state(), "columns", lua_trampoline_table_columns);
+    init_table_class(lua_state());
 
     // Clean up stack
     lua_settop(lua_state(), 0);
