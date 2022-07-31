@@ -187,6 +187,9 @@ private:
 
     flex_table_t const &get_table_from_param();
 
+    void check_context_and_state(char const *name, char const *context,
+                                 bool condition);
+
     void write_column(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
                       flex_table_column_t const &column);
     void write_row(table_connection_t *table_connection,

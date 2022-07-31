@@ -716,19 +716,32 @@ static void push_location(lua_State *lua_state,
     lua_pushnumber(lua_state, location.lat());
 }
 
-int output_flex_t::app_get_bbox()
+/**
+ * Helper function checking that Lua function "name" is called in the correct
+ * context and without parameters.
+ */
+void output_flex_t::check_context_and_state(char const *name,
+                                            char const *context, bool condition)
 {
-    if (m_calling_context != calling_context::process_node &&
-        m_calling_context != calling_context::process_way &&
-        m_calling_context != calling_context::process_relation) {
+    if (condition) {
         throw std::runtime_error{
-            "The function get_bbox() can only be called from the "
-            "process_node/way/relation() functions."};
+            "The function {}() can only be called from the {}."_format(
+                name, context)};
     }
 
     if (lua_gettop(lua_state()) > 1) {
-        throw std::runtime_error{"No parameter(s) needed for get_box()."};
+        throw std::runtime_error{
+            "No parameter(s) needed for {}()."_format(name)};
     }
+}
+
+int output_flex_t::app_get_bbox()
+{
+    check_context_and_state(
+        "get_bbox", "process_node/way/relation() functions",
+        m_calling_context != calling_context::process_node &&
+            m_calling_context != calling_context::process_way &&
+            m_calling_context != calling_context::process_relation);
 
     if (m_calling_context == calling_context::process_node) {
         push_location(lua_state(), m_context_node->location());
