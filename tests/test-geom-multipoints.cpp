@@ -19,7 +19,8 @@
 
 TEST_CASE("multipoint_t with a single point", "[NoDB]")
 {
-    geom::point_t const point{1, 1};
+    geom::point_t const expected{1, 1};
+    geom::point_t point = expected;
 
     geom::geometry_t geom{geom::multipoint_t{}};
     auto &mp = geom.get<geom::multipoint_t>();
@@ -29,9 +30,9 @@ TEST_CASE("multipoint_t with a single point", "[NoDB]")
     REQUIRE(geometry_type(geom) == "MULTIPOINT");
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(0.0));
-    REQUIRE(centroid(geom) == geom::geometry_t{point});
+    REQUIRE(centroid(geom) == geom::geometry_t{std::move(point)});
 
-    REQUIRE(mp[0] == point);
+    REQUIRE(mp[0] == expected);
 }
 
 TEST_CASE("multipoint_t with several points", "[NoDB]")
@@ -50,7 +51,7 @@ TEST_CASE("multipoint_t with several points", "[NoDB]")
     REQUIRE(geometry_type(geom) == "MULTIPOINT");
     REQUIRE(num_geometries(geom) == 3);
     REQUIRE(area(geom) == Approx(0.0));
-    REQUIRE(centroid(geom) == geom::geometry_t{p1});
+    REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{2, 1}});
 
     REQUIRE(mp[0] == p0);
     REQUIRE(mp[1] == p1);

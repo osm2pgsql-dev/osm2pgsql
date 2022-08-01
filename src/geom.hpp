@@ -176,7 +176,7 @@ public:
 
     GEOM &add_geometry(GEOM &&geom)
     {
-        m_geometry.push_back(std::move(geom));
+        m_geometry.push_back(std::forward<GEOM>(geom));
         return m_geometry.back();
     }
 
@@ -234,8 +234,31 @@ class geometry_t
 public:
     constexpr geometry_t() = default;
 
-    template <typename T>
-    constexpr explicit geometry_t(T geom, int srid = 4326)
+    constexpr explicit geometry_t(point_t &&geom, int srid = 4326)
+    : m_geom(std::move(geom)), m_srid(srid)
+    {}
+
+    constexpr explicit geometry_t(linestring_t &&geom, int srid = 4326)
+    : m_geom(std::move(geom)), m_srid(srid)
+    {}
+
+    constexpr explicit geometry_t(polygon_t &&geom, int srid = 4326)
+    : m_geom(std::move(geom)), m_srid(srid)
+    {}
+
+    constexpr explicit geometry_t(multipoint_t &&geom, int srid = 4326)
+    : m_geom(std::move(geom)), m_srid(srid)
+    {}
+
+    constexpr explicit geometry_t(multilinestring_t &&geom, int srid = 4326)
+    : m_geom(std::move(geom)), m_srid(srid)
+    {}
+
+    constexpr explicit geometry_t(multipolygon_t &&geom, int srid = 4326)
+    : m_geom(std::move(geom)), m_srid(srid)
+    {}
+
+    constexpr explicit geometry_t(collection_t &&geom, int srid = 4326)
     : m_geom(std::move(geom)), m_srid(srid)
     {}
 
