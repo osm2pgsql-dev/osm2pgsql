@@ -1083,7 +1083,7 @@ int output_flex_t::geom_split_multi()
 
     lua_createtable(lua_state(), (int)geoms.size(), 0);
     int n = 0;
-    for (auto const &g : geoms) {
+    for (auto&& g : geoms) {
         lua_pushinteger(lua_state(), ++n);
         create_lua_geometry_object(lua_state(), [&](geom::geometry_t *geom) {
             *geom = std::move(g);
