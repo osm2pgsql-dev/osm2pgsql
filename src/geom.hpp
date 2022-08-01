@@ -333,6 +333,15 @@ public:
         return std::visit(std::forward<V>(visitor), m_geom);
     }
 
+    // This is non-member function visit(), different than the member
+    // function above, because we need to move the geometry into the function
+    // which we can't do for a member function.
+    template <typename V>
+    friend auto visit(V &&visitor, geometry_t &&geom)
+    {
+        return std::visit(std::forward<V>(visitor), std::move(geom.m_geom));
+    }
+
     [[nodiscard]] friend bool operator==(geometry_t const &a,
                                          geometry_t const &b) noexcept
     {

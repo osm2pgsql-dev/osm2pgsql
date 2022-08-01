@@ -114,11 +114,11 @@ double area(geometry_t const &geom);
  * alone and will end up as the only geometry in the result vector. If the
  * input geometry is a nullgeom_t, the result vector will be empty.
  *
- * \param geom Input geometry.
+ * \param geom Input geometry (will be moved from).
  * \param split_multi Only split of this is set to true.
  * \returns Vector of result geometries.
  */
-std::vector<geometry_t> split_multi(geometry_t geom, bool split_multi = true);
+std::vector<geometry_t> split_multi(geometry_t &&geom, bool split_multi = true);
 
 /**
  * Merge lines in a multilinestring end-to-end as far as possible. Always

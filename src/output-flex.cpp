@@ -1356,7 +1356,7 @@ void output_flex_t::add_row(table_connection_t *table_connection,
     // The geometry returned by run_transform() is in 4326 if it is a
     // (multi)polygon. If it is a point or linestring, it is already in the
     // target geometry.
-    auto const geom = run_transform(proj, transform, object);
+    auto geom = run_transform(proj, transform, object);
 
     // We need to split a multi geometry into its parts if the geometry
     // column can only take non-multi geometries or if the transform
@@ -1366,7 +1366,7 @@ void output_flex_t::add_row(table_connection_t *table_connection,
                              type == table_column_type::polygon ||
                              transform->split();
 
-    auto const geoms = geom::split_multi(geom, split_multi);
+    auto const geoms = geom::split_multi(std::move(geom), split_multi);
     for (auto const &sgeom : geoms) {
         m_expire.from_geometry(sgeom, id);
         write_row(table_connection, object.type(), id, sgeom,
