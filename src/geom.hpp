@@ -166,7 +166,7 @@ class multigeometry_t
 {
 public:
     using const_iterator = typename std::vector<GEOM>::const_iterator;
-    using iterator = typename std::vector<GEOM>::const_iterator;
+    using iterator = typename std::vector<GEOM>::iterator;
     using value_type = GEOM;
 
     [[nodiscard]] std::size_t num_geometries() const noexcept
@@ -194,6 +194,8 @@ public:
         return a.m_geometry != b.m_geometry;
     }
 
+    iterator begin() noexcept { return m_geometry.begin(); }
+    iterator end() noexcept { return m_geometry.end(); }
     const_iterator begin() const noexcept { return m_geometry.cbegin(); }
     const_iterator end() const noexcept { return m_geometry.cend(); }
     const_iterator cbegin() const noexcept { return m_geometry.cbegin(); }
