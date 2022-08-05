@@ -26,6 +26,7 @@ TEST_CASE("geometry collection with point", "[NoDB]")
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(0.0));
     REQUIRE_THROWS(centroid(geom));
+    REQUIRE(geometry_n(geom, 1) == geom::geometry_t{geom::point_t{1, 1}});
 }
 
 TEST_CASE("geometry collection with several geometries", "[NoDB]")
@@ -41,6 +42,10 @@ TEST_CASE("geometry collection with several geometries", "[NoDB]")
     REQUIRE(num_geometries(geom) == 3);
     REQUIRE(area(geom) == Approx(0.0));
     REQUIRE_THROWS(centroid(geom));
+    REQUIRE(geometry_n(geom, 1) == geom::geometry_t{geom::point_t{1, 1}});
+    REQUIRE(geometry_n(geom, 2) ==
+            geom::geometry_t{geom::linestring_t{{1, 1}, {2, 2}}});
+    REQUIRE(geometry_n(geom, 3) == geom::geometry_t{geom::point_t{2, 2}});
 }
 
 TEST_CASE("create_collection from OSM data", "[NoDB]")

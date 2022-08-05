@@ -200,6 +200,8 @@ TEST_CASE("create_multilinestring from four lines forming two rings", "[NoDB]")
     REQUIRE(ml.num_geometries() == 2);
     REQUIRE(ml[0] == expected[0]);
     REQUIRE(ml[1] == expected[1]);
+    REQUIRE(geometry_n(geom, 1).get<geom::linestring_t>() == expected[0]);
+    REQUIRE(geometry_n(geom, 2).get<geom::linestring_t>() == expected[1]);
 }
 
 TEST_CASE("create_multilinestring from Y shape", "[NoDB]")

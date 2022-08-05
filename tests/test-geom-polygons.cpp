@@ -24,6 +24,7 @@ TEST_CASE("polygon geometry without inner", "[NoDB]")
     REQUIRE(area(geom) == Approx(1.0));
     REQUIRE(geometry_type(geom) == "POLYGON");
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{0.5, 0.5}});
+    REQUIRE(geometry_n(geom, 1) == geom);
 }
 
 TEST_CASE("polygon geometry without inner (reverse)", "[NoDB]")

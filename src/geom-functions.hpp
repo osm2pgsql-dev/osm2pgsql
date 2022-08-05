@@ -65,6 +65,30 @@ std::string_view geometry_type(geometry_t const &geom);
 std::size_t num_geometries(geometry_t const &geom);
 
 /**
+ * Get a copy of the nth geometry out of a (multi)geometry.
+ *
+ * For non-multi geometries and n==1 a copy of the single geometry is returned.
+ * If n is out or range a null geometry is returned.
+ *
+ * \param output Pointer to output geometry.
+ * \param input Input geometry.
+ * \param n Number of geometry to get (1-based).
+ */
+void geometry_n(geometry_t *output, geometry_t const &input, std::size_t n);
+
+/**
+ * Get a copy of the nth geometry out of a (multi)geometry.
+ *
+ * For non-multi geometries and n==1 a copy of the single geometry is returned.
+ * If n is out or range a null geometry is returned.
+ *
+ * \param input Input geometry.
+ * \param n Number of geometry to get (1-based).
+ * \returns The geometry.
+ */
+geometry_t geometry_n(geometry_t const &input, std::size_t n);
+
+/**
  * Transform a geometry in 4326 into some other projection.
  *
  * \param output Pointer to output geometry.

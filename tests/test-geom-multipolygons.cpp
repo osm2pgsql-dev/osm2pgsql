@@ -27,6 +27,9 @@ TEST_CASE("multipolygon geometry with single outer, no inner", "[NoDB]")
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(1.0));
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{0.5, 0.5}});
+    REQUIRE(geometry_n(geom, 1) ==
+            geom::geometry_t{geom::polygon_t{
+                geom::ring_t{{0, 0}, {0, 1}, {1, 1}, {1, 0}, {0, 0}}}});
 }
 
 TEST_CASE("multipolygon geometry with two polygons", "[NoDB]")
