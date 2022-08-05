@@ -151,11 +151,11 @@ public:
 
     /**
      * How many bits should the node id be shifted for the way node index?
-     * Use 0 to disable for backwards compatibility.
-     * Currently the default is 0, making osm2pgsql backwards compatible to
-     * earlier versions.
+     * The result is a lossy index which is significantly smaller.
+     * See https://osm2pgsql.org/doc/manual.html#bucket-index-for-slim-mode
+     * Use 0 to use a classic loss-less GIN index.
      */
-    uint8_t way_node_index_id_shift = 0;
+    uint8_t way_node_index_id_shift = 5;
 
     /// add an additional hstore column with objects key/value pairs, and what type of hstore column
     hstore_column hstore_mode = hstore_column::none;
