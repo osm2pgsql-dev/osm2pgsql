@@ -89,26 +89,27 @@ TEST_CASE("create_linestring from invalid OSM data", "[NoDB]")
 
 TEST_CASE("geom::segmentize w/o split", "[NoDB]")
 {
-    geom::linestring_t const line{{0, 0}, {1, 2}, {2, 2}};
+    geom::linestring_t const expected{{0, 0}, {1, 2}, {2, 2}};
+    geom::linestring_t line = expected;
 
-    auto const geom = geom::segmentize(geom::geometry_t{line}, 10.0);
+    auto const geom = geom::segmentize(geom::geometry_t{std::move(line)}, 10.0);
 
     REQUIRE(geom.is_multilinestring());
     REQUIRE(num_geometries(geom) == 1);
     auto const &ml = geom.get<geom::multilinestring_t>();
     REQUIRE(ml.num_geometries() == 1);
-    REQUIRE(ml[0] == line);
+    REQUIRE(ml[0] == expected);
 }
 
 TEST_CASE("geom::segmentize with split 0.5", "[NoDB]")
 {
-    geom::linestring_t const line{{0, 0}, {1, 0}};
+    geom::linestring_t line{{0, 0}, {1, 0}};
 
     std::array<geom::linestring_t, 2> const expected{
         geom::linestring_t{{0, 0}, {0.5, 0}},
         geom::linestring_t{{0.5, 0}, {1, 0}}};
 
-    auto const geom = geom::segmentize(geom::geometry_t{line}, 0.5);
+    auto const geom = geom::segmentize(geom::geometry_t{std::move(line)}, 0.5);
 
     REQUIRE(geom.is_multilinestring());
     auto const &ml = geom.get<geom::multilinestring_t>();
@@ -119,14 +120,14 @@ TEST_CASE("geom::segmentize with split 0.5", "[NoDB]")
 
 TEST_CASE("geom::segmentize with split 0.4", "[NoDB]")
 {
-    geom::linestring_t const line{{0, 0}, {1, 0}};
+    geom::linestring_t line{{0, 0}, {1, 0}};
 
     std::array<geom::linestring_t, 3> const expected{
         geom::linestring_t{{0, 0}, {0.4, 0}},
         geom::linestring_t{{0.4, 0}, {0.8, 0}},
         geom::linestring_t{{0.8, 0}, {1, 0}}};
 
-    auto const geom = geom::segmentize(geom::geometry_t{line}, 0.4);
+    auto const geom = geom::segmentize(geom::geometry_t{std::move(line)}, 0.4);
 
     REQUIRE(geom.is_multilinestring());
     auto const &ml = geom.get<geom::multilinestring_t>();
@@ -138,13 +139,13 @@ TEST_CASE("geom::segmentize with split 0.4", "[NoDB]")
 
 TEST_CASE("geom::segmentize with split 1.0 at start", "[NoDB]")
 {
-    geom::linestring_t const line{{0, 0}, {2, 0}, {3, 0}, {4, 0}};
+    geom::linestring_t line{{0, 0}, {2, 0}, {3, 0}, {4, 0}};
 
     std::array<geom::linestring_t, 4> const expected{
         geom::linestring_t{{0, 0}, {1, 0}}, geom::linestring_t{{1, 0}, {2, 0}},
         geom::linestring_t{{2, 0}, {3, 0}}, geom::linestring_t{{3, 0}, {4, 0}}};
 
-    auto const geom = geom::segmentize(geom::geometry_t{line}, 1.0);
+    auto const geom = geom::segmentize(geom::geometry_t{std::move(line)}, 1.0);
 
     REQUIRE(geom.is_multilinestring());
     auto const &ml = geom.get<geom::multilinestring_t>();
@@ -157,13 +158,13 @@ TEST_CASE("geom::segmentize with split 1.0 at start", "[NoDB]")
 
 TEST_CASE("geom::segmentize with split 1.0 in middle", "[NoDB]")
 {
-    geom::linestring_t const line{{0, 0}, {1, 0}, {3, 0}, {4, 0}};
+    geom::linestring_t line{{0, 0}, {1, 0}, {3, 0}, {4, 0}};
 
     std::array<geom::linestring_t, 4> const expected{
         geom::linestring_t{{0, 0}, {1, 0}}, geom::linestring_t{{1, 0}, {2, 0}},
         geom::linestring_t{{2, 0}, {3, 0}}, geom::linestring_t{{3, 0}, {4, 0}}};
 
-    auto const geom = geom::segmentize(geom::geometry_t{line}, 1.0);
+    auto const geom = geom::segmentize(geom::geometry_t{std::move(line)}, 1.0);
 
     REQUIRE(geom.is_multilinestring());
     auto const &ml = geom.get<geom::multilinestring_t>();
@@ -176,13 +177,13 @@ TEST_CASE("geom::segmentize with split 1.0 in middle", "[NoDB]")
 
 TEST_CASE("geom::segmentize with split 1.0 at end", "[NoDB]")
 {
-    geom::linestring_t const line{{0, 0}, {1, 0}, {2, 0}, {4, 0}};
+    geom::linestring_t line{{0, 0}, {1, 0}, {2, 0}, {4, 0}};
 
     std::array<geom::linestring_t, 4> const expected{
         geom::linestring_t{{0, 0}, {1, 0}}, geom::linestring_t{{1, 0}, {2, 0}},
         geom::linestring_t{{2, 0}, {3, 0}}, geom::linestring_t{{3, 0}, {4, 0}}};
 
-    auto const geom = geom::segmentize(geom::geometry_t{line}, 1.0);
+    auto const geom = geom::segmentize(geom::geometry_t{std::move(line)}, 1.0);
 
     REQUIRE(geom.is_multilinestring());
     auto const &ml = geom.get<geom::multilinestring_t>();

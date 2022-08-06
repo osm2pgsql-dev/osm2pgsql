@@ -166,7 +166,7 @@ class multigeometry_t
 {
 public:
     using const_iterator = typename std::vector<GEOM>::const_iterator;
-    using iterator = typename std::vector<GEOM>::const_iterator;
+    using iterator = typename std::vector<GEOM>::iterator;
     using value_type = GEOM;
 
     [[nodiscard]] std::size_t num_geometries() const noexcept
@@ -176,7 +176,7 @@ public:
 
     GEOM &add_geometry(GEOM &&geom)
     {
-        m_geometry.push_back(std::move(geom));
+        m_geometry.push_back(std::forward<GEOM>(geom));
         return m_geometry.back();
     }
 
@@ -194,6 +194,8 @@ public:
         return a.m_geometry != b.m_geometry;
     }
 
+    iterator begin() noexcept { return m_geometry.begin(); }
+    iterator end() noexcept { return m_geometry.end(); }
     const_iterator begin() const noexcept { return m_geometry.cbegin(); }
     const_iterator end() const noexcept { return m_geometry.cend(); }
     const_iterator cbegin() const noexcept { return m_geometry.cbegin(); }
@@ -234,8 +236,31 @@ class geometry_t
 public:
     constexpr geometry_t() = default;
 
-    template <typename T>
-    constexpr explicit geometry_t(T geom, int srid = 4326)
+    constexpr explicit geometry_t(point_t &&geom, int srid = 4326)
+    : m_geom(std::move(geom)), m_srid(srid)
+    {}
+
+    constexpr explicit geometry_t(linestring_t &&geom, int srid = 4326)
+    : m_geom(std::move(geom)), m_srid(srid)
+    {}
+
+    constexpr explicit geometry_t(polygon_t &&geom, int srid = 4326)
+    : m_geom(std::move(geom)), m_srid(srid)
+    {}
+
+    constexpr explicit geometry_t(multipoint_t &&geom, int srid = 4326)
+    : m_geom(std::move(geom)), m_srid(srid)
+    {}
+
+    constexpr explicit geometry_t(multilinestring_t &&geom, int srid = 4326)
+    : m_geom(std::move(geom)), m_srid(srid)
+    {}
+
+    constexpr explicit geometry_t(multipolygon_t &&geom, int srid = 4326)
+    : m_geom(std::move(geom)), m_srid(srid)
+    {}
+
+    constexpr explicit geometry_t(collection_t &&geom, int srid = 4326)
     : m_geom(std::move(geom)), m_srid(srid)
     {}
 
