@@ -268,7 +268,7 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
         if (!projected_geom.is_null() && split_at > 0.0) {
             projected_geom = geom::segmentize(projected_geom, split_at);
         }
-        auto const geoms = geom::split_multi(projected_geom);
+        auto const geoms = geom::split_multi(std::move(projected_geom));
         for (auto const &sgeom : geoms) {
             m_expire.from_geometry(sgeom, -rel.id());
             auto const wkb = geom_to_ewkb(sgeom);

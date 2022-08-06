@@ -322,7 +322,7 @@ namespace {
 class split_visitor
 {
 public:
-    split_visitor(std::vector<geometry_t> *output, uint32_t srid) noexcept
+    split_visitor(std::vector<geometry_t> *output, int srid) noexcept
     : m_output(output), m_srid(srid)
     {}
 
@@ -330,35 +330,35 @@ public:
     void operator()(T) const
     {}
 
-    void operator()(geom::collection_t const &geom) const
+    void operator()(geom::collection_t &&geom) const
     {
-        for (auto sgeom : geom) {
+        for (auto &&sgeom : geom) {
             m_output->push_back(std::move(sgeom));
         }
     }
 
     template <typename T>
-    void operator()(geom::multigeometry_t<T> const &geom) const
+    void operator()(geom::multigeometry_t<T> &&geom) const
     {
-        for (auto sgeom : geom) {
+        for (auto &&sgeom : geom) {
             m_output->emplace_back(std::move(sgeom), m_srid);
         }
     }
 
 private:
     std::vector<geometry_t> *m_output;
-    uint32_t m_srid;
+    int m_srid;
 
 }; // class split_visitor
 
 } // anonymous namespace
 
-std::vector<geometry_t> split_multi(geometry_t geom, bool split_multi)
+std::vector<geometry_t> split_multi(geometry_t&& geom, bool split_multi)
 {
     std::vector<geometry_t> output;
 
     if (split_multi && geom.is_multi()) {
-        geom.visit(split_visitor{&output, static_cast<uint32_t>(geom.srid())});
+        visit(split_visitor{&output, geom.srid()}, std::move(geom));
     } else if (!geom.is_null()) {
         output.push_back(std::move(geom));
     }
