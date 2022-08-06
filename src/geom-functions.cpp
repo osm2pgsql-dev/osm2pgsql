@@ -59,6 +59,61 @@ std::size_t num_geometries(geometry_t const &geom)
 
 namespace {
 
+class geometry_n_visitor
+{
+public:
+    geometry_n_visitor(geometry_t *output, std::size_t n)
+    : m_output(output), m_n(n)
+    {}
+
+    void operator()(nullgeom_t const & /*input*/) const { m_output->reset(); }
+
+    void operator()(geom::collection_t const &input) const
+    {
+        *m_output = input[m_n - 1];
+    }
+
+    template <typename T>
+    void operator()(geom::multigeometry_t<T> const &input) const
+    {
+        m_output->set<T>() = input[m_n - 1];
+    }
+
+    template <typename T>
+    void operator()(T const &input) const
+    {
+        m_output->set<T>() = input;
+    }
+
+private:
+    geometry_t *m_output;
+    std::size_t m_n;
+
+}; // class geometry_n_visitor
+
+} // anonymous namespace
+
+void geometry_n(geometry_t *output, geometry_t const &input, std::size_t n)
+{
+    auto const num = num_geometries(input);
+    if (n < 1 || n > num) {
+        output->reset();
+        return;
+    }
+
+    input.visit(geometry_n_visitor{output, n});
+    output->set_srid(input.srid());
+}
+
+geometry_t geometry_n(geometry_t const &input, std::size_t n)
+{
+    geom::geometry_t output{};
+    geometry_n(&output, input, n);
+    return output;
+}
+
+namespace {
+
 void set_to_same_type(geometry_t *output, geometry_t const &input)
 {
     input.visit(overloaded{[&](auto in) { output->set<decltype(in)>(); }});
