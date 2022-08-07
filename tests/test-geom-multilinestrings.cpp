@@ -180,7 +180,8 @@ TEST_CASE("create_multilinestring from three lines, two with same start and "
     REQUIRE(ml[0] == expected);
 }
 
-TEST_CASE("create_multilinestring from four lines forming two rings", "[NoDB]")
+TEST_CASE("create_multilinestring from four segments forming two lines",
+          "[NoDB]")
 {
     std::array<geom::linestring_t, 2> const expected{
         geom::linestring_t{{2, 1}, {1, 1}, {1, 2}},
