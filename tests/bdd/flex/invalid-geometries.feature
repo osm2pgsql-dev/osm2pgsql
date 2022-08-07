@@ -83,8 +83,8 @@ Feature: Test handling of invalid geometries
         Then table osm2pgsql_test_line has 0 rows
         Then table osm2pgsql_test_polygon contains exactly
             | osm_id | ST_AsText(geom)  |
-            | 20     | (10, 11, 12, 10) |
-            | 21     | (10, 11, 12, 10) |
+            | 20     | (10, 12, 11, 10) |
+            | 21     | (10, 12, 11, 10) |
 
 
     Scenario: Area with self-intersection from way should be ignored
