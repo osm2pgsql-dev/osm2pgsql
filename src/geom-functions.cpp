@@ -70,13 +70,13 @@ public:
 
     void operator()(geom::collection_t const &input) const
     {
-        *m_output = input[m_n - 1];
+        *m_output = input[m_n];
     }
 
     template <typename T>
     void operator()(geom::multigeometry_t<T> const &input) const
     {
-        m_output->set<T>() = input[m_n - 1];
+        m_output->set<T>() = input[m_n];
     }
 
     template <typename T>
@@ -95,13 +95,13 @@ private:
 
 void geometry_n(geometry_t *output, geometry_t const &input, std::size_t n)
 {
-    auto const num = num_geometries(input);
-    if (n < 1 || n > num) {
+    auto const max = num_geometries(input);
+    if (n < 1 || n > max) {
         output->reset();
         return;
     }
 
-    input.visit(geometry_n_visitor{output, n});
+    input.visit(geometry_n_visitor{output, n - 1});
     output->set_srid(input.srid());
 }
 
@@ -630,17 +630,17 @@ geometry_t centroid(geometry_t const &geom)
     return output;
 }
 
-void simplify(geometry_t *output, geometry_t const &geom, double tolerance)
+void simplify(geometry_t *output, geometry_t const &input, double tolerance)
 {
-    if (!geom.is_linestring()) {
+    if (!input.is_linestring()) {
         output->reset();
         return;
     }
 
     auto &ls = output->set<linestring_t>();
-    output->set_srid(geom.srid());
+    output->set_srid(input.srid());
 
-    boost::geometry::simplify(geom.get<linestring_t>(), ls, tolerance);
+    boost::geometry::simplify(input.get<linestring_t>(), ls, tolerance);
 
     // Linestrings with less then 2 nodes are invalid. Older boost::geometry
     // versions will generate a "line" with two identical points which the
@@ -650,10 +650,10 @@ void simplify(geometry_t *output, geometry_t const &geom, double tolerance)
     }
 }
 
-geometry_t simplify(geometry_t const &geom, double tolerance)
+geometry_t simplify(geometry_t const &input, double tolerance)
 {
-    geom::geometry_t output{linestring_t{}, geom.srid()};
-    simplify(&output, geom, tolerance);
+    geom::geometry_t output{linestring_t{}, input.srid()};
+    simplify(&output, input, tolerance);
     return output;
 }
 

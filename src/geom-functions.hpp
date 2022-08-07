@@ -92,30 +92,30 @@ geometry_t geometry_n(geometry_t const &input, std::size_t n);
  * Transform a geometry in 4326 into some other projection.
  *
  * \param output Pointer to output geometry.
- * \param geom Input geometry.
+ * \param input Input geometry.
  * \param reprojection Target projection.
  *
  * \pre \code geom.srid() == 4326 \endcode
  */
-void transform(geometry_t *output, geometry_t const &geom,
+void transform(geometry_t *output, geometry_t const &input,
                reprojection const &reprojection);
 
 /**
  * Transform a geometry in 4326 into some other projection.
  *
- * \param geom Input geometry.
+ * \param input Input geometry.
  * \param reprojection Target projection.
  * \returns Reprojected geometry.
  *
  * \pre \code geom.srid() == 4326 \endcode
  */
-geometry_t transform(geometry_t const &geom, reprojection const &reprojection);
+geometry_t transform(geometry_t const &input, reprojection const &reprojection);
 
 /**
  * Returns a modified geometry having no segment longer than the given
  * max_segment_length.
  *
- * \param line The input geometry, must be a linestring or multilinestring.
+ * \param geom The input geometry, must be a linestring or multilinestring.
  * \param max_segment_length The maximum length (using Euclidean distance
  *        in the length unit of the srs of the geometry) of each resulting
  *        linestring.
@@ -171,11 +171,11 @@ geometry_t centroid(geometry_t const &geom);
  * Returns null geometry for anything but linestring geometries!
  *
  * \param output Pointer to output geometry.
- * \param geom Input geometry.
+ * \param input Input geometry.
  * \param tolerance Max distance (in units of input coordinates) of a point
  *                  to other segments to be removed.
  */
-void simplify(geometry_t *output, geometry_t const &geom, double tolerance);
+void simplify(geometry_t *output, geometry_t const &input, double tolerance);
 
 /**
  * Simplify a linestring geometry using Douglas-Peucker algorithm.
@@ -185,12 +185,12 @@ void simplify(geometry_t *output, geometry_t const &geom, double tolerance);
  *
  * Returns null geometry for anything but linestring geometries!
  *
- * \param geom Input geometry.
+ * \param input Input geometry.
  * \param tolerance Max distance (in units of input coordinates) of a point
  *                  to other segments to be removed.
  * \returns Simplified geometry.
  */
-geometry_t simplify(geometry_t const &geom, double tolerance);
+geometry_t simplify(geometry_t const &input, double tolerance);
 
 } // namespace geom
 
