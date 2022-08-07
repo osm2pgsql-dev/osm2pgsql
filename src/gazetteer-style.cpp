@@ -308,8 +308,13 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
         char const *const v = item.value();
 
         if (std::strcmp(k, "admin_level") == 0) {
-            m_admin_level = std::atoi(v);
-            if (m_admin_level <= 0 || m_admin_level > MAX_ADMINLEVEL) {
+            char *endp = nullptr;
+            errno = 0;
+            auto const parsed = std::strtol(v, &endp, 10);
+            if (errno == 0 && *endp == '\0' && parsed > 0 &&
+                parsed < MAX_ADMINLEVEL) {
+                m_admin_level = static_cast<int>(parsed);
+            } else {
                 m_admin_level = MAX_ADMINLEVEL;
             }
             continue;
