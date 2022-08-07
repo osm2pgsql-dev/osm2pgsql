@@ -630,17 +630,17 @@ geometry_t centroid(geometry_t const &geom)
     return output;
 }
 
-void simplify(geometry_t *output, geometry_t const &geom, double tolerance)
+void simplify(geometry_t *output, geometry_t const &input, double tolerance)
 {
-    if (!geom.is_linestring()) {
+    if (!input.is_linestring()) {
         output->reset();
         return;
     }
 
     auto &ls = output->set<linestring_t>();
-    output->set_srid(geom.srid());
+    output->set_srid(input.srid());
 
-    boost::geometry::simplify(geom.get<linestring_t>(), ls, tolerance);
+    boost::geometry::simplify(input.get<linestring_t>(), ls, tolerance);
 
     // Linestrings with less then 2 nodes are invalid. Older boost::geometry
     // versions will generate a "line" with two identical points which the
@@ -650,10 +650,10 @@ void simplify(geometry_t *output, geometry_t const &geom, double tolerance)
     }
 }
 
-geometry_t simplify(geometry_t const &geom, double tolerance)
+geometry_t simplify(geometry_t const &input, double tolerance)
 {
-    geom::geometry_t output{linestring_t{}, geom.srid()};
-    simplify(&output, geom, tolerance);
+    geom::geometry_t output{linestring_t{}, input.srid()};
+    simplify(&output, input, tolerance);
     return output;
 }
 
