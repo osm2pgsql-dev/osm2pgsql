@@ -697,6 +697,7 @@ TEST_CASE("Admin levels")
     t.add(9003, "place=city,admin_level=x");
     t.add(9004, "place=city,admin_level=1");
     t.add(9005, "place=city,admin_level=0");
+    t.add(9006, "place=city,admin_level=2.5");
 
     t.import();
 
@@ -707,6 +708,7 @@ TEST_CASE("Admin levels")
     CHECK("15" == t.obj_field(conn, 9003, "place", "admin_level"));
     CHECK("1" == t.obj_field(conn, 9004, "place", "admin_level"));
     CHECK("15" == t.obj_field(conn, 9005, "place", "admin_level"));
+    CHECK("15" == t.obj_field(conn, 9006, "place", "admin_level"));
 }
 
 TEST_CASE("Administrative boundaries with place tags")
