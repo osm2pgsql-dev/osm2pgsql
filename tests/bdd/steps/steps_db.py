@@ -157,7 +157,7 @@ class DBRow:
 class DBValueGeometry:
 
     def __init__(self, value, props, factory):
-        self.precision = float(props) if props else 0.01
+        self.precision = float(props) if props else 0.0001
         self.orig_value = value
         self.set_coordinates(value)
         self.factory = factory
