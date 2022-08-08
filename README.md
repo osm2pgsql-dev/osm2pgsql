@@ -14,15 +14,18 @@ to install and run osm2pgsql.
 
 ## Features
 
-* Converts OSM files to a PostgreSQL DB
-* Conversion of tags to columns is configurable in the style file
-* Able to read .gz, .bz2, .pbf and .o5m files directly
-* Can apply diffs to keep the database up to date
+* Imports OpenStreetMap data into PostgreSQL / PostGIS tables
+* Table names, target columns and data conversions are highly configurable
+* Able to read all major OSM file formats (like `osm.gz`, `osm.bz2`, `osm.pbf`
+  and `.o5m`) directly
+* Scales from small data extracts which can be imported in a few seconds or
+  minutes to the whole planet
+* Can apply OSM change files to keep the database up to date
 * Support the choice of output projection
-* Configurable table names
-* Gazetteer back-end for [Nominatim](https://wiki.openstreetmap.org/wiki/Nominatim)
-* Support for hstore field type to store the complete set of tags in one database
-  field if desired
+* Support for json(b) and hstore field type to store the complete set of tags
+  in one database field if desired
+* Serves as back-end for [Nominatim](https://wiki.openstreetmap.org/wiki/Nominatim)
+  using the `gazetteer` output.
 
 ## Installing
 
@@ -153,8 +156,8 @@ following:
 cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON
 ```
 
-Note that `Debug` builds will be much slower than release build. For production
-use `Release` or `RelWithDebInfo` builds are recommended.
+Note that `Debug` builds will run much slower than release builds. Use
+`Release` or `RelWithDebInfo` builds in production environments.
 
 ### Using the PROJ library
 
@@ -177,7 +180,7 @@ cache variable to choose between the following behaviours:
 
 ## Using LuaJIT
 
-To speed up Lua tag transformations, [LuaJIT](https://luajit.org/) can be
+To speed up Lua configuration code, [LuaJIT](https://luajit.org/) can be
 optionally enabled on supported platforms. This can speed up processing
 considerably.
 
