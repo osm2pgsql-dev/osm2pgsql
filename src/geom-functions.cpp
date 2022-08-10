@@ -446,16 +446,16 @@ static void add_nodes_to_linestring(linestring_t *linestring, ITERATOR it,
     }
 }
 
-geometry_t line_merge(geometry_t geom)
+void line_merge(geometry_t *output, geometry_t const &input)
 {
-    geometry_t output{multilinestring_t{}, geom.srid()};
-
-    if (geom.is_null()) {
-        output.reset();
-        return output;
+    if (!input.is_multilinestring()) {
+        output->reset();
+        return;
     }
 
-    assert(geom.is_multilinestring());
+    output->set_srid(input.srid());
+
+    auto &linestrings = output->set<multilinestring_t>();
 
     // Make a list of all endpoints...
     struct endpoint_t
@@ -490,16 +490,16 @@ geometry_t line_merge(geometry_t geom)
     struct connection_t
     {
         std::size_t left = NOCONN;
-        geom::linestring_t const *ls;
+        linestring_t const *ls;
         std::size_t right = NOCONN;
 
-        explicit connection_t(geom::linestring_t const *l) noexcept : ls(l) {}
+        explicit connection_t(linestring_t const *l) noexcept : ls(l) {}
     };
 
     std::vector<connection_t> conns;
 
     // Initialize the two lists.
-    for (auto const &line : geom.get<multilinestring_t>()) {
+    for (auto const &line : input.get<multilinestring_t>()) {
         endpoints.emplace_back(line.front(), conns.size(), true);
         endpoints.emplace_back(line.back(), conns.size(), false);
         conns.emplace_back(&line);
@@ -524,8 +524,6 @@ geometry_t line_merge(geometry_t geom)
             conns[ptid].right = previd;
         }
     }
-
-    auto &linestrings = output.get<multilinestring_t>();
 
     // First find all open ends and use them as starting points to assemble
     // linestrings. Mark ways as "done" as we go.
@@ -614,9 +612,14 @@ geometry_t line_merge(geometry_t geom)
     }
 
     if (linestrings.num_geometries() == 0) {
-        output.reset();
+        output->reset();
     }
+}
 
+geometry_t line_merge(geometry_t const &input)
+{
+    geometry_t output;
+    line_merge(&output, input);
     return output;
 }
 

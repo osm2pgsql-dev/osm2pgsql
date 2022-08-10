@@ -163,10 +163,20 @@ std::vector<geometry_t> split_multi(geometry_t &&geom, bool split_multi = true);
  * returns a multilinestring unless there is an error or the input geometry
  * is a nullgeom_t, in which case nullgeom_t is returned.
  *
- * \param geom Input geometry.
+ * \param output Pointer to output geometry.
+ * \param input Input geometry.
+ */
+void line_merge(geometry_t *output, geometry_t const &input);
+
+/**
+ * Merge lines in a multilinestring end-to-end as far as possible. Always
+ * returns a multilinestring unless there is an error or the input geometry
+ * is a nullgeom_t, in which case nullgeom_t is returned.
+ *
+ * \param input Input geometry.
  * \returns Result multilinestring.
  */
-geometry_t line_merge(geometry_t geom);
+geometry_t line_merge(geometry_t const &input);
 
 /**
  * Calculate the centroid of a geometry.
