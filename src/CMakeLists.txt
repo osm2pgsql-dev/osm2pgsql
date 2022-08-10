@@ -48,6 +48,7 @@ if (WITH_LUA)
     target_sources(osm2pgsql_lib PRIVATE
         flex-table.cpp
         flex-table-column.cpp
+        flex-lua-geom.cpp
         geom-transform.cpp
         lua-utils.cpp
         output-flex.cpp

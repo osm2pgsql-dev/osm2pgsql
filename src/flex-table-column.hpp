@@ -39,6 +39,7 @@ enum class table_column_type : uint8_t
     multipoint,
     multilinestring,
     multipolygon,
+    geometrycollection,
 
     area,
 
@@ -81,7 +82,7 @@ public:
     bool is_geometry_column() const noexcept
     {
         return (m_type >= table_column_type::geometry) &&
-               (m_type <= table_column_type::multipolygon);
+               (m_type <= table_column_type::geometrycollection);
     }
 
     /**

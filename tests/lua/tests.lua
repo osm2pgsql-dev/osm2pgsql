@@ -1,6 +1,6 @@
 
 -- fake "osm2pgsql" table for test, usually created by the main C++ program
-osm2pgsql = {}
+osm2pgsql = { Geometry = {} }
 
 -- load the init.lua script that is normally run by the main C++ program
 package.path = '../src/?.lua'

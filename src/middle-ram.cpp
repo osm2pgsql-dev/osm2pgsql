@@ -264,6 +264,13 @@ middle_ram_t::rel_members_get(osmium::Relation const &rel,
                     buffer->commit();
                     ++count;
                 }
+            } else {
+                {
+                    osmium::builder::NodeBuilder builder{*buffer};
+                    builder.set_id(member.ref());
+                }
+                buffer->commit();
+                ++count;
             }
             break;
         case osmium::item_type::way:
