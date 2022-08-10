@@ -309,22 +309,28 @@ static void split_linestring(linestring_t const &line, double split_at,
     }
 }
 
-geometry_t segmentize(geometry_t const &geom, double max_segment_length)
+void segmentize(geometry_t *output, geometry_t const &input,
+                double max_segment_length)
 {
-    geometry_t output{multilinestring_t{}, geom.srid()};
-    auto *multilinestring = &output.get<multilinestring_t>();
+    output->set_srid(input.srid());
+    auto *multilinestring = &output->set<multilinestring_t>();
 
-    if (geom.is_linestring()) {
-        split_linestring(geom.get<linestring_t>(), max_segment_length,
+    if (input.is_linestring()) {
+        split_linestring(input.get<linestring_t>(), max_segment_length,
                          multilinestring);
-    } else if (geom.is_multilinestring()) {
-        for (auto const &line : geom.get<multilinestring_t>()) {
+    } else if (input.is_multilinestring()) {
+        for (auto const &line : input.get<multilinestring_t>()) {
             split_linestring(line, max_segment_length, multilinestring);
         }
     } else {
-        output.reset();
+        output->reset();
     }
+}
 
+geometry_t segmentize(geometry_t const &input, double max_segment_length)
+{
+    geometry_t output;
+    segmentize(&output, input, max_segment_length);
     return output;
 }
 

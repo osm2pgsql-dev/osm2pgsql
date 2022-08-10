@@ -115,13 +115,27 @@ geometry_t transform(geometry_t const &input, reprojection const &reprojection);
  * Returns a modified geometry having no segment longer than the given
  * max_segment_length.
  *
- * \param geom The input geometry, must be a linestring or multilinestring.
+ * \param output Pointer to output geometry. Will be a multilinestring
+ *        geometry, or nullgeom_t on error.
+ * \param input The input geometry, must be a linestring or multilinestring.
  * \param max_segment_length The maximum length (using Euclidean distance
- *        in the length unit of the srs of the geometry) of each resulting
+ *        in the length unit of the SRS of the geometry) of each resulting
+ *        linestring.
+ */
+void segmentize(geometry_t *output, geometry_t const &input,
+                double max_segment_length);
+
+/**
+ * Returns a modified geometry having no segment longer than the given
+ * max_segment_length.
+ *
+ * \param input The input geometry, must be a linestring or multilinestring.
+ * \param max_segment_length The maximum length (using Euclidean distance
+ *        in the length unit of the SRS of the geometry) of each resulting
  *        linestring.
  * \returns Resulting multilinestring geometry, nullgeom_t on error.
  */
-geometry_t segmentize(geometry_t const &geom, double max_segment_length);
+geometry_t segmentize(geometry_t const &input, double max_segment_length);
 
 /**
  * Calculate area of geometry.
