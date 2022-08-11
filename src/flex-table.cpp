@@ -161,6 +161,30 @@ void table_connection_t::connect(std::string const &conninfo)
     m_db_connection->exec("SET synchronous_commit = off");
 }
 
+static void
+enable_check_trigger(pg_conn_t *db_connection, flex_table_t const &table)
+{
+    std::string checks;
+
+    for (auto const &column : table) {
+        if (column.is_geometry_column() && column.needs_isvalid()) {
+            checks.append(
+                R"((NEW."{0}" IS NULL OR ST_IsValid(NEW."{0}")) AND )"_format(
+                    column.name()));
+        }
+    }
+
+    if (checks.empty()) {
+        return;
+    }
+
+    // remove last " AND "
+    checks.resize(checks.size() - 5);
+
+    create_geom_check_trigger(db_connection, table.schema(), table.name(),
+                              checks);
+}
+
 void table_connection_t::start(bool append)
 {
     assert(m_db_connection);
@@ -183,12 +207,7 @@ void table_connection_t::start(bool append)
                                       : flex_table_t::table_type::permanent,
             table().full_name()));
 
-        if (table().has_geom_column() &&
-            table().geom_column().needs_isvalid()) {
-            create_geom_check_trigger(m_db_connection.get(), table().schema(),
-                                      table().name(),
-                                      table().geom_column().name());
-        }
+        enable_check_trigger(m_db_connection.get(), table());
     }
 
     prepare();
@@ -253,10 +272,8 @@ void table_connection_t::stop(bool updateable, bool append)
             table().full_tmp_name(), table().name()));
         m_id_index_created = false;
 
-        if (updateable && table().geom_column().needs_isvalid()) {
-            create_geom_check_trigger(m_db_connection.get(), table().schema(),
-                                      table().name(),
-                                      table().geom_column().name());
+        if (updateable) {
+            enable_check_trigger(m_db_connection.get(), table());
         }
     }
 
