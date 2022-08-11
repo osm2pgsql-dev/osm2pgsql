@@ -73,15 +73,14 @@ flex_table_column_t &flex_table_t::add_column(std::string const &name,
            (m_columns.size() == 1 &&
             m_columns[0].type() == table_column_type::id_type));
 
-    m_columns.emplace_back(name, type, sql_type);
-    auto &column = m_columns.back();
+    auto &column = m_columns.emplace_back(name, type, sql_type);
 
     if (column.is_geometry_column()) {
-        if (m_geom_column != std::numeric_limits<std::size_t>::max()) {
+        if (m_geom_column == std::numeric_limits<std::size_t>::max()) {
+            m_geom_column = m_columns.size() - 1;
+        } else {
             m_has_multiple_geom_columns = true;
         }
-        m_geom_column = m_columns.size() - 1;
-        column.set_not_null();
     }
 
     return column;
