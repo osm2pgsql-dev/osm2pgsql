@@ -672,11 +672,16 @@ void output_flex_t::write_column(
         if (ltype == LUA_TUSERDATA) {
             auto const *const geom = unpack_geometry(lua_state(), -1);
             if (geom && !geom->is_null()) {
+                auto const type = column.type();
+                bool const wrap_multi =
+                    (type == table_column_type::multipoint ||
+                     type == table_column_type::multilinestring ||
+                     type == table_column_type::multipolygon);
                 if (geom->srid() == column.srid()) {
                     // OSM id not available here, so use dummy 0, it is used
                     // for debug messages only anyway.
                     m_expire.from_geometry(*geom, 0);
-                    copy_mgr->add_hex_geom(geom_to_ewkb(*geom));
+                    copy_mgr->add_hex_geom(geom_to_ewkb(*geom, wrap_multi));
                 } else {
                     auto const proj =
                         reprojection::create_projection(column.srid());
@@ -684,7 +689,7 @@ void output_flex_t::write_column(
                     // OSM id not available here, so use dummy 0, it is used
                     // for debug messages only anyway.
                     m_expire.from_geometry(tgeom, 0);
-                    copy_mgr->add_hex_geom(geom_to_ewkb(tgeom));
+                    copy_mgr->add_hex_geom(geom_to_ewkb(tgeom, wrap_multi));
                 }
             } else {
                 write_null(copy_mgr, column);
