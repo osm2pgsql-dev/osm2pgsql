@@ -74,7 +74,7 @@ Feature: Tests for Lua geometry processing functions
                     geomsimple = object:as_linestring():simplify(0.1)
                 })
 
-                local g = object:as_polygon()
+                local g = object:as_multipolygon()
                 tables.polygons:insert({
                     name = object.tags.name,
                     geom = g,

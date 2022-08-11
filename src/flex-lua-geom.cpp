@@ -119,6 +119,20 @@ static int geom_is_null(lua_State *lua_state)
     return 1;
 }
 
+static int geom_line_merge(lua_State *lua_state)
+{
+    auto const *const input_geometry = unpack_geometry(lua_state);
+
+    try {
+        auto *geom = create_lua_geometry_object(lua_state);
+        geom::line_merge(geom, *input_geometry);
+    } catch (...) {
+        return luaL_error(lua_state, "Unknown error in 'line_merge()'.\n");
+    }
+
+    return 1;
+}
+
 static int geom_num_geometries(lua_State *lua_state)
 {
     auto const *const input_geometry = unpack_geometry(lua_state);
@@ -215,6 +229,7 @@ void init_geometry_class(lua_State *lua_state)
     luaX_add_table_func(lua_state, "geometry_n", geom_geometry_n);
     luaX_add_table_func(lua_state, "geometry_type", geom_geometry_type);
     luaX_add_table_func(lua_state, "is_null", geom_is_null);
+    luaX_add_table_func(lua_state, "line_merge", geom_line_merge);
     luaX_add_table_func(lua_state, "num_geometries", geom_num_geometries);
     luaX_add_table_func(lua_state, "segmentize", geom_segmentize);
     luaX_add_table_func(lua_state, "simplify", geom_simplify);

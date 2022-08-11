@@ -885,23 +885,43 @@ int output_flex_t::app_as_polygon()
 
 int output_flex_t::app_as_multilinestring()
 {
-    check_context_and_state("as_multilinestring", "process_relation() function",
-                            m_calling_context !=
-                                calling_context::process_relation);
+    check_context_and_state(
+        "as_multilinestring", "process_way/relation() functions",
+        m_calling_context != calling_context::process_way &&
+            m_calling_context != calling_context::process_relation);
+
+    if (m_calling_context == calling_context::process_way) {
+        m_way_cache.add_nodes(middle());
+
+        auto *geom = create_lua_geometry_object(lua_state());
+        geom::create_linestring(geom, m_way_cache.get());
+        return 1;
+    }
 
     m_relation_cache.add_members(middle());
 
     auto *geom = create_lua_geometry_object(lua_state());
-    geom::create_multilinestring(geom, m_relation_cache.members_buffer());
+    geom::create_multilinestring(geom, m_relation_cache.members_buffer(),
+                                 false);
 
     return 1;
 }
 
 int output_flex_t::app_as_multipolygon()
 {
-    check_context_and_state("as_multipolygon", "process_relation() function",
-                            m_calling_context !=
-                                calling_context::process_relation);
+    check_context_and_state(
+        "as_multipolygon", "process_way/relation() functions",
+        m_calling_context != calling_context::process_way &&
+            m_calling_context != calling_context::process_relation);
+
+    if (m_calling_context == calling_context::process_way) {
+        m_way_cache.add_nodes(middle());
+
+        auto *geom = create_lua_geometry_object(lua_state());
+        geom::create_polygon(geom, m_way_cache.get());
+
+        return 1;
+    }
 
     m_relation_cache.add_members(middle());
 

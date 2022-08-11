@@ -36,6 +36,26 @@ TEST_CASE("create_multilinestring with single line", "[NoDB]")
     REQUIRE(ml[0] == expected);
 }
 
+TEST_CASE("create_multilinestring with single line and no force_multi",
+          "[NoDB]")
+{
+    geom::linestring_t const expected{{1, 1}, {2, 1}};
+
+    test_buffer_t buffer;
+    buffer.add_way("w20 Nn10x1y1,n11x2y1");
+
+    auto const geom =
+        geom::line_merge(geom::create_multilinestring(buffer.buffer(), false));
+
+    REQUIRE(geom.is_linestring());
+    REQUIRE(geometry_type(geom) == "LINESTRING");
+    REQUIRE(num_geometries(geom) == 1);
+    REQUIRE(area(geom) == Approx(0.0));
+    auto const &l = geom.get<geom::linestring_t>();
+    REQUIRE(l.num_geometries() == 1);
+    REQUIRE(l == expected);
+}
+
 TEST_CASE("create_multilinestring with single line forming a ring", "[NoDB]")
 {
     geom::linestring_t const expected{{1, 1}, {2, 1}, {2, 2}, {1, 1}};

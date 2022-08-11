@@ -96,27 +96,37 @@ geometry_t create_polygon(osmium::Way const &way)
 }
 
 void create_multilinestring(geometry_t *geom,
-                            osmium::memory::Buffer const &ways)
+                            osmium::memory::Buffer const &ways_buffer,
+                            bool force_multi)
 {
-    auto &mls = geom->set<multilinestring_t>();
-
-    for (auto const &way : ways.select<osmium::Way>()) {
-        linestring_t line;
+    auto ways = ways_buffer.select<osmium::Way>();
+    if (ways.size() == 1 && !force_multi) {
+        auto &line = geom->set<linestring_t>();
+        auto &way = *ways.begin();
         fill_point_list(&line, way.nodes());
-        if (line.size() >= 2U) {
-            mls.add_geometry(std::move(line));
+        if (line.size() < 2U) {
+            geom->reset();
         }
-    }
-
-    if (mls.num_geometries() == 0) {
-        geom->reset();
+    } else {
+        auto &multiline = geom->set<multilinestring_t>();
+        for (auto const &way : ways) {
+            linestring_t line;
+            fill_point_list(&line, way.nodes());
+            if (line.size() >= 2U) {
+                multiline.add_geometry(std::move(line));
+            }
+        }
+        if (multiline.num_geometries() == 0) {
+            geom->reset();
+        }
     }
 }
 
-geometry_t create_multilinestring(osmium::memory::Buffer const &ways)
+geometry_t create_multilinestring(osmium::memory::Buffer const &ways,
+                                  bool force_multi)
 {
     geometry_t geom{};
-    create_multilinestring(&geom, ways);
+    create_multilinestring(&geom, ways, force_multi);
     return geom;
 }
 

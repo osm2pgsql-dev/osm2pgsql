@@ -159,9 +159,11 @@ double area(geometry_t const &geom);
 std::vector<geometry_t> split_multi(geometry_t &&geom, bool split_multi = true);
 
 /**
- * Merge lines in a multilinestring end-to-end as far as possible. Always
- * returns a multilinestring unless there is an error or the input geometry
- * is a nullgeom_t, in which case nullgeom_t is returned.
+ * Merge lines in a multilinestring end-to-end as far as possible.
+ *
+ * * Returns a multilinestring if the input is a multilinestring.
+ * * Returns a copy of the input if it is a linestring.
+ * * Returns nullgeom_t otherwise.
  *
  * \param output Pointer to output geometry.
  * \param input Input geometry.
@@ -169,9 +171,11 @@ std::vector<geometry_t> split_multi(geometry_t &&geom, bool split_multi = true);
 void line_merge(geometry_t *output, geometry_t const &input);
 
 /**
- * Merge lines in a multilinestring end-to-end as far as possible. Always
- * returns a multilinestring unless there is an error or the input geometry
- * is a nullgeom_t, in which case nullgeom_t is returned.
+ * Merge lines in a multilinestring end-to-end as far as possible.
+ *
+ * * Returns a multilinestring if the input is a multilinestring.
+ * * Returns a copy of the input if it is a linestring.
+ * * Returns nullgeom_t otherwise.
  *
  * \param input Input geometry.
  * \returns Result multilinestring.
