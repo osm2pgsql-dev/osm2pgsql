@@ -494,6 +494,32 @@ static void write_json(json_writer_type *writer, lua_State *lua_state,
     }
 }
 
+static bool is_compatible(geom::geometry_t const &geom,
+                          table_column_type type) noexcept
+{
+    switch (type) {
+    case table_column_type::geometry:
+        return true;
+    case table_column_type::point:
+        return geom.is_point();
+    case table_column_type::linestring:
+        return geom.is_linestring();
+    case table_column_type::polygon:
+        return geom.is_polygon();
+    case table_column_type::multipoint:
+        return geom.is_point() || geom.is_multipoint();
+    case table_column_type::multilinestring:
+        return geom.is_linestring() || geom.is_multilinestring();
+    case table_column_type::multipolygon:
+        return geom.is_polygon() || geom.is_multipolygon();
+    case table_column_type::geometrycollection:
+        return geom.is_collection();
+    default:
+        break;
+    }
+    return false;
+}
+
 void output_flex_t::write_column(
     db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
     flex_table_column_t const &column)
@@ -673,6 +699,12 @@ void output_flex_t::write_column(
             auto const *const geom = unpack_geometry(lua_state(), -1);
             if (geom && !geom->is_null()) {
                 auto const type = column.type();
+                if (!is_compatible(*geom, type)) {
+                    throw std::runtime_error{
+                        "Geometry data for geometry column '{}'"
+                        " has the wrong type ({})."_format(
+                            column.name(), geometry_type(*geom))};
+                }
                 bool const wrap_multi =
                     (type == table_column_type::multipoint ||
                      type == table_column_type::multilinestring ||
