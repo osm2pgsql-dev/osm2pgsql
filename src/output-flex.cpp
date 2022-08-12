@@ -494,6 +494,32 @@ static void write_json(json_writer_type *writer, lua_State *lua_state,
     }
 }
 
+static bool is_compatible(geom::geometry_t const &geom,
+                          table_column_type type) noexcept
+{
+    switch (type) {
+    case table_column_type::geometry:
+        return true;
+    case table_column_type::point:
+        return geom.is_point();
+    case table_column_type::linestring:
+        return geom.is_linestring();
+    case table_column_type::polygon:
+        return geom.is_polygon();
+    case table_column_type::multipoint:
+        return geom.is_point() || geom.is_multipoint();
+    case table_column_type::multilinestring:
+        return geom.is_linestring() || geom.is_multilinestring();
+    case table_column_type::multipolygon:
+        return geom.is_polygon() || geom.is_multipolygon();
+    case table_column_type::geometrycollection:
+        return geom.is_collection();
+    default:
+        break;
+    }
+    return false;
+}
+
 void output_flex_t::write_column(
     db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
     flex_table_column_t const &column)
@@ -672,11 +698,22 @@ void output_flex_t::write_column(
         if (ltype == LUA_TUSERDATA) {
             auto const *const geom = unpack_geometry(lua_state(), -1);
             if (geom && !geom->is_null()) {
+                auto const type = column.type();
+                if (!is_compatible(*geom, type)) {
+                    throw std::runtime_error{
+                        "Geometry data for geometry column '{}'"
+                        " has the wrong type ({})."_format(
+                            column.name(), geometry_type(*geom))};
+                }
+                bool const wrap_multi =
+                    (type == table_column_type::multipoint ||
+                     type == table_column_type::multilinestring ||
+                     type == table_column_type::multipolygon);
                 if (geom->srid() == column.srid()) {
                     // OSM id not available here, so use dummy 0, it is used
                     // for debug messages only anyway.
                     m_expire.from_geometry(*geom, 0);
-                    copy_mgr->add_hex_geom(geom_to_ewkb(*geom));
+                    copy_mgr->add_hex_geom(geom_to_ewkb(*geom, wrap_multi));
                 } else {
                     auto const proj =
                         reprojection::create_projection(column.srid());
@@ -684,7 +721,7 @@ void output_flex_t::write_column(
                     // OSM id not available here, so use dummy 0, it is used
                     // for debug messages only anyway.
                     m_expire.from_geometry(tgeom, 0);
-                    copy_mgr->add_hex_geom(geom_to_ewkb(tgeom));
+                    copy_mgr->add_hex_geom(geom_to_ewkb(tgeom, wrap_multi));
                 }
             } else {
                 write_null(copy_mgr, column);
