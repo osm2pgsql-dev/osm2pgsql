@@ -110,7 +110,7 @@ public:
         return m_geom_column != std::numeric_limits<std::size_t>::max();
     }
 
-    // XXX should we allow several geometry columns?
+    /// Get the (first, if there are multiple) geometry column.
     flex_table_column_t const &geom_column() const noexcept
     {
         assert(has_geom_column());
@@ -218,7 +218,10 @@ private:
      */
     std::vector<flex_table_column_t> m_columns;
 
-    /// Index of the geometry column in m_columns. Default means no geometry.
+    /**
+     * Index of the (first) geometry column in m_columns. Default means no
+     * geometry column.
+     */
     std::size_t m_geom_column = std::numeric_limits<std::size_t>::max();
 
     /**

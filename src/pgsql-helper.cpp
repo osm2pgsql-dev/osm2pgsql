@@ -35,7 +35,7 @@ idlist_t get_ids_from_db(pg_conn_t const *db_connection, char const *stmt,
 void create_geom_check_trigger(pg_conn_t *db_connection,
                                std::string const &schema,
                                std::string const &table,
-                               std::string const &geom_column)
+                               std::string const &condition)
 {
     std::string func_name = qualified_name(schema, table + "_osm2pgsql_valid");
 
@@ -43,12 +43,12 @@ void create_geom_check_trigger(pg_conn_t *db_connection,
         "CREATE OR REPLACE FUNCTION {}()\n"
         "RETURNS TRIGGER AS $$\n"
         "BEGIN\n"
-        "  IF ST_IsValid(NEW.{}) THEN \n"
+        "  IF {} THEN \n"
         "    RETURN NEW;\n"
         "  END IF;\n"
         "  RETURN NULL;\n"
         "END;"
-        "$$ LANGUAGE plpgsql;"_format(func_name, geom_column));
+        "$$ LANGUAGE plpgsql;"_format(func_name, condition));
 
     db_connection->exec(
         "CREATE TRIGGER \"{}\""

@@ -134,7 +134,7 @@ void table_t::start(std::string const &conninfo, std::string const &table_space)
 
         if (m_srid != "4326") {
             create_geom_check_trigger(m_sql_conn.get(), m_target->schema,
-                                      m_target->name, "way");
+                                      m_target->name, "ST_IsValid(NEW.way)");
         }
     }
 
@@ -243,7 +243,8 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
                     qual_name, tablespace_clause(table_space_index)));
             if (m_srid != "4326") {
                 create_geom_check_trigger(m_sql_conn.get(), m_target->schema,
-                                          m_target->name, "way");
+                                          m_target->name,
+                                          "ST_IsValid(NEW.way)");
             }
         }
 

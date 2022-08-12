@@ -33,7 +33,7 @@ idlist_t get_ids_from_db(pg_conn_t const *db_connection, char const *stmt,
 void create_geom_check_trigger(pg_conn_t *db_connection,
                                std::string const &schema,
                                std::string const &table,
-                               std::string const &geom_column);
+                               std::string const &condition);
 
 void drop_geom_check_trigger(pg_conn_t *db_connection,
                              std::string const &schema,
