@@ -25,7 +25,7 @@ local tables = {}
 -- ids.
 tables.pois = osm2pgsql.define_node_table('pois', {
     { column = 'tags', type = 'jsonb' },
-    { column = 'geom', type = 'point' }, -- will be something like `GEOMETRY(Point, 4326)` in SQL
+    { column = 'geom', type = 'point', not_null = true }, -- will be something like `GEOMETRY(Point, 4326)` in SQL
 })
 
 -- A special table for restaurants to demonstrate that we can have any tables
@@ -33,7 +33,12 @@ tables.pois = osm2pgsql.define_node_table('pois', {
 tables.restaurants = osm2pgsql.define_node_table('restaurants', {
     { column = 'name',    type = 'text' },
     { column = 'cuisine', type = 'text' },
-    { column = 'geom',    type = 'point' },
+    -- We declare all geometry columns as "NOT NULL". If osm2pgsql encounters
+    -- an invalid geometry (for whatever reason) it will generate a null
+    -- geometry which will not be written to the database if "not_null" is
+    -- set. The result is that broken geometries will just be silently
+    -- ignored.
+    { column = 'geom',    type = 'point', not_null = true },
 })
 
 -- This is a "way table", it can only contain data derived from ways and will
@@ -41,7 +46,7 @@ tables.restaurants = osm2pgsql.define_node_table('restaurants', {
 -- automatically update this table using the way ids.
 tables.ways = osm2pgsql.define_way_table('ways', {
     { column = 'tags', type = 'jsonb' },
-    { column = 'geom', type = 'linestring' },
+    { column = 'geom', type = 'linestring', not_null = true },
 })
 
 -- This is an "area table", it can contain data derived from ways or relations
@@ -54,7 +59,7 @@ tables.polygons = osm2pgsql.define_area_table('polygons', {
     { column = 'tags', type = 'jsonb' },
     -- The type of the `geom` column is `geometry`, because we need to store
     -- polygons AND multipolygons
-    { column = 'geom', type = 'geometry' },
+    { column = 'geom', type = 'geometry', not_null = true },
 })
 
 -- Debug output: Show definition of tables
@@ -90,15 +95,17 @@ function osm2pgsql.process_node(object)
         -- Add a row to the SQL table. The keys in the parameter table
         -- correspond to the table columns, if one is missing the column will
         -- be NULL. Id and geometry columns will be filled automatically.
-        tables.restaurants:add_row({
+        tables.restaurants:insert({
             name = object.tags.name,
-            cuisine = object.tags.cuisine
+            cuisine = object.tags.cuisine,
+            geom = object:as_point()
         })
     else
-        tables.pois:add_row({
+        tables.pois:insert({
             -- We know `tags` is of type `jsonb` so this will do the
             -- right thing.
-            tags = object.tags
+            tags = object.tags,
+            geom = object:as_point()
         })
     end
 end
@@ -117,14 +124,15 @@ function osm2pgsql.process_way(object)
     -- Very simple check to decide whether a way is a polygon or not, in a
     -- real stylesheet we'd have to also look at the tags...
     if object.is_closed then
-        tables.polygons:add_row({
+        tables.polygons:insert({
             type = object.type,
             tags = object.tags,
-            geom = { create = 'area' }
+            geom = object:as_polygon()
         })
     else
-        tables.ways:add_row({
-            tags = object.tags
+        tables.ways:insert({
+            tags = object.tags,
+            geom = object:as_linestring()
         })
     end
 end
@@ -143,10 +151,10 @@ function osm2pgsql.process_relation(object)
     -- Store multipolygons and boundaries as polygons
     if object.tags.type == 'multipolygon' or
        object.tags.type == 'boundary' then
-         tables.polygons:add_row({
+         tables.polygons:insert({
             type = object.type,
             tags = object.tags,
-            geom = { create = 'area' }
+            geom = object:as_multipolygon()
         })
     end
 end
