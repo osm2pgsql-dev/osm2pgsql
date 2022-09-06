@@ -446,7 +446,12 @@ def get_parser():
                        help='Print only error messages')
     group.add_argument('-v', '--verbose', action='count', default=2,
                        help='Increase verboseness of output')
-    group = default_args.add_argument_group('Database arguments')
+    group = default_args.add_argument_group('Database arguments',
+      "The following arguments can be used to set the connection parameters to the\n"
+      "osm2pgsql database. You may also use libpq environment variables to set\n"
+      "connection parameters, see https://www.postgresql.org/docs/current/libpq-envars.html.\n"
+      "If your database connection requires a password, use a pgpass file,\n"
+      "see https://www.postgresql.org/docs/current/libpq-pgpass.html.")
     group.add_argument('-d', '--database', metavar='DB',
                        help='Name of PostgreSQL database to connect to or conninfo string')
     group.add_argument('-U', '--username', metavar='NAME',
