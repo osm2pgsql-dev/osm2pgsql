@@ -34,9 +34,11 @@ missing_modules = []
 
 try:
     import psycopg2 as psycopg
+    from psycopg2 import sql
 except ImportError:
     try:
         import psycopg
+        from psycopg import sql
     except ImportError:
         missing_modules.append('psycopg2')
 
@@ -90,7 +92,8 @@ def compute_database_date(conn, prefix):
     # First, find the way with the highest ID in the database
     # Using nodes would be more reliable but those are not cached by osm2pgsql.
     with conn.cursor() as cur:
-        cur.execute("SELECT max(id) FROM {}_ways".format(prefix))
+        table = sql.Identifier(f'{prefix}_ways')
+        cur.execute(sql.SQL("SELECT max(id) FROM {}").format(table))
         osmid = cur.fetchone()[0] if cur.rowcount == 1 else None
 
         if osmid is None:
@@ -127,13 +130,13 @@ def setup_replication_state(conn, table, base_url, seq, date):
         the given state.
     """
     with conn.cursor() as cur:
-        cur.execute('DROP TABLE IF EXISTS "{}"'.format(table))
-        cur.execute("""CREATE TABLE "{}"
-                       (url TEXT,
-                        sequence INTEGER,
-                        importdate TIMESTAMP WITH TIME ZONE)
-                    """.format(table))
-        cur.execute('INSERT INTO "{}" VALUES(%s, %s, %s)'.format(table),
+        cur.execute(sql.SQL('DROP TABLE IF EXISTS {}').format(table))
+        cur.execute(sql.SQL("""CREATE TABLE {}
+                               (url TEXT,
+                                sequence INTEGER,
+                                importdate TIMESTAMP WITH TIME ZONE)
+                            """).format(table))
+        cur.execute(sql.SQL('INSERT INTO {} VALUES(%s, %s, %s)').format(table),
                     (base_url, seq, date))
     conn.commit()
 
@@ -144,10 +147,10 @@ def update_replication_state(conn, table, seq, date):
     """
     with conn.cursor() as cur:
         if date is not None:
-            cur.execute('UPDATE "{}" SET sequence=%s, importdate=%s'.format(table),
+            cur.execute(sql.SQL('UPDATE {} SET sequence=%s, importdate=%s').format(table),
                         (seq, date))
         else:
-            cur.execute('UPDATE "{}" SET sequence=%s'.format(table),
+            cur.execute(sql.SQL('UPDATE {} SET sequence=%s').format(table),
                         (seq,))
 
     conn.commit()
@@ -197,12 +200,12 @@ def status(conn, args):
     results = {}
 
     with conn.cursor() as cur:
-        cur.execute('SELECT * FROM pg_tables where tablename = %s', (args.table, ))
+        cur.execute('SELECT * FROM pg_tables where tablename = %s', (args.table_name, ))
         if cur.rowcount < 1:
             results['status'] = 1
             results['error'] = "Cannot find replication status table. Run 'osm2pgsql-replication init' first."
         else:
-            cur.execute('SELECT * FROM "{}"'.format(args.table))
+            cur.execute(sql.SQL('SELECT * FROM {}').format(args.table))
             if cur.rowcount != 1:
                 results['status'] = 2
                 results['error'] = "Updates not set up correctly. Run 'osm2pgsql-updates init' first."
@@ -342,13 +345,13 @@ def update(conn, args):
     after the updates have been downloaded.
     """
     with conn.cursor() as cur:
-        cur.execute('SELECT * FROM pg_tables where tablename = %s', (args.table, ))
+        cur.execute('SELECT * FROM pg_tables where tablename = %s', (args.table_name, ))
         if cur.rowcount < 1:
             LOG.fatal("Cannot find replication status table. "
                       "Run 'osm2pgsql-replication init' first.")
             return 1
 
-        cur.execute('SELECT * FROM "{}"'.format(args.table))
+        cur.execute(sql.SQL('SELECT * FROM {}').format(args.table))
         if cur.rowcount != 1:
             LOG.fatal("Updates not set up correctly. Run 'osm2pgsql-updates init' first.")
             return 1
@@ -518,11 +521,8 @@ def main():
                         datefmt='%Y-%m-%d %H:%M:%S',
                         level=max(4 - args.verbose, 1) * 10)
 
-    if '"' in args.prefix:
-        LOG.fatal("Prefix must not contain quotation marks.")
-        return 1
-
-    args.table = '{}_replication_status'.format(args.prefix)
+    args.table_name = f'{args.prefix}_replication_status'
+    args.table = sql.Identifier(args.table_name)
 
     conn = connect(args)
     ret = args.handler(conn, args)
