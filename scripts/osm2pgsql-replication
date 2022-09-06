@@ -85,6 +85,12 @@ def connect(args):
                            host=args.host, port=args.port)
 
 
+def table_exists(conn, table_name):
+    with conn.cursor() as cur:
+        cur.execute('SELECT * FROM pg_tables where tablename = %s', (table_name, ))
+        return cur.rowcount > 0
+
+
 def compute_database_date(conn, prefix):
     """ Determine the date of the database from the newest object in the
         database.
@@ -199,12 +205,11 @@ def status(conn, args):
 
     results = {}
 
-    with conn.cursor() as cur:
-        cur.execute('SELECT * FROM pg_tables where tablename = %s', (args.table_name, ))
-        if cur.rowcount < 1:
-            results['status'] = 1
-            results['error'] = "Cannot find replication status table. Run 'osm2pgsql-replication init' first."
-        else:
+    if not table_exists(conn, args.table_name):
+        results['status'] = 1
+        results['error'] = "Cannot find replication status table. Run 'osm2pgsql-replication init' first."
+    else:
+        with conn.cursor() as cur:
             cur.execute(sql.SQL('SELECT * FROM {}').format(args.table))
             if cur.rowcount != 1:
                 results['status'] = 2
@@ -344,13 +349,12 @@ def update(conn, args):
     may be missing in the rare case that the replication service stops responding
     after the updates have been downloaded.
     """
-    with conn.cursor() as cur:
-        cur.execute('SELECT * FROM pg_tables where tablename = %s', (args.table_name, ))
-        if cur.rowcount < 1:
-            LOG.fatal("Cannot find replication status table. "
-                      "Run 'osm2pgsql-replication init' first.")
-            return 1
+    if not table_exists(conn, args.table_name):
+        LOG.fatal("Cannot find replication status table. "
+                  "Run 'osm2pgsql-replication init' first.")
+        return 1
 
+    with conn.cursor() as cur:
         cur.execute(sql.SQL('SELECT * FROM {}').format(args.table))
         if cur.rowcount != 1:
             LOG.fatal("Updates not set up correctly. Run 'osm2pgsql-updates init' first.")
@@ -525,10 +529,16 @@ def main():
     args.table = sql.Identifier(args.table_name)
 
     conn = connect(args)
-    ret = args.handler(conn, args)
-    conn.close()
 
-    return ret
+    try:
+        if not table_exists(conn, f'{args.prefix}_ways'):
+            LOG.fatal(f'osm2pgsql middle table "{args.prefix}_ways" not found in database "{args.database}". '
+                       'Database needs to be imported in --slim mode.')
+            return 1
+
+        return args.handler(conn, args)
+    finally:
+        conn.close()
 
 
 if __name__ == '__main__':
