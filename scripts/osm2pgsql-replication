@@ -82,7 +82,7 @@ def connect(args):
     """ Create a connection from the given command line arguments.
     """
     # If dbname looks like a conninfo string use it as such
-    if any(part in args.database for part in ['=', '://']):
+    if args.database and any(part in args.database for part in ['=', '://']):
         return psycopg.connect(args.database)
 
     return psycopg.connect(dbname=args.database, user=args.username,
