@@ -16,7 +16,12 @@ jobs:
         run: |
           brew install lua boost postgis pandoc
           pip3 install psycopg2 behave
+          pg_ctl -D /usr/local/var/postgres init
           pg_ctl -D /usr/local/var/postgres start
+          # Work around homebrew postgresql installation screw-up, see
+          # https://github.com/actions/runner-images/issues/6176
+          ln -s $(pg_config --libdir)/* /usr/local/lib/ || true
+          ln -s $(pg_config --includedir)/* /usr/local/include/
         shell: bash
 
       - name: Setup database
