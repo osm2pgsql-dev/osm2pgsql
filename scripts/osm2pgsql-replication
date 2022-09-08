@@ -34,9 +34,11 @@ missing_modules = []
 
 try:
     import psycopg2 as psycopg
+    from psycopg2 import sql
 except ImportError:
     try:
         import psycopg
+        from psycopg import sql
     except ImportError:
         missing_modules.append('psycopg2')
 
@@ -49,6 +51,10 @@ except ImportError:
 
 LOG = logging.getLogger()
 
+# Will be replaced when installed via CMake.
+INSTALL_PREFIX = '@OSM2PGSQL_BINDIR@/'
+if INSTALL_PREFIX.startswith('@'):
+    INSTALL_PREFIX = ''
 
 def pretty_format_timedelta(seconds):
     minutes = int(seconds/60)
@@ -76,11 +82,17 @@ def connect(args):
     """ Create a connection from the given command line arguments.
     """
     # If dbname looks like a conninfo string use it as such
-    if any(part in args.database for part in ['=', '://']):
+    if args.database and any(part in args.database for part in ['=', '://']):
         return psycopg.connect(args.database)
 
     return psycopg.connect(dbname=args.database, user=args.username,
                            host=args.host, port=args.port)
+
+
+def table_exists(conn, table_name):
+    with conn.cursor() as cur:
+        cur.execute('SELECT * FROM pg_tables where tablename = %s', (table_name, ))
+        return cur.rowcount > 0
 
 
 def compute_database_date(conn, prefix):
@@ -90,7 +102,8 @@ def compute_database_date(conn, prefix):
     # First, find the way with the highest ID in the database
     # Using nodes would be more reliable but those are not cached by osm2pgsql.
     with conn.cursor() as cur:
-        cur.execute("SELECT max(id) FROM {}_ways".format(prefix))
+        table = sql.Identifier(f'{prefix}_ways')
+        cur.execute(sql.SQL("SELECT max(id) FROM {}").format(table))
         osmid = cur.fetchone()[0] if cur.rowcount == 1 else None
 
         if osmid is None:
@@ -127,13 +140,13 @@ def setup_replication_state(conn, table, base_url, seq, date):
         the given state.
     """
     with conn.cursor() as cur:
-        cur.execute('DROP TABLE IF EXISTS "{}"'.format(table))
-        cur.execute("""CREATE TABLE "{}"
-                       (url TEXT,
-                        sequence INTEGER,
-                        importdate TIMESTAMP WITH TIME ZONE)
-                    """.format(table))
-        cur.execute('INSERT INTO "{}" VALUES(%s, %s, %s)'.format(table),
+        cur.execute(sql.SQL('DROP TABLE IF EXISTS {}').format(table))
+        cur.execute(sql.SQL("""CREATE TABLE {}
+                               (url TEXT,
+                                sequence INTEGER,
+                                importdate TIMESTAMP WITH TIME ZONE)
+                            """).format(table))
+        cur.execute(sql.SQL('INSERT INTO {} VALUES(%s, %s, %s)').format(table),
                     (base_url, seq, date))
     conn.commit()
 
@@ -144,10 +157,10 @@ def update_replication_state(conn, table, seq, date):
     """
     with conn.cursor() as cur:
         if date is not None:
-            cur.execute('UPDATE "{}" SET sequence=%s, importdate=%s'.format(table),
+            cur.execute(sql.SQL('UPDATE {} SET sequence=%s, importdate=%s').format(table),
                         (seq, date))
         else:
-            cur.execute('UPDATE "{}" SET sequence=%s'.format(table),
+            cur.execute(sql.SQL('UPDATE {} SET sequence=%s').format(table),
                         (seq,))
 
     conn.commit()
@@ -196,13 +209,12 @@ def status(conn, args):
 
     results = {}
 
-    with conn.cursor() as cur:
-        cur.execute('SELECT * FROM pg_tables where tablename = %s', (args.table, ))
-        if cur.rowcount < 1:
-            results['status'] = 1
-            results['error'] = "Cannot find replication status table. Run 'osm2pgsql-replication init' first."
-        else:
-            cur.execute('SELECT * FROM "{}"'.format(args.table))
+    if not table_exists(conn, args.table_name):
+        results['status'] = 1
+        results['error'] = "Cannot find replication status table. Run 'osm2pgsql-replication init' first."
+    else:
+        with conn.cursor() as cur:
+            cur.execute(sql.SQL('SELECT * FROM {}').format(args.table))
             if cur.rowcount != 1:
                 results['status'] = 2
                 results['error'] = "Updates not set up correctly. Run 'osm2pgsql-updates init' first."
@@ -341,14 +353,13 @@ def update(conn, args):
     may be missing in the rare case that the replication service stops responding
     after the updates have been downloaded.
     """
-    with conn.cursor() as cur:
-        cur.execute('SELECT * FROM pg_tables where tablename = %s', (args.table, ))
-        if cur.rowcount < 1:
-            LOG.fatal("Cannot find replication status table. "
-                      "Run 'osm2pgsql-replication init' first.")
-            return 1
+    if not table_exists(conn, args.table_name):
+        LOG.fatal("Cannot find replication status table. "
+                  "Run 'osm2pgsql-replication init' first.")
+        return 1
 
-        cur.execute('SELECT * FROM "{}"'.format(args.table))
+    with conn.cursor() as cur:
+        cur.execute(sql.SQL('SELECT * FROM {}').format(args.table))
         if cur.rowcount != 1:
             LOG.fatal("Updates not set up correctly. Run 'osm2pgsql-updates init' first.")
             return 1
@@ -435,7 +446,12 @@ def get_parser():
                        help='Print only error messages')
     group.add_argument('-v', '--verbose', action='count', default=2,
                        help='Increase verboseness of output')
-    group = default_args.add_argument_group('Database arguments')
+    group = default_args.add_argument_group('Database arguments',
+      "The following arguments can be used to set the connection parameters to the\n"
+      "osm2pgsql database. You may also use libpq environment variables to set\n"
+      "connection parameters, see https://www.postgresql.org/docs/current/libpq-envars.html.\n"
+      "If your database connection requires a password, use a pgpass file,\n"
+      "see https://www.postgresql.org/docs/current/libpq-pgpass.html.")
     group.add_argument('-d', '--database', metavar='DB',
                        help='Name of PostgreSQL database to connect to or conninfo string')
     group.add_argument('-U', '--username', metavar='NAME',
@@ -477,8 +493,8 @@ def get_parser():
                      help='File to save changes before they are applied to osm2pgsql.')
     cmd.add_argument('--max-diff-size', type=int, default=500,
                      help='Maximum data to load in MB (default: 500MB)')
-    cmd.add_argument('--osm2pgsql-cmd', default='osm2pgsql',
-                     help='Path to osm2pgsql command (default: osm2pgsql)')
+    cmd.add_argument('--osm2pgsql-cmd', default=INSTALL_PREFIX + 'osm2pgsql',
+                     help=f'Path to osm2pgsql command (default: {INSTALL_PREFIX}osm2pgsql)')
     cmd.add_argument('--once', action='store_true',
                      help='Run updates only once, even when more data is available.')
     cmd.add_argument('--post-processing', metavar='SCRIPT',
@@ -518,17 +534,20 @@ def main():
                         datefmt='%Y-%m-%d %H:%M:%S',
                         level=max(4 - args.verbose, 1) * 10)
 
-    if '"' in args.prefix:
-        LOG.fatal("Prefix must not contain quotation marks.")
-        return 1
-
-    args.table = '{}_replication_status'.format(args.prefix)
+    args.table_name = f'{args.prefix}_replication_status'
+    args.table = sql.Identifier(args.table_name)
 
     conn = connect(args)
-    ret = args.handler(conn, args)
-    conn.close()
 
-    return ret
+    try:
+        if not table_exists(conn, f'{args.prefix}_ways'):
+            LOG.fatal(f'osm2pgsql middle table "{args.prefix}_ways" not found in database "{args.database}". '
+                       'Database needs to be imported in --slim mode.')
+            return 1
+
+        return args.handler(conn, args)
+    finally:
+        conn.close()
 
 
 if __name__ == '__main__':

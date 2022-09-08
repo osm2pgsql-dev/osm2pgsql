@@ -332,8 +332,11 @@ add_subdirectory(docs)
 # Install
 #############################################################
 
+include(GNUInstallDirs)
+
 if (ENABLE_INSTALL)
     install(TARGETS osm2pgsql DESTINATION bin)
-    install(PROGRAMS scripts/osm2pgsql-replication DESTINATION bin)
     install(FILES default.style empty.style DESTINATION share/osm2pgsql)
+    install(CODE "set(OSM2PGSQL_BINDIR ${CMAKE_INSTALL_FULL_BINDIR})
+                  configure_file(${PROJECT_SOURCE_DIR}/scripts/osm2pgsql-replication ${CMAKE_INSTALL_FULL_BINDIR}/osm2pgsql-replication)")
 endif()
