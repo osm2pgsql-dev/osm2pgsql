@@ -90,11 +90,14 @@ public:
      * column? If the SRID is 4326 the geometry validity is already assured
      * by libosmium, so we don't need it. And Point geometries are always
      * valid.
+     * No checks are needed for create_only columns, because they don't
+     * contain anything.
      */
     bool needs_isvalid() const noexcept
     {
         assert(is_geometry_column());
-        return m_srid != 4326 && m_type != table_column_type::point;
+        return !m_create_only && m_srid != 4326 &&
+               m_type != table_column_type::point;
     }
 
     std::string const &type_name() const noexcept { return m_type_name; }
