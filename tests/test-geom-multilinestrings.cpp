@@ -20,6 +20,7 @@
 TEST_CASE("create_multilinestring with single line", "[NoDB]")
 {
     geom::linestring_t const expected{{1, 1}, {2, 1}};
+    geom::linestring_t const expected_rev{{2, 1}, {1, 1}};
 
     test_buffer_t buffer;
     buffer.add_way("w20 Nn10x1y1,n11x2y1");
@@ -34,6 +35,10 @@ TEST_CASE("create_multilinestring with single line", "[NoDB]")
     auto const &ml = geom.get<geom::multilinestring_t>();
     REQUIRE(ml.num_geometries() == 1);
     REQUIRE(ml[0] == expected);
+
+    auto const rev = reverse(geom);
+    REQUIRE(rev.is_multilinestring());
+    REQUIRE(rev.get<geom::multilinestring_t>()[0] == expected_rev);
 }
 
 TEST_CASE("create_multilinestring with single line and no force_multi",
