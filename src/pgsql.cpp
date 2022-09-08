@@ -197,6 +197,19 @@ std::string qualified_name(std::string const &schema, std::string const &name)
     return result;
 }
 
+void check_identifier(std::string const &name, char const *in)
+{
+    auto const pos = name.find_first_of("\"',.;$%&/()<>{}=?^*#");
+
+    if (pos == std::string::npos) {
+        return;
+    }
+
+    throw std::runtime_error{
+        "Special characters are not allowed in {} names: '{}'."_format(in,
+                                                                      name)};
+}
+
 std::map<std::string, std::string>
 get_postgresql_settings(pg_conn_t const &db_connection)
 {

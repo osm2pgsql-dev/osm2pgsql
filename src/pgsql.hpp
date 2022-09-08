@@ -247,6 +247,19 @@ std::string tablespace_clause(std::string const &name);
  */
 std::string qualified_name(std::string const &schema, std::string const &name);
 
+/**
+ * Check that the string confirms to the identifier syntax we accept.
+ * Throws a runtime exception if an invalid character is found.
+ *
+ * Note that PostgreSQL accepts any character in a quoted identifier.
+ * This function checks for some characters that are problematic in the
+ * internal functions that create SQL statements.
+ *
+ * \param name  Identifier to check.
+ * \param in    Name of the identifier. Only used to create a human-readable error.
+ */
+void check_identifier(std::string const &name, char const *in);
+
 struct postgis_version
 {
     int major;
