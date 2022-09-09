@@ -395,7 +395,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             break;
         case 'p':
             prefix = optarg;
-            check_identifier(prefix, "prefix");
+            check_identifier(prefix, "--prefix parameter");
             break;
         case 'd':
             database_options.db = optarg;
@@ -559,11 +559,11 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             break;
         case 215:
             middle_dbschema = optarg;
-            check_identifier(middle_dbschema, "middle-schema");
+            check_identifier(middle_dbschema, "--middle-schema parameter");
             break;
         case 216:
             output_dbschema = optarg;
-            check_identifier(output_dbschema, "output-pgsql-schema");
+            check_identifier(output_dbschema, "--output-pgsql-schema parameter");
             break;
         case 217:
             if (std::strcmp(optarg, "false") == 0) {

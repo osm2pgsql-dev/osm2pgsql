@@ -107,14 +107,14 @@ void table_t::start(std::string const &conninfo, std::string const &table_space)
 
         //first with the regular columns
         for (auto const &column : m_columns) {
-            check_identifier(column.name, "column");
-            check_identifier(column.type_name, "column type");
+            check_identifier(column.name, "column names");
+            check_identifier(column.type_name, "column types");
             sql += R"("{}" {},)"_format(column.name, column.type_name);
         }
 
         //then with the hstore columns
         for (auto const &hcolumn : m_hstore_columns) {
-            check_identifier(hcolumn, "column");
+            check_identifier(hcolumn, "column names");
             sql += R"("{}" hstore,)"_format(hcolumn);
         }
 

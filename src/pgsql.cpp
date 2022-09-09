@@ -206,8 +206,7 @@ void check_identifier(std::string const &name, char const *in)
     }
 
     throw std::runtime_error{
-        "Special characters are not allowed in {} names: '{}'."_format(in,
-                                                                      name)};
+        "Special characters are not allowed in {}: '{}'."_format(in, name)};
 }
 
 std::map<std::string, std::string>

@@ -988,7 +988,7 @@ flex_table_t &output_flex_t::create_flex_table()
     std::string const table_name =
         luaX_get_table_string(lua_state(), "name", -1, "The table");
 
-    check_identifier(table_name, "table");
+    check_identifier(table_name, "table names");
 
     auto const it = std::find_if(m_tables->cbegin(), m_tables->cend(),
                                  [&table_name](flex_table_t const &table) {
@@ -1008,7 +1008,7 @@ flex_table_t &output_flex_t::create_flex_table()
     lua_getfield(lua_state(), -1, "schema");
     if (lua_isstring(lua_state(), -1)) {
         std::string const schema = lua_tostring(lua_state(), -1);
-        check_identifier(schema, "schema");
+        check_identifier(schema, "schema field");
         new_table.set_schema(schema);
     }
     lua_pop(lua_state(), 1);
@@ -1039,7 +1039,7 @@ flex_table_t &output_flex_t::create_flex_table()
     lua_getfield(lua_state(), -1, "data_tablespace");
     if (lua_isstring(lua_state(), -1)) {
         std::string const tablespace = lua_tostring(lua_state(), -1);
-        check_identifier(tablespace, "data_tablespace");
+        check_identifier(tablespace, "data_tablespace field");
         new_table.set_data_tablespace(tablespace);
     }
     lua_pop(lua_state(), 1);
@@ -1048,7 +1048,7 @@ flex_table_t &output_flex_t::create_flex_table()
     lua_getfield(lua_state(), -1, "index_tablespace");
     if (lua_isstring(lua_state(), -1)) {
         std::string const tablespace = lua_tostring(lua_state(), -1);
-        check_identifier(tablespace, "index_tablespace");
+        check_identifier(tablespace, "index_tablespace field");
         new_table.set_index_tablespace(tablespace);
     }
     lua_pop(lua_state(), 1);
@@ -1085,7 +1085,7 @@ void output_flex_t::setup_id_columns(flex_table_t *table)
         if (lua_isstring(lua_state(), -1)) {
             std::string const column_name =
                 lua_tolstring(lua_state(), -1, nullptr);
-            check_identifier(column_name, "column");
+            check_identifier(column_name, "column names");
             auto &column = table->add_column(column_name, "id_type", "");
             column.set_not_null();
         } else if (!lua_isnil(lua_state(), -1)) {
@@ -1098,7 +1098,7 @@ void output_flex_t::setup_id_columns(flex_table_t *table)
 
     std::string const name =
         luaX_get_table_string(lua_state(), "id_column", -2, "The ids field");
-    check_identifier(name, "column");
+    check_identifier(name, "column names");
 
     auto &column = table->add_column(name, "id_num", "");
     column.set_not_null();
@@ -1130,7 +1130,7 @@ void output_flex_t::setup_flex_table_columns(flex_table_t *table)
                                                        "Column entry", "text");
         char const *const name =
             luaX_get_table_string(lua_state(), "column", -2, "Column entry");
-        check_identifier(name, "column");
+        check_identifier(name, "column names");
         char const *const sql_type = luaX_get_table_string(
             lua_state(), "sql_type", -3, "Column entry", "");
 
