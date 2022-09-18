@@ -66,6 +66,15 @@ TEST_CASE("geom::polygon_t", "[NoDB]")
     REQUIRE(area(geom) == Approx(8.0));
     REQUIRE(geometry_type(geom) == "POLYGON");
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{1.5, 1.5}});
+
+    auto const geom_rev = reverse(geom);
+    REQUIRE(geom_rev.is_polygon());
+    auto const &rev = geom_rev.get<geom::polygon_t>();
+    REQUIRE(rev.outer() ==
+            geom::ring_t{{0, 0}, {3, 0}, {3, 3}, {0, 3}, {0, 0}});
+    REQUIRE(rev.inners().size() == 1);
+    REQUIRE(rev.inners()[0] ==
+            geom::ring_t{{1, 1}, {1, 2}, {2, 2}, {2, 1}, {1, 1}});
 }
 
 TEST_CASE("create_polygon from OSM data", "[NoDB]")

@@ -159,6 +159,22 @@ double area(geometry_t const &geom);
 std::vector<geometry_t> split_multi(geometry_t &&geom, bool split_multi = true);
 
 /**
+ * Reverses the order of the vertices in geometry.
+ *
+ * \param output Pointer to output geometry.
+ * \param input Input geometry.
+ */
+void reverse(geometry_t *output, geometry_t const &input);
+
+/**
+ * Reverses the order of the vertices in geometry.
+ *
+ * \param input Input geometry.
+ * \returns Result geometry.
+ */
+geometry_t reverse(geometry_t const &input);
+
+/**
  * Merge lines in a multilinestring end-to-end as far as possible.
  *
  * * Returns a multilinestring if the input is a multilinestring.

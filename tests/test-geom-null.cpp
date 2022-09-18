@@ -22,4 +22,5 @@ TEST_CASE("null geometry", "[NoDB]")
     REQUIRE(geometry_type(geom) == "NULL");
     REQUIRE(centroid(geom).is_null());
     REQUIRE(geometry_n(geom, 1).is_null());
+    REQUIRE(reverse(geom).is_null());
 }

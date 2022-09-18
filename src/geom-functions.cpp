@@ -446,6 +446,62 @@ static void add_nodes_to_linestring(linestring_t *linestring, ITERATOR it,
     }
 }
 
+/****************************************************************************/
+
+static void reverse(geom::nullgeom_t * /*output*/,
+                    geom::nullgeom_t const & /*input*/) noexcept
+{}
+
+static void reverse(geom::point_t *output, geom::point_t const &input) noexcept
+{
+    *output = input;
+}
+
+static void reverse(point_list_t *output, point_list_t const &input)
+{
+    output->reserve(input.size());
+    std::reverse_copy(input.cbegin(), input.cend(),
+                      std::back_inserter(*output));
+}
+
+static void reverse(geom::polygon_t *output, geom::polygon_t const &input)
+{
+    reverse(&output->outer(), input.outer());
+    for (auto const &g : input.inners()) {
+        reverse(&output->inners().emplace_back(), g);
+    }
+}
+
+template <typename T>
+void reverse(geom::multigeometry_t<T> *output,
+             geom::multigeometry_t<T> const &input)
+{
+    output->reserve(input.num_geometries());
+    for (auto const &g : input) {
+        reverse(&output->add_geometry(), g);
+    }
+}
+
+void reverse(geometry_t *output, geometry_t const &input)
+{
+    output->set_srid(input.srid());
+
+    input.visit([&](auto const &geom) {
+        using inner_type =
+            std::remove_const_t<std::remove_reference_t<decltype(geom)>>;
+        return reverse(&output->set<inner_type>(), geom);
+    });
+}
+
+geometry_t reverse(geometry_t const &input)
+{
+    geometry_t output;
+    reverse(&output, input);
+    return output;
+}
+
+/****************************************************************************/
+
 void line_merge(geometry_t *output, geometry_t const &input)
 {
     if (input.is_linestring()) {

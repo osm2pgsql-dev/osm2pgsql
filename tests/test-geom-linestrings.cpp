@@ -49,6 +49,19 @@ TEST_CASE("line geometry", "[NoDB]")
     REQUIRE(geometry_n(geom, 1) == geom);
 }
 
+TEST_CASE("reverse line geometry", "[NoDB]")
+{
+    geom::geometry_t const geom{geom::linestring_t{{1, 1}, {2, 2}}};
+
+    auto reversed = geom::reverse(geom);
+    REQUIRE(num_geometries(reversed) == 1);
+    REQUIRE(geometry_type(reversed) == "LINESTRING");
+
+    auto const &line = reversed.get<geom::linestring_t>();
+    REQUIRE(line.size() == 2);
+    REQUIRE(line == geom::linestring_t{{2, 2}, {1, 1}});
+}
+
 TEST_CASE("create_linestring from OSM data", "[NoDB]")
 {
     test_buffer_t buffer;
