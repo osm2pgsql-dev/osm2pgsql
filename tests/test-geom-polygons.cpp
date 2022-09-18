@@ -38,17 +38,6 @@ TEST_CASE("polygon geometry without inner (reverse)", "[NoDB]")
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{0.5, 0.5}});
 }
 
-TEST_CASE("polygon geometry with inner", "[NoDB]")
-{
-    geom::geometry_t const geom{
-        geom::polygon_t{geom::ring_t{{0, 0}, {0, 1}, {1, 1}, {1, 0}, {0, 0}}}};
-
-    REQUIRE(num_geometries(geom) == 1);
-    REQUIRE(area(geom) == Approx(1.0));
-    REQUIRE(geometry_type(geom) == "POLYGON");
-    REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{0.5, 0.5}});
-}
-
 TEST_CASE("geom::polygon_t", "[NoDB]")
 {
     geom::polygon_t polygon;
