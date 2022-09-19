@@ -54,7 +54,7 @@ Feature: Create geometry collections from relations
             | 10 |
         And the OSM data
             """
-            w20 Nn10
+            w20 Nn11
             r30 Tname=foo Mn11@
             r31 Tname=bar Mw20@
             r32 Tname=baz Mw21@
@@ -62,8 +62,25 @@ Feature: Create geometry collections from relations
         When running osm2pgsql flex
 
         Then table osm2pgsql_test_collection contains exactly
-            | osm_id | name   | ST_GeometryType(geom) |
-            | 30     | foo    | NULL                  |
-            | 31     | bar    | NULL                  |
-            | 32     | baz    | NULL                  |
+            | osm_id | name   | geom |
+            | 30     | foo    | NULL |
+            | 31     | bar    | NULL |
+            | 32     | baz    | NULL |
+
+    Scenario: Point entry generated for broken way lines
+        Given the grid
+            | 10 |
+        And the OSM data
+            """
+            w20 Nn10
+            w21 Nn10,n10
+            r30 Tname=w20 Mw20@
+            r31 Tname=w21 Mw21@
+            """
+        When running osm2pgsql flex
+
+        Then table osm2pgsql_test_collection contains exactly
+            | osm_id | name  | ST_NumGeometries(geom) | ST_AsText(ST_GeometryN(geom, 1)) |
+            | 30     | w20   | 1                      | 10                               |
+            | 31     | w21   | 1                      | 10                               |
 

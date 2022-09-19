@@ -202,6 +202,9 @@ void create_collection(geometry_t *geom,
             if (line.size() >= 2U) {
                 collection.add_geometry(std::move(item));
             }
+            if (line.size() == 1) {
+                collection.add_geometry(geometry_t{std::move(line[0])});
+            }
         }
     }
 
