@@ -140,9 +140,10 @@ def setup_replication_state(conn, table, base_url, seq, date):
         the given state.
     """
     with conn.cursor() as cur:
-        cur.execute(sql.SQL('DROP TABLE IF EXISTS {}').format(table))
-        cur.execute(sql.SQL("""CREATE TABLE {}
-                               (url TEXT,
+        # XXX TODO : make it possible to drop a replication source ?
+        # cur.execute(sql.SQL('DROP TABLE IF EXISTS {}').format(table))
+        cur.execute(sql.SQL("""CREATE TABLE IF NOT EXISTS {}
+                               (url TEXT PRIMARY KEY,
                                 sequence INTEGER,
                                 importdate TIMESTAMP WITH TIME ZONE)
                             """).format(table))
@@ -151,17 +152,17 @@ def setup_replication_state(conn, table, base_url, seq, date):
     conn.commit()
 
 
-def update_replication_state(conn, table, seq, date):
+def update_replication_state(conn, table, base_url, seq, date):
     """ Update sequence and date in the replication state table.
         The table is assumed to exist.
     """
     with conn.cursor() as cur:
         if date is not None:
-            cur.execute(sql.SQL('UPDATE {} SET sequence=%s, importdate=%s').format(table),
-                        (seq, date))
+            cur.execute(sql.SQL('UPDATE {} SET sequence=%s, importdate=%s WHERE url=%s').format(table),
+                        (seq, date, base_url))
         else:
-            cur.execute(sql.SQL('UPDATE {} SET sequence=%s').format(table),
-                        (seq,))
+            cur.execute(sql.SQL('UPDATE {} SET sequence=%s WHERE url=%s').format(table),
+                        (seq, base_url))
 
     conn.commit()
 
@@ -358,76 +359,79 @@ def update(conn, args):
                   "Run 'osm2pgsql-replication init' first.")
         return 1
 
+    replication_streams = []
     with conn.cursor() as cur:
         cur.execute(sql.SQL('SELECT * FROM {}').format(args.table))
-        if cur.rowcount != 1:
+        if cur.rowcount < 1:
             LOG.fatal("Updates not set up correctly. Run 'osm2pgsql-updates init' first.")
             return 1
 
-        base_url, seq, ts = cur.fetchone()
+        replication_streams = cur.fetchall()
+
+    for (base_url, seq, ts) in replication_streams:
         LOG.info("Using replication service '%s'. Current sequence %d (%s).",
                  base_url, seq, ts)
 
-    repl = ReplicationServer(base_url)
-    current = repl.get_state_info()
-
-    if seq >= current.sequence:
-        LOG.info("Database already up-to-date.")
-        return 0
-
-    if args.diff_file is not None:
-        outfile = Path(args.diff_file)
-    else:
-        tmpdir = tempfile.TemporaryDirectory()
-        outfile = Path(tmpdir.name) / 'osm2pgsql_diff.osc.gz'
-
-    osm2pgsql = [args.osm2pgsql_cmd, '--append', '--slim', '--prefix', args.prefix]
-    osm2pgsql.extend(args.extra_params)
-    if args.database:
-        osm2pgsql.extend(('-d', args.database))
-    if args.username:
-        osm2pgsql.extend(('-U', args.username))
-    if args.host:
-        osm2pgsql.extend(('-H', args.host))
-    if args.port:
-        osm2pgsql.extend(('-P', args.port))
-    osm2pgsql.append(str(outfile))
-    LOG.debug("Calling osm2pgsql with: %s", ' '.join(osm2pgsql))
-
-    while seq < current.sequence:
-        LOG.debug("Importing from sequence %d", seq)
-        if outfile.exists():
-            outfile.unlink()
-        outhandler = WriteHandler(str(outfile))
-        endseq = repl.apply_diffs(outhandler, seq + 1,
-                                  max_size=args.max_diff_size * 1024)
-        outhandler.close()
-
-        if endseq is None:
-            LOG.debug("No new diffs found.")
-            break
-
-        subprocess.run(osm2pgsql, check=True)
-        seq = endseq
-
-        nextstate = repl.get_state_info(seq)
-        timestamp = nextstate.timestamp if nextstate else None
-
-        if args.post_processing:
-            cmd = [args.post_processing, str(endseq), str(timestamp or '')]
-            LOG.debug('Calling post-processing script: %s', ' '.join(cmd))
-            subprocess.run(cmd, check=True)
-
-        update_replication_state(conn, args.table, seq,
-                                 nextstate.timestamp if nextstate else None)
-
-        if nextstate is not None:
-            LOG.info("Data imported until %s. Backlog remaining: %s",
-                     nextstate.timestamp,
-                     dt.datetime.now(dt.timezone.utc) - nextstate.timestamp)
-
-        if args.once:
-            break
+        repl = ReplicationServer(base_url)
+        current = repl.get_state_info()
+    
+        if seq >= current.sequence:
+            LOG.info("Database already up-to-date.")
+            continue
+    
+        if args.diff_file is not None:
+            outfile = Path(args.diff_file)
+        else:
+            tmpdir = tempfile.TemporaryDirectory()
+            outfile = Path(tmpdir.name) / 'osm2pgsql_diff.osc.gz'
+    
+        osm2pgsql = [args.osm2pgsql_cmd, '--append', '--slim', '--prefix', args.prefix]
+        osm2pgsql.extend(args.extra_params)
+        if args.database:
+            osm2pgsql.extend(('-d', args.database))
+        if args.username:
+            osm2pgsql.extend(('-U', args.username))
+        if args.host:
+            osm2pgsql.extend(('-H', args.host))
+        if args.port:
+            osm2pgsql.extend(('-P', args.port))
+        osm2pgsql.append(str(outfile))
+        LOG.debug("Calling osm2pgsql with: %s", ' '.join(osm2pgsql))
+    
+        while seq < current.sequence:
+            LOG.debug("Importing from sequence %d", seq)
+            if outfile.exists():
+                outfile.unlink()
+            outhandler = WriteHandler(str(outfile))
+            endseq = repl.apply_diffs(outhandler, seq + 1,
+                                      max_size=args.max_diff_size * 1024)
+            outhandler.close()
+    
+            if endseq is None:
+                LOG.debug("No new diffs found.")
+                break
+    
+            subprocess.run(osm2pgsql, check=True)
+            seq = endseq
+    
+            nextstate = repl.get_state_info(seq)
+            timestamp = nextstate.timestamp if nextstate else None
+    
+            if args.post_processing:
+                cmd = [args.post_processing, str(endseq), str(timestamp or '')]
+                LOG.debug('Calling post-processing script: %s', ' '.join(cmd))
+                subprocess.run(cmd, check=True)
+    
+            update_replication_state(conn, args.table, base_url, seq,
+                                     nextstate.timestamp if nextstate else None)
+    
+            if nextstate is not None:
+                LOG.info("Data imported until %s. Backlog remaining: %s",
+                         nextstate.timestamp,
+                         dt.datetime.now(dt.timezone.utc) - nextstate.timestamp)
+    
+            if args.once:
+                break
 
     return 0
 
