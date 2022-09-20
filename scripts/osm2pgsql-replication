@@ -212,42 +212,44 @@ def status(conn, args):
 
     if not table_exists(conn, args.table_name):
         results['status'] = 1
-        results['error'] = "Cannot find replication status table. Run 'osm2pgsql-replication init' first."
+        results['errors'] = ["Cannot find replication status table. Run 'osm2pgsql-replication init' first."]
     else:
         with conn.cursor() as cur:
             cur.execute(sql.SQL('SELECT * FROM {}').format(args.table))
-            if cur.rowcount != 1:
+            if cur.rowcount < 1:
                 results['status'] = 2
-                results['error'] = "Updates not set up correctly. Run 'osm2pgsql-updates init' first."
+                results['errors'] = ["Updates not set up correctly. Run 'osm2pgsql-updates init' first."]
             else:
+                results['replications'] = []
+                results['status'] = 0
+                results['errors'] = []
+                for (base_url, db_seq, db_ts) in cur.fetchall():
+                    db_ts = db_ts.astimezone(dt.timezone.utc)
+                    replication = {"server": {}, "local": {}}
+                    replication['server']['base_url'] = base_url
+                    replication['local']['sequence'] = db_seq
+                    replication['local']['timestamp'] = db_ts.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-                base_url, db_seq, db_ts = cur.fetchone()
-                db_ts = db_ts.astimezone(dt.timezone.utc)
-                results['server'] = {}
-                results['local'] = {}
-                results['server']['base_url'] = base_url
-                results['local']['sequence'] = db_seq
-                results['local']['timestamp'] = db_ts.strftime("%Y-%m-%dT%H:%M:%SZ")
 
+                    repl = ReplicationServer(base_url)
+                    state_info = repl.get_state_info()
+                    if state_info is None:
+                        # PyOsmium was unable to download the state information
+                        results['status'] = 3
+                        results['errors'].append("Unable to download the state information from {}".format(base_url))
+                    else:
+                        results['status'] = max(results['status'], 0)
+                        now = dt.datetime.now(dt.timezone.utc)
 
-                repl = ReplicationServer(base_url)
-                state_info = repl.get_state_info()
-                if state_info is None:
-                    # PyOsmium was unable to download the state information
-                    results['status'] = 3
-                    results['error'] = "Unable to download the state information from {}".format(base_url)
-                else:
-                    results['status'] = 0
-                    now = dt.datetime.now(dt.timezone.utc)
+                        server_seq, server_ts = state_info
+                        server_ts = server_ts.astimezone(dt.timezone.utc)
 
-                    server_seq, server_ts = state_info
-                    server_ts = server_ts.astimezone(dt.timezone.utc)
+                        replication['server']['sequence'] = server_seq
+                        replication['server']['timestamp'] = server_ts.strftime("%Y-%m-%dT%H:%M:%SZ")
+                        replication['server']['age_sec'] = int((now-server_ts).total_seconds())
 
-                    results['server']['sequence'] = server_seq
-                    results['server']['timestamp'] = server_ts.strftime("%Y-%m-%dT%H:%M:%SZ")
-                    results['server']['age_sec'] = int((now-server_ts).total_seconds())
-
-                    results['local']['age_sec'] = int((now - db_ts).total_seconds())
+                        replication['local']['age_sec'] = int((now - db_ts).total_seconds())
+                    results['replications'].append(replication)
 
     if args.json:
         print(json.dumps(results))
@@ -255,19 +257,20 @@ def status(conn, args):
         if results['status'] != 0:
             LOG.fatal(results['error'])
         else:
-            print("Using replication service '{}', which is at sequence {} ( {} )".format(
-                     results['server']['base_url'], results['server']['sequence'], results['server']['timestamp']))
-            print("Replication server's most recent data is {} old".format(pretty_format_timedelta(results['server']['age_sec'])))
-
-            if results['local']['sequence'] == results['server']['sequence']:
-                print("Local database is up to date with server")
-            else:
-                print("Local database is {} sequences behind the server, i.e. {}".format(
-                        results['server']['sequence'] - results['local']['sequence'],
-                        pretty_format_timedelta(results['local']['age_sec'] - results['server']['age_sec'])
-                    ))
-
-            print("Local database's most recent data is {} old".format(pretty_format_timedelta(results['local']['age_sec'])))
+            for replication in results['replications']:
+                print("Using replication service '{}', which is at sequence {} ( {} )".format(
+                         replication['server']['base_url'], replication['server']['sequence'], replication['server']['timestamp']))
+                print("Replication server's most recent data is {} old".format(pretty_format_timedelta(replication['server']['age_sec'])))
+    
+                if replication['local']['sequence'] == replication['server']['sequence']:
+                    print("Local database is up to date with server")
+                else:
+                    print("Local database is {} sequences behind the server, i.e. {}".format(
+                            replication['server']['sequence'] - replication['local']['sequence'],
+                            pretty_format_timedelta(replication['local']['age_sec'] - replication['server']['age_sec'])
+                        ))
+    
+                print("Local database's most recent data is {} old".format(pretty_format_timedelta(replication['local']['age_sec'])))
 
 
     return results['status']
