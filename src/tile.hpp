@@ -15,6 +15,56 @@
 #include <cstdint>
 #include <limits>
 
+class quadkey_t
+{
+public:
+    quadkey_t() noexcept = default;
+
+    quadkey_t(uint64_t value) noexcept : m_value(value) {}
+
+    uint64_t value() const noexcept { return m_value; }
+
+    /**
+     * Calculate quad key with the given number of zoom levels down from the
+     * zoom level of this quad key.
+     */
+    quadkey_t down(uint32_t levels) const noexcept
+    {
+        quadkey_t qk;
+        qk.m_value = m_value >> (levels * 2);
+        return qk;
+    }
+
+    friend bool operator==(quadkey_t a, quadkey_t b) noexcept
+    {
+        return a.m_value == b.m_value;
+    }
+
+    friend bool operator!=(quadkey_t a, quadkey_t b) noexcept
+    {
+        return !(a == b);
+    }
+
+    friend bool operator<(quadkey_t a, quadkey_t b) noexcept
+    {
+        return a.value() < b.value();
+    }
+
+private:
+    uint64_t m_value = std::numeric_limits<uint64_t>::max();
+}; // class quadkey_t
+
+template <>
+struct std::hash<quadkey_t>
+{
+    std::size_t operator()(quadkey_t quadkey) const noexcept
+    {
+        return quadkey.value();
+    }
+};
+
+using quadkey_list_t = std::vector<quadkey_t>;
+
 /**
  * A tile in the usual web tile format.
  */
@@ -148,12 +198,12 @@ public:
      * bits from the x and y values, similar to what's used for Bing maps:
      * https://docs.microsoft.com/en-us/bingmaps/articles/bing-maps-tile-system
      */
-    uint64_t quadkey() const noexcept;
+    quadkey_t quadkey() const noexcept;
 
     /**
      * Construct tile from quadkey.
      */
-    static tile_t from_quadkey(uint64_t quadkey, uint32_t zoom) noexcept;
+    static tile_t from_quadkey(quadkey_t quadkey, uint32_t zoom) noexcept;
 
 private:
     static constexpr uint32_t const invalid_zoom =

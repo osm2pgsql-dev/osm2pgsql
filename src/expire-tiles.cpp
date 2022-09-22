@@ -249,9 +249,9 @@ int expire_tiles::from_result(pg_result_t const &result, osmid_t osm_id)
     return num_tuples;
 }
 
-std::vector<uint64_t> expire_tiles::get_tiles()
+quadkey_list_t expire_tiles::get_tiles()
 {
-    std::vector<uint64_t> tiles;
+    quadkey_list_t tiles;
     tiles.reserve(m_dirty_tiles.size());
     tiles.assign(m_dirty_tiles.begin(), m_dirty_tiles.end());
     std::sort(tiles.begin(), tiles.end());
@@ -276,7 +276,7 @@ void expire_tiles::merge_and_destroy(expire_tiles *other)
     }
 }
 
-std::size_t output_tiles_to_file(std::vector<uint64_t> const &tiles_maxzoom,
+std::size_t output_tiles_to_file(quadkey_list_t const &tiles_maxzoom,
                                  char const *filename, uint32_t minzoom,
                                  uint32_t maxzoom)
 {

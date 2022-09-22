@@ -52,7 +52,7 @@ public:
      * Get tiles as a vector of quadkeys and remove them from the expire_tiles
      * object.
      */
-    std::vector<uint64_t> get_tiles();
+    quadkey_list_t get_tiles();
 
     /**
      * Merge the list of expired tiles in the other object into this
@@ -80,7 +80,7 @@ private:
     void from_point_list(geom::point_list_t const &list);
 
     /// This is where we collect all the expired tiles.
-    std::unordered_set<uint64_t> m_dirty_tiles;
+    std::unordered_set<quadkey_t> m_dirty_tiles;
 
     /// The tile which has been added last to the unordered set.
     tile_t m_prev_tile;
@@ -104,7 +104,7 @@ private:
  * \param output Output function
  */
 template <class OUTPUT>
-std::size_t for_each_tile(std::vector<uint64_t> const &tiles, uint32_t minzoom,
+std::size_t for_each_tile(quadkey_list_t const &tiles, uint32_t minzoom,
                           uint32_t maxzoom, OUTPUT &&output)
 {
     assert(minzoom <= maxzoom);
@@ -119,30 +119,24 @@ std::size_t for_each_tile(std::vector<uint64_t> const &tiles, uint32_t minzoom,
 
     /**
      * Loop over all requested zoom levels (from maximum down to the minimum
-     * zoom level). Tile IDs of the tiles enclosing this tile at lower zoom
-     * levels are calculated using bit shifts.
-     *
-     * last_quadkey is initialized with a value which is not expected to exist
-     * (larger than largest possible quadkey).
+     * zoom level).
      */
-    uint64_t last_quadkey = 1ULL << (2 * maxzoom);
+    quadkey_t last_quadkey{};
     std::size_t count = 0;
     for (auto const quadkey : tiles) {
         for (uint32_t dz = 0; dz <= maxzoom - minzoom; ++dz) {
-            // scale down to the current zoom level
-            uint64_t const qt_current = quadkey >> (dz * 2);
+            auto const qt_current = quadkey.down(dz);
             /**
              * If dz > 0, there are probably multiple elements whose quadkey
              * is equal because they are all sub-tiles of the same tile at the
              * current zoom level. We skip all of them after we have written
              * the first sibling.
              */
-            if (qt_current == last_quadkey >> (dz * 2)) {
-                continue;
+            if (qt_current != last_quadkey.down(dz)) {
+                std::forward<OUTPUT>(output)(
+                    tile_t::from_quadkey(qt_current, maxzoom - dz));
+                ++count;
             }
-            auto const tile = tile_t::from_quadkey(qt_current, maxzoom - dz);
-            std::forward<OUTPUT>(output)(tile);
-            ++count;
         }
         last_quadkey = quadkey;
     }
@@ -157,7 +151,7 @@ std::size_t for_each_tile(std::vector<uint64_t> const &tiles, uint32_t minzoom,
  * \param minzoom Minimum zoom level
  * \param maxzoom Maximum zoom level
  */
-std::size_t output_tiles_to_file(std::vector<uint64_t> const &tiles,
+std::size_t output_tiles_to_file(quadkey_list_t const &tiles,
                                  char const *filename, uint32_t minzoom,
                                  uint32_t maxzoom);
 
