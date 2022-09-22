@@ -15,10 +15,13 @@
  * http://subversion.nexusuk.org/projects/openpistemap/trunk/scripts/expire_tiles.py
  */
 
+#include <algorithm>
 #include <cerrno>
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <stdexcept>
 #include <string>
 
 #include "expire-tiles.hpp"
@@ -34,43 +37,11 @@
 // How many tiles worth of space to leave either side of a changed feature
 static constexpr double const tile_expiry_leeway = 0.1;
 
-tile_output_t::tile_output_t(char const *filename)
-: outfile(fopen(filename, "a"))
-{
-    if (outfile == nullptr) {
-        log_warn("Failed to open expired tiles file ({}).  Tile expiry "
-                 "list will not be written!",
-                 std::strerror(errno));
-    }
-}
-
-tile_output_t::~tile_output_t()
-{
-    if (outfile) {
-        fclose(outfile);
-    }
-}
-
-void tile_output_t::output_dirty_tile(tile_t const &tile)
-{
-    if (!outfile) {
-        return;
-    }
-
-    fmt::print(outfile, "{}/{}/{}\n", tile.zoom(), tile.x(), tile.y());
-}
-
 expire_tiles::expire_tiles(uint32_t max_zoom, double max_bbox,
                            std::shared_ptr<reprojection> projection)
 : m_projection(std::move(projection)), m_max_bbox(max_bbox),
   m_maxzoom(max_zoom), m_map_width(1U << m_maxzoom)
 {}
-
-void expire_tiles::output_and_destroy(char const *filename, uint32_t minzoom)
-{
-    tile_output_t output_writer{filename};
-    output_and_destroy<tile_output_t>(output_writer, minzoom);
-}
 
 void expire_tiles::expire_tile(uint32_t x, uint32_t y)
 {
@@ -278,6 +249,16 @@ int expire_tiles::from_result(pg_result_t const &result, osmid_t osm_id)
     return num_tuples;
 }
 
+std::vector<uint64_t> expire_tiles::get_tiles()
+{
+    std::vector<uint64_t> tiles;
+    tiles.reserve(m_dirty_tiles.size());
+    tiles.assign(m_dirty_tiles.begin(), m_dirty_tiles.end());
+    std::sort(tiles.begin(), tiles.end());
+    m_dirty_tiles.clear();
+    return tiles;
+}
+
 void expire_tiles::merge_and_destroy(expire_tiles *other)
 {
     if (m_map_width != other->m_map_width) {
@@ -293,4 +274,26 @@ void expire_tiles::merge_and_destroy(expire_tiles *other)
                              other->m_dirty_tiles.end());
         other->m_dirty_tiles.clear();
     }
+}
+
+std::size_t output_tiles_to_file(std::vector<uint64_t> const &tiles_maxzoom,
+                                 char const *filename, uint32_t minzoom,
+                                 uint32_t maxzoom)
+{
+    FILE *outfile = std::fopen(filename, "a");
+    if (outfile == nullptr) {
+        log_warn("Failed to open expired tiles file ({}).  Tile expiry "
+                 "list will not be written!",
+                 std::strerror(errno));
+        return 0;
+    }
+
+    auto const count =
+        for_each_tile(tiles_maxzoom, minzoom, maxzoom, [&](tile_t const &tile) {
+            fmt::print(outfile, "{}/{}/{}\n", tile.zoom(), tile.x(), tile.y());
+        });
+
+    std::fclose(outfile);
+
+    return count;
 }
