@@ -81,17 +81,3 @@ TEST_CASE("create_collection from no OSM data returns null geometry", "[NoDB]")
     REQUIRE(geometry_type(geom) == "NULL");
     REQUIRE(num_geometries(geom) == 0);
 }
-
-TEST_CASE("create_collection from OSM data with single-node way", "[NoDB]")
-{
-    test_buffer_t buffer;
-    buffer.add_way("w20 Nn1x1y1");
-
-    auto const geom = geom::create_collection(buffer.buffer());
-
-    REQUIRE(geometry_type(geom) == "GEOMETRYCOLLECTION");
-    REQUIRE(num_geometries(geom) == 1);
-
-    auto const &c = geom.get<geom::collection_t>();
-    REQUIRE(c[0] == geom::geometry_t{geom::point_t{1, 1}});
-}
