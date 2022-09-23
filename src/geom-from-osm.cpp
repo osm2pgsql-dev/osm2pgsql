@@ -96,10 +96,10 @@ geometry_t create_polygon(osmium::Way const &way)
 }
 
 void create_multilinestring(geometry_t *geom,
-                            osmium::memory::Buffer const &ways_buffer,
+                            osmium::memory::Buffer const &buffer,
                             bool force_multi)
 {
-    auto ways = ways_buffer.select<osmium::Way>();
+    auto ways = buffer.select<osmium::Way>();
     if (ways.size() == 1 && !force_multi) {
         auto &line = geom->set<linestring_t>();
         auto &way = *ways.begin();
@@ -122,11 +122,11 @@ void create_multilinestring(geometry_t *geom,
     }
 }
 
-geometry_t create_multilinestring(osmium::memory::Buffer const &ways,
+geometry_t create_multilinestring(osmium::memory::Buffer const &buffer,
                                   bool force_multi)
 {
     geometry_t geom{};
-    create_multilinestring(&geom, ways, force_multi);
+    create_multilinestring(&geom, buffer, force_multi);
     return geom;
 }
 
@@ -148,14 +148,14 @@ static void fill_polygon(polygon_t *polygon, osmium::Area const &area,
 }
 
 void create_multipolygon(geometry_t *geom, osmium::Relation const &relation,
-                         osmium::memory::Buffer const &way_buffer)
+                         osmium::memory::Buffer const &buffer)
 {
     osmium::area::AssemblerConfig area_config;
     area_config.ignore_invalid_locations = true;
     osmium::area::GeomAssembler assembler{area_config};
     osmium::memory::Buffer area_buffer{1024};
 
-    if (!assembler(relation, way_buffer, area_buffer)) {
+    if (!assembler(relation, buffer, area_buffer)) {
         geom->reset();
         return;
     }
@@ -176,19 +176,18 @@ void create_multipolygon(geometry_t *geom, osmium::Relation const &relation,
 }
 
 geometry_t create_multipolygon(osmium::Relation const &relation,
-                               osmium::memory::Buffer const &way_buffer)
+                               osmium::memory::Buffer const &buffer)
 {
     geometry_t geom{};
-    create_multipolygon(&geom, relation, way_buffer);
+    create_multipolygon(&geom, relation, buffer);
     return geom;
 }
 
-void create_collection(geometry_t *geom,
-                       osmium::memory::Buffer const &member_buffer)
+void create_collection(geometry_t *geom, osmium::memory::Buffer const &buffer)
 {
     auto &collection = geom->set<collection_t>();
 
-    for (auto const &obj : member_buffer) {
+    for (auto const &obj : buffer) {
         if (obj.type() == osmium::item_type::node) {
             auto const &node = static_cast<osmium::Node const &>(obj);
             if (node.location().valid()) {
@@ -210,10 +209,10 @@ void create_collection(geometry_t *geom,
     }
 }
 
-geometry_t create_collection(osmium::memory::Buffer const &member_buffer)
+geometry_t create_collection(osmium::memory::Buffer const &buffer)
 {
     geometry_t geom{};
-    create_collection(&geom, member_buffer);
+    create_collection(&geom, buffer);
     return geom;
 }
 
