@@ -700,6 +700,36 @@ geometry_t line_merge(geometry_t const &input)
     return output;
 }
 
+/**
+ * This helper function is used to calculate centroids of geometry collections.
+ * It first creates a multi geometry that only contains the geometries of
+ * dimension N from the input collection. This is done by copying the geometry,
+ * which isn't very efficient, but hopefully the centroid of a geometry
+ * collection isn't used very often. This can be optimized if needed.
+ *
+ * Then the centroid of this new collection is calculated.
+ *
+ * Nested geometry collections are not allowed.
+ */
+template <std::size_t N, typename T>
+static void filtered_centroid(collection_t const &collection, point_t *center)
+{
+    multigeometry_t<T> multi;
+    for (auto const &geom : collection) {
+        assert(!geom.is_collection());
+        if (!geom.is_null() && dimension(geom) == N) {
+            if (geom.is_multi()) {
+                for (auto const &sgeom : geom.get<multigeometry_t<T>>()) {
+                    multi.add_geometry() = sgeom;
+                }
+            } else {
+                multi.add_geometry() = geom.get<T>();
+            }
+        }
+    }
+    boost::geometry::centroid(multi, *center);
+}
+
 geometry_t centroid(geometry_t const &geom)
 {
     geom::geometry_t output{point_t{}, geom.srid()};
@@ -707,9 +737,18 @@ geometry_t centroid(geometry_t const &geom)
 
     geom.visit(overloaded{
         [&](geom::nullgeom_t const & /*input*/) { output.reset(); },
-        [&](geom::collection_t const & /*input*/) {
-            throw std::runtime_error{
-                "Centroid of geometry collection not implemented yet"};
+        [&](geom::collection_t const &input) {
+            switch (dimension(input)) {
+            case 0:
+                filtered_centroid<0, point_t>(input, &center);
+                break;
+            case 1:
+                filtered_centroid<1, linestring_t>(input, &center);
+                break;
+            default: // 2
+                filtered_centroid<2, polygon_t>(input, &center);
+                break;
+            }
         },
         [&](auto const &input) { boost::geometry::centroid(input, center); }});
 
