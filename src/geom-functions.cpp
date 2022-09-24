@@ -378,51 +378,15 @@ double area(geometry_t const &geom)
     return std::abs(total);
 }
 
-/*static double get_linestring_length(linestring_t const &linestring)
-{
-    double total = 0.0;
-    auto it = linestring.begin();
-    auto prev = *it++;
-
-    while (it != linestring.end()) {
-        auto const cur = *it;
-	total += sqrt(pow(cur.x() - prev.x(), 2) + pow(cur.y() - prev.y(), 2));
-        ++it;
-    }
-
-    return total;
-}*/
-
 double length(geometry_t const &geom)
 {
-    /* double total = 0.0;
-
-    if (geom.is_linestring()) {
-        total = get_linestring_length(geom.get<linestring_t>());
-    } else if (geom.is_multilinestring()) {
-        for (auto const &linestring : geom.get<multilinestring_t>()) {
-            total += get_linestring_length(linestring);
-        }
-    }
-
-    return total; */
-
     return geom.visit(overloaded{
         [&](geom::nullgeom_t const & /*input*/) { return 0.0; },
         [&](geom::collection_t const &input) {
             double total = 0.0;
-            /*auto it = input.begin();
-	    auto prev = *it++;
-	    while (it != input.end()) {
-	        auto const cur = *it;
-                total += length(cur);
-		++it;
-	    }*/
-
             for (auto const &item : input) {
                 total += length(item);
             }
-
             return total;
         },
         [&](auto const &input) {

@@ -166,7 +166,6 @@ std::vector<geometry_t> split_multi(geometry_t &&geom, bool split_multi = true);
  * \param geom Input geometry.
  * \returns Length.
  **/
-
 double length(geometry_t const &geom);
 
 /**
