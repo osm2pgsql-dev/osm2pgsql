@@ -5,6 +5,9 @@
 -- inspect = require('inspect')
 
 -- We define a single table that can take any OSM object and any geometry.
+-- OSM nodes are converted to Points, ways to LineStrings and relations
+-- to GeometryCollections. If an object would create an invalid geometry
+-- it is still added to the table with a NULL geometry.
 -- XXX expire will currently not work on these tables.
 local dtable = osm2pgsql.define_table{
     name = "data",
@@ -31,42 +34,29 @@ function clean_tags(tags)
     return next(tags) == nil
 end
 
-function process(object, geometry_type)
+function process(object, geometry)
     if clean_tags(object.tags) then
         return
     end
-    dtable:add_row({
+    dtable:insert({
         attrs = {
             version = object.version,
             timestamp = object.timestamp,
         },
         tags = object.tags,
-        geom = { create = geometry_type }
+        geom = geometry
     })
 end
 
 function osm2pgsql.process_node(object)
-    process(object, 'point')
+    process(object, object:as_point())
 end
 
 function osm2pgsql.process_way(object)
-    process(object, 'line')
+    process(object, object:as_linestring())
 end
 
 function osm2pgsql.process_relation(object)
-    if clean_tags(object.tags) then
-        return
-    end
-
-    if object.tags.type == 'multipolygon' or object.tags.type == 'boundary' then
-        dtable:add_row({
-            attrs = {
-                version = object.version,
-                timestamp = object.timestamp,
-            },
-            tags = object.tags,
-            geom = { create = 'area' }
-        })
-    end
+    process(object, object:as_geometrycollection())
 end
 
