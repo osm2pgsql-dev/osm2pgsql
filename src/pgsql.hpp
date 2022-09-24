@@ -37,6 +37,8 @@
 class pg_result_t
 {
 public:
+    pg_result_t() {}
+
     explicit pg_result_t(PGresult *result) noexcept : m_result(result) {}
 
     /// Get a pointer to the underlying PGresult object.
@@ -96,6 +98,9 @@ public:
     {
         return PQfnumber(m_result.get(), ('"' + name + '"').c_str());
     }
+
+    /// Return true if this holds an actual result.
+    operator bool() { return m_result.get(); }
 
 private:
     struct pg_result_deleter_t

@@ -1298,10 +1298,6 @@ bool output_flex_t::relation_cache_t::add_members(middle_query_t const &middle)
             }
         }
 
-        for (auto &nodes : m_members_buffer.select<osmium::WayNodeList>()) {
-            middle.nodes_get_list(&nodes);
-        }
-
         for (auto &way : m_members_buffer.select<osmium::Way>()) {
             middle.nodes_get_list(&(way.nodes()));
         }

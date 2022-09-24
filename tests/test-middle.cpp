@@ -213,6 +213,14 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         // set the relation
         auto const &relation =
             buffer.add_relation("r123 Mw11@,w10@outer,n1@,w12@inner");
+
+        std::vector<std::pair<osmium::item_type, osmid_t>> const expected = {
+            {osmium::item_type::way, 11},
+            {osmium::item_type::way, 10},
+            {osmium::item_type::node, 1},
+            {osmium::item_type::way, 12},
+        };
+
         osmium::CRC<osmium::CRC_zlib> orig_crc;
         orig_crc.update(relation);
 
@@ -232,17 +240,62 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         crc.update(rel);
         CHECK(orig_crc().checksum() == crc().checksum());
 
-        // retrieve the supporting ways
-        REQUIRE(mid_q->rel_members_get(rel, &outbuf,
+        // retrieve node members only
+        osmium::memory::Buffer memberbuf{
+            4096, osmium::memory::Buffer::auto_grow::yes};
+        REQUIRE(mid_q->rel_members_get(rel, &memberbuf,
+                                       osmium::osm_entity_bits::node) == 1);
+
+        {
+            auto const objects = memberbuf.select<osmium::OSMObject>();
+            auto it = objects.cbegin();
+            auto const end = objects.cend();
+            for (auto const &p : expected) {
+                if (p.first == osmium::item_type::node) {
+                    REQUIRE(it != end);
+                    REQUIRE(it->type() == p.first);
+                    REQUIRE(it->id() == p.second);
+                    ++it;
+                }
+            }
+        }
+
+        memberbuf.clear();
+
+        // retrieve way members only
+        REQUIRE(mid_q->rel_members_get(rel, &memberbuf,
                                        osmium::osm_entity_bits::way) == 3);
 
-        for (auto &w : outbuf.select<osmium::Way>()) {
-            REQUIRE(w.id() >= 10);
-            REQUIRE(w.id() <= 12);
-            auto const &expected = nds[w.id() - 10];
-            REQUIRE(w.nodes().size() == expected.size());
-            for (size_t i = 0; i < expected.size(); ++i) {
-                REQUIRE(w.nodes()[i].ref() == expected[i]);
+        {
+            auto const objects = memberbuf.select<osmium::OSMObject>();
+            auto it = objects.cbegin();
+            auto const end = objects.cend();
+            for (auto const &p : expected) {
+                if (p.first == osmium::item_type::way) {
+                    REQUIRE(it != end);
+                    REQUIRE(it->type() == p.first);
+                    REQUIRE(it->id() == p.second);
+                    ++it;
+                }
+            }
+        }
+
+        memberbuf.clear();
+
+        // retrieve all members
+        REQUIRE(mid_q->rel_members_get(rel, &memberbuf,
+                                       osmium::osm_entity_bits::node |
+                                           osmium::osm_entity_bits::way) == 4);
+
+        {
+            auto const objects = memberbuf.select<osmium::OSMObject>();
+            auto it = objects.cbegin();
+            auto const end = objects.cend();
+            for (auto const &p : expected) {
+                REQUIRE(it != end);
+                REQUIRE(it->type() == p.first);
+                REQUIRE(it->id() == p.second);
+                ++it;
             }
         }
 

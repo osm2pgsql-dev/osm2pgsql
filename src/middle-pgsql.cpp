@@ -460,42 +460,39 @@ middle_query_pgsql_t::rel_members_get(osmium::Relation const &rel,
     assert(buffer);
     assert((types & osmium::osm_entity_bits::relation) == 0);
 
-    util::string_id_list_t way_ids;
-    idlist_t node_ids;
+    pg_result_t res;
+    idlist_t wayidspg;
+    if (types & osmium::osm_entity_bits::way) {
+        // collect ids from all way members into a list..
+        util::string_id_list_t way_ids;
+        for (auto const &member : rel.members()) {
+            if (member.type() == osmium::item_type::way) {
+                way_ids.add(member.ref());
+            }
+        }
 
+        // ...and get those ways from database
+        if (!way_ids.empty()) {
+            res = m_sql_conn.exec_prepared("get_way_list", way_ids.get());
+            wayidspg = get_ids_from_result(res);
+        }
+    }
+
+    std::size_t members_found = 0;
     for (auto const &member : rel.members()) {
         if (member.type() == osmium::item_type::node &&
             (types & osmium::osm_entity_bits::node)) {
-            node_ids.push_back(member.ref());
+            osmium::builder::NodeBuilder builder{*buffer};
+            builder.set_id(member.ref());
+            ++members_found;
         } else if (member.type() == osmium::item_type::way &&
-                   (types & osmium::osm_entity_bits::way)) {
-            way_ids.add(member.ref());
-        }
-    }
-
-    std::size_t members_found = node_ids.size();
-    if (!node_ids.empty()) {
-        osmium::builder::WayNodeListBuilder builder{*buffer};
-        for (auto const id : node_ids) {
-            builder.add_node_ref(id);
-        }
-    }
-
-    if (!way_ids.empty()) {
-        auto const res =
-            m_sql_conn.exec_prepared("get_way_list", way_ids.get());
-        idlist_t const wayidspg = get_ids_from_result(res);
-
-        // Match the list of ways coming from postgres in a different order
-        //   back to the list of ways given by the caller
-        for (auto const &m : rel.members()) {
-            if (m.type() != osmium::item_type::way) {
-                continue;
-            }
+                   (types & osmium::osm_entity_bits::way) && res) {
+            // Match the list of ways coming from postgres in a different order
+            // back to the list of ways given by the caller
             for (int j = 0; j < res.num_tuples(); ++j) {
-                if (m.ref() == wayidspg[static_cast<std::size_t>(j)]) {
+                if (member.ref() == wayidspg[static_cast<std::size_t>(j)]) {
                     osmium::builder::WayBuilder builder{*buffer};
-                    builder.set_id(m.ref());
+                    builder.set_id(member.ref());
 
                     pgsql_parse_nodes(res.get_value(j, 1), buffer, &builder);
                     pgsql_parse_tags(res.get_value(j, 2), buffer, &builder);

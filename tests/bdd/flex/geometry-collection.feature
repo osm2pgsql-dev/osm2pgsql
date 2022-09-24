@@ -20,7 +20,7 @@ Feature: Create geometry collections from relations
             end
             """
 
-    Scenario: Create geometry collection from different relations
+    Scenario Outline: Create geometry collection from different relations
         Given the 1.0 grid
             | 13 | 12 | 17 |    | 16 |
             | 10 | 11 |    | 14 | 15 |
@@ -33,7 +33,9 @@ Feature: Create geometry collections from relations
             r32 Tname=mixed Mn17@,w21@
             r33 Tname=node Mn17@
             """
-        When running osm2pgsql flex
+        When running osm2pgsql flex with parameters
+            | -c      |
+            | <param> |
 
         Then table osm2pgsql_test_collection contains exactly
             | osm_id | name   | ST_GeometryType(geom) | ST_NumGeometries(geom) | ST_GeometryType(ST_GeometryN(geom, 1)) |
@@ -48,6 +50,11 @@ Feature: Create geometry collections from relations
             | 31     | 10, 11, 12, 13, 10               | 14, 15, 16                       |
             | 32     | 17                               | 14, 15, 16                       |
             | 33     | 17                               | NULL                             |
+
+        Examples:
+            | param  |
+            |        |
+            | --slim |
 
     Scenario: NULL entry generated for broken geometries
         Given the grid
