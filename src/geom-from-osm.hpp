@@ -92,31 +92,39 @@ void create_polygon(geometry_t *geom, osmium::Way const &way);
 /**
  * Create a multilinestring geometry from a bunch of ways (usually this
  * would be used for member ways of a relation). The result is always a
- * multilinestring, even if it only contains one linestring.
+ * multilinestring, even if it only contains one linestring, unless
+ * `force_multi` is set to false.
  *
  * If the resulting multilinestring would be invalid, a null geometry is
  * returned.
  *
  * \param geom Pointer to an existing geometry which will be used as output.
- * \param ways Buffer containing all the input ways.
+ * \param ways Buffer containing all the input ways. Object types other than
+ *             ways in the buffer are ignored.
+ * \param force_multi Should the result be a multilinestring even if it
+ *                    contains only a single linestring?
  */
 void create_multilinestring(geometry_t *geom,
-                            osmium::memory::Buffer const &ways,
+                            osmium::memory::Buffer const &buffer,
                             bool force_multi = true);
 
 /**
  * Create a multilinestring geometry from a bunch of ways (usually this
  * would be used for member ways of a relation). The result is always a
- * multilinestring, even if it only contains one linestring.
+ * multilinestring, even if it only contains one linestring, unless
+ * `force_multi` is set to false.
  *
  * If the resulting multilinestring would be invalid, a null geometry is
  * returned.
  *
- * \param ways Buffer containing all the input ways.
+ * \param ways Buffer containing all the input ways. Object types other than
+ *             ways in the buffer are ignored.
+ * \param force_multi Should the result be a multilinestring even if it
+ *                    contains only a single linestring?
  * \returns The created geometry.
  */
 [[nodiscard]] geometry_t
-create_multilinestring(osmium::memory::Buffer const &ways,
+create_multilinestring(osmium::memory::Buffer const &buffer,
                        bool force_multi = true);
 
 /**
@@ -127,10 +135,10 @@ create_multilinestring(osmium::memory::Buffer const &ways,
  *
  * \param geom Pointer to an existing geometry which will be used as output.
  * \param relation The input relation.
- * \param way_buffer Buffer containing all member ways.
+ * \param buffer Buffer with OSM objects. Anything but ways are ignored.
  */
 void create_multipolygon(geometry_t *geom, osmium::Relation const &relation,
-                         osmium::memory::Buffer const &way_buffer);
+                         osmium::memory::Buffer const &buffer);
 
 /**
  * Create a (multi)polygon geometry from a relation and member ways.
@@ -139,37 +147,40 @@ void create_multipolygon(geometry_t *geom, osmium::Relation const &relation,
  * returned.
  *
  * \param relation The input relation.
- * \param way_buffer Buffer containing all member ways.
+ * \param buffer Buffer with OSM objects. Anything but ways are ignored.
  * \returns The created geometry.
  */
 [[nodiscard]] geometry_t
 create_multipolygon(osmium::Relation const &relation,
-                    osmium::memory::Buffer const &way_buffer);
+                    osmium::memory::Buffer const &buffer);
 
 /**
- * Create a geometry collection from a relation and node/way members.
+ * Create a geometry collection from nodes and ways, usually used for
+ * relation members.
  *
  * If the resulting geometry would be empty or invalid, a null geometry is
  * returned.
  *
  * \param geom Pointer to an existing geometry which will be used as output.
- * \param relation The input relation.
- * \param way_buffer Buffer containing all member nodes and ways.
+ * \param buffer Buffer with OSM objects. Nodes are turned into points,
+ *               ways into linestrings, anything else in the buffer is ignored.
  */
 void create_collection(geometry_t *geom,
-                       osmium::memory::Buffer const &member_buffer);
+                       osmium::memory::Buffer const &buffer);
 
 /**
- * Create a geometry collection from a relation and node/way members.
+ * Create a geometry collection from nodes and ways, usually used for
+ * relation members.
  *
  * If the resulting geometry would be empty or invalid, a null geometry is
  * returned.
  *
- * \param way_buffer Buffer containing all member nodes and ways.
+ * \param buffer Buffer with OSM objects. Nodes are turned into points,
+ *               ways into linestrings, anything else in the buffer is ignored.
  * \returns The created geometry.
  */
 [[nodiscard]] geometry_t
-create_collection(osmium::memory::Buffer const &member_buffer);
+create_collection(osmium::memory::Buffer const &buffer);
 
 } // namespace geom
 
