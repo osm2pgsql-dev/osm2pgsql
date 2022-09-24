@@ -69,6 +69,18 @@ static int geom_area(lua_State *lua_state)
     return 1;
 }
 
+static int geom_length(lua_State *lua_state)
+{
+    auto const *const input_geometry = unpack_geometry(lua_state);
+    try {
+        lua_pushnumber(lua_state, geom::length(*input_geometry));
+    } catch (...) {
+        return luaL_error(lua_state, "Unknown error in 'length()'.\n");
+    }
+
+    return 1;
+}
+
 static int geom_centroid(lua_State *lua_state)
 {
     auto const *const input_geometry = unpack_geometry(lua_state);
@@ -239,6 +251,7 @@ void init_geometry_class(lua_State *lua_state)
     lua_pushvalue(lua_state, -1);
     lua_setfield(lua_state, -2, "__index");
     luaX_add_table_func(lua_state, "area", geom_area);
+    luaX_add_table_func(lua_state, "length", geom_length);
     luaX_add_table_func(lua_state, "centroid", geom_centroid);
     luaX_add_table_func(lua_state, "geometry_n", geom_geometry_n);
     luaX_add_table_func(lua_state, "geometry_type", geom_geometry_type);

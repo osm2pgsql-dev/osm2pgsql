@@ -41,7 +41,7 @@ point_t interpolate(point_t p1, point_t p2, double frac) noexcept;
  * \pre \code !list.empty() \endcode
  */
 template <typename FUNC>
-void for_each_segment(point_list_t const &list, FUNC&& func)
+void for_each_segment(point_list_t const &list, FUNC &&func)
 {
     assert(!list.empty());
     auto it = list.cbegin();
@@ -157,6 +157,17 @@ double area(geometry_t const &geom);
  * \returns Vector of result geometries.
  */
 std::vector<geometry_t> split_multi(geometry_t &&geom, bool split_multi = true);
+
+/**
+ * Calculate length of geometry.
+ * For geometry types other than linestring or multilinestring this will always
+ * return 0.
+ *
+ * \param geom Input geometry.
+ * \returns Length.
+ **/
+
+double length(geometry_t const &geom);
 
 /**
  * Reverses the order of the vertices in geometry.

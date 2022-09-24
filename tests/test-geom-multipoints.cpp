@@ -30,6 +30,7 @@ TEST_CASE("multipoint_t with a single point", "[NoDB]")
     REQUIRE(geometry_type(geom) == "MULTIPOINT");
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(0.0));
+    REQUIRE(length(geom) == Approx(0.0));
     REQUIRE(reverse(geom) == geom);
     REQUIRE(centroid(geom) == geom::geometry_t{std::move(point)});
 
@@ -52,6 +53,7 @@ TEST_CASE("multipoint_t with several points", "[NoDB]")
     REQUIRE(geometry_type(geom) == "MULTIPOINT");
     REQUIRE(num_geometries(geom) == 3);
     REQUIRE(area(geom) == Approx(0.0));
+    REQUIRE(length(geom) == Approx(0.0));
     REQUIRE(reverse(geom) == geom);
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{2, 1}});
 
