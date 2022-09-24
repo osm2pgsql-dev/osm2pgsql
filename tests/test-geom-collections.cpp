@@ -89,9 +89,5 @@ TEST_CASE("create_collection from OSM data with single-node way", "[NoDB]")
 
     auto const geom = geom::create_collection(buffer.buffer());
 
-    REQUIRE(geometry_type(geom) == "GEOMETRYCOLLECTION");
-    REQUIRE(num_geometries(geom) == 1);
-
-    auto const &c = geom.get<geom::collection_t>();
-    REQUIRE(c[0] == geom::geometry_t{geom::point_t{1, 1}});
+    REQUIRE(geom.is_null());
 }
