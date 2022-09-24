@@ -95,6 +95,37 @@ geometry_t create_polygon(osmium::Way const &way)
     return geom;
 }
 
+void create_multipoint(geometry_t *geom, osmium::memory::Buffer const &buffer)
+{
+    auto nodes = buffer.select<osmium::Node>();
+    if (nodes.size() == 1) {
+        auto const location = nodes.cbegin()->location();
+        if (location.valid()) {
+            geom->set<point_t>() = point_t{location};
+        } else {
+            geom->reset();
+        }
+    } else {
+        auto &multiline = geom->set<multipoint_t>();
+        for (auto const &node : nodes) {
+            auto const location = node.location();
+            if (location.valid()) {
+                multiline.add_geometry(point_t{location});
+            }
+        }
+        if (multiline.num_geometries() == 0) {
+            geom->reset();
+        }
+    }
+}
+
+geometry_t create_multipoint(osmium::memory::Buffer const &buffer)
+{
+    geometry_t geom{};
+    create_multipoint(&geom, buffer);
+    return geom;
+}
+
 void create_multilinestring(geometry_t *geom,
                             osmium::memory::Buffer const &buffer,
                             bool force_multi)

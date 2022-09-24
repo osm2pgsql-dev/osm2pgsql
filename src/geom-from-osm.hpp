@@ -90,6 +90,33 @@ void create_polygon(geometry_t *geom, osmium::Way const &way);
 [[nodiscard]] geometry_t create_polygon(osmium::Way const &way);
 
 /**
+ * Create a multipoint geometry from a bunch of nodes (usually this would be
+ * used for member nodes of a relation). The result is multipoint geometry
+ * (or a point geometry if there is only one point).
+ *
+ * If there are no (valid) points, a null geometry is returned.
+ *
+ * \param geom Pointer to an existing geometry which will be used as output.
+ * \param ways Buffer containing all the input ways. Object types other than
+ *             ways in the buffer are ignored.
+ */
+void create_multipoint(geometry_t *geom, osmium::memory::Buffer const &buffer);
+
+/**
+ * Create a multipoint geometry from a bunch of nodes (usually this would be
+ * used for member nodes of a relation). The result is multipoint geometry
+ * (or a point geometry if there is only one point).
+ *
+ * If there are no (valid) points, a null geometry is returned.
+ *
+ * \param ways Buffer containing all the input nodes. Object types other than
+ *             nodes in the buffer are ignored.
+ * \returns The created geometry.
+ */
+[[nodiscard]] geometry_t
+create_multipoint(osmium::memory::Buffer const &buffer);
+
+/**
  * Create a multilinestring geometry from a bunch of ways (usually this
  * would be used for member ways of a relation). The result is always a
  * multilinestring, even if it only contains one linestring, unless
