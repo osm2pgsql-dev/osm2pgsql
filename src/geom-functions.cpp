@@ -373,6 +373,10 @@ double area(geometry_t const &geom)
         for (auto const &polygon : geom.get<multipolygon_t>()) {
             total += get_polygon_area(polygon);
         }
+    } else if (geom.is_collection()) {
+        for (auto const &sgeom : geom.get<collection_t>()) {
+            total += area(sgeom);
+        }
     }
 
     return std::abs(total);

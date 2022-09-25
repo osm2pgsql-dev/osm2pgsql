@@ -72,6 +72,22 @@ TEST_CASE("geometry collection with several geometries", "[NoDB]")
     REQUIRE(geometry_n(geom, 3) == geom::geometry_t{geom::point_t{2, 2}});
 }
 
+TEST_CASE("geometry collection with polygon", "[NoDB]")
+{
+    geom::geometry_t geom{geom::collection_t{}};
+    auto &c = geom.get<geom::collection_t>();
+
+    c.add_geometry(geom::geometry_t{geom::point_t{1, 1}});
+    c.add_geometry(geom::geometry_t{
+        geom::polygon_t{geom::ring_t{{1, 1}, {1, 2}, {2, 2}, {2, 1}, {1, 1}}}});
+
+    REQUIRE(geometry_type(geom) == "GEOMETRYCOLLECTION");
+    REQUIRE(num_geometries(geom) == 2);
+    REQUIRE(area(geom) == Approx(1.0));
+    REQUIRE(length(geom) == Approx(0.0));
+    REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{1.5, 1.5}});
+}
+
 TEST_CASE("create_collection from OSM data", "[NoDB]")
 {
     test_buffer_t buffer;
