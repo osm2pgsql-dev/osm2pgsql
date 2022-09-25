@@ -44,6 +44,7 @@ TEST_CASE("line geometry", "[NoDB]")
 
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(0.0));
+    REQUIRE(length(geom) == Approx(1.41421));
     REQUIRE(geometry_type(geom) == "LINESTRING");
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{1.5, 1.5}});
     REQUIRE(geometry_n(geom, 1) == geom);
@@ -74,6 +75,7 @@ TEST_CASE("create_linestring from OSM data", "[NoDB]")
     REQUIRE(geometry_type(geom) == "LINESTRING");
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(0.0));
+    REQUIRE(length(geom) == Approx(1.41421));
     REQUIRE(geom.get<geom::linestring_t>() ==
             geom::linestring_t{{1, 1}, {2, 2}});
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{1.5, 1.5}});

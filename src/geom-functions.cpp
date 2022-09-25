@@ -7,8 +7,8 @@
  * For a full list of authors see the git log.
  */
 
-#include "geom-boost-adaptor.hpp"
 #include "geom-functions.hpp"
+#include "geom-boost-adaptor.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -378,6 +378,22 @@ double area(geometry_t const &geom)
     return std::abs(total);
 }
 
+double length(geometry_t const &geom)
+{
+    return geom.visit(overloaded{
+        [&](geom::nullgeom_t const & /*input*/) { return 0.0; },
+        [&](geom::collection_t const &input) {
+            double total = 0.0;
+            for (auto const &item : input) {
+                total += length(item);
+            }
+            return total;
+        },
+        [&](auto const &input) {
+            return static_cast<double>(boost::geometry::length(input));
+        }});
+}
+
 namespace {
 
 class split_visitor
@@ -414,7 +430,7 @@ private:
 
 } // anonymous namespace
 
-std::vector<geometry_t> split_multi(geometry_t&& geom, bool split_multi)
+std::vector<geometry_t> split_multi(geometry_t &&geom, bool split_multi)
 {
     std::vector<geometry_t> output;
 

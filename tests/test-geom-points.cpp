@@ -52,6 +52,7 @@ TEST_CASE("create_point from OSM data", "[NoDB]")
     REQUIRE(geometry_type(geom) == "POINT");
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(0.0));
+    REQUIRE(length(geom) == Approx(0.0));
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{1.1, 2.2}});
     REQUIRE(geometry_n(geom, 1) == geom);
     REQUIRE(reverse(geom) == geom);

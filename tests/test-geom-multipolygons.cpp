@@ -26,6 +26,7 @@ TEST_CASE("multipolygon geometry with single outer, no inner", "[NoDB]")
     REQUIRE(geometry_type(geom) == "MULTIPOLYGON");
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(1.0));
+    REQUIRE(length(geom) == Approx(0.0));
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{0.5, 0.5}});
     REQUIRE(geometry_n(geom, 1) ==
             geom::geometry_t{geom::polygon_t{
@@ -52,6 +53,7 @@ TEST_CASE("multipolygon geometry with two polygons", "[NoDB]")
     REQUIRE(geometry_type(geom) == "MULTIPOLYGON");
     REQUIRE(num_geometries(geom) == 2);
     REQUIRE(area(geom) == Approx(9.0));
+    REQUIRE(length(geom) == Approx(0.0));
 }
 
 TEST_CASE("create_multipolygon creates simple polygon from OSM data", "[NoDB]")
@@ -67,6 +69,7 @@ TEST_CASE("create_multipolygon creates simple polygon from OSM data", "[NoDB]")
     REQUIRE(geometry_type(geom) == "POLYGON");
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(1.0));
+    REQUIRE(length(geom) == Approx(0.0));
     REQUIRE(
         geom.get<geom::polygon_t>() ==
         geom::polygon_t{geom::ring_t{{1, 1}, {2, 1}, {2, 2}, {1, 2}, {1, 1}}});
@@ -87,6 +90,7 @@ TEST_CASE("create_multipolygon from OSM data", "[NoDB]")
     REQUIRE(geometry_type(geom) == "MULTIPOLYGON");
     REQUIRE(num_geometries(geom) == 2);
     REQUIRE(area(geom) == Approx(51.0));
+    REQUIRE(length(geom) == Approx(0.0));
 }
 
 TEST_CASE("create_multipolygon from OSM data without locations", "[NoDB]")
@@ -111,7 +115,8 @@ TEST_CASE("create_multipolygon from invalid OSM data (single node)", "[NoDB]")
     REQUIRE(geom.is_null());
 }
 
-TEST_CASE("create_multipolygon from invalid OSM data (way node closed)", "[NoDB]")
+TEST_CASE("create_multipolygon from invalid OSM data (way node closed)",
+          "[NoDB]")
 {
     test_buffer_t buffer;
     buffer.add_way("w20 Nn1x1y1,n2x2y2");
@@ -122,7 +127,8 @@ TEST_CASE("create_multipolygon from invalid OSM data (way node closed)", "[NoDB]
     REQUIRE(geom.is_null());
 }
 
-TEST_CASE("create_multipolygon from invalid OSM data (self-intersection)", "[NoDB]")
+TEST_CASE("create_multipolygon from invalid OSM data (self-intersection)",
+          "[NoDB]")
 {
     test_buffer_t buffer;
     buffer.add_way("w20 Nn1x1y1,n2x1y2,n3x2y1,n4x2y2");
