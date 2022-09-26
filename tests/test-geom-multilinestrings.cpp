@@ -30,6 +30,7 @@ TEST_CASE("create_multilinestring with single line", "[NoDB]")
 
     REQUIRE(geom.is_multilinestring());
     REQUIRE(geometry_type(geom) == "MULTILINESTRING");
+    REQUIRE(dimension(geom) == 1);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(0.0));
     REQUIRE(length(geom) == Approx(1.0));
@@ -74,6 +75,7 @@ TEST_CASE("create_multilinestring with single line forming a ring", "[NoDB]")
         geom::line_merge(geom::create_multilinestring(buffer.buffer()));
 
     REQUIRE(geom.is_multilinestring());
+    REQUIRE(dimension(geom) == 1);
     auto const &ml = geom.get<geom::multilinestring_t>();
     REQUIRE(ml.num_geometries() == 1);
     REQUIRE(ml[0] == expected);
@@ -92,6 +94,7 @@ TEST_CASE("create_multilinestring from two non-joined lines", "[NoDB]")
         geom::line_merge(geom::create_multilinestring(buffer.buffer()));
 
     REQUIRE(geom.is_multilinestring());
+    REQUIRE(dimension(geom) == 1);
     auto const &ml = geom.get<geom::multilinestring_t>();
     REQUIRE(ml.num_geometries() == 2);
     REQUIRE(ml[0] == expected[0]);

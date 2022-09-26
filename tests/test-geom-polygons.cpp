@@ -20,6 +20,7 @@ TEST_CASE("polygon geometry without inner", "[NoDB]")
     geom::geometry_t const geom{
         geom::polygon_t{geom::ring_t{{0, 0}, {0, 1}, {1, 1}, {1, 0}, {0, 0}}}};
 
+    REQUIRE(dimension(geom) == 2);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(1.0));
     REQUIRE(length(geom) == Approx(0.0));
@@ -33,6 +34,7 @@ TEST_CASE("polygon geometry without inner (reverse)", "[NoDB]")
     geom::geometry_t const geom{
         geom::polygon_t{geom::ring_t{{0, 0}, {1, 0}, {1, 1}, {0, 1}, {0, 0}}}};
 
+    REQUIRE(dimension(geom) == 2);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(1.0));
     REQUIRE(length(geom) == Approx(0.0));
@@ -53,6 +55,7 @@ TEST_CASE("geom::polygon_t", "[NoDB]")
     REQUIRE(polygon.inners().size() == 1);
 
     geom::geometry_t geom{std::move(polygon)};
+    REQUIRE(dimension(geom) == 2);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(8.0));
     REQUIRE(length(geom) == Approx(0.0));
@@ -78,6 +81,7 @@ TEST_CASE("create_polygon from OSM data", "[NoDB]")
 
     REQUIRE(geom.is_polygon());
     REQUIRE(geometry_type(geom) == "POLYGON");
+    REQUIRE(dimension(geom) == 2);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(1.0));
     REQUIRE(length(geom) == Approx(0.0));

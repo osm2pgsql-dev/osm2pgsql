@@ -24,6 +24,7 @@ TEST_CASE("multipolygon geometry with single outer, no inner", "[NoDB]")
         geom::polygon_t{geom::ring_t{{0, 0}, {0, 1}, {1, 1}, {1, 0}, {0, 0}}});
 
     REQUIRE(geometry_type(geom) == "MULTIPOLYGON");
+    REQUIRE(dimension(geom) == 2);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(1.0));
     REQUIRE(length(geom) == Approx(0.0));
@@ -51,6 +52,7 @@ TEST_CASE("multipolygon geometry with two polygons", "[NoDB]")
     mp.add_geometry(std::move(polygon));
 
     REQUIRE(geometry_type(geom) == "MULTIPOLYGON");
+    REQUIRE(dimension(geom) == 2);
     REQUIRE(num_geometries(geom) == 2);
     REQUIRE(area(geom) == Approx(9.0));
     REQUIRE(length(geom) == Approx(0.0));
@@ -67,6 +69,7 @@ TEST_CASE("create_multipolygon creates simple polygon from OSM data", "[NoDB]")
 
     REQUIRE(geom.is_polygon());
     REQUIRE(geometry_type(geom) == "POLYGON");
+    REQUIRE(dimension(geom) == 2);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(1.0));
     REQUIRE(length(geom) == Approx(0.0));

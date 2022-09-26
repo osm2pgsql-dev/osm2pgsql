@@ -224,7 +224,6 @@ using multilinestring_t = multigeometry_t<linestring_t>;
 using multipolygon_t = multigeometry_t<polygon_t>;
 
 class geometry_t;
-
 using collection_t = multigeometry_t<geometry_t>;
 
 /**
@@ -362,6 +361,27 @@ private:
     int m_srid = 4326;
 
 }; // class geometry_t
+
+inline std::size_t dimension(nullgeom_t) noexcept { return 0; }
+inline std::size_t dimension(point_t) noexcept { return 0; }
+inline std::size_t dimension(linestring_t) noexcept { return 1; }
+inline std::size_t dimension(polygon_t) noexcept { return 2; }
+inline std::size_t dimension(multipoint_t) noexcept { return 0; }
+inline std::size_t dimension(multilinestring_t) noexcept { return 1; }
+inline std::size_t dimension(multipolygon_t) noexcept { return 2; }
+
+std::size_t dimension(collection_t const &geom);
+
+/**
+ * Return the dimension of this geometry. This is:
+ *
+ * 0 - for null and point geometries
+ * 1 - for (multi)linestring geometries
+ * 2 - for (multi)polygon geometries
+ *
+ * For geometry collections this is the largest dimension of all its members.
+ */
+std::size_t dimension(geometry_t const &geom);
 
 } // namespace geom
 
