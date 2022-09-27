@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iterator>
+#include <numeric>
 #include <tuple>
 #include <utility>
 
@@ -334,48 +335,19 @@ geometry_t segmentize(geometry_t const &input, double max_segment_length)
     return output;
 }
 
-static double get_ring_area(ring_t const &ring) noexcept
-{
-    assert(ring.size() > 3);
-
-    double total = 0.0;
-    auto it = ring.begin();
-    auto prev = *it++;
-
-    while (it != ring.end()) {
-        auto const cur = *it;
-        total += prev.x() * cur.y() - cur.x() * prev.y();
-        prev = cur;
-        ++it;
-    }
-
-    return total;
-}
-
-static double get_polygon_area(polygon_t const &polygon)
-{
-    double total = get_ring_area(polygon.outer());
-
-    for (auto const &ring : polygon.inners()) {
-        total += get_ring_area(ring);
-    }
-
-    return total * 0.5;
-}
-
 double area(geometry_t const &geom)
 {
-    double total = 0.0;
-
-    if (geom.is_polygon()) {
-        total = get_polygon_area(geom.get<polygon_t>());
-    } else if (geom.is_multipolygon()) {
-        for (auto const &polygon : geom.get<multipolygon_t>()) {
-            total += get_polygon_area(polygon);
-        }
-    }
-
-    return std::abs(total);
+    return std::abs(geom.visit(
+        overloaded{[&](geom::nullgeom_t const & /*input*/) { return 0.0; },
+                   [&](geom::collection_t const &input) {
+                       return std::accumulate(input.cbegin(), input.cend(), 0.0,
+                                              [](double sum, auto const &geom) {
+                                                  return sum + area(geom);
+                                              });
+                   },
+                   [&](auto const &input) {
+                       return static_cast<double>(boost::geometry::area(input));
+                   }}));
 }
 
 double length(geometry_t const &geom)
