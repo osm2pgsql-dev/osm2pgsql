@@ -13,6 +13,7 @@
 
 #include "geom-from-osm.hpp"
 #include "geom-functions.hpp"
+#include "geom-output.hpp"
 #include "geom.hpp"
 
 TEST_CASE("geometry collection with point", "[NoDB]")
