@@ -727,24 +727,52 @@ geometry_t centroid(geometry_t const &geom)
     return output;
 }
 
+/****************************************************************************/
+
+static bool simplify(linestring_t *output, linestring_t const &input,
+                     double tolerance)
+{
+    boost::geometry::simplify(input, *output, tolerance);
+
+    // Linestrings with less then 2 points are invalid. Older boost::geometry
+    // versions will generate a "line" with two identical points. We are
+    // paranoid here and remove all duplicate points and then check that we
+    // have at least 2 points.
+    output->remove_duplicates();
+    return output->size() > 1;
+}
+
+static bool simplify(multilinestring_t *output, multilinestring_t const &input,
+                     double tolerance)
+{
+    for (auto const &ls : input) {
+        linestring_t simplified_ls;
+        if (simplify(&simplified_ls, ls, tolerance)) {
+            output->add_geometry(std::move(simplified_ls));
+        }
+    }
+    return output->num_geometries() > 0;
+}
+
+template <typename T>
+static bool simplify(T * /*output*/, T const & /*input*/, double /*tolerance*/)
+{
+    return false;
+}
+
 void simplify(geometry_t *output, geometry_t const &input, double tolerance)
 {
-    if (!input.is_linestring()) {
-        output->reset();
-        return;
-    }
-
-    auto &ls = output->set<linestring_t>();
     output->set_srid(input.srid());
 
-    boost::geometry::simplify(input.get<linestring_t>(), ls, tolerance);
+    input.visit([&](auto const &input) {
+        using inner_type =
+            std::remove_const_t<std::remove_reference_t<decltype(input)>>;
+        auto &out = output->set<inner_type>();
 
-    // Linestrings with less then 2 nodes are invalid. Older boost::geometry
-    // versions will generate a "line" with two identical points which the
-    // second check finds.
-    if (ls.size() < 2 || ls[0] == ls[1]) {
-        output->reset();
-    }
+        if (!simplify(&out, input, tolerance)) {
+            output->reset();
+        }
+    });
 }
 
 geometry_t simplify(geometry_t const &input, double tolerance)

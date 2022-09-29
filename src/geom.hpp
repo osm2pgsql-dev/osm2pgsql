@@ -90,7 +90,15 @@ private:
 
 }; // class point_t
 
-/// This type is used as the basis for linestrings and rings.
+/**
+ * This type is used as the basis for linestrings and rings.
+ *
+ * Point lists should not contain consecutive duplicate points. You can
+ * use the remove_duplicates() function to remove them if needed. (OGC validity
+ * only requires there to be at least two different points in a linestring, but
+ * we are more strict here to make sure we don't have to handle that anomaly
+ * later on.)
+ */
 class point_list_t : public std::vector<point_t>
 {
 public:
@@ -104,6 +112,9 @@ public:
     point_list_t(std::initializer_list<point_t> list)
     : std::vector<point_t>(list.begin(), list.end())
     {}
+
+    /// Collapse consecutive identical points into a single point (in-place).
+    void remove_duplicates();
 
 }; // class point_list_t
 
