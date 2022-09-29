@@ -38,4 +38,4 @@ def osm_define_data(context, formatted):
     for line in data.split('\n'):
         if line:
             assert line[0] in ('n', 'w', 'r')
-            context.import_data[line[0]].append(line)
+            context.import_data[line[0]].append(line.strip())
