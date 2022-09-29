@@ -13,6 +13,7 @@
 
 #include "geom-from-osm.hpp"
 #include "geom-functions.hpp"
+#include "geom-output.hpp"
 #include "geom.hpp"
 
 TEST_CASE("multipolygon geometry with single outer, no inner", "[NoDB]")

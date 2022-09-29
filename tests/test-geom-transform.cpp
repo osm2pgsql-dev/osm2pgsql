@@ -10,6 +10,7 @@
 #include <catch.hpp>
 
 #include "geom-functions.hpp"
+#include "geom-output.hpp"
 #include "geom.hpp"
 #include "reprojection.hpp"
 
