@@ -156,6 +156,7 @@ public:
     int app_as_point();
     int app_as_linestring();
     int app_as_polygon();
+    int app_as_multipoint();
     int app_as_multilinestring();
     int app_as_multipolygon();
     int app_as_geometrycollection();

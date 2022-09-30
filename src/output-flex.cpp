@@ -78,6 +78,7 @@ TRAMPOLINE(app_get_bbox, get_bbox)
 TRAMPOLINE(app_as_point, as_point)
 TRAMPOLINE(app_as_linestring, as_linestring)
 TRAMPOLINE(app_as_polygon, as_polygon)
+TRAMPOLINE(app_as_multipoint, as_multipoint)
 TRAMPOLINE(app_as_multilinestring, as_multilinestring)
 TRAMPOLINE(app_as_multipolygon, as_multipolygon)
 TRAMPOLINE(app_as_geometrycollection, as_geometrycollection)
@@ -916,6 +917,25 @@ int output_flex_t::app_as_polygon()
 
     auto *geom = create_lua_geometry_object(lua_state());
     geom::create_polygon(geom, m_way_cache.get());
+
+    return 1;
+}
+
+int output_flex_t::app_as_multipoint()
+{
+    check_context_and_state(
+        "as_multipoint", "process_node/relation() functions",
+        m_calling_context != calling_context::process_node &&
+            m_calling_context != calling_context::process_relation);
+
+    auto *geom = create_lua_geometry_object(lua_state());
+
+    if (m_calling_context == calling_context::process_node) {
+        geom::create_point(geom, *m_context_node);
+    } else {
+        m_relation_cache.add_members(middle());
+        geom::create_multipoint(geom, m_relation_cache.members_buffer());
+    }
 
     return 1;
 }
@@ -2099,6 +2119,8 @@ void output_flex_t::init_lua(std::string const &filename)
                         lua_trampoline_app_as_point);
     luaX_add_table_func(lua_state(), "as_polygon",
                         lua_trampoline_app_as_polygon);
+    luaX_add_table_func(lua_state(), "as_multipoint",
+                        lua_trampoline_app_as_multipoint);
     luaX_add_table_func(lua_state(), "as_multilinestring",
                         lua_trampoline_app_as_multilinestring);
     luaX_add_table_func(lua_state(), "as_multipolygon",

@@ -101,7 +101,7 @@ class GeometryFactory:
 
                 coords = self.grid_node(nid)
                 assert coords is not None, f"Coordinates missing for node {node}"
-                nodes[i] = f"{line} x{coords[0]:f.{self.grid_precision}} y{coords[1]:f.{self.grid_precision}}"
+                nodes[i] = f"{line} x{coords[0]:.{self.grid_precision}f} y{coords[1]:.{self.grid_precision}f}"
 
             todos.discard(nid)
 
