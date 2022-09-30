@@ -351,6 +351,7 @@ function gen_columns(text_columns, with_hstore, area, geometry_type)
 
     add_column('way', geometry_type)
     columns[#columns].projection = srid
+    columns[#columns].not_null = true
 
     return columns
 end
@@ -556,7 +557,18 @@ function osm2pgsql.process_node(object)
         output[hstore_column] = get_hstore_column(object.tags)
     end
 
-    tables.point:add_row(output)
+    output.way = object:as_point()
+    tables.point:insert(output)
+end
+
+function add_line(output, geom, roads)
+    for sgeom in geom:segmentize(max_length):geometries() do
+        output.way = sgeom
+        tables.line:insert(output)
+        if roads then
+            tables.roads:insert(output)
+        end
+    end
 end
 
 function osm2pgsql.process_way(object)
@@ -617,14 +629,10 @@ function osm2pgsql.process_way(object)
     end
 
     if polygon and object.is_closed then
-        output.way = { create = 'area' }
-        tables.polygon:add_row(output)
+        output.way = object:as_polygon()
+        tables.polygon:insert(output)
     else
-        output.way = { create = 'line', split_at = max_length }
-        tables.line:add_row(output)
-        if roads then
-            tables.roads:add_row(output)
-        end
+        add_line(output, object:as_linestring(), roads)
     end
 end
 
@@ -718,19 +726,20 @@ function osm2pgsql.process_relation(object)
     end
 
     if not make_polygon then
-        output.way = { create = 'line', split_at = max_length }
-        tables.line:add_row(output)
-        if roads then
-            tables.roads:add_row(output)
-        end
+        add_line(output, object:as_multilinestring(), roads)
     end
 
     if make_boundary or make_polygon then
-        output.way = { create = 'area' }
-        if not multi_geometry then
-            output.way.split_at = 'multi'
+        local geom = object:as_multipolygon()
+        if multi_geometry then
+            output.way = geom
+            tables.polygon:insert(output)
+        else
+            for sgeom in geom:geometries() do
+                output.way = sgeom
+                tables.polygon:insert(output)
+            end
         end
-        tables.polygon:add_row(output)
     end
 end
 
