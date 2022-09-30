@@ -102,7 +102,7 @@ function osm2pgsql.process_way(object)
     -- We want to put the name in its own column
     local name = object:grab_tag('name')
 
-    highways:add_row({
+    highways:insert({
         name = name,
         type = highway_type,
 
@@ -122,7 +122,8 @@ function osm2pgsql.process_way(object)
         -- for a column of type "int8[]".
         nodes = '{' .. table.concat(object.nodes, ',') .. '}',
 
-        tags = object.tags
+        tags = object.tags,
+        geom = object:as_linestring()
     })
 end
 
