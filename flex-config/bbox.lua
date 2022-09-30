@@ -95,9 +95,10 @@ function osm2pgsql.process_node(object)
         return
     end
 
-    tables.pois:add_row({
+    tables.pois:insert({
+        tags = object.tags,
         bbox = format_bbox(object),
-        tags = object.tags
+        geom = object:as_point()
     })
 end
 
@@ -108,16 +109,16 @@ function osm2pgsql.process_way(object)
 
     -- A closed way that also has the right tags for an area is a polygon.
     if object.is_closed and has_area_tags(object.tags) then
-        tables.polygons:add_row({
+        tables.polygons:insert({
             tags = object.tags,
             bbox = format_bbox(object),
-            geom = { create = 'area' }
+            geom = object:as_polygon()
         })
     else
-        tables.ways:add_row({
+        tables.ways:insert({
             tags = object.tags,
             bbox = format_bbox(object),
-            geom = { create = 'line' }
+            geom = object:as_linestring()
         })
     end
 end
@@ -131,21 +132,21 @@ function osm2pgsql.process_relation(object)
 
     -- Store boundary relations as multilinestrings
     if relation_type == 'boundary' then
-        tables.boundaries:add_row({
+        tables.boundaries:insert({
             type = object.tags.boundary,
             bbox = format_bbox(object),
             tags = object.tags,
-            geom = { create = 'line' }
+            geom = object:as_multilinestring()
         })
         return
     end
 
     -- Store multipolygon relations as polygons
     if relation_type == 'multipolygon' then
-        tables.polygons:add_row({
+        tables.polygons:insert({
             bbox = format_bbox(object),
             tags = object.tags,
-            geom = { create = 'area' }
+            geom = object:as_multipolygon()
         })
     end
 end
