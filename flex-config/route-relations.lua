@@ -15,7 +15,7 @@ tables.highways = osm2pgsql.define_way_table('highways', {
     { column = 'tags',     type = 'jsonb' },
     { column = 'rel_refs', type = 'text' }, -- for the refs from the relations
     { column = 'rel_ids',  sql_type = 'int8[]' }, -- array with integers (for relation IDs)
-    { column = 'geom',     type = 'linestring' },
+    { column = 'geom',     type = 'linestring', not_null = true },
 })
 
 -- Tables don't have to have a geometry column
@@ -51,7 +51,8 @@ function osm2pgsql.process_way(object)
     -- Data we will store in the "highways" table always has the tags from
     -- the way
     local row = {
-        tags = object.tags
+        tags = object.tags,
+        geom = object:as_linestring()
     }
 
     -- If there is any data from parent relations, add it in
@@ -69,7 +70,7 @@ function osm2pgsql.process_way(object)
         row.rel_ids = '{' .. table.concat(ids, ',') .. '}'
     end
 
-    tables.highways:add_row(row)
+    tables.highways:insert(row)
 end
 
 -- This function is called for every added, modified, or deleted relation.
@@ -87,7 +88,7 @@ end
 -- members that might be needed in stage 2.
 function osm2pgsql.process_relation(object)
     if object.tags.type == 'route' and object.tags.route == 'road' and object.tags.ref then
-        tables.routes:add_row({
+        tables.routes:insert({
             tags = object.tags
         })
 
