@@ -100,7 +100,7 @@ if (WITH_LUA)
     set_test(test-output-flex-way-relation-del)
 
     set_test(test-output-flex-example-configs)
-    set(FLEX_EXAMPLE_CONFIGS "attributes,bbox,compatible,data-types,generic,geometries,places,route-relations,simple,unitable")
+    set(FLEX_EXAMPLE_CONFIGS "addresses,attributes,bbox,compatible,data-types,generic,geometries,places,route-relations,simple,unitable")
     # with-schema.lua is not tested because it needs the schema created in the database
     set_tests_properties(test-output-flex-example-configs PROPERTIES ENVIRONMENT "EXAMPLE_FILES=${FLEX_EXAMPLE_CONFIGS}")
 endif()
