@@ -11,25 +11,30 @@ tables.pois = osm2pgsql.define_node_table('pois', {
     { column = 'tags', type = 'jsonb' },
     -- Create a geometry column for point geometries. The geometry will be
     -- in web mercator, EPSG 3857.
-    { column = 'geom', type = 'point' },
+    --
+    -- Usually we want to declare all geometry columns as "NOT NULL". If
+    -- osm2pgsql encounters an invalid geometry (for whatever reason) it will
+    -- generate a null geometry which will not be written to the database if
+    -- "not_null" is set. The result is that broken geometries will just be
+    -- silently ignored.
+    { column = 'geom', type = 'point', not_null = true },
 })
 
 tables.ways = osm2pgsql.define_way_table('ways', {
     { column = 'tags', type = 'jsonb' },
     -- Create a geometry column for linestring geometries. The geometry will
     -- be in latlong (WGS84), EPSG 4326.
-    { column = 'geom', type = 'linestring', projection = 4326 },
+    { column = 'geom', type = 'linestring', projection = 4326, not_null = true },
 })
 
 tables.polygons = osm2pgsql.define_area_table('polygons', {
     { column = 'tags', type = 'jsonb' },
-    { column = 'geom', type = 'geometry' },
-    -- The 'area' type is used to store the calculated area of a polygon
-    -- feature. This can be used in style sheets to only render larger polygons
-    -- in small zoom levels. This will use the area in web mercator projection,
-    -- you can set 'projection = 4326' to calculate the area in WGS84. Other
-    -- projections are currently not supported.
-    { column = 'area', type = 'area' },
+    -- If we don't set "not_null = true", we'll get NULL columns for invalid
+    -- geometries. This can be useful if we want to detect those cases or
+    -- if we have multiple geometry columns and some of them can be valid
+    -- and others not.
+    { column = 'geom', type = 'geometry', projection = 4326 },
+    { column = 'area', type = 'real' },
 })
 
 tables.boundaries = osm2pgsql.define_relation_table('boundaries', {
@@ -38,7 +43,7 @@ tables.boundaries = osm2pgsql.define_relation_table('boundaries', {
     -- Boundaries will be stitched together from relation members into long
     -- linestrings. This is a multilinestring column because sometimes the
     -- boundaries are not contiguous.
-    { column = 'geom', type = 'multilinestring' },
+    { column = 'geom', type = 'multilinestring', not_null = true },
 })
 
 -- Tables don't have to have a geometry column. This one will only collect
@@ -101,15 +106,15 @@ function osm2pgsql.process_node(object)
         return
     end
 
-    -- The 'geom' column is not mentioned here. So the default geometry
-    -- transformation for a column of type 'point' will be used and the
-    -- node location will be written as Point geometry into the database.
-    tables.pois:add_row({
-        tags = object.tags
+    local geom = object:as_point()
+
+    tables.pois:insert({
+        tags = object.tags,
+        geom = geom -- the point will be automatically be projected to 3857
     })
 
     if object.tags.amenity == 'pub' then
-        tables.pubs:add_row({
+        tables.pubs:insert({
             name = object.tags.name
         })
     end
@@ -122,33 +127,36 @@ function osm2pgsql.process_way(object)
 
     -- A closed way that also has the right tags for an area is a polygon.
     if object.is_closed and has_area_tags(object.tags) then
-        tables.polygons:add_row({
+        -- Creating the polygon geometry takes time, so we do it once here
+        -- and later store it in the table and use it to calculate the area.
+        local geom = object:as_polygon()
+        tables.polygons:insert({
             tags = object.tags,
-            -- The 'geom' column of the 'polygons' table is of type 'geometry'.
-            -- There are several ways a way geometry could be converted to
-            -- a geometry so you have to specify the geometry transformation.
-            -- In this case we want to convert the way data to an area.
-            geom = { create = 'area' }
+            geom = geom,
+            -- Calculate the area in Mercator projection and store in the
+            -- area column
+            area = geom:transform(3857):area()
         })
     else
-        -- The 'geom' column of the 'ways' table is of type 'linestring'.
-        -- Osm2pgsql knows how to create a linestring from a way, but
-        -- if you want to specify extra parameters to this conversion,
-        -- you have to do this explicitly. In this case we want to split
-        -- long linestrings.
-        --
-        -- Set "split_at" to the maximum length the pieces should have. This
-        -- length is in map units, so it depends on the projection used.
+        -- We want to split long lines into smaller segments. We can use
+        -- the "segmentize" function for that. The parameter specifies the
+        -- maximum length the pieces should have. This length is in map units,
+        -- so it depends on the projection used.
         -- "Traditional" osm2pgsql sets this to 1 for 4326 geometries and
-        -- 100000 for 3857 (web mercator) geometries. The default is 0.0, which
-        -- means no splitting.
+        -- 100000 for 3857 (web mercator) geometries.
         --
-        -- Note that if a way is split this will automatically create
-        -- multiple rows that are identical except for the geometry.
-        tables.ways:add_row({
-            tags = object.tags,
-            geom = { create = 'line', split_at = 1 }
-        })
+        -- Because the result of the segmentation is a multigeometry, we'll
+        -- have to iterate over all the member geometries to be able to insert
+        -- the data into a the 'geom' column of the 'ways' table which is of
+        -- type 'linestring'. (We could have used a multilinestring geometry
+        -- in our table instead.)
+        local multi_geom = object:as_multilinestring():segmentize(1)
+        for g in multi_geom:geometries() do
+            tables.ways:insert({
+                tags = object.tags,
+                geom = g
+            })
+        end
     end
 end
 
@@ -161,25 +169,30 @@ function osm2pgsql.process_relation(object)
 
     -- Store boundary relations as multilinestrings
     if relation_type == 'boundary' then
-        tables.boundaries:add_row({
+        tables.boundaries:insert({
             type = object:grab_tag('boundary'),
             tags = object.tags,
             -- For relations there is no clear definition what their geometry
-            -- is, so you have to declare the geometry transformation
-            -- explicitly.
-            geom = { create = 'line' }
+            -- is, so you have to decide on the geometry transformation you
+            -- want. In this case we want the boundary as multilinestring
+            -- and we want lines merged as much as possible.
+            geom = object:as_multilinestring():line_merge()
         })
         return
     end
 
     -- Store multipolygon relations as polygons
     if relation_type == 'multipolygon' then
-        tables.polygons:add_row({
+        local geom = object:as_multipolygon()
+        tables.polygons:insert({
             tags = object.tags,
             -- For relations there is no clear definition what their geometry
-            -- is, so you have to declare the geometry transformation
-            -- explicitly.
-            geom = { create = 'area' }
+            -- is, so you have to decide on the geometry transformation.
+            -- In this case we know from the type tag its a (multi)polygon.
+            geom = geom,
+            -- Calculate the area in Mercator projection and store in the
+            -- area column
+            area = geom:transform(3857):area()
         })
     end
 end
