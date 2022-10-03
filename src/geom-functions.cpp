@@ -67,8 +67,6 @@ public:
     : m_output(output), m_n(n)
     {}
 
-    void operator()(nullgeom_t const & /*input*/) const { m_output->reset(); }
-
     void operator()(geom::collection_t const &input) const
     {
         *m_output = input[m_n];
