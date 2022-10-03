@@ -78,38 +78,54 @@ void expire_tiles::from_point_list(geom::point_list_t const &list)
     });
 }
 
+void expire_tiles::from_geometry(geom::point_t const &geom)
+{
+    geom::box_t const box = geom::envelope(geom);
+    from_bbox(box);
+}
+
+void expire_tiles::from_geometry(geom::linestring_t const &geom)
+{
+    from_point_list(geom);
+}
+
+void expire_tiles::from_polygon_boundary(geom::polygon_t const &geom)
+{
+    from_point_list(geom.outer());
+    for (auto const &inner : geom.inners()) {
+        from_point_list(inner);
+    }
+}
+
+void expire_tiles::from_geometry(geom::polygon_t const &geom)
+{
+    geom::box_t const box = geom::envelope(geom);
+    if (from_bbox(box)) {
+        /* Bounding box too big - just expire tiles on the boundary */
+        from_polygon_boundary(geom);
+    }
+}
+
+void expire_tiles::from_geometry(geom::multipolygon_t const &geom)
+{
+    geom::box_t const box = geom::envelope(geom);
+    if (from_bbox(box)) {
+        /* Bounding box too big - just expire tiles on the boundary */
+        for (auto const &sgeom : geom) {
+            from_polygon_boundary(sgeom);
+        }
+    }
+}
+
 void expire_tiles::from_geometry(geom::geometry_t const &geom)
 {
-    if (geom.srid() != 3857) {
-        return;
-    }
+    geom.visit([&](auto const &g) { from_geometry(g); });
+}
 
-    if (geom.is_point()) {
-        auto const box = geom::envelope(geom);
-        from_bbox(box);
-    } else if (geom.is_linestring()) {
-        from_point_list(geom.get<geom::linestring_t>());
-    } else if (geom.is_multilinestring()) {
-        for (auto const &list : geom.get<geom::multilinestring_t>()) {
-            from_point_list(list);
-        }
-    } else if (geom.is_polygon() || geom.is_multipolygon()) {
-        auto const box = geom::envelope(geom);
-        if (from_bbox(box)) {
-            if (geom.is_polygon()) {
-                from_point_list(geom.get<geom::polygon_t>().outer());
-                for (auto const &inner : geom.get<geom::polygon_t>().inners()) {
-                    from_point_list(inner);
-                }
-            } else if (geom.is_multipolygon()) {
-                for (auto const &polygon : geom.get<geom::multipolygon_t>()) {
-                    from_point_list(polygon.outer());
-                    for (auto const &inner : polygon.inners()) {
-                        from_point_list(inner);
-                    }
-                }
-            }
-        }
+void expire_tiles::from_geometry_if_3857(geom::geometry_t const &geom)
+{
+    if (geom.srid() == 3857) {
+        from_geometry(geom);
     }
 }
 
@@ -281,11 +297,8 @@ std::size_t output_tiles_to_file(quadkey_list_t const &tiles_maxzoom,
 
 int expire_from_result(expire_tiles *expire, pg_result_t const &result)
 {
-    if (!expire->enabled()) {
-        return -1;
-    }
-
     auto const num_tuples = result.num_tuples();
+
     for (int i = 0; i < num_tuples; ++i) {
         char const *const wkb = result.get_value(i, 0);
         expire->from_geometry(ewkb_to_geom(decode_hex(wkb)));

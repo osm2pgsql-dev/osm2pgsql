@@ -67,7 +67,7 @@ void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
 
         auto const wkb = geom_to_ewkb(projected_geom);
         if (!wkb.empty()) {
-            m_expire.from_geometry(projected_geom);
+            m_expire.from_geometry_if_3857(projected_geom);
             if (m_enable_way_area) {
                 double const area = calculate_area(
                     get_options()->reproject_area, geom, projected_geom);
@@ -82,7 +82,7 @@ void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
         auto const geoms = geom::split_multi(geom::segmentize(
             geom::transform(geom::create_linestring(way), *m_proj), split_at));
         for (auto const &sgeom : geoms) {
-            m_expire.from_geometry(sgeom);
+            m_expire.from_geometry_if_3857(sgeom);
             auto const wkb = geom_to_ewkb(sgeom);
             m_tables[t_line]->write_row(way.id(), *tags, wkb);
             if (roads) {
@@ -169,7 +169,7 @@ void output_pgsql_t::node_add(osmium::Node const &node)
     }
 
     auto const geom = geom::transform(geom::create_point(node), *m_proj);
-    m_expire.from_geometry(geom);
+    m_expire.from_geometry_if_3857(geom);
     auto const wkb = geom_to_ewkb(geom);
     m_tables[t_point]->write_row(node.id(), outtags, wkb);
 }
@@ -272,7 +272,7 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
         }
         auto const geoms = geom::split_multi(std::move(projected_geom));
         for (auto const &sgeom : geoms) {
-            m_expire.from_geometry(sgeom);
+            m_expire.from_geometry_if_3857(sgeom);
             auto const wkb = geom_to_ewkb(sgeom);
             m_tables[t_line]->write_row(-rel.id(), outtags, wkb);
             if (roads) {
@@ -288,7 +288,7 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
                               !get_options()->enable_multi);
         for (auto const &sgeom : geoms) {
             auto const projected_geom = geom::transform(sgeom, *m_proj);
-            m_expire.from_geometry(projected_geom);
+            m_expire.from_geometry_if_3857(projected_geom);
             auto const wkb = geom_to_ewkb(projected_geom);
             if (m_enable_way_area) {
                 double const area = calculate_area(
@@ -325,8 +325,12 @@ void output_pgsql_t::relation_add(osmium::Relation const &rel)
  * contain the change for that also. */
 void output_pgsql_t::node_delete(osmid_t osm_id)
 {
-    auto const results = m_tables[t_point]->get_wkb(osm_id);
-    if (expire_from_result(&m_expire, results) != 0) {
+    if (m_expire.enabled()) {
+        auto const results = m_tables[t_point]->get_wkb(osm_id);
+        if (expire_from_result(&m_expire, results) != 0) {
+            m_tables[t_point]->delete_row(osm_id);
+        }
+    } else {
         m_tables[t_point]->delete_row(osm_id);
     }
 }
@@ -336,8 +340,12 @@ void output_pgsql_t::delete_from_output_and_expire(osmid_t id)
     m_tables[t_roads]->delete_row(id);
 
     for (auto table : {t_line, t_poly}) {
-        auto const results = m_tables[table]->get_wkb(id);
-        if (expire_from_result(&m_expire, results) != 0) {
+        if (m_expire.enabled()) {
+            auto const results = m_tables[table]->get_wkb(id);
+            if (expire_from_result(&m_expire, results) != 0) {
+                m_tables[table]->delete_row(id);
+            }
+        } else {
             m_tables[table]->delete_row(id);
         }
     }

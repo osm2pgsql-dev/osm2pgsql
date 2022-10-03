@@ -710,6 +710,12 @@ void options_t::check_options()
                  "large and has been set to 31.");
     }
 
+    if (expire_tiles_zoom != 0 && projection->target_srs() != 3857) {
+        log_warn("Expire has been enabled (with -e or --expire-tiles) but "
+                 "target SRS is not Mercator (EPSG:3857). Expire disabled!");
+        expire_tiles_zoom = 0;
+    }
+
     if (output_backend == "flex" || output_backend == "gazetteer") {
         if (style == DEFAULT_STYLE) {
             throw std::runtime_error{
