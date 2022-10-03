@@ -65,6 +65,39 @@ TEST_CASE("create_multilinestring with single line and no force_multi",
     REQUIRE(l == expected);
 }
 
+TEST_CASE(
+    "create_multilinestring with multiple incomplete lines and no force_multi",
+    "[NoDB]")
+{
+    geom::linestring_t const expected{{1, 1}, {2, 1}};
+
+    test_buffer_t buffer;
+
+    SECTION("with second invalid line")
+    {
+        buffer.add_way("w20 Nn10x1y1,n11x2y1");
+        buffer.add_way("w21 Nn12x2y2");
+    }
+
+    SECTION("with second line with missing location")
+    {
+        buffer.add_way("w20 Nn10x1y1,n11x2y1");
+        buffer.add_way("w21 Nn12x2y2,n13");
+    }
+
+    auto const geom =
+        geom::line_merge(geom::create_multilinestring(buffer.buffer(), false));
+
+    REQUIRE(geom.is_linestring());
+    REQUIRE(geometry_type(geom) == "LINESTRING");
+    REQUIRE(num_geometries(geom) == 1);
+    REQUIRE(area(geom) == Approx(0.0));
+    REQUIRE(length(geom) == Approx(1.0));
+    auto const &l = geom.get<geom::linestring_t>();
+    REQUIRE(l.num_geometries() == 1);
+    REQUIRE(l == expected);
+}
+
 TEST_CASE("create_multilinestring with single line forming a ring", "[NoDB]")
 {
     geom::linestring_t const expected{{1, 1}, {2, 1}, {2, 2}, {1, 1}};
