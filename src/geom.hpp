@@ -246,8 +246,10 @@ class geometry_t
 public:
     constexpr geometry_t() = default;
 
-    constexpr explicit geometry_t(point_t &&geom, int srid = 4326)
-    : m_geom(geom), m_srid(srid) // geom is trivially copyable, no move needed
+    // point_t is small and trivially copyable, no move needed like for the
+    // other constructors.
+    constexpr explicit geometry_t(point_t geom, int srid = 4326)
+    : m_geom(geom), m_srid(srid)
     {}
 
     constexpr explicit geometry_t(linestring_t &&geom, int srid = 4326)

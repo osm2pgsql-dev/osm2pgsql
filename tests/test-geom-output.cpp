@@ -33,7 +33,7 @@ TEST_CASE("point_t output", "[NoDB]")
     ss1 << g;
     CHECK(ss1.str() == "1 2");
 
-    geom::geometry_t geom{std::move(g)};
+    geom::geometry_t geom{g};
     std::stringstream ss2;
     ss2 << geom;
     CHECK(ss2.str() == "POINT(1 2)");
