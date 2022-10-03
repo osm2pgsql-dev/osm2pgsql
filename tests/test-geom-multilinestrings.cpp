@@ -299,3 +299,45 @@ TEST_CASE("create_multilinestring from P shape with closed way", "[NoDB]")
     REQUIRE(ml[0] == expected[0]);
     REQUIRE(ml[1] == expected[1]);
 }
+
+TEST_CASE("create_multilinestring and simplify", "[NoDB]")
+{
+    test_buffer_t buffer;
+    buffer.add_way("w20 Nn10x1y1,n11x1y2,n12x1y3");
+    buffer.add_way("w21 Nn12x1y3,n13x2y3,n11x1y2");
+
+    auto const geom =
+        geom::create_multilinestring(buffer.buffer());
+
+    REQUIRE(geom.is_multilinestring());
+    REQUIRE(geom.srid() == 4326);
+    auto const &mls = geom.get<geom::multilinestring_t>();
+    REQUIRE(mls.num_geometries() == 2);
+    REQUIRE(mls[0] == geom::linestring_t{{1, 1}, {1, 2}, {1, 3}});
+    REQUIRE(mls[1] == geom::linestring_t{{1, 3}, {2, 3}, {1, 2}});
+
+    SECTION("simplify with small tolerance")
+    {
+        auto const simplified_geom = geom::simplify(geom, 0.1);
+        REQUIRE(simplified_geom.is_multilinestring());
+        REQUIRE(simplified_geom.srid() == 4326);
+        auto const &simplified_mls =
+            simplified_geom.get<geom::multilinestring_t>();
+        REQUIRE(simplified_mls.num_geometries() == 2);
+        REQUIRE(simplified_mls[0] == geom::linestring_t{{1, 1}, {1, 3}});
+        REQUIRE(simplified_mls[1] ==
+                geom::linestring_t{{1, 3}, {2, 3}, {1, 2}});
+    }
+
+    SECTION("simplify with large tolerance")
+    {
+        auto const simplified_geom = geom::simplify(geom, 10.0);
+        REQUIRE(simplified_geom.is_multilinestring());
+        REQUIRE(simplified_geom.srid() == 4326);
+        auto const &simplified_mls =
+            simplified_geom.get<geom::multilinestring_t>();
+        REQUIRE(simplified_mls.num_geometries() == 2);
+        REQUIRE(simplified_mls[0] == geom::linestring_t{{1, 1}, {1, 3}});
+        REQUIRE(simplified_mls[1] == geom::linestring_t{{1, 3}, {1, 2}});
+    }
+}

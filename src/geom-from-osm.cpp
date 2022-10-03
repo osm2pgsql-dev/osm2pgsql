@@ -29,7 +29,14 @@ geometry_t create_point(osmium::Node const &node)
     return geometry_t{point_t{node.location()}};
 }
 
-static void fill_point_list(point_list_t *list,
+/**
+ * Fill point list with locations from nodes list. Consecutive identical
+ * locations are collapsed into a single point.
+ *
+ * Returns true if the result is a valid linestring, i.e. it has more than
+ * one point.
+ */
+static bool fill_point_list(point_list_t *list,
                             osmium::NodeRefList const &nodes)
 {
     osmium::Location last{};
@@ -41,16 +48,15 @@ static void fill_point_list(point_list_t *list,
             last = loc;
         }
     }
+
+    return list->size() > 1;
 }
 
 void create_linestring(geometry_t *geom, osmium::Way const &way)
 {
     auto &line = geom->set<linestring_t>();
 
-    fill_point_list(&line, way.nodes());
-
-    // Return nullgeom_t if the line geometry is invalid
-    if (line.size() <= 1U) {
+    if (!fill_point_list(&line, way.nodes())) {
         geom->reset();
     }
 }
@@ -134,16 +140,14 @@ void create_multilinestring(geometry_t *geom,
     if (ways.size() == 1 && !force_multi) {
         auto &line = geom->set<linestring_t>();
         auto &way = *ways.begin();
-        fill_point_list(&line, way.nodes());
-        if (line.size() < 2U) {
+        if (!fill_point_list(&line, way.nodes())) {
             geom->reset();
         }
     } else {
         auto &multiline = geom->set<multilinestring_t>();
         for (auto const &way : ways) {
             linestring_t line;
-            fill_point_list(&line, way.nodes());
-            if (line.size() >= 2U) {
+            if (fill_point_list(&line, way.nodes())) {
                 multiline.add_geometry(std::move(line));
             }
         }
@@ -228,8 +232,7 @@ void create_collection(geometry_t *geom, osmium::memory::Buffer const &buffer)
             auto const &way = static_cast<osmium::Way const &>(obj);
             geometry_t item;
             auto &line = item.set<linestring_t>();
-            fill_point_list(&line, way.nodes());
-            if (line.size() >= 2U) {
+            if (fill_point_list(&line, way.nodes())) {
                 collection.add_geometry(std::move(item));
             }
         }

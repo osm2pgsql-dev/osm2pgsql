@@ -14,6 +14,12 @@
 
 namespace geom {
 
+void point_list_t::remove_duplicates()
+{
+    auto const it = std::unique(begin(), end());
+    erase(it, end());
+}
+
 bool operator==(polygon_t const &a, polygon_t const &b) noexcept
 {
     return (a.outer() == b.outer()) && (a.inners() == b.inners());

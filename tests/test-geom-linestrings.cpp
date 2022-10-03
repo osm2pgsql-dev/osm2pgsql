@@ -39,6 +39,15 @@ TEST_CASE("geom::linestring_t", "[NoDB]")
     REQUIRE(ls1.num_geometries() == 1);
 }
 
+TEST_CASE("remove duplicate points in linestring", "[NoDB]")
+{
+    geom::linestring_t ls{{1, 1}, {1, 2}, {1, 2}, {2, 2}};
+    REQUIRE(ls.size() == 4);
+    ls.remove_duplicates();
+    REQUIRE(ls.size() == 3);
+    REQUIRE(ls == geom::linestring_t{{1, 1}, {1, 2}, {2, 2}});
+}
+
 TEST_CASE("line geometry", "[NoDB]")
 {
     geom::geometry_t const geom{geom::linestring_t{{1, 1}, {2, 2}}};
@@ -276,5 +285,32 @@ TEST_CASE("geom::simplify of a loop", "[NoDB]")
         auto const geom = geom::simplify(input, 10.0);
 
         REQUIRE(geom.is_null());
+    }
+}
+
+TEST_CASE("geom::simplify of straight line", "[NoDB]")
+{
+    geom::geometry_t const input{geom::linestring_t{{1, 1}, {1, 2}, {1, 3}}};
+
+    SECTION("small tolerance simplifies linestring")
+    {
+        auto const geom = geom::simplify(input, 0.5);
+
+        REQUIRE(geom.is_linestring());
+        auto const &l = geom.get<geom::linestring_t>();
+        REQUIRE(l.size() == 2);
+        REQUIRE(l[0] == input.get<geom::linestring_t>()[0]);
+        REQUIRE(l[1] == input.get<geom::linestring_t>()[2]);
+    }
+
+    SECTION("large tolerance also simplifies linestring")
+    {
+        auto const geom = geom::simplify(input, 10.0);
+
+        REQUIRE(geom.is_linestring());
+        auto const &l = geom.get<geom::linestring_t>();
+        REQUIRE(l.size() == 2);
+        REQUIRE(l[0] == input.get<geom::linestring_t>()[0]);
+        REQUIRE(l[1] == input.get<geom::linestring_t>()[2]);
     }
 }
