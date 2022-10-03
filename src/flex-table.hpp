@@ -110,6 +110,14 @@ public:
         return m_geom_column != std::numeric_limits<std::size_t>::max();
     }
 
+    bool has_hstore_column() const noexcept
+    {
+        auto const it = std::find_if(begin(), end(), [&](auto const &column) {
+            return column.type() == table_column_type::hstore;
+        });
+        return it != end();
+    }
+
     /// Get the (first, if there are multiple) geometry column.
     flex_table_column_t const &geom_column() const noexcept
     {

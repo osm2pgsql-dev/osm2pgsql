@@ -26,6 +26,7 @@ target_sources(osm2pgsql_lib PRIVATE
   output-pgsql.cpp
   output.cpp
   pgsql.cpp
+  pgsql-capabilities.cpp
   pgsql-helper.cpp
   progress-display.cpp
   reprojection.cpp

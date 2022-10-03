@@ -10,6 +10,7 @@
 #include "flex-table.hpp"
 #include "format.hpp"
 #include "logging.hpp"
+#include "pgsql-capabilities.hpp"
 #include "pgsql-helper.hpp"
 #include "util.hpp"
 
@@ -188,6 +189,30 @@ enable_check_trigger(pg_conn_t *db_connection, flex_table_t const &table)
 void table_connection_t::start(bool append)
 {
     assert(m_db_connection);
+
+    if (!has_schema(*m_db_connection, table().schema())) {
+        throw std::runtime_error{
+            "Schema '{0}' not available. "
+            "Use 'CREATE SCHEMA \"{0}\";' to create it."_format(
+                table().schema())};
+    }
+
+    for (auto const &ts :
+         {table().data_tablespace(), table().index_tablespace()}) {
+        if (!has_tablespace(*m_db_connection, ts)) {
+            throw std::runtime_error{
+                "Tablespace '{0}' not available. "
+                "Use 'CREATE TABLESPACE \"{0}\" ...;' to create it."_format(
+                    ts)};
+        }
+    }
+
+    if (table().has_hstore_column()) {
+        if (!has_extension(*m_db_connection, "hstore")) {
+            throw std::runtime_error{"Extension 'hstore' not available. Use "
+                                     "'CREATE EXTENSION hstore;' to load it."};
+        }
+    }
 
     m_db_connection->exec("SET client_min_messages = WARNING");
 
