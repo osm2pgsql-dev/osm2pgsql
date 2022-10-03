@@ -101,7 +101,7 @@ std::basic_ostream<CHAR, TRAITS> &
 operator<<(std::basic_ostream<CHAR, TRAITS> &out, const geometry_t &geom)
 {
     out << geometry_type(geom) << '(';
-    geom.visit(overloaded{[&](auto const &input) { out << input; }});
+    geom.visit([&](auto const &input) { out << input; });
     return out << ')';
 }
 

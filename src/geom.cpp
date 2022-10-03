@@ -40,8 +40,7 @@ std::size_t dimension(collection_t const &geom)
 
 std::size_t dimension(geometry_t const &geom)
 {
-    return geom.visit(
-        overloaded{[&](auto const &input) { return dimension(input); }});
+    return geom.visit([&](auto const &input) { return dimension(input); });
 }
 
 } // namespace geom

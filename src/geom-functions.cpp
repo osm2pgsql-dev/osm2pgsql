@@ -55,7 +55,7 @@ std::string_view geometry_type(geometry_t const &geom)
 std::size_t num_geometries(geometry_t const &geom)
 {
     return geom.visit(
-        overloaded{[&](auto const &input) { return input.num_geometries(); }});
+        [&](auto const &input) { return input.num_geometries(); });
 }
 
 namespace {
@@ -117,7 +117,7 @@ namespace {
 
 void set_to_same_type(geometry_t *output, geometry_t const &input)
 {
-    input.visit(overloaded{[&](auto in) { output->set<decltype(in)>(); }});
+    input.visit([&](auto in) { output->set<decltype(in)>(); });
 }
 
 class transform_visitor
