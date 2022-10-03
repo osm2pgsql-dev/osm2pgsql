@@ -32,6 +32,8 @@ point_t interpolate(point_t p1, point_t p2, double frac) noexcept
                    frac * (p1.y() - p2.y()) + p2.y()};
 }
 
+/****************************************************************************/
+
 std::string_view geometry_type(geometry_t const &geom)
 {
     using namespace std::literals::string_view_literals;
@@ -52,11 +54,15 @@ std::string_view geometry_type(geometry_t const &geom)
         }});
 }
 
+/****************************************************************************/
+
 std::size_t num_geometries(geometry_t const &geom)
 {
     return geom.visit(
         [&](auto const &input) { return input.num_geometries(); });
 }
+
+/****************************************************************************/
 
 namespace {
 
@@ -110,6 +116,8 @@ geometry_t geometry_n(geometry_t const &input, std::size_t n)
     geometry_n(&output, input, n);
     return output;
 }
+
+/****************************************************************************/
 
 namespace {
 
@@ -231,6 +239,8 @@ geometry_t transform(geometry_t const &input, reprojection const &reprojection)
     return output;
 }
 
+/****************************************************************************/
+
 namespace {
 
 /**
@@ -333,6 +343,8 @@ geometry_t segmentize(geometry_t const &input, double max_segment_length)
     return output;
 }
 
+/****************************************************************************/
+
 double area(geometry_t const &geom)
 {
     return std::abs(geom.visit(
@@ -347,6 +359,8 @@ double area(geometry_t const &geom)
                        return static_cast<double>(boost::geometry::area(input));
                    }}));
 }
+
+/****************************************************************************/
 
 double length(geometry_t const &geom)
 {
@@ -363,6 +377,8 @@ double length(geometry_t const &geom)
             return static_cast<double>(boost::geometry::length(input));
         }});
 }
+
+/****************************************************************************/
 
 namespace {
 
@@ -411,25 +427,6 @@ std::vector<geometry_t> split_multi(geometry_t &&geom, bool split_multi)
     }
 
     return output;
-}
-
-/**
- * Add points specified by iterators to the linestring. If linestring is not
- * empty, do not add the first point returned by *it.
- */
-template <typename ITERATOR>
-static void add_nodes_to_linestring(linestring_t *linestring, ITERATOR it,
-                                    ITERATOR end)
-{
-    if (!linestring->empty()) {
-        assert(it != end);
-        ++it;
-    }
-
-    while (it != end) {
-        linestring->push_back(*it);
-        ++it;
-    }
 }
 
 /****************************************************************************/
@@ -487,6 +484,25 @@ geometry_t reverse(geometry_t const &input)
 }
 
 /****************************************************************************/
+
+/**
+ * Add points specified by iterators to the linestring. If linestring is not
+ * empty, do not add the first point returned by *it.
+ */
+template <typename ITERATOR>
+static void add_nodes_to_linestring(linestring_t *linestring, ITERATOR it,
+                                    ITERATOR end)
+{
+    if (!linestring->empty()) {
+        assert(it != end);
+        ++it;
+    }
+
+    while (it != end) {
+        linestring->push_back(*it);
+        ++it;
+    }
+}
 
 void line_merge(geometry_t *output, geometry_t const &input)
 {
@@ -669,6 +685,8 @@ geometry_t line_merge(geometry_t const &input)
     line_merge(&output, input);
     return output;
 }
+
+/****************************************************************************/
 
 /**
  * This helper function is used to calculate centroids of geometry collections.
