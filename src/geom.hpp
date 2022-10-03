@@ -373,13 +373,13 @@ private:
 
 }; // class geometry_t
 
-inline std::size_t dimension(nullgeom_t) noexcept { return 0; }
-inline std::size_t dimension(point_t) noexcept { return 0; }
-inline std::size_t dimension(linestring_t) noexcept { return 1; }
-inline std::size_t dimension(polygon_t) noexcept { return 2; }
-inline std::size_t dimension(multipoint_t) noexcept { return 0; }
-inline std::size_t dimension(multilinestring_t) noexcept { return 1; }
-inline std::size_t dimension(multipolygon_t) noexcept { return 2; }
+inline std::size_t dimension(nullgeom_t const &) noexcept { return 0; }
+inline std::size_t dimension(point_t const &) noexcept { return 0; }
+inline std::size_t dimension(linestring_t const &) noexcept { return 1; }
+inline std::size_t dimension(polygon_t const &) noexcept { return 2; }
+inline std::size_t dimension(multipoint_t const &) noexcept { return 0; }
+inline std::size_t dimension(multilinestring_t const &) noexcept { return 1; }
+inline std::size_t dimension(multipolygon_t const &) noexcept { return 2; }
 
 std::size_t dimension(collection_t const &geom);
 

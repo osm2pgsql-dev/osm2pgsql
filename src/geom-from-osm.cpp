@@ -139,7 +139,7 @@ void create_multilinestring(geometry_t *geom,
     auto ways = buffer.select<osmium::Way>();
     if (ways.size() == 1 && !force_multi) {
         auto &line = geom->set<linestring_t>();
-        auto &way = *ways.begin();
+        auto const &way = *ways.begin();
         if (!fill_point_list(&line, way.nodes())) {
             geom->reset();
         }
