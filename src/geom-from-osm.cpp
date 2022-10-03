@@ -112,14 +112,14 @@ void create_multipoint(geometry_t *geom, osmium::memory::Buffer const &buffer)
             geom->reset();
         }
     } else {
-        auto &multiline = geom->set<multipoint_t>();
+        auto &multipoint = geom->set<multipoint_t>();
         for (auto const &node : nodes) {
             auto const location = node.location();
             if (location.valid()) {
-                multiline.add_geometry(point_t{location});
+                multipoint.add_geometry(point_t{location});
             }
         }
-        if (multiline.num_geometries() == 0) {
+        if (multipoint.num_geometries() == 0) {
             geom->reset();
         }
     }
