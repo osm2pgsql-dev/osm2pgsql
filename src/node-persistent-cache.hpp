@@ -24,6 +24,12 @@ public:
     node_persistent_cache(std::string file_name, bool remove_file);
     ~node_persistent_cache() noexcept;
 
+    node_persistent_cache(node_persistent_cache const &) = delete;
+    node_persistent_cache &operator=(node_persistent_cache const &) = delete;
+
+    node_persistent_cache(node_persistent_cache &&) = delete;
+    node_persistent_cache &operator=(node_persistent_cache &&) = delete;
+
     void set(osmid_t id, osmium::Location location);
     osmium::Location get(osmid_t id) const noexcept;
 

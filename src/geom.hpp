@@ -246,8 +246,10 @@ class geometry_t
 public:
     constexpr geometry_t() = default;
 
-    constexpr explicit geometry_t(point_t &&geom, int srid = 4326)
-    : m_geom(geom), m_srid(srid) // geom is trivially copyable, no move needed
+    // point_t is small and trivially copyable, no move needed like for the
+    // other constructors.
+    constexpr explicit geometry_t(point_t geom, int srid = 4326)
+    : m_geom(geom), m_srid(srid)
     {}
 
     constexpr explicit geometry_t(linestring_t &&geom, int srid = 4326)
@@ -373,13 +375,13 @@ private:
 
 }; // class geometry_t
 
-inline std::size_t dimension(nullgeom_t) noexcept { return 0; }
-inline std::size_t dimension(point_t) noexcept { return 0; }
-inline std::size_t dimension(linestring_t) noexcept { return 1; }
-inline std::size_t dimension(polygon_t) noexcept { return 2; }
-inline std::size_t dimension(multipoint_t) noexcept { return 0; }
-inline std::size_t dimension(multilinestring_t) noexcept { return 1; }
-inline std::size_t dimension(multipolygon_t) noexcept { return 2; }
+inline std::size_t dimension(nullgeom_t const &) noexcept { return 0; }
+inline std::size_t dimension(point_t const &) noexcept { return 0; }
+inline std::size_t dimension(linestring_t const &) noexcept { return 1; }
+inline std::size_t dimension(polygon_t const &) noexcept { return 2; }
+inline std::size_t dimension(multipoint_t const &) noexcept { return 0; }
+inline std::size_t dimension(multilinestring_t const &) noexcept { return 1; }
+inline std::size_t dimension(multipolygon_t const &) noexcept { return 2; }
 
 std::size_t dimension(collection_t const &geom);
 

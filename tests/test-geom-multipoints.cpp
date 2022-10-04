@@ -34,7 +34,7 @@ TEST_CASE("multipoint_t with a single point", "[NoDB]")
     REQUIRE(area(geom) == Approx(0.0));
     REQUIRE(length(geom) == Approx(0.0));
     REQUIRE(reverse(geom) == geom);
-    REQUIRE(centroid(geom) == geom::geometry_t{std::move(point)});
+    REQUIRE(centroid(geom) == geom::geometry_t{point});
 
     REQUIRE(mp[0] == expected);
 }
@@ -63,9 +63,9 @@ TEST_CASE("multipoint_t with several points", "[NoDB]")
     REQUIRE(mp[1] == p1);
     REQUIRE(mp[2] == p2);
 
-    REQUIRE(geometry_n(geom, 1) == geom::geometry_t{std::move(p0)});
-    REQUIRE(geometry_n(geom, 2) == geom::geometry_t{std::move(p1)});
-    REQUIRE(geometry_n(geom, 3) == geom::geometry_t{std::move(p2)});
+    REQUIRE(geometry_n(geom, 1) == geom::geometry_t{p0});
+    REQUIRE(geometry_n(geom, 2) == geom::geometry_t{p1});
+    REQUIRE(geometry_n(geom, 3) == geom::geometry_t{p2});
 }
 
 TEST_CASE("create_multipoint from OSM data", "[NoDB]")
