@@ -19,6 +19,10 @@ tables.nodes = osm2pgsql.define_node_table('nodes', {
     -- There is no built-in type for timestamps in osm2pgsql. So we use the
     -- PostgreSQL type "timestamp" and then have to convert our timestamps
     -- to a valid text representation for that type.
+    --
+    -- Timestamps in OSM are always in UTC, depending on your use case you
+    -- might want to store them using "timestamptz" instead.
+    -- See https://github.com/openstreetmap/osm2pgsql/issues/1785
     { column = 'created', sql_type = 'timestamp' },
     { column = 'uid', type = 'int' },
     { column = 'user', type = 'text' },
