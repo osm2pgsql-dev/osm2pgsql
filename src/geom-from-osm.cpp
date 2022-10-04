@@ -112,15 +112,23 @@ void create_multipoint(geometry_t *geom, osmium::memory::Buffer const &buffer)
             geom->reset();
         }
     } else {
-        auto &multiline = geom->set<multipoint_t>();
+        auto &multipoint = geom->set<multipoint_t>();
         for (auto const &node : nodes) {
             auto const location = node.location();
             if (location.valid()) {
-                multiline.add_geometry(point_t{location});
+                multipoint.add_geometry(point_t{location});
             }
         }
-        if (multiline.num_geometries() == 0) {
+        if (multipoint.num_geometries() == 0) {
             geom->reset();
+        }
+
+        // In the (unlikely) event that this multipoint geometry only contains
+        // a single point because locations for all others were not available
+        // turn it into a point geometry retroactively.
+        if (multipoint.num_geometries() == 1) {
+            auto const p = multipoint[0];
+            geom->set<point_t>() = p;
         }
     }
 }
@@ -153,6 +161,15 @@ void create_multilinestring(geometry_t *geom,
         }
         if (multiline.num_geometries() == 0) {
             geom->reset();
+        }
+
+        // In the (unlikely) event that this multilinestring geometry only
+        // contains a single linestring because ways or locations for all
+        // others were not available turn it into a linestring geometry
+        // retroactively.
+        if (multiline.num_geometries() == 1 && !force_multi) {
+            auto p = std::move(multiline[0]);
+            geom->set<linestring_t>() = std::move(p);
         }
     }
 }

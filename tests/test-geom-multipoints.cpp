@@ -95,3 +95,29 @@ TEST_CASE("create_multipoint from OSM data", "[NoDB]")
     REQUIRE(length(geom) == Approx(0.0));
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{2, 1}});
 }
+
+TEST_CASE("create_multipoint from OSM data with only a single point", "[NoDB]")
+{
+    test_buffer_t buffer;
+
+    SECTION("only single node in relation")
+    {
+        buffer.add_node("n10 x1 y0");
+    }
+
+    SECTION("two nodes in relation, but one with missing location")
+    {
+        buffer.add_node("n10 x1 y0");
+        buffer.add_node("n11");
+    }
+
+    auto const geom = geom::create_multipoint(buffer.buffer());
+
+    REQUIRE(geometry_type(geom) == "POINT");
+    REQUIRE(dimension(geom) == 0);
+    REQUIRE(num_geometries(geom) == 1);
+    REQUIRE(geom.get<geom::point_t>() == geom::point_t{1, 0});
+    REQUIRE(area(geom) == Approx(0.0));
+    REQUIRE(length(geom) == Approx(0.0));
+    REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{1, 0}});
+}
