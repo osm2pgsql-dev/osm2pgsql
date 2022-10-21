@@ -1199,6 +1199,7 @@ int output_flex_t::app_define_table()
     setup_id_columns(&new_table);
     setup_flex_table_columns(&new_table);
 
+    // NOLINTNEXTLINE(performance-no-int-to-ptr)
     lua_pushlightuserdata(lua_state(), (void *)(m_tables->size()));
     luaL_getmetatable(lua_state(), osm2pgsql_table_name);
     lua_setmetatable(lua_state(), -2);

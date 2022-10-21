@@ -29,7 +29,7 @@ static options_t opt(std::vector<char const *> opts)
 {
     opts.insert(opts.begin(), "osm2pgsql");
     opts.push_back(TEST_PBF);
-    return options_t((int)opts.size(), (char **)opts.data());
+    return {(int)opts.size(), (char **)opts.data()};
 }
 
 TEST_CASE("Insufficient arguments", "[NoDB]")

@@ -16,9 +16,9 @@
 
 #ifdef HAVE_LUA
 # include "output-flex.hpp"
-# define flex_backend "flex, "
+static constexpr char const *const flex_backend = "flex, ";
 #else
-# define flex_backend ""
+static constexpr char const *const flex_backend = "";
 #endif
 
 #include <stdexcept>
@@ -57,8 +57,8 @@ output_t::create_output(std::shared_ptr<middle_query_t> const &mid,
 
     throw std::runtime_error{
         "Output backend '{}' not recognised. Should be one "
-        "of [pgsql, " flex_backend
-        "gazetteer, null]."_format(options.output_backend)};
+        "of [pgsql, {}gazetteer, null]."_format(options.output_backend,
+                                                flex_backend)};
 }
 
 output_t::output_t(std::shared_ptr<middle_query_t> mid,

@@ -37,7 +37,7 @@
 class pg_result_t
 {
 public:
-    pg_result_t() {}
+    pg_result_t() = default;
 
     explicit pg_result_t(PGresult *result) noexcept : m_result(result) {}
 
@@ -100,7 +100,7 @@ public:
     }
 
     /// Return true if this holds an actual result.
-    operator bool() { return m_result.get(); }
+    explicit operator bool() { return m_result.get(); }
 
 private:
     struct pg_result_deleter_t
