@@ -21,7 +21,7 @@ static void bad_opt(std::vector<char const *> opts, char const *msg)
 {
     opts.insert(opts.begin(), "osm2pgsql");
     opts.push_back(TEST_PBF);
-    REQUIRE_THROWS_WITH(options_t((int)opts.size(), (char **)&opts[0]),
+    REQUIRE_THROWS_WITH(options_t((int)opts.size(), (char **)opts.data()),
                         Catch::Matchers::Contains(msg));
 }
 
@@ -29,13 +29,13 @@ static options_t opt(std::vector<char const *> opts)
 {
     opts.insert(opts.begin(), "osm2pgsql");
     opts.push_back(TEST_PBF);
-    return options_t((int)opts.size(), (char **)&opts[0]);
+    return options_t((int)opts.size(), (char **)opts.data());
 }
 
 TEST_CASE("Insufficient arguments", "[NoDB]")
 {
     std::vector<char const *> opts = {"osm2pgsql", "-a", "-c", "--slim"};
-    REQUIRE_THROWS_WITH(options_t((int)opts.size(), (char **)&opts[0]),
+    REQUIRE_THROWS_WITH(options_t((int)opts.size(), (char **)opts.data()),
                         Catch::Matchers::Contains("Missing input"));
 }
 

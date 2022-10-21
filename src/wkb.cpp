@@ -428,7 +428,7 @@ private:
         check_bytes(sizeof(double) * 2);
 
         std::array<double, 2> data{};
-        std::memcpy(&data[0], m_it, sizeof(double) * 2);
+        std::memcpy(data.data(), m_it, sizeof(double) * 2);
         m_it += sizeof(double) * 2;
 
         point->set_x(data[0]);
