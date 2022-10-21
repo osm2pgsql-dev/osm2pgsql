@@ -1,5 +1,5 @@
 ---
-Checks: '*,-android-cloexec-*,-cert-err58-cpp,-cppcoreguidelines-avoid-magic-numbers,-cppcoreguidelines-avoid-non-const-global-variables,-cppcoreguidelines-owning-memory,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-cppcoreguidelines-pro-type-cstyle-cast,-cppcoreguidelines-pro-type-reinterpret-cast,-cppcoreguidelines-pro-type-static-cast-downcast,-cppcoreguidelines-pro-type-vararg,-fuchsia-*,-google-readability-casting,-google-readability-todo,-hicpp-named-parameter,-hicpp-no-array-decay,-hicpp-vararg,-llvm-include-order,-llvm-header-guard,-llvmlibc-*,-misc-no-recursion,-modernize-use-nodiscard,-modernize-use-trailing-return-type,-readability-implicit-bool-conversion,-readability-named-parameter,-readability-magic-numbers'
+Checks: '*,-altera-*,-android-cloexec-*,-cert-err58-cpp,-cppcoreguidelines-avoid-magic-numbers,-cppcoreguidelines-avoid-non-const-global-variables,-cppcoreguidelines-owning-memory,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-cppcoreguidelines-pro-type-cstyle-cast,-cppcoreguidelines-pro-type-reinterpret-cast,-cppcoreguidelines-pro-type-static-cast-downcast,-cppcoreguidelines-pro-type-vararg,-fuchsia-*,-google-readability-casting,-google-readability-todo,-hicpp-named-parameter,-hicpp-no-array-decay,-hicpp-vararg,-llvm-include-order,-llvm-header-guard,-llvmlibc-*,-misc-no-recursion,-modernize-use-nodiscard,-modernize-use-trailing-return-type,-readability-identifier-length,-readability-implicit-bool-conversion,-readability-named-parameter,-readability-magic-numbers'
 #
 #  cppcoreguidelines-pro-type-cstyle-cast
 #  google-build-using-namespace
@@ -9,6 +9,9 @@ Checks: '*,-android-cloexec-*,-cert-err58-cpp,-cppcoreguidelines-avoid-magic-num
 #  hicpp-named-parameter
 #  readability-named-parameter
 #    Differ from our style guidelines
+#
+#  altera-*
+#    Not applicable.
 #
 #  android-cloexec-*
 #    O_CLOEXEC isn't available on Windows
@@ -55,6 +58,10 @@ Checks: '*,-android-cloexec-*,-cert-err58-cpp,-cppcoreguidelines-avoid-magic-num
 #
 #  modernize-use-trailing-return-type
 #    We are not that modern...
+#
+#  readability-identifier-length
+#    Generally not a bad idea, but there are many cases where short names
+#    for (local) vars are okay.
 #
 #  readability-implicit-bool-conversion
 #    Readability is a matter of opinion here
