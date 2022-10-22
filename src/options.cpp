@@ -454,7 +454,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
                 ++next_char;
                 // Second number must not be negative because zoom levels must be positive.
                 if (next_char && *next_char != '-' && isdigit(*next_char)) {
-                    char *after_maxzoom;
+                    char *after_maxzoom = nullptr;
                     expire_tiles_zoom = static_cast<uint32_t>(
                         std::strtoul(next_char, &after_maxzoom, 10));
                     if (expire_tiles_zoom == 0 || *after_maxzoom != '\0') {

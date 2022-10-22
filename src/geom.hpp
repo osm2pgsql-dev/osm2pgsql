@@ -194,13 +194,13 @@ public:
     [[nodiscard]] GEOM &add_geometry() { return m_geometry.emplace_back(); }
 
     [[nodiscard]] friend bool operator==(multigeometry_t const &a,
-                                         multigeometry_t const &b) noexcept
+                                         multigeometry_t const &b)
     {
         return a.m_geometry == b.m_geometry;
     }
 
     [[nodiscard]] friend bool operator!=(multigeometry_t const &a,
-                                         multigeometry_t const &b) noexcept
+                                         multigeometry_t const &b)
     {
         return a.m_geometry != b.m_geometry;
     }
@@ -355,13 +355,13 @@ public:
     }
 
     [[nodiscard]] friend bool operator==(geometry_t const &a,
-                                         geometry_t const &b) noexcept
+                                         geometry_t const &b)
     {
         return (a.srid() == b.srid()) && (a.m_geom == b.m_geom);
     }
 
     [[nodiscard]] friend bool operator!=(geometry_t const &a,
-                                         geometry_t const &b) noexcept
+                                         geometry_t const &b)
     {
         return !(a == b);
     }

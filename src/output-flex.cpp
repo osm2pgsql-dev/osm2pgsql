@@ -217,7 +217,7 @@ static void push_osm_object_to_lua_stack(lua_State *lua_state,
                 lua_createtable(lua_state, 0, 3);
                 std::array<char, 2> tmp{"x"};
                 tmp[0] = osmium::item_type_to_char(member.type());
-                luaX_add_table_str(lua_state, "type", &tmp[0]);
+                luaX_add_table_str(lua_state, "type", tmp.data());
                 luaX_add_table_int(lua_state, "ref", member.ref());
                 luaX_add_table_str(lua_state, "role", member.role());
             });
@@ -1199,6 +1199,7 @@ int output_flex_t::app_define_table()
     setup_id_columns(&new_table);
     setup_flex_table_columns(&new_table);
 
+    // NOLINTNEXTLINE(performance-no-int-to-ptr)
     lua_pushlightuserdata(lua_state(), (void *)(m_tables->size()));
     luaL_getmetatable(lua_state(), osm2pgsql_table_name);
     lua_setmetatable(lua_state(), -2);
