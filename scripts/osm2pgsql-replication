@@ -51,10 +51,7 @@ except ImportError:
 
 LOG = logging.getLogger()
 
-# Will be replaced when installed via CMake.
-INSTALL_PREFIX = '@OSM2PGSQL_BINDIR@/'
-if INSTALL_PREFIX.startswith('@'):
-    INSTALL_PREFIX = ''
+OSM2PGSQL_PATH = Path(__file__).parent.resolve() / 'osm2pgsql'
 
 def pretty_format_timedelta(seconds):
     minutes = int(seconds/60)
@@ -493,8 +490,8 @@ def get_parser():
                      help='File to save changes before they are applied to osm2pgsql.')
     cmd.add_argument('--max-diff-size', type=int, default=500,
                      help='Maximum data to load in MB (default: 500MB)')
-    cmd.add_argument('--osm2pgsql-cmd', default=INSTALL_PREFIX + 'osm2pgsql',
-                     help=f'Path to osm2pgsql command (default: {INSTALL_PREFIX}osm2pgsql)')
+    cmd.add_argument('--osm2pgsql-cmd', default=str(OSM2PGSQL_PATH),
+                     help=f'Path to osm2pgsql command (default: {OSM2PGSQL_PATH})')
     cmd.add_argument('--once', action='store_true',
                      help='Run updates only once, even when more data is available.')
     cmd.add_argument('--post-processing', metavar='SCRIPT',
