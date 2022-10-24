@@ -325,8 +325,21 @@ void output_pgsql_t::relation_add(osmium::Relation const &rel)
  * contain the change for that also. */
 void output_pgsql_t::node_delete(osmid_t osm_id)
 {
-    if (m_expire.from_result(m_tables[t_point]->get_wkb(osm_id)) != 0) {
+    auto const results = m_tables[t_point]->get_wkb(osm_id);
+    if (expire_from_result(&m_expire, results) != 0) {
         m_tables[t_point]->delete_row(osm_id);
+    }
+}
+
+void output_pgsql_t::delete_from_output_and_expire(osmid_t id)
+{
+    m_tables[t_roads]->delete_row(id);
+
+    for (auto table : {t_line, t_poly}) {
+        auto const results = m_tables[table]->get_wkb(id);
+        if (expire_from_result(&m_expire, results) != 0) {
+            m_tables[table]->delete_row(id);
+        }
     }
 }
 
@@ -342,13 +355,7 @@ void output_pgsql_t::pgsql_delete_way_from_output(osmid_t osm_id)
         return;
     }
 
-    m_tables[t_roads]->delete_row(osm_id);
-    if (m_expire.from_result(m_tables[t_line]->get_wkb(osm_id)) != 0) {
-        m_tables[t_line]->delete_row(osm_id);
-    }
-    if (m_expire.from_result(m_tables[t_poly]->get_wkb(osm_id)) != 0) {
-        m_tables[t_poly]->delete_row(osm_id);
-    }
+    delete_from_output_and_expire(osm_id);
 }
 
 void output_pgsql_t::way_delete(osmid_t osm_id)
@@ -359,13 +366,7 @@ void output_pgsql_t::way_delete(osmid_t osm_id)
 /* Relations are identified by using negative IDs */
 void output_pgsql_t::pgsql_delete_relation_from_output(osmid_t osm_id)
 {
-    m_tables[t_roads]->delete_row(-osm_id);
-    if (m_expire.from_result(m_tables[t_line]->get_wkb(-osm_id)) != 0) {
-        m_tables[t_line]->delete_row(-osm_id);
-    }
-    if (m_expire.from_result(m_tables[t_poly]->get_wkb(-osm_id)) != 0) {
-        m_tables[t_poly]->delete_row(-osm_id);
-    }
+    delete_from_output_and_expire(-osm_id);
 }
 
 void output_pgsql_t::relation_delete(osmid_t osm_id)

@@ -1915,7 +1915,7 @@ void output_flex_t::delete_from_table(table_connection_t *table_connection,
             return;
         }
 
-        m_expire.from_result(result);
+        expire_from_result(&m_expire, result);
     }
 
     table_connection->delete_rows_with(type, id);

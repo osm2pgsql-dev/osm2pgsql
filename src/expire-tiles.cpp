@@ -230,21 +230,6 @@ int expire_tiles::from_bbox(geom::box_t const &box)
     return 0;
 }
 
-int expire_tiles::from_result(pg_result_t const &result)
-{
-    if (!enabled()) {
-        return -1;
-    }
-
-    auto const num_tuples = result.num_tuples();
-    for (int i = 0; i < num_tuples; ++i) {
-        char const *const wkb = result.get_value(i, 0);
-        from_geometry(ewkb_to_geom(decode_hex(wkb)));
-    }
-
-    return num_tuples;
-}
-
 quadkey_list_t expire_tiles::get_tiles()
 {
     quadkey_list_t tiles;
@@ -292,4 +277,19 @@ std::size_t output_tiles_to_file(quadkey_list_t const &tiles_maxzoom,
     std::fclose(outfile);
 
     return count;
+}
+
+int expire_from_result(expire_tiles *expire, pg_result_t const &result)
+{
+    if (!expire->enabled()) {
+        return -1;
+    }
+
+    auto const num_tuples = result.num_tuples();
+    for (int i = 0; i < num_tuples; ++i) {
+        char const *const wkb = result.get_value(i, 0);
+        expire->from_geometry(ewkb_to_geom(decode_hex(wkb)));
+    }
+
+    return num_tuples;
 }

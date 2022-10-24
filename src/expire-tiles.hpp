@@ -37,16 +37,6 @@ public:
     int from_bbox(geom::box_t const &box);
 
     /**
-     * Expire tiles based on an osm id.
-     *
-     * \param result Result of a database query into some table returning the
-     *               geometries. (This is usually done using the "get_wkb"
-     *               prepared statement.)
-     * \return The number of tuples in the result or -1 if expire is disabled.
-     */
-    int from_result(pg_result_t const &result);
-
-    /**
      * Get tiles as a vector of quadkeys and remove them from the expire_tiles
      * object.
      */
@@ -88,7 +78,19 @@ private:
     double m_max_bbox;
     uint32_t m_maxzoom;
     int m_map_width;
-};
+
+}; // class expire_tiles
+
+/**
+ * Expire tiles based on an osm id.
+ *
+ * \param expire Where to mark expired tiles.
+ * \param result Result of a database query into some table returning the
+ *               geometries. (This is usually done using the "get_wkb"
+ *               prepared statement.)
+ * \return The number of tuples in the result or -1 if expire is disabled.
+ */
+int expire_from_result(expire_tiles *expire, pg_result_t const &result);
 
 /**
  * Iterate over tiles and call output function for each tile on all requested
