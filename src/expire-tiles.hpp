@@ -32,7 +32,7 @@ public:
 
     bool enabled() const noexcept { return m_maxzoom != 0; }
 
-    void from_geometry(geom::geometry_t const &geom, osmid_t osm_id);
+    void from_geometry(geom::geometry_t const &geom);
 
     int from_bbox(geom::box_t const &box);
 
@@ -42,11 +42,9 @@ public:
      * \param result Result of a database query into some table returning the
      *               geometries. (This is usually done using the "get_wkb"
      *               prepared statement.)
-     * \param osm_id The OSM id to look for.
-     * \return The number of elements that refer to the osm_id or -1 if
-     *         expire is disabled.
+     * \return The number of tuples in the result or -1 if expire is disabled.
      */
-    int from_result(pg_result_t const &result, osmid_t osm_id);
+    int from_result(pg_result_t const &result);
 
     /**
      * Get tiles as a vector of quadkeys and remove them from the expire_tiles

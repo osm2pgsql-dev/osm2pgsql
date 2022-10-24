@@ -78,7 +78,7 @@ void expire_tiles::from_point_list(geom::point_list_t const &list)
     });
 }
 
-void expire_tiles::from_geometry(geom::geometry_t const &geom, osmid_t osm_id)
+void expire_tiles::from_geometry(geom::geometry_t const &geom)
 {
     if (geom.srid() != 3857) {
         return;
@@ -96,10 +96,6 @@ void expire_tiles::from_geometry(geom::geometry_t const &geom, osmid_t osm_id)
     } else if (geom.is_polygon() || geom.is_multipolygon()) {
         auto const box = geom::envelope(geom);
         if (from_bbox(box)) {
-            /* Bounding box too big - just expire tiles on the line */
-            log_debug("Large polygon ({:.0f} x {:.0f} metres, OSM ID {})"
-                      " - only expiring perimeter",
-                      box.max_x() - box.min_x(), box.max_y() - box.min_y(), osm_id);
             if (geom.is_polygon()) {
                 from_point_list(geom.get<geom::polygon_t>().outer());
                 for (auto const &inner : geom.get<geom::polygon_t>().inners()) {
@@ -234,7 +230,7 @@ int expire_tiles::from_bbox(geom::box_t const &box)
     return 0;
 }
 
-int expire_tiles::from_result(pg_result_t const &result, osmid_t osm_id)
+int expire_tiles::from_result(pg_result_t const &result)
 {
     if (!enabled()) {
         return -1;
@@ -243,7 +239,7 @@ int expire_tiles::from_result(pg_result_t const &result, osmid_t osm_id)
     auto const num_tuples = result.num_tuples();
     for (int i = 0; i < num_tuples; ++i) {
         char const *const wkb = result.get_value(i, 0);
-        from_geometry(ewkb_to_geom(decode_hex(wkb)), osm_id);
+        from_geometry(ewkb_to_geom(decode_hex(wkb)));
     }
 
     return num_tuples;
