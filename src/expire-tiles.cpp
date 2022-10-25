@@ -200,26 +200,18 @@ int expire_tiles::from_bbox(geom::box_t const &box)
     }
 
     /* Convert the box's Mercator coordinates into tile coordinates */
-    auto const tmp_min = coords_to_tile({box.min_x(), box.max_y()});
-    int min_tile_x = tmp_min.x() - tile_expiry_leeway;
-    int min_tile_y = tmp_min.y() - tile_expiry_leeway;
+    auto const tmp_min = coords_to_tile(box.min());
+    int const min_tile_x =
+        std::clamp(int(tmp_min.x() - tile_expiry_leeway), 0, m_map_width);
+    int const min_tile_y =
+        std::clamp(int(tmp_min.y() - tile_expiry_leeway), 0, m_map_width);
 
-    auto const tmp_max = coords_to_tile({box.max_x(), box.min_y()});
-    int max_tile_x = tmp_max.x() + tile_expiry_leeway;
-    int max_tile_y = tmp_max.y() + tile_expiry_leeway;
+    auto const tmp_max = coords_to_tile(box.max());
+    int const max_tile_x =
+        std::clamp(int(tmp_max.x() + tile_expiry_leeway), 0, m_map_width);
+    int const max_tile_y =
+        std::clamp(int(tmp_max.y() + tile_expiry_leeway), 0, m_map_width);
 
-    if (min_tile_x < 0) {
-        min_tile_x = 0;
-    }
-    if (min_tile_y < 0) {
-        min_tile_y = 0;
-    }
-    if (max_tile_x > m_map_width) {
-        max_tile_x = m_map_width;
-    }
-    if (max_tile_y > m_map_width) {
-        max_tile_y = m_map_width;
-    }
     for (int iterator_x = min_tile_x; iterator_x <= max_tile_x; ++iterator_x) {
         uint32_t const norm_x = normalise_tile_x_coord(iterator_x);
         for (int iterator_y = min_tile_y; iterator_y <= max_tile_y;
