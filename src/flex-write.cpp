@@ -253,8 +253,8 @@ static bool is_compatible(geom::geometry_t const &geom,
 
 void flex_write_column(lua_State *lua_state,
                        db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
-                       flex_table_column_t const &column, expire_tiles *expire,
-                       expire_config_t const &expire_config)
+                       flex_table_column_t const &column,
+                       std::vector<expire_tiles> *expire)
 {
     // If there is nothing on the Lua stack, then the Lua function add_row()
     // was called without a table parameter. In that case this column will
@@ -430,12 +430,12 @@ void flex_write_column(lua_State *lua_state,
                      type == table_column_type::multilinestring ||
                      type == table_column_type::multipolygon);
                 if (geom->srid() == column.srid()) {
-                    expire->from_geometry_if_3857(*geom, expire_config);
+                    column.do_expire(*geom, expire);
                     copy_mgr->add_hex_geom(geom_to_ewkb(*geom, wrap_multi));
                 } else {
                     auto const &proj = get_projection(column.srid());
                     auto const tgeom = geom::transform(*geom, proj);
-                    expire->from_geometry_if_3857(tgeom, expire_config);
+                    column.do_expire(tgeom, expire);
                     copy_mgr->add_hex_geom(geom_to_ewkb(tgeom, wrap_multi));
                 }
             } else {
@@ -462,7 +462,7 @@ void flex_write_column(lua_State *lua_state,
 void flex_write_row(lua_State *lua_state, table_connection_t *table_connection,
                     osmium::item_type id_type, osmid_t id,
                     geom::geometry_t const &geom, int srid,
-                    expire_tiles *expire, expire_config_t const &expire_config)
+                    std::vector<expire_tiles> *expire)
 {
     assert(table_connection);
     table_connection->new_line();
@@ -507,8 +507,7 @@ void flex_write_row(lua_State *lua_state, table_connection_t *table_connection,
                 copy_mgr->add_column(area);
             }
         } else {
-            flex_write_column(lua_state, copy_mgr, column, expire,
-                              expire_config);
+            flex_write_column(lua_state, copy_mgr, column, expire);
         }
     }
 

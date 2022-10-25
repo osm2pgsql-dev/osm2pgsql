@@ -314,6 +314,29 @@ std::size_t output_tiles_to_file(quadkey_list_t const &tiles_at_maxzoom,
     return count;
 }
 
+std::size_t output_tiles_to_table(quadkey_list_t const &tiles_at_maxzoom,
+                                  uint32_t minzoom, uint32_t maxzoom,
+                                  std::string const &conninfo,
+                                  std::string const &schema,
+                                  std::string const &table)
+{
+    auto const qn = qualified_name(schema, table);
+
+    pg_conn_t connection{conninfo};
+
+    connection.exec("PREPARE insert_tiles(int4, int4, int4) AS"
+                    " INSERT INTO {} (zoom, x, y) VALUES ($1, $2, $3)",
+                    qn);
+
+    auto const count = for_each_tile(
+        tiles_at_maxzoom, minzoom, maxzoom, [&](tile_t const &tile) {
+            connection.exec_prepared("insert_tiles", tile.zoom(), tile.x(),
+                                     tile.y());
+        });
+
+    return count;
+}
+
 int expire_from_result(expire_tiles *expire, pg_result_t const &result,
                        expire_config_t const &expire_config)
 {

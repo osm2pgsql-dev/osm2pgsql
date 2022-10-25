@@ -10,9 +10,14 @@
  * For a full list of authors see the git log.
  */
 
+#include "expire-config.hpp"
+#include "expire-tiles.hpp"
+#include "geom.hpp"
+
 #include <cassert>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 enum class table_column_type : uint8_t
 {
@@ -118,7 +123,21 @@ public:
 
     int srid() const noexcept { return m_srid; }
 
+    void add_expire(expire_config_t const &config);
+
+    bool has_expire() const noexcept { return !m_expires.empty(); }
+
+    std::vector<expire_config_t> const &expire_configs() const noexcept
+    {
+        return m_expires;
+    }
+
+    void do_expire(geom::geometry_t const &geom,
+                   std::vector<expire_tiles> *expire) const;
+
 private:
+    std::vector<expire_config_t> m_expires;
+
     /// The name of the database table column.
     std::string m_name;
 

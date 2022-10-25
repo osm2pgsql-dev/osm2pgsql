@@ -16,6 +16,7 @@
 #include "pgsql.hpp"
 #include "reprojection.hpp"
 #include "thread-pool.hpp"
+#include "util.hpp"
 
 #include <osmium/osm/item_type.hpp>
 
@@ -102,6 +103,11 @@ public:
         return m_columns.end();
     }
 
+    flex_table_column_t *find_column_by_name(std::string const &name)
+    {
+        return util::find_by_name(m_columns, name);
+    }
+
     bool has_geom_column() const noexcept
     {
         return m_geom_column != std::numeric_limits<std::size_t>::max();
@@ -109,6 +115,12 @@ public:
 
     /// Get the (first, if there are multiple) geometry column.
     flex_table_column_t const &geom_column() const noexcept
+    {
+        assert(has_geom_column());
+        return m_columns[m_geom_column];
+    }
+
+    flex_table_column_t &geom_column() noexcept
     {
         assert(has_geom_column());
         return m_columns[m_geom_column];
@@ -164,6 +176,8 @@ public:
     {
         return m_always_build_id_index;
     }
+
+    bool has_columns_with_expire() const noexcept;
 
 private:
     /// The name of the table
@@ -245,7 +259,11 @@ public:
 
     void create_id_index();
 
-    pg_result_t get_geom_by_id(osmium::item_type type, osmid_t id) const;
+    /**
+     * Get all geometries that have at least one expire config defined
+     * from the database and return the result set.
+     */
+    pg_result_t get_geoms_by_id(osmium::item_type type, osmid_t id) const;
 
     void flush() { m_copy_mgr.flush(); }
 

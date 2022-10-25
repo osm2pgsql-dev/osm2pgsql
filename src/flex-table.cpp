@@ -149,17 +149,27 @@ flex_table_column_t &flex_table_t::add_column(std::string const &name,
 
 std::string flex_table_t::build_sql_prepare_get_wkb() const
 {
-    if (has_multicolumn_id_index()) {
-        return fmt::format(
-            "PREPARE get_wkb(char(1), bigint) AS"
-            " SELECT \"{}\" FROM {} WHERE \"{}\" = $1 AND \"{}\" = $2",
-            geom_column().name(), full_name(), m_columns[0].name(),
-            m_columns[1].name());
+    util::string_joiner_t joiner{',', '"'};
+    for (auto const &column : m_columns) {
+        if (!column.expire_configs().empty()) {
+            joiner.add(column.name());
+        }
     }
 
-    return fmt::format("PREPARE get_wkb(bigint) AS"
-                       " SELECT \"{}\" FROM {} WHERE \"{}\" = $1",
-                       geom_column().name(), full_name(), id_column_names());
+    assert(!joiner.empty());
+
+    std::string const columns = joiner();
+
+    if (has_multicolumn_id_index()) {
+        return fmt::format(
+            R"(PREPARE get_wkb(char(1), bigint) AS)"
+            R"( SELECT {} FROM {} WHERE "{}" = $1 AND "{}" = $2)",
+            columns, full_name(), m_columns[0].name(), m_columns[1].name());
+    }
+
+    return fmt::format(R"(PREPARE get_wkb(bigint) AS)"
+                       R"( SELECT {} FROM {} WHERE "{}" = $1)",
+                       columns, full_name(), id_column_names());
 }
 
 std::string
@@ -218,6 +228,12 @@ std::string flex_table_t::build_sql_create_id_index() const
 flex_index_t &flex_table_t::add_index(std::string method)
 {
     return m_indexes.emplace_back(std::move(method));
+}
+
+bool flex_table_t::has_columns_with_expire() const noexcept
+{
+    return std::any_of(m_columns.cbegin(), m_columns.cend(),
+                       [](auto const &column) { return column.has_expire(); });
 }
 
 void table_connection_t::connect(std::string const &conninfo)
@@ -373,7 +389,7 @@ void table_connection_t::stop(bool updateable, bool append)
 void table_connection_t::prepare()
 {
     assert(m_db_connection);
-    if (table().has_id_column() && table().has_geom_column()) {
+    if (table().has_id_column() && table().has_columns_with_expire()) {
         m_db_connection->exec(table().build_sql_prepare_get_wkb());
     }
 }
@@ -394,8 +410,8 @@ void table_connection_t::create_id_index()
     }
 }
 
-pg_result_t table_connection_t::get_geom_by_id(osmium::item_type type,
-                                               osmid_t id) const
+pg_result_t table_connection_t::get_geoms_by_id(osmium::item_type type,
+                                                osmid_t id) const
 {
     assert(table().has_geom_column());
     assert(m_db_connection);

@@ -60,6 +60,9 @@ char const *luaX_get_table_string(lua_State *lua_state, char const *key,
                                   int table_index, char const *error_msg,
                                   char const *default_value);
 
+uint32_t luaX_get_table_optional_uint32(lua_State *lua_state, char const *key,
+                                        int table_index, char const *error_msg);
+
 bool luaX_get_table_bool(lua_State *lua_state, char const *key, int table_index,
                          char const *error_msg, bool default_value);
 

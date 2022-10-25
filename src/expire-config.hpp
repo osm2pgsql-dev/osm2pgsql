@@ -14,7 +14,7 @@
 
 enum class expire_mode
 {
-    full_area, // Expire all tiles covered by polygon.
+    full_area,     // Expire all tiles covered by polygon.
     boundary_only, // Expire only tiles covered by polygon boundary.
     hybrid // "full_area" or "boundary_only" mode depending on full_area_limit.
 };
@@ -24,6 +24,12 @@ enum class expire_mode
  */
 struct expire_config_t
 {
+    /**
+     * The id of the tile set where expired tiles are collected.
+     * Only used in the flex output.
+     */
+    std::size_t tileset = 0;
+
     /// Buffer around expired feature as fraction of the tile size.
     double buffer = 0.1;
 

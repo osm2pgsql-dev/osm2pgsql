@@ -9,8 +9,9 @@
 
 #include "flex-lua-index.hpp"
 #include "flex-lua-table.hpp"
-#include "lua-utils.hpp"
 #include "flex-table.hpp"
+#include "flex-tileset.hpp"
+#include "lua-utils.hpp"
 #include "pgsql-capabilities.hpp"
 
 #include <lua.hpp>
@@ -164,7 +165,110 @@ static void setup_flex_table_id_columns(lua_State *lua_state,
     lua_pop(lua_state, 1); // "ids"
 }
 
-static void setup_flex_table_columns(lua_State *lua_state, flex_table_t *table)
+static std::size_t find_tileset(std::vector<flex_tileset_t> const &tilesets,
+                                std::string_view name)
+{
+    std::size_t n = 0;
+    for (auto const &ts : tilesets) {
+        if (ts.name() == name) {
+            return n;
+        }
+        ++n;
+    }
+
+    throw fmt_error("Unknown Tileset '{}'.", name);
+}
+
+static void parse_and_set_expire_options(lua_State *lua_state,
+                                         flex_table_column_t *column,
+                                         std::vector<flex_tileset_t> *tilesets,
+                                         bool append_mode)
+{
+    if (lua_isnil(lua_state, -1)) {
+        return;
+    }
+
+    if (!lua_istable(lua_state, -1)) {
+        throw std::runtime_error{"Expire field must be a Lua array table"};
+    }
+
+    if (luaX_is_empty_table(lua_state)) {
+        return;
+    }
+
+    if (!luaX_is_array(lua_state)) {
+        throw std::runtime_error{"Expire field must be a Lua array table"};
+    }
+
+    if (!column->is_geometry_column() || column->srid() != 3857) {
+        throw std::runtime_error{"Expire only allowed for geometry"
+                                 " columns in Web Mercator projection."};
+    }
+
+    luaX_for_each(lua_state, [&]() {
+        if (!lua_istable(lua_state, -1) || luaX_is_array(lua_state)) {
+            throw std::runtime_error{"Expire config must be a Lua table"};
+        }
+
+        auto const *name =
+            luaX_get_table_string(lua_state, "tileset", -1, "Entry 'tileset'");
+        auto ts = find_tileset(*tilesets, name);
+        lua_pop(lua_state, 1); // "tileset"
+
+        expire_config_t config{ts};
+
+        std::string mode;
+        lua_getfield(lua_state, -1, "mode");
+        if (lua_isstring(lua_state, -1)) {
+            mode = lua_tostring(lua_state, -1);
+        } else if (!lua_isnil(lua_state, -1)) {
+            throw std::runtime_error{
+                "Optional expire field 'mode' must contain a string."};
+        }
+        lua_pop(lua_state, 1); // "mode"
+
+        if (mode.empty() || mode == "full-area") {
+            config.mode = expire_mode::full_area;
+        } else if (mode == "boundary-only") {
+            config.mode = expire_mode::boundary_only;
+        } else if (mode == "hybrid") {
+            config.mode = expire_mode::hybrid;
+        } else {
+            throw fmt_error("Unknown expire mode '{}'.", mode);
+        }
+
+        lua_getfield(lua_state, -1, "full_area_limit");
+        if (lua_isnumber(lua_state, -1)) {
+            if (config.mode != expire_mode::hybrid) {
+                log_warn("Ignoring 'full_area_limit' setting in expire config,"
+                         " because 'mode' is not set to 'hybrid'.");
+            }
+            config.full_area_limit = lua_tonumber(lua_state, -1);
+        } else if (!lua_isnil(lua_state, -1)) {
+            throw std::runtime_error{"Optional expire field 'full_area_limit' "
+                                     "must contain a number."};
+        }
+        lua_pop(lua_state, 1); // "full_area_limit"
+
+        lua_getfield(lua_state, -1, "buffer");
+        if (lua_isnumber(lua_state, -1)) {
+            config.buffer = lua_tonumber(lua_state, -1);
+        } else if (!lua_isnil(lua_state, -1)) {
+            throw std::runtime_error{
+                "Optional expire field 'buffer' must contain a number."};
+        }
+        lua_pop(lua_state, 1); // "buffer"
+
+        // Actually add the expire only if we are in append mode.
+        if (append_mode) {
+            column->add_expire(config);
+        }
+    });
+}
+
+static void setup_flex_table_columns(lua_State *lua_state, flex_table_t *table,
+                                     std::vector<flex_tileset_t> *tilesets,
+                                     bool append_mode)
 {
     assert(lua_state);
     assert(table);
@@ -215,6 +319,10 @@ static void setup_flex_table_columns(lua_State *lua_state, flex_table_t *table)
             }
         }
         lua_pop(lua_state, 1); // "projection"
+
+        lua_getfield(lua_state, -1, "expire");
+        parse_and_set_expire_options(lua_state, &column, tilesets, append_mode);
+        lua_pop(lua_state, 1); // "expire"
 
         ++num_columns;
     });
@@ -271,7 +379,8 @@ static void setup_flex_table_indexes(lua_State *lua_state, flex_table_t *table,
 }
 
 int setup_flex_table(lua_State *lua_state, std::vector<flex_table_t> *tables,
-                     bool updatable)
+                     std::vector<flex_tileset_t> *tilesets, bool updatable,
+                     bool append_mode)
 {
     if (lua_type(lua_state, 1) != LUA_TTABLE) {
         throw std::runtime_error{
@@ -280,7 +389,7 @@ int setup_flex_table(lua_State *lua_state, std::vector<flex_table_t> *tables,
 
     auto &new_table = create_flex_table(lua_state, tables);
     setup_flex_table_id_columns(lua_state, &new_table);
-    setup_flex_table_columns(lua_state, &new_table);
+    setup_flex_table_columns(lua_state, &new_table, tilesets, append_mode);
     setup_flex_table_indexes(lua_state, &new_table, updatable);
 
     void *ptr = lua_newuserdata(lua_state, sizeof(std::size_t));
