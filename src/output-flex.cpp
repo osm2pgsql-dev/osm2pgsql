@@ -1910,11 +1910,6 @@ void output_flex_t::delete_from_table(table_connection_t *table_connection,
 
     if (m_expire.enabled() && table_connection->table().has_geom_column()) {
         auto const result = table_connection->get_geom_by_id(type, id);
-
-        if (result.num_tuples() == 0) {
-            return;
-        }
-
         expire_from_result(&m_expire, result);
     }
 
