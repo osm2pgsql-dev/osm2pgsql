@@ -11,6 +11,7 @@
  */
 
 #include "db-copy-mgr.hpp"
+#include "options.hpp"
 #include "osmtypes.hpp"
 #include "pgsql.hpp"
 #include "taginfo.hpp"
@@ -56,7 +57,7 @@ public:
 
     task_result_t m_task_result;
 
-protected:
+private:
     void connect();
     void prepare();
     void teardown();

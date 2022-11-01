@@ -75,7 +75,7 @@ public:
 
     void merge_expire_trees(output_t *other) override;
 
-protected:
+private:
     void pgsql_out_way(osmium::Way const &way, taglist_t *tags, bool polygon,
                        bool roads);
     void pgsql_process_relation(osmium::Relation const &rel);
