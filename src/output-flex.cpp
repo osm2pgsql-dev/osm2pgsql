@@ -711,17 +711,13 @@ void output_flex_t::write_column(
                      type == table_column_type::multilinestring ||
                      type == table_column_type::multipolygon);
                 if (geom->srid() == column.srid()) {
-                    // OSM id not available here, so use dummy 0, it is used
-                    // for debug messages only anyway.
-                    m_expire.from_geometry(*geom, 0);
+                    m_expire.from_geometry(*geom);
                     copy_mgr->add_hex_geom(geom_to_ewkb(*geom, wrap_multi));
                 } else {
                     auto const proj =
                         reprojection::create_projection(column.srid());
                     auto const tgeom = geom::transform(*geom, *proj);
-                    // OSM id not available here, so use dummy 0, it is used
-                    // for debug messages only anyway.
-                    m_expire.from_geometry(tgeom, 0);
+                    m_expire.from_geometry(tgeom);
                     copy_mgr->add_hex_geom(geom_to_ewkb(tgeom, wrap_multi));
                 }
             } else {
@@ -1685,7 +1681,7 @@ void output_flex_t::add_row(table_connection_t *table_connection,
 
     auto const geoms = geom::split_multi(std::move(geom), split_multi);
     for (auto const &sgeom : geoms) {
-        m_expire.from_geometry(sgeom, id);
+        m_expire.from_geometry(sgeom);
         write_row(table_connection, object.type(), id, sgeom,
                   table.geom_column().srid());
     }
@@ -1857,9 +1853,11 @@ void output_flex_t::stop()
     }
 
     if (get_options()->expire_tiles_zoom_min > 0) {
-        m_expire.output_and_destroy(
-            get_options()->expire_tiles_filename.c_str(),
-            get_options()->expire_tiles_zoom_min);
+        auto const count = output_tiles_to_file(
+            m_expire.get_tiles(), get_options()->expire_tiles_filename.c_str(),
+            get_options()->expire_tiles_zoom_min,
+            get_options()->expire_tiles_zoom);
+        log_info("Wrote {} entries to expired tiles list", count);
     }
 }
 
@@ -1917,7 +1915,7 @@ void output_flex_t::delete_from_table(table_connection_t *table_connection,
             return;
         }
 
-        m_expire.from_result(result, id);
+        expire_from_result(&m_expire, result);
     }
 
     table_connection->delete_rows_with(type, id);

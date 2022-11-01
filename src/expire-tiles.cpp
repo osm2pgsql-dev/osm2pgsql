@@ -15,10 +15,13 @@
  * http://subversion.nexusuk.org/projects/openpistemap/trunk/scripts/expire_tiles.py
  */
 
+#include <algorithm>
 #include <cerrno>
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <stdexcept>
 #include <string>
 
 #include "expire-tiles.hpp"
@@ -34,43 +37,11 @@
 // How many tiles worth of space to leave either side of a changed feature
 static constexpr double const tile_expiry_leeway = 0.1;
 
-tile_output_t::tile_output_t(char const *filename)
-: outfile(fopen(filename, "a"))
-{
-    if (outfile == nullptr) {
-        log_warn("Failed to open expired tiles file ({}).  Tile expiry "
-                 "list will not be written!",
-                 std::strerror(errno));
-    }
-}
-
-tile_output_t::~tile_output_t()
-{
-    if (outfile) {
-        fclose(outfile);
-    }
-}
-
-void tile_output_t::output_dirty_tile(tile_t const &tile)
-{
-    if (!outfile) {
-        return;
-    }
-
-    fmt::print(outfile, "{}/{}/{}\n", tile.zoom(), tile.x(), tile.y());
-}
-
 expire_tiles::expire_tiles(uint32_t max_zoom, double max_bbox,
                            std::shared_ptr<reprojection> projection)
 : m_projection(std::move(projection)), m_max_bbox(max_bbox),
   m_maxzoom(max_zoom), m_map_width(1U << m_maxzoom)
 {}
-
-void expire_tiles::output_and_destroy(char const *filename, uint32_t minzoom)
-{
-    tile_output_t output_writer{filename};
-    output_and_destroy<tile_output_t>(output_writer, minzoom);
-}
 
 void expire_tiles::expire_tile(uint32_t x, uint32_t y)
 {
@@ -107,7 +78,7 @@ void expire_tiles::from_point_list(geom::point_list_t const &list)
     });
 }
 
-void expire_tiles::from_geometry(geom::geometry_t const &geom, osmid_t osm_id)
+void expire_tiles::from_geometry(geom::geometry_t const &geom)
 {
     if (geom.srid() != 3857) {
         return;
@@ -125,10 +96,6 @@ void expire_tiles::from_geometry(geom::geometry_t const &geom, osmid_t osm_id)
     } else if (geom.is_polygon() || geom.is_multipolygon()) {
         auto const box = geom::envelope(geom);
         if (from_bbox(box)) {
-            /* Bounding box too big - just expire tiles on the line */
-            log_debug("Large polygon ({:.0f} x {:.0f} metres, OSM ID {})"
-                      " - only expiring perimeter",
-                      box.max_x() - box.min_x(), box.max_y() - box.min_y(), osm_id);
             if (geom.is_polygon()) {
                 from_point_list(geom.get<geom::polygon_t>().outer());
                 for (auto const &inner : geom.get<geom::polygon_t>().inners()) {
@@ -263,19 +230,14 @@ int expire_tiles::from_bbox(geom::box_t const &box)
     return 0;
 }
 
-int expire_tiles::from_result(pg_result_t const &result, osmid_t osm_id)
+quadkey_list_t expire_tiles::get_tiles()
 {
-    if (!enabled()) {
-        return -1;
-    }
-
-    auto const num_tuples = result.num_tuples();
-    for (int i = 0; i < num_tuples; ++i) {
-        char const *const wkb = result.get_value(i, 0);
-        from_geometry(ewkb_to_geom(decode_hex(wkb)), osm_id);
-    }
-
-    return num_tuples;
+    quadkey_list_t tiles;
+    tiles.reserve(m_dirty_tiles.size());
+    tiles.assign(m_dirty_tiles.begin(), m_dirty_tiles.end());
+    std::sort(tiles.begin(), tiles.end());
+    m_dirty_tiles.clear();
+    return tiles;
 }
 
 void expire_tiles::merge_and_destroy(expire_tiles *other)
@@ -293,4 +255,41 @@ void expire_tiles::merge_and_destroy(expire_tiles *other)
                              other->m_dirty_tiles.end());
         other->m_dirty_tiles.clear();
     }
+}
+
+std::size_t output_tiles_to_file(quadkey_list_t const &tiles_maxzoom,
+                                 char const *filename, uint32_t minzoom,
+                                 uint32_t maxzoom)
+{
+    FILE *outfile = std::fopen(filename, "a");
+    if (outfile == nullptr) {
+        log_warn("Failed to open expired tiles file ({}).  Tile expiry "
+                 "list will not be written!",
+                 std::strerror(errno));
+        return 0;
+    }
+
+    auto const count =
+        for_each_tile(tiles_maxzoom, minzoom, maxzoom, [&](tile_t const &tile) {
+            fmt::print(outfile, "{}/{}/{}\n", tile.zoom(), tile.x(), tile.y());
+        });
+
+    std::fclose(outfile);
+
+    return count;
+}
+
+int expire_from_result(expire_tiles *expire, pg_result_t const &result)
+{
+    if (!expire->enabled()) {
+        return -1;
+    }
+
+    auto const num_tuples = result.num_tuples();
+    for (int i = 0; i < num_tuples; ++i) {
+        char const *const wkb = result.get_value(i, 0);
+        expire->from_geometry(ewkb_to_geom(decode_hex(wkb)));
+    }
+
+    return num_tuples;
 }

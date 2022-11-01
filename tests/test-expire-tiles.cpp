@@ -14,55 +14,38 @@
 
 #include "expire-tiles.hpp"
 #include "reprojection.hpp"
+#include "tile-output.hpp"
 #include "tile.hpp"
 
-static std::shared_ptr<reprojection>
-    defproj(reprojection::create_projection(PROJ_SPHERE_MERC));
+static std::shared_ptr<reprojection> defproj{
+    reprojection::create_projection(PROJ_SPHERE_MERC)};
 
-struct tile_output_set
+static std::set<tile_t> generate_random(uint32_t zoom, size_t count)
 {
-    bool operator==(tile_output_set const &other) const
-    {
-        return tiles == other.tiles;
+    // Use a random device with a fixed seed. We don't really care about
+    // the quality of random numbers here, we just need to generate valid
+    // OSM test data. The fixed seed ensures that the results are
+    // reproducible.
+    // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp)
+    static std::mt19937_64 rng{47382};
+
+    std::uniform_int_distribution<uint32_t> dist{0, (1U << zoom) - 1U};
+    std::set<tile_t> set;
+
+    do {
+        set.emplace(zoom, dist(rng), dist(rng));
+    } while (set.size() < count);
+
+    return set;
+}
+
+static void expire_centroids(expire_tiles *et, std::set<tile_t> const &tiles)
+{
+    for (auto const &t : tiles) {
+        auto const p = t.center();
+        et->from_bbox({p.x(), p.y(), p.x(), p.y()});
     }
-
-    tile_output_set &operator+=(tile_output_set const &other)
-    {
-        tiles.insert(other.tiles.cbegin(), other.tiles.cend());
-        return *this;
-    }
-
-    void output_dirty_tile(tile_t const &tile) { tiles.insert(tile); }
-
-    void expire_centroids(expire_tiles *et)
-    {
-        for (auto const &t : tiles) {
-            auto const p = t.center();
-            et->from_bbox({p.x(), p.y(), p.x(), p.y()});
-        }
-    }
-
-    static tile_output_set generate_random(uint32_t zoom, size_t count)
-    {
-        // Use a random device with a fixed seed. We don't really care about
-        // the quality of random numbers here, we just need to generate valid
-        // OSM test data. The fixed seed ensures that the results are
-        // reproducible.
-        // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp)
-        static std::mt19937_64 rng{47382};
-
-        std::uniform_int_distribution<uint32_t> dist{0, (1U << zoom) - 1U};
-        tile_output_set set;
-
-        do {
-            set.output_dirty_tile(tile_t{zoom, dist(rng), dist(rng)});
-        } while (set.tiles.size() < count);
-
-        return set;
-    }
-
-    std::set<tile_t> tiles;
-};
+}
 
 static void check_quadkey(uint64_t quadkey_expected,
                           tile_t const &tile) noexcept
@@ -70,6 +53,27 @@ static void check_quadkey(uint64_t quadkey_expected,
     CHECK(tile.quadkey() == quadkey_expected);
     auto const t = tile_t::from_quadkey(quadkey_expected, tile.zoom());
     CHECK(t == tile);
+}
+
+static std::vector<tile_t> get_tiles_ordered(expire_tiles *et, uint32_t minzoom,
+                                             uint32_t maxzoom)
+{
+    std::vector<tile_t> tiles;
+
+    for_each_tile(et->get_tiles(), minzoom, maxzoom,
+                  [&](tile_t const &tile) { tiles.push_back(tile); });
+
+    return tiles;
+}
+
+static std::set<tile_t> get_tiles_unordered(expire_tiles *et, uint32_t zoom)
+{
+    std::set<tile_t> tiles;
+
+    for_each_tile(et->get_tiles(), zoom, zoom,
+                  [&](tile_t const &tile) { tiles.insert(tile); });
+
+    return tiles;
 }
 
 TEST_CASE("tile to quadkey", "[NoDB]")
@@ -83,60 +87,60 @@ TEST_CASE("tile to quadkey", "[NoDB]")
 TEST_CASE("simple expire z1", "[NoDB]")
 {
     uint32_t const minzoom = 1;
+    uint32_t const maxzoom = 1;
     expire_tiles et{minzoom, 20000, defproj};
 
     // as big a bbox as possible at the origin to dirty all four
     // quadrants of the world.
     et.from_bbox({-10000, -10000, 10000, 10000});
-    tile_output_set set;
-    et.output_and_destroy(set, minzoom);
 
-    CHECK(set.tiles.size() == 4);
+    auto const tiles = get_tiles_ordered(&et, minzoom, maxzoom);
+    CHECK(tiles.size() == 4);
 
-    auto itr = set.tiles.begin();
+    auto itr = tiles.begin();
     CHECK(*(itr++) == tile_t(1, 0, 0));
-    CHECK(*(itr++) == tile_t(1, 0, 1));
     CHECK(*(itr++) == tile_t(1, 1, 0));
+    CHECK(*(itr++) == tile_t(1, 0, 1));
     CHECK(*(itr++) == tile_t(1, 1, 1));
 }
 
 TEST_CASE("simple expire z3", "[NoDB]")
 {
     uint32_t const minzoom = 3;
+    uint32_t const maxzoom = 3;
     expire_tiles et{minzoom, 20000, defproj};
 
     // as big a bbox as possible at the origin to dirty all four
     // quadrants of the world.
     et.from_bbox({-10000, -10000, 10000, 10000});
-    tile_output_set set;
-    et.output_and_destroy(set, minzoom);
 
-    CHECK(set.tiles.size() == 4);
+    auto const tiles = get_tiles_ordered(&et, minzoom, maxzoom);
+    CHECK(tiles.size() == 4);
 
-    auto itr = set.tiles.begin();
+    auto itr = tiles.begin();
     CHECK(*(itr++) == tile_t(3, 3, 3));
-    CHECK(*(itr++) == tile_t(3, 3, 4));
     CHECK(*(itr++) == tile_t(3, 4, 3));
+    CHECK(*(itr++) == tile_t(3, 3, 4));
     CHECK(*(itr++) == tile_t(3, 4, 4));
 }
 
 TEST_CASE("simple expire z18", "[NoDB]")
 {
     uint32_t const minzoom = 18;
-    expire_tiles et{18, 20000, defproj};
+    uint32_t const maxzoom = 18;
+    expire_tiles et{minzoom, 20000, defproj};
 
     // dirty a smaller bbox this time, as at z18 the scale is
     // pretty small.
     et.from_bbox({-1, -1, 1, 1});
-    tile_output_set set;
-    et.output_and_destroy(set, minzoom);
 
-    CHECK(set.tiles.size() == 4);
+    auto const tiles = get_tiles_ordered(&et, minzoom, maxzoom);
+    CHECK(tiles.size() == 4);
 
-    auto itr = set.tiles.begin();
+    auto itr = tiles.begin();
     CHECK(*(itr++) == tile_t(18, 131071, 131071));
-    CHECK(*(itr++) == tile_t(18, 131071, 131072));
     CHECK(*(itr++) == tile_t(18, 131072, 131071));
+    CHECK(*(itr++) == tile_t(18, 131071, 131072));
     CHECK(*(itr++) == tile_t(18, 131072, 131072));
 }
 
@@ -146,25 +150,25 @@ TEST_CASE("simple expire z18", "[NoDB]")
 TEST_CASE("simple expire z17 and z18", "[NoDB]")
 {
     uint32_t const minzoom = 17;
-    expire_tiles et{18, 20000, defproj};
+    uint32_t const maxzoom = 18;
+    expire_tiles et{maxzoom, 20000, defproj};
 
     // dirty a smaller bbox this time, as at z18 the scale is
     // pretty small.
     et.from_bbox({-1, -1, 1, 1});
-    tile_output_set set;
-    et.output_and_destroy(set, minzoom);
 
-    CHECK(set.tiles.size() == 8);
+    auto const tiles = get_tiles_ordered(&et, minzoom, maxzoom);
+    CHECK(tiles.size() == 8);
 
-    auto itr = set.tiles.begin();
-    CHECK(*(itr++) == tile_t(17, 65535, 65535));
-    CHECK(*(itr++) == tile_t(17, 65535, 65536));
-    CHECK(*(itr++) == tile_t(17, 65536, 65535));
-    CHECK(*(itr++) == tile_t(17, 65536, 65536));
+    auto itr = tiles.begin();
     CHECK(*(itr++) == tile_t(18, 131071, 131071));
-    CHECK(*(itr++) == tile_t(18, 131071, 131072));
+    CHECK(*(itr++) == tile_t(17, 65535, 65535));
     CHECK(*(itr++) == tile_t(18, 131072, 131071));
+    CHECK(*(itr++) == tile_t(17, 65536, 65535));
+    CHECK(*(itr++) == tile_t(18, 131071, 131072));
+    CHECK(*(itr++) == tile_t(17, 65535, 65536));
     CHECK(*(itr++) == tile_t(18, 131072, 131072));
+    CHECK(*(itr++) == tile_t(17, 65536, 65536));
 }
 
 /**
@@ -174,20 +178,18 @@ TEST_CASE("simple expire z17 and z18", "[NoDB]")
 TEST_CASE("simple expire z17 and z18 in one superior tile", "[NoDB]")
 {
     uint32_t const minzoom = 17;
-    expire_tiles et{18, 20000, defproj};
+    uint32_t const maxzoom = 18;
+    expire_tiles et{maxzoom, 20000, defproj};
 
     et.from_bbox({-163, 140, -140, 164});
-    tile_output_set set;
-    et.output_and_destroy(set, minzoom);
+    auto const tiles = get_tiles_ordered(&et, minzoom, maxzoom);
+    CHECK(tiles.size() == 5);
 
-    CHECK(set.tiles.size() == 5);
-
-    auto itr = set.tiles.begin();
-
-    CHECK(*(itr++) == tile_t(17, 65535, 65535));
+    auto itr = tiles.begin();
     CHECK(*(itr++) == tile_t(18, 131070, 131070));
-    CHECK(*(itr++) == tile_t(18, 131070, 131071));
+    CHECK(*(itr++) == tile_t(17, 65535, 65535));
     CHECK(*(itr++) == tile_t(18, 131071, 131070));
+    CHECK(*(itr++) == tile_t(18, 131070, 131071));
     CHECK(*(itr++) == tile_t(18, 131071, 131071));
 }
 
@@ -201,12 +203,10 @@ TEST_CASE("expire centroids", "[NoDB]")
     for (int i = 0; i < 100; ++i) {
         expire_tiles et{zoom, 20000, defproj};
 
-        auto check_set = tile_output_set::generate_random(zoom, 100);
-        check_set.expire_centroids(&et);
+        auto check_set = generate_random(zoom, 100);
+        expire_centroids(&et, check_set);
 
-        tile_output_set set;
-        et.output_and_destroy(set, zoom);
-
+        auto const set = get_tiles_unordered(&et, zoom);
         CHECK(set == check_set);
     }
 }
@@ -225,23 +225,20 @@ TEST_CASE("merge expire sets", "[NoDB]")
         expire_tiles et1{zoom, 20000, defproj};
         expire_tiles et2{zoom, 20000, defproj};
 
-        auto check_set1 = tile_output_set::generate_random(zoom, 100);
-        check_set1.expire_centroids(&et1);
+        auto check_set1 = generate_random(zoom, 100);
+        expire_centroids(&et1, check_set1);
 
-        auto check_set2 = tile_output_set::generate_random(zoom, 100);
-        check_set2.expire_centroids(&et2);
+        auto check_set2 = generate_random(zoom, 100);
+        expire_centroids(&et2, check_set2);
 
         et.merge_and_destroy(&et1);
         et.merge_and_destroy(&et2);
 
-        tile_output_set check_set;
-        check_set += check_set1;
-        check_set += check_set2;
+        check_set1.merge(check_set2);
 
-        tile_output_set set;
-        et.output_and_destroy(set, zoom);
+        auto const set = get_tiles_unordered(&et, zoom);
 
-        CHECK(set == check_set);
+        CHECK(set == check_set1);
     }
 }
 
@@ -259,15 +256,14 @@ TEST_CASE("merge identical expire sets", "[NoDB]")
         expire_tiles et1{zoom, 20000, defproj};
         expire_tiles et2{zoom, 20000, defproj};
 
-        auto check_set = tile_output_set::generate_random(zoom, 100);
-        check_set.expire_centroids(&et1);
-        check_set.expire_centroids(&et2);
+        auto const check_set = generate_random(zoom, 100);
+        expire_centroids(&et1, check_set);
+        expire_centroids(&et2, check_set);
 
         et.merge_and_destroy(&et1);
         et.merge_and_destroy(&et2);
 
-        tile_output_set set;
-        et.output_and_destroy(set, zoom);
+        auto const set = get_tiles_unordered(&et, zoom);
 
         CHECK(set == check_set);
     }
@@ -285,28 +281,25 @@ TEST_CASE("merge overlapping expire sets", "[NoDB]")
         expire_tiles et1{zoom, 20000, defproj};
         expire_tiles et2{zoom, 20000, defproj};
 
-        auto check_set1 = tile_output_set::generate_random(zoom, 100);
-        check_set1.expire_centroids(&et1);
+        auto check_set1 = generate_random(zoom, 100);
+        expire_centroids(&et1, check_set1);
 
-        auto check_set2 = tile_output_set::generate_random(zoom, 100);
-        check_set2.expire_centroids(&et2);
+        auto check_set2 = generate_random(zoom, 100);
+        expire_centroids(&et2, check_set2);
 
-        auto check_set3 = tile_output_set::generate_random(zoom, 100);
-        check_set3.expire_centroids(&et1);
-        check_set3.expire_centroids(&et2);
+        auto check_set3 = generate_random(zoom, 100);
+        expire_centroids(&et1, check_set3);
+        expire_centroids(&et2, check_set3);
 
         et.merge_and_destroy(&et1);
         et.merge_and_destroy(&et2);
 
-        tile_output_set check_set;
-        check_set += check_set1;
-        check_set += check_set2;
-        check_set += check_set3;
+        check_set1.merge(check_set2);
+        check_set1.merge(check_set3);
 
-        tile_output_set set;
-        et.output_and_destroy(set, zoom);
+        auto const set = get_tiles_unordered(&et, zoom);
 
-        CHECK(set == check_set);
+        CHECK(set == check_set1);
     }
 }
 
@@ -331,10 +324,8 @@ TEST_CASE("merge with complete flag", "[NoDB]")
     et.merge_and_destroy(&et1);
     et.merge_and_destroy(&et2);
 
-    tile_output_set set;
-    et.output_and_destroy(set, zoom);
-    tile_output_set set0;
-    et0.output_and_destroy(set0, zoom);
+    auto const set = get_tiles_unordered(&et, zoom);
+    auto const set0 = get_tiles_unordered(&et0, zoom);
 
     CHECK(set == set0);
 }
