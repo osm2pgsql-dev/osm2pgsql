@@ -1199,15 +1199,16 @@ int output_flex_t::app_define_table()
     setup_id_columns(&new_table);
     setup_flex_table_columns(&new_table);
 
-    // NOLINTNEXTLINE(performance-no-int-to-ptr)
-    lua_pushlightuserdata(lua_state(), (void *)(m_tables->size()));
+    void *ptr = lua_newuserdata(lua_state(), sizeof(std::size_t));
+    std::size_t *num = new (ptr) std::size_t{};
+    *num = m_tables->size() - 1;
     luaL_getmetatable(lua_state(), osm2pgsql_table_name);
     lua_setmetatable(lua_state(), -2);
 
     return 1;
 }
 
-// Check that the first element on the Lua stack is an osm2pgsql.table
+// Check that the first element on the Lua stack is an osm2pgsql.Table
 // parameter and return its internal table index.
 static std::size_t table_idx_from_param(lua_State *lua_state)
 {
@@ -1215,18 +1216,17 @@ static std::size_t table_idx_from_param(lua_State *lua_state)
 
     if (user_data == nullptr || !lua_getmetatable(lua_state, 1)) {
         throw std::runtime_error{
-            "First parameter must be of type osm2pgsql.table."};
+            "First parameter must be of type osm2pgsql.Table."};
     }
 
     luaL_getmetatable(lua_state, osm2pgsql_table_name);
     if (!lua_rawequal(lua_state, -1, -2)) {
         throw std::runtime_error{
-            "First parameter must be of type osm2pgsql.table."};
+            "First parameter must be of type osm2pgsql.Table."};
     }
     lua_pop(lua_state, 2);
 
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    return reinterpret_cast<uintptr_t>(user_data) - 1;
+    return *static_cast<std::size_t const *>(user_data);
 }
 
 // Get the flex table that is as first parameter on the Lua stack.
