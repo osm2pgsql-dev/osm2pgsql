@@ -36,77 +36,84 @@ void box_t::extend(point_list_t const &list) noexcept
     }
 }
 
-namespace {
-
-class envelope_visitor
+void box_t::extend(box_t const &box) noexcept
 {
-public:
-    box_t operator()(geom::nullgeom_t const & /*geom*/) const
-    {
-        return box_t{};
+    if (box.min_x() < m_min_x) {
+        m_min_x = box.min_x();
     }
-
-    box_t operator()(geom::point_t const &geom) const
-    {
-        box_t box;
-        box.extend(geom);
-        return box;
+    if (box.min_y() < m_min_y) {
+        m_min_y = box.min_y();
     }
-
-    box_t operator()(geom::linestring_t const &geom) const
-    {
-        box_t box;
-        box.extend(geom);
-        return box;
+    if (box.max_x() > m_max_x) {
+        m_max_x = box.max_x();
     }
-
-    box_t operator()(geom::polygon_t const &geom) const
-    {
-        box_t box;
-        box.extend(geom.outer());
-        return box;
+    if (box.max_y() > m_max_y) {
+        m_max_y = box.max_y();
     }
+}
 
-    box_t operator()(geom::multipoint_t const & /*geom*/) const
-    {
-        assert(false);
-        return {}; // XXX not implemented
+box_t envelope(geom::nullgeom_t const & /*geom*/) { return box_t{}; }
+
+box_t envelope(geom::point_t const &geom)
+{
+    box_t box;
+    box.extend(geom);
+    return box;
+}
+
+box_t envelope(geom::linestring_t const &geom)
+{
+    box_t box;
+    box.extend(geom);
+    return box;
+}
+
+box_t envelope(geom::polygon_t const &geom)
+{
+    box_t box;
+    box.extend(geom.outer());
+    return box;
+}
+
+box_t envelope(geom::multipoint_t const &geom)
+{
+    box_t box;
+    for (auto const &point : geom) {
+        box.extend(point);
     }
+    return box;
+}
 
-    box_t operator()(geom::multilinestring_t const &geom) const
-    {
-        box_t box;
-
-        for (auto const &line : geom) {
-            box.extend(line);
-        }
-
-        return box;
+box_t envelope(geom::multilinestring_t const &geom)
+{
+    box_t box;
+    for (auto const &line : geom) {
+        box.extend(line);
     }
+    return box;
+}
 
-    box_t operator()(geom::multipolygon_t const &geom) const
-    {
-        box_t box;
-
-        for (auto const &polygon : geom) {
-            box.extend(polygon.outer());
-        }
-
-        return box;
+box_t envelope(geom::multipolygon_t const &geom)
+{
+    box_t box;
+    for (auto const &polygon : geom) {
+        box.extend(polygon.outer());
     }
+    return box;
+}
 
-    box_t operator()(geom::collection_t const & /*geom*/) const
-    {
-        assert(false);
-        return {}; // XXX not implemented
+box_t envelope(geom::collection_t const &geom)
+{
+    box_t box;
+    for (auto const &sgeom : geom) {
+        box.extend(envelope(sgeom));
     }
-}; // class envelope_visitor
-
-} // anonymous namespace
+    return box;
+}
 
 box_t envelope(geometry_t const &geom)
 {
-    return geom.visit(envelope_visitor{});
+    return geom.visit([&](auto const &g) { return envelope(g); });
 }
 
 } // namespace geom
