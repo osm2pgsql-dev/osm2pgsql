@@ -47,6 +47,9 @@ public:
     constexpr double width() const noexcept { return m_max_x - m_min_x; }
     constexpr double height() const noexcept { return m_max_y - m_min_y; }
 
+    constexpr point_t min() const noexcept { return {m_min_x, m_min_y}; }
+    constexpr point_t max() const noexcept { return {m_max_x, m_max_y}; }
+
     constexpr friend bool operator==(box_t const &a, box_t const &b)
     {
         return a.min_x() == b.min_x() && a.min_y() == b.min_y() &&

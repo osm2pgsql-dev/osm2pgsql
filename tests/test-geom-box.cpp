@@ -34,6 +34,9 @@ TEST_CASE("Extend box_t with points", "[NoDB]")
 
     REQUIRE(box.width() == Approx(2.0));
     REQUIRE(box.height() == Approx(4.0));
+
+    REQUIRE(box.min() == geom::point_t{1.0, -2.0});
+    REQUIRE(box.max() == geom::point_t{3.0, 2.0});
 }
 
 TEST_CASE("Extend box_t with linestring", "[NoDB]")
