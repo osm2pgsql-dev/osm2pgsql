@@ -168,6 +168,8 @@ void create_multilinestring(geometry_t *geom,
         // others were not available turn it into a linestring geometry
         // retroactively.
         if (multiline.num_geometries() == 1 && !force_multi) {
+            // This has to be done in two steps, because the set<>()
+            // destroys the content of mulitline.
             auto p = std::move(multiline[0]);
             geom->set<linestring_t>() = std::move(p);
         }
