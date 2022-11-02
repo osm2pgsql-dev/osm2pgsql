@@ -72,7 +72,7 @@ TEST_CASE("tile_t coordinates zoom=0", "[NoDB]")
     REQUIRE(p.x() == Approx(pp.x()));
     REQUIRE(p.y() == Approx(pp.y()));
 
-    REQUIRE(tile.quadkey() == 0);
+    REQUIRE(tile.quadkey() == quadkey_t{0});
 }
 
 TEST_CASE("tile_t coordinates zoom=2", "[NoDB]")

@@ -47,7 +47,7 @@ static void expire_centroids(expire_tiles *et, std::set<tile_t> const &tiles)
     }
 }
 
-static void check_quadkey(uint64_t quadkey_expected,
+static void check_quadkey(quadkey_t quadkey_expected,
                           tile_t const &tile) noexcept
 {
     CHECK(tile.quadkey() == quadkey_expected);
@@ -78,10 +78,10 @@ static std::set<tile_t> get_tiles_unordered(expire_tiles *et, uint32_t zoom)
 
 TEST_CASE("tile to quadkey", "[NoDB]")
 {
-    check_quadkey(0x27, tile_t{3, 3, 5});
-    check_quadkey(0xffffffff, tile_t{16, 65535, 65535});
-    check_quadkey(0xfffffffff, tile_t{18, 262143, 262143});
-    check_quadkey(0x3fffffff0, tile_t{18, 131068, 131068});
+    check_quadkey(quadkey_t{0x27}, tile_t{3, 3, 5});
+    check_quadkey(quadkey_t{0xffffffff}, tile_t{16, 65535, 65535});
+    check_quadkey(quadkey_t{0xfffffffff}, tile_t{18, 262143, 262143});
+    check_quadkey(quadkey_t{0x3fffffff0}, tile_t{18, 131068, 131068});
 }
 
 TEST_CASE("simple expire z1", "[NoDB]")
