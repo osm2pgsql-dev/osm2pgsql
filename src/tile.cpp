@@ -55,8 +55,8 @@ static uint32_t deinterleave_lowuint32(uint64_t word) noexcept
 
 quadkey_t tile_t::quadkey() const noexcept
 {
-    return {interleave_uint32_with_zeros(m_x) |
-            (interleave_uint32_with_zeros(m_y) << 1U)};
+    return quadkey_t{interleave_uint32_with_zeros(m_x) |
+                     (interleave_uint32_with_zeros(m_y) << 1U)};
 }
 
 tile_t tile_t::from_quadkey(quadkey_t quadkey, uint32_t zoom) noexcept

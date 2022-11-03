@@ -20,7 +20,7 @@ class quadkey_t
 public:
     quadkey_t() noexcept = default;
 
-    quadkey_t(uint64_t value) noexcept : m_value(value) {}
+    explicit quadkey_t(uint64_t value) noexcept : m_value(value) {}
 
     uint64_t value() const noexcept { return m_value; }
 
