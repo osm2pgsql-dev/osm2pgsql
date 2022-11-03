@@ -212,9 +212,14 @@ public:
     const_iterator cbegin() const noexcept { return m_geometry.cbegin(); }
     const_iterator cend() const noexcept { return m_geometry.cend(); }
 
-    GEOM const &operator[](std::size_t i) const noexcept
+    GEOM const &operator[](std::size_t n) const noexcept
     {
-        return m_geometry[i];
+        return m_geometry[n];
+    }
+
+    GEOM &operator[](std::size_t n) noexcept
+    {
+        return m_geometry[n];
     }
 
     void remove_last()
