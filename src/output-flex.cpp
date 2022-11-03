@@ -711,13 +711,13 @@ void output_flex_t::write_column(
                      type == table_column_type::multilinestring ||
                      type == table_column_type::multipolygon);
                 if (geom->srid() == column.srid()) {
-                    m_expire.from_geometry(*geom);
+                    m_expire.from_geometry_if_3857(*geom);
                     copy_mgr->add_hex_geom(geom_to_ewkb(*geom, wrap_multi));
                 } else {
                     auto const proj =
                         reprojection::create_projection(column.srid());
                     auto const tgeom = geom::transform(*geom, *proj);
-                    m_expire.from_geometry(tgeom);
+                    m_expire.from_geometry_if_3857(tgeom);
                     copy_mgr->add_hex_geom(geom_to_ewkb(tgeom, wrap_multi));
                 }
             } else {
@@ -1681,7 +1681,7 @@ void output_flex_t::add_row(table_connection_t *table_connection,
 
     auto const geoms = geom::split_multi(std::move(geom), split_multi);
     for (auto const &sgeom : geoms) {
-        m_expire.from_geometry(sgeom);
+        m_expire.from_geometry_if_3857(sgeom);
         write_row(table_connection, object.type(), id, sgeom,
                   table.geom_column().srid());
     }
@@ -1906,15 +1906,12 @@ void output_flex_t::delete_from_table(table_connection_t *table_connection,
                                       osmium::item_type type, osmid_t osm_id)
 {
     assert(table_connection);
-    auto const id = table_connection->table().map_id(type, osm_id);
+    auto const &table = table_connection->table();
+    auto const id = table.map_id(type, osm_id);
 
-    if (m_expire.enabled() && table_connection->table().has_geom_column()) {
+    if (m_expire.enabled() && table.has_geom_column() &&
+        table.geom_column().srid() == 3857) {
         auto const result = table_connection->get_geom_by_id(type, id);
-
-        if (result.num_tuples() == 0) {
-            return;
-        }
-
         expire_from_result(&m_expire, result);
     }
 

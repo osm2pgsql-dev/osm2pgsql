@@ -32,7 +32,25 @@ public:
 
     bool enabled() const noexcept { return m_maxzoom != 0; }
 
+    void from_polygon_boundary(geom::polygon_t const &geom);
+
+    void from_geometry(geom::nullgeom_t const & /*geom*/) {}
+    void from_geometry(geom::point_t const &geom);
+    void from_geometry(geom::linestring_t const &geom);
+    void from_geometry(geom::polygon_t const &geom);
+    void from_geometry(geom::multipolygon_t const &geom);
+
+    template <typename T>
+    void from_geometry(geom::multigeometry_t<T> const &geom)
+    {
+        for (auto const &sgeom : geom) {
+            from_geometry(sgeom);
+        }
+    }
+
     void from_geometry(geom::geometry_t const &geom);
+
+    void from_geometry_if_3857(geom::geometry_t const &geom);
 
     int from_bbox(geom::box_t const &box);
 
