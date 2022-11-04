@@ -95,7 +95,6 @@ if (WITH_LUA)
     set_test(test-output-flex-types)
     set_test(test-output-flex-update)
     set_test(test-output-flex-validgeom)
-    set_test(test-output-flex-way-relation-del)
 
     set_test(test-output-flex-example-configs)
     set(FLEX_EXAMPLE_CONFIGS "addresses,attributes,bbox,compatible,data-types,generic,geometries,places,route-relations,simple,unitable")
