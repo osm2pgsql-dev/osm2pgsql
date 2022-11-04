@@ -1127,7 +1127,8 @@ void output_flex_t::setup_flex_table_columns(flex_table_t *table)
     lua_getfield(lua_state(), -1, "columns");
     if (lua_type(lua_state(), -1) != LUA_TTABLE) {
         throw std::runtime_error{
-            "No columns defined for table '{}'."_format(table->name())};
+            "No 'columns' field (or not an array) in table '{}'."_format(
+                table->name())};
     }
 
     std::size_t num_columns = 0;
@@ -1175,7 +1176,7 @@ void output_flex_t::setup_flex_table_columns(flex_table_t *table)
         ++num_columns;
     }
 
-    if (num_columns == 0) {
+    if (num_columns == 0 && !table->has_id_column()) {
         throw std::runtime_error{
             "No columns defined for table '{}'."_format(table->name())};
     }
@@ -1189,7 +1190,10 @@ int output_flex_t::app_define_table()
             " main Lua code, not in any of the callbacks."};
     }
 
-    luaL_checktype(lua_state(), 1, LUA_TTABLE);
+    if (lua_type(lua_state(), 1) != LUA_TTABLE) {
+        throw std::runtime_error{
+            "Argument #1 to 'define_table' must be a table."};
+    }
 
     auto &new_table = create_flex_table();
     setup_id_columns(&new_table);
