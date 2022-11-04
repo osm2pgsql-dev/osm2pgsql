@@ -36,6 +36,7 @@ def osm_define_data(context, formatted):
         data = eval('f"""' + data + '"""')
 
     for line in data.split('\n'):
+        line = line.strip()
         if line:
             assert line[0] in ('n', 'w', 'r')
-            context.import_data[line[0]].append(line.strip())
+            context.import_data[line[0]].append(line)
