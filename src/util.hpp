@@ -13,6 +13,7 @@
 #include "format.hpp"
 #include "osmtypes.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <chrono>
@@ -128,6 +129,31 @@ std::string human_readable_duration(uint64_t seconds);
 std::string human_readable_duration(std::chrono::milliseconds ms);
 
 std::string get_password();
+
+/**
+ * Helper function that finds items in a container by name. The items must have
+ * a name() member function (with a result comparable to std::string) for this
+ * to work.
+ *
+ * \tparam CONTAINER Any kind of container type (must support std::begin/end).
+ * \param container The container to look through.
+ * \param name The name to look for.
+ * \returns Pointer to item, nullptr if not found.
+ */
+template <typename CONTAINER>
+auto find_by_name(CONTAINER &container, std::string const &name)
+    -> decltype(&*std::begin(container))
+{
+    auto const it =
+        std::find_if(std::begin(container), std::end(container),
+                     [&name](auto const &item) { return item.name() == name; });
+
+    if (it == std::end(container)) {
+        return nullptr;
+    }
+
+    return &*it;
+}
 
 } // namespace util
 

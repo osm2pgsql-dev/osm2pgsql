@@ -1006,11 +1006,7 @@ flex_table_t &output_flex_t::create_flex_table()
 
     check_identifier(table_name, "table names");
 
-    auto const it = std::find_if(m_tables->cbegin(), m_tables->cend(),
-                                 [&table_name](flex_table_t const &table) {
-                                     return table.name() == table_name;
-                                 });
-    if (it != m_tables->cend()) {
+    if (util::find_by_name(*m_tables, table_name)) {
         throw std::runtime_error{
             "Table with name '{}' already exists."_format(table_name)};
     }

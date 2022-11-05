@@ -13,6 +13,8 @@
 
 #include <cstring>
 #include <limits>
+#include <string>
+#include <vector>
 
 TEST_CASE("integer_to_buffer 1", "[NoDB]")
 {
@@ -82,3 +84,31 @@ TEST_CASE("human readable time durations", "[NoDB]")
     REQUIRE(util::human_readable_duration(152592) == "152592s (42h 23m 12s)");
 }
 
+TEST_CASE("find_by_name()", "[NoDB]")
+{
+    class test_class
+    {
+    public:
+        explicit test_class(std::string n) : m_name(std::move(n)) {}
+        std::string name() const noexcept { return m_name; }
+
+    private:
+        std::string m_name;
+    };
+
+    std::vector<test_class> t;
+
+    REQUIRE(util::find_by_name(t, "") == nullptr);
+    REQUIRE(util::find_by_name(t, "foo") == nullptr);
+    REQUIRE(util::find_by_name(t, "nothing") == nullptr);
+
+    t.emplace_back("foo");
+    t.emplace_back("bar");
+    t.emplace_back("baz");
+
+    REQUIRE(util::find_by_name(t, "") == nullptr);
+    REQUIRE(util::find_by_name(t, "foo") == &t[0]);
+    REQUIRE(util::find_by_name(t, "bar") == &t[1]);
+    REQUIRE(util::find_by_name(t, "baz") == &t[2]);
+    REQUIRE(util::find_by_name(t, "nothing") == nullptr);
+}
