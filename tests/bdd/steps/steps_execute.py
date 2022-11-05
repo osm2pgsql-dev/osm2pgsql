@@ -98,6 +98,10 @@ def setup_inline_lua_style(context):
 
 @given("the style file '(?P<style>.+)'")
 def setup_style_file(context, style):
+    if style.endswith('.lua') and not context.config.userdata['HAVE_LUA']:
+        context.scenario.skip("Lua support not compiled in.")
+        return
+
     context.osm2pgsql_params.extend(('-S', str(context.test_data_dir / style)))
 
 
