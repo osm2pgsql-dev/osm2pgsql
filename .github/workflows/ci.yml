@@ -10,7 +10,7 @@ jobs:
       LUA_VERSION: 5.4
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Install prerequisites
         run: |
@@ -53,7 +53,7 @@ jobs:
       BUILD_TYPE: Release
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
@@ -70,7 +70,7 @@ jobs:
       BUILD_TYPE: Release
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
@@ -88,7 +88,7 @@ jobs:
       BUILD_TYPE: Debug
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
@@ -107,7 +107,7 @@ jobs:
       BUILD_TYPE: Debug
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
@@ -125,7 +125,7 @@ jobs:
       BUILD_TYPE: Debug
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
@@ -144,7 +144,7 @@ jobs:
       BUILD_TYPE: Debug
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
@@ -163,7 +163,7 @@ jobs:
       BUILD_TYPE: Debug
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
@@ -182,7 +182,7 @@ jobs:
       BUILD_TYPE: Debug
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
@@ -201,7 +201,7 @@ jobs:
       BUILD_TYPE: Debug
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
@@ -219,7 +219,7 @@ jobs:
       BUILD_TYPE: Release
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
@@ -235,7 +235,7 @@ jobs:
       BUILD_TYPE: Release
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
@@ -252,13 +252,13 @@ jobs:
       VCPKG_DEFAULT_BINARY_CACHE: C:/vcpkg_binary_cache
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v2
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v3
         with:
           path: |
             C:/vcpkg_binary_cache
           key: vcpkg-binary-cache-${{ matrix.os }}
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: |
             C:/postgis.zip
@@ -281,7 +281,7 @@ jobs:
         working-directory: build
         if: matrix.os == 'windows-2022'
       - name: 'Upload Artifact'
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: osm2pgsql-win64
           path: c:/artifact
@@ -295,13 +295,13 @@ jobs:
       OSMURL: https://download.geofabrik.de/europe/monaco-latest.osm.bz2
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v2
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v3
         with:
           path: |
             C:/postgis.zip
           key: postgis-cache
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: osm2pgsql-win64
       - uses: ./.github/actions/win-postgres
