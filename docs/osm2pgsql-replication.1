@@ -1,4 +1,4 @@
-.TH "OSM2PGSQL-REPLICATION" "1" "1.7.1" "" ""
+.TH "OSM2PGSQL-REPLICATION" "1" "1.7.2" "" ""
 .SH NAME
 osm2pgsql-replication \- osm2pgsql database updater
 .SH SYNOPSIS
@@ -39,6 +39,7 @@ how to use osm2pgsql\-replication.
 .SH OPTIONS 'osm2pgsql-replication init'
 usage: osm2pgsql-replication init [-h] [-q] [-v] [-d DB] [-U NAME] [-H HOST]
                                   [-P PORT] [-p PREFIX]
+                                  [--middle-schema MIDDLE_SCHEMA]
                                   [--osm-file FILE | --server URL]
 
 Initialise the replication process.
@@ -98,6 +99,10 @@ Database server port
 .TP
 \fB\-p\fR PREFIX, \fB\-\-prefix\fR PREFIX
 Prefix for table names (default 'planet_osm')
+
+.TP
+\fB\-\-middle\-schema\fR MIDDLE_SCHEMA
+Name of the schema to store the table for the replication state in
 
 .TP
 \fB\-\-osm\-file\fR FILE
@@ -170,7 +175,7 @@ Maximum data to load in MB (default: 500MB)
 
 .TP
 \fB\-\-osm2pgsql\-cmd\fR \fI\,OSM2PGSQL_CMD\/\fR
-Path to osm2pgsql command (default: osm2pgsql)
+Path to osm2pgsql command
 
 .TP
 \fB\-\-once\fR
@@ -208,10 +213,15 @@ Database server port
 \fB\-p\fR PREFIX, \fB\-\-prefix\fR PREFIX
 Prefix for table names (default 'planet_osm')
 
+.TP
+\fB\-\-middle\-schema\fR MIDDLE_SCHEMA
+Name of the schema to store the table for the replication state in
+
 
 .SH OPTIONS 'osm2pgsql-replication status'
 usage: osm2pgsql-replication status [-h] [-q] [-v] [-d DB] [-U NAME] [-H HOST]
-                                    [-P PORT] [-p PREFIX] [--json]
+                                    [-P PORT] [-p PREFIX]
+                                    [--middle-schema MIDDLE_SCHEMA] [--json]
 
 Print information about the current replication status, optionally as JSON.
 .br
@@ -321,6 +331,10 @@ Database server port
 .TP
 \fB\-p\fR PREFIX, \fB\-\-prefix\fR PREFIX
 Prefix for table names (default 'planet_osm')
+
+.TP
+\fB\-\-middle\-schema\fR MIDDLE_SCHEMA
+Name of the schema to store the table for the replication state in
 
 .SH SEE ALSO
 * osm2pgsql website (https://osm2pgsql.org)
