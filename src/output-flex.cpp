@@ -1230,7 +1230,7 @@ flex_table_t const &output_flex_t::get_table_from_param()
 {
     if (lua_gettop(lua_state()) != 1) {
         throw std::runtime_error{
-            "Need exactly one parameter of type osm2pgsql.table."};
+            "Need exactly one parameter of type osm2pgsql.Table."};
     }
 
     auto const &table = m_tables->at(table_idx_from_param(lua_state()));
@@ -1242,7 +1242,7 @@ int output_flex_t::table_tostring()
 {
     auto const &table = get_table_from_param();
 
-    std::string const str{"osm2pgsql.table[{}]"_format(table.name())};
+    std::string const str{"osm2pgsql.Table[{}]"_format(table.name())};
     lua_pushstring(lua_state(), str.c_str());
 
     return 1;
@@ -1342,14 +1342,14 @@ int output_flex_t::table_add_row()
     auto const num_params = lua_gettop(lua_state());
     if (num_params < 1 || num_params > 2) {
         throw std::runtime_error{
-            "Need two parameters: The osm2pgsql.table and the row data."};
+            "Need two parameters: The osm2pgsql.Table and the row data."};
     }
 
     auto &table_connection =
         m_table_connections.at(table_idx_from_param(lua_state()));
     auto const &table = table_connection.table();
 
-    // It there is a second parameter, it must be a Lua table.
+    // If there is a second parameter, it must be a Lua table.
     if (num_params == 2) {
         luaL_checktype(lua_state(), 2, LUA_TTABLE);
     }
@@ -1423,7 +1423,7 @@ int output_flex_t::table_insert()
     auto const num_params = lua_gettop(lua_state());
     if (num_params != 2) {
         throw std::runtime_error{
-            "Need two parameters: The osm2pgsql.table and the row data."};
+            "Need two parameters: The osm2pgsql.Table and the row data."};
     }
 
     // The first parameter is the table object.
@@ -1651,7 +1651,7 @@ void output_flex_t::add_row(table_connection_t *table_connection,
     // must be present.
     if (lua_gettop(lua_state()) == 0) {
         throw std::runtime_error{
-            "Need two parameters: The osm2pgsql.table and the row data."};
+            "Need two parameters: The osm2pgsql.Table and the row data."};
     }
 
     auto const geom_transform = get_transform(lua_state(), table.geom_column());
