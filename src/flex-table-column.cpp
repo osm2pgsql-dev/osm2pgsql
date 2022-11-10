@@ -9,6 +9,7 @@
 
 #include "flex-table-column.hpp"
 #include "format.hpp"
+#include "util.hpp"
 
 #include <algorithm>
 #include <array>
@@ -19,8 +20,10 @@
 
 struct column_type_lookup
 {
-    char const *name;
+    char const *m_name;
     table_column_type type;
+
+    char const *name() const noexcept { return m_name; }
 };
 
 static std::array<column_type_lookup, 26> const column_types = {
@@ -51,22 +54,14 @@ static std::array<column_type_lookup, 26> const column_types = {
      {"id_type", table_column_type::id_type},
      {"id_num", table_column_type::id_num}}};
 
-static table_column_type
-get_column_type_from_string(std::string const &type)
+static table_column_type get_column_type_from_string(std::string const &type)
 {
-    // Because it doesn't work with MSVC:
-    // NOLINTNEXTLINE(llvm-qualified-auto,readability-qualified-auto)
-    auto const it =
-        std::find_if(std::begin(column_types), std::end(column_types),
-                     [&type](column_type_lookup name_type) {
-                         return type == name_type.name;
-                     });
-
-    if (it == std::end(column_types)) {
+    auto const *column_type = util::find_by_name(column_types, type);
+    if (!column_type) {
         throw std::runtime_error{"Unknown column type '{}'."_format(type)};
     }
 
-    return it->type;
+    return column_type->type;
 }
 
 static std::string lowercase(std::string const &str)
