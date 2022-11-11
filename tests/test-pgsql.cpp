@@ -56,18 +56,6 @@ TEST_CASE("exec with invalid SQL should fail")
     REQUIRE_THROWS(conn.exec("XYZ"));
 }
 
-TEST_CASE("exec_prepared without parameters should work")
-{
-    auto const conn = db.db().connect();
-    conn.exec("PREPARE test AS SELECT 42");
-
-    auto const result = conn.exec_prepared("test");
-    REQUIRE(result.status() == PGRES_TUPLES_OK);
-    REQUIRE(result.num_fields() == 1);
-    REQUIRE(result.num_tuples() == 1);
-    REQUIRE(result.get(0, 0) == "42");
-}
-
 TEST_CASE("exec_prepared with single string parameters should work")
 {
     auto const conn = db.db().connect();
