@@ -205,6 +205,11 @@ include_directories(SYSTEM ${PostgreSQL_INCLUDE_DIRS})
 
 find_package(Threads)
 
+find_path(POTRACE_INCLUDE_DIR potracelib.h)
+find_library(POTRACE_LIBRARY NAMES potrace)
+
+find_path(CIMG_INCLUDE_DIR CImg.h)
+
 ############### Libraries are found now ########################
 
 set(LIBS ${Boost_LIBRARIES} ${PostgreSQL_LIBRARY} ${OSMIUM_LIBRARIES})
@@ -276,6 +281,33 @@ add_subdirectory(src)
 add_executable(osm2pgsql src/osm2pgsql.cpp)
 target_link_libraries(osm2pgsql osm2pgsql_lib ${LIBS})
 
+if (${POTRACE_LIBRARY} STREQUAL "POTRACE_LIBRARY-NOTFOUND" OR ${CIMG_INCLUDE_DIR} STREQUAL "CIMG_INCLUDE_DIR-NOTFOUND")
+    message(STATUS "Did not find cimg and/or potrace library. Not building osm2pgsql-gen.")
+else()
+    if (WITH_LUA)
+        message(STATUS "Found cimg and potrace library. Building osm2pgsql-gen.")
+        set(BUILD_GEN 1)
+        include_directories(SYSTEM ${CIMG_INCLUDE_DIR})
+        include_directories(SYSTEM ${POTRACE_INCLUDE_DIR})
+        add_executable(osm2pgsql-gen src/gen/osm2pgsql-gen.cpp
+                    src/gen/canvas.cpp
+                    src/gen/gen-base.cpp
+                    src/gen/gen-create.cpp
+                    src/gen/gen-discrete-isolation.cpp
+                    src/gen/gen-rivers.cpp
+                    src/gen/gen-tile-builtup.cpp
+                    src/gen/gen-tile-raster.cpp
+                    src/gen/gen-tile-vector.cpp
+                    src/gen/gen-tile.cpp
+                    src/gen/params.cpp
+                    src/gen/raster.cpp
+                    src/gen/tracer.cpp)
+        target_link_libraries(osm2pgsql-gen osm2pgsql_lib ${LIBS} ${POTRACE_LIBRARY})
+    else()
+        message(STATUS "No Lua. Not building osm2pgsql-gen.")
+    endif()
+endif()
+
 #############################################################
 # Optional "clang-tidy" target
 #############################################################
@@ -287,7 +319,7 @@ find_program(CLANG_TIDY
 if (CLANG_TIDY)
     message(STATUS "Looking for clang-tidy - found ${CLANG_TIDY}")
 
-    file(GLOB CT_CHECK_FILES src/*.cpp tests/*cpp)
+    file(GLOB CT_CHECK_FILES src/*.cpp src/*/*.cpp tests/*cpp)
 
     add_custom_target(clang-tidy
         ${CLANG_TIDY}

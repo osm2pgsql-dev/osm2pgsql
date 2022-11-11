@@ -14,7 +14,7 @@ jobs:
 
       - name: Install prerequisites
         run: |
-          brew install lua boost postgis pandoc
+          brew install lua boost postgis pandoc cimg potrace
           pip3 install psycopg2 behave
           pg_ctl -D /usr/local/var/postgres init
           pg_ctl -D /usr/local/var/postgres start
@@ -45,6 +45,7 @@ jobs:
     env:
       CC: gcc-10
       CXX: g++-10
+      EXTRA_FLAGS: -Wno-unused-but-set-parameter # workaround for GCC bug
       LUA_VERSION: 5.3
       LUAJIT_OPTION: ON
       POSTGRESQL_VERSION: 9.6
@@ -79,6 +80,7 @@ jobs:
     env:
       CC: gcc-10
       CXX: g++-10
+      EXTRA_FLAGS: -Wno-unused-but-set-parameter # workaround for GCC bug
       LUA_VERSION: 5.3
       LUAJIT_OPTION: OFF
       POSTGRESQL_VERSION: 10
