@@ -56,27 +56,42 @@ public:
     /// The number of tuples (rows) in this result.
     int num_tuples() const noexcept { return PQntuples(m_result.get()); }
 
-    /// Does the field at (row, col) has the NULL value?
+    /**
+     * Does the field at (row, col) has the NULL value?
+     *
+     * \pre 0 <= row < num_tuples() and 0 <= col < num_fields()
+     */
     bool is_null(int row, int col) const noexcept
     {
-        assert(row < num_tuples() && col < num_fields());
+        assert(row >= 0 && row < num_tuples() && col >= 0 &&
+               col < num_fields());
         return PQgetisnull(m_result.get(), row, col) != 0;
     }
 
-    /// The length of the field at (row, col) in bytes.
+    /**
+     * The length of the field at (row, col) in bytes.
+     *
+     * \pre 0 <= row < num_tuples() and 0 <= col < num_fields()
+     */
     int get_length(int row, int col) const noexcept
     {
-        assert(row < num_tuples() && col < num_fields());
+        assert(row >= 0 && row < num_tuples() && col >= 0 &&
+               col < num_fields());
         return PQgetlength(m_result.get(), row, col);
     }
 
     /**
      * Get value of the field at (row, col) as char pointer. The string is
      * null-terminated. Only valid as long as the pg_result_t is in scope.
+     *
+     * When the result is NULL, an empty string is returned.
+     *
+     * \pre 0 <= row < num_tuples() and 0 <= col < num_fields()
      */
     char const *get_value(int row, int col) const noexcept
     {
-        assert(row < num_tuples() && col < num_fields());
+        assert(row >= 0 && row < num_tuples() && col >= 0 &&
+               col < num_fields());
         return PQgetvalue(m_result.get(), row, col);
     }
 
