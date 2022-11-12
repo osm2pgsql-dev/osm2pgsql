@@ -43,7 +43,7 @@ pg_result_t pg_conn_t::query(ExecStatusType expect, char const *sql) const
 
     log_sql("{}", sql);
     pg_result_t res{PQexec(m_conn.get(), sql)};
-    if (PQresultStatus(res.get()) != expect) {
+    if (res.status() != expect) {
         throw std::runtime_error{"Database error: {}"_format(error_msg())};
     }
     return res;
@@ -121,7 +121,7 @@ void pg_conn_t::end_copy(std::string const &context) const
     }
 
     pg_result_t const res{PQgetResult(m_conn.get())};
-    if (PQresultStatus(res.get()) != PGRES_COMMAND_OK) {
+    if (res.status() != PGRES_COMMAND_OK) {
         throw std::runtime_error{fmt::format(
             "Ending COPY mode for '{}' failed: {}.", context, error_msg())};
     }
@@ -156,11 +156,11 @@ pg_conn_t::exec_prepared_internal(char const *stmt, int num_params,
     }
     pg_result_t res{PQexecPrepared(m_conn.get(), stmt, num_params, param_values,
                                    nullptr, nullptr, 0)};
-    if (PQresultStatus(res.get()) != PGRES_TUPLES_OK) {
+    if (res.status() != PGRES_TUPLES_OK) {
         log_error("SQL command failed: EXECUTE {}({})", stmt,
                   concat_params(num_params, param_values));
-        throw std::runtime_error{"Database error: {} ({})"_format(
-            error_msg(), PQresultStatus(res.get()))};
+        throw std::runtime_error{
+            "Database error: {} ({})"_format(error_msg(), res.status())};
     }
 
     return res;

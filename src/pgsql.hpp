@@ -41,9 +41,6 @@ public:
 
     explicit pg_result_t(PGresult *result) noexcept : m_result(result) {}
 
-    /// Get a pointer to the underlying PGresult object.
-    PGresult *get() const noexcept { return m_result.get(); }
-
     /// Get the status of this result.
     ExecStatusType status() const noexcept
     {
