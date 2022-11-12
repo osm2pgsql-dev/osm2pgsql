@@ -219,6 +219,10 @@ public:
     pg_result_t query(ExecStatusType expect, char const *sql) const;
     pg_result_t query(ExecStatusType expect, std::string const &sql) const;
 
+    /**
+     * Update a PostgreSQL setting (like with the SET command). Will silently
+     * ignore settings that are not available or any other errors.
+     */
     void set_config(char const *setting, char const *value) const;
 
     /**
@@ -235,6 +239,7 @@ public:
 
     void end_copy(std::string const &context) const;
 
+    /// Return the latest generated error message on this connection.
     char const *error_msg() const noexcept;
 
     /// Close database connection.
@@ -265,15 +270,15 @@ std::string tablespace_clause(std::string const &name);
 std::string qualified_name(std::string const &schema, std::string const &name);
 
 /**
- * Check that the string confirms to the identifier syntax we accept.
- * Throws a runtime exception if an invalid character is found.
+ * Check that the string conforms to the identifier syntax we accept.
  *
  * Note that PostgreSQL accepts any character in a quoted identifier.
- * This function checks for some characters that are problematic in the
- * internal functions that create SQL statements.
+ * This function checks for some characters that are potentially problematic
+ * in our internal functions that create SQL statements.
  *
- * \param name  Identifier to check.
- * \param in    Name of the identifier. Only used to create a human-readable error.
+ * \param name Identifier to check.
+ * \param in Name of the identifier. Only used to create a human-readable error.
+ * \throws runtime_exception If an invalid character is found in the name.
  */
 void check_identifier(std::string const &name, char const *in);
 
