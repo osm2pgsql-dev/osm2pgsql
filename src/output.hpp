@@ -97,11 +97,6 @@ public:
         return m_output_requirements;
     }
 
-private:
-    std::shared_ptr<middle_query_t> m_mid;
-    options_t const *m_options;
-    std::shared_ptr<thread_pool_t> m_thread_pool;
-
 protected:
     /**
      * Constructor used for creating a new object using the create_output()
@@ -129,8 +124,17 @@ protected:
         return *m_mid;
     }
 
+    output_requirements &access_requirements() noexcept
+    {
+        return m_output_requirements;
+    }
+
     const options_t *get_options() const noexcept { return m_options; };
 
+private:
+    std::shared_ptr<middle_query_t> m_mid;
+    options_t const *m_options;
+    std::shared_ptr<thread_pool_t> m_thread_pool;
     output_requirements m_output_requirements{};
 };
 
