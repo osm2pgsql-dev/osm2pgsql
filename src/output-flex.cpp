@@ -1964,14 +1964,6 @@ void output_flex_t::relation_modify(osmium::Relation const &rel)
     relation_add(rel);
 }
 
-void output_flex_t::init_clone()
-{
-    for (auto &table : m_table_connections) {
-        table.connect(get_options()->database_options.conninfo());
-        table.prepare();
-    }
-}
-
 void output_flex_t::start()
 {
     for (auto &table : m_table_connections) {
@@ -1993,12 +1985,11 @@ output_flex_t::output_flex_t(output_flex_t const *other,
   m_process_relation(other->m_process_relation),
   m_select_relation_members(other->m_select_relation_members)
 {
-    assert(m_table_connections.empty());
     for (auto &table : *m_tables) {
-        m_table_connections.emplace_back(&table, m_copy_thread);
+        auto &tc = m_table_connections.emplace_back(&table, m_copy_thread);
+        tc.connect(get_options()->database_options.conninfo());
+        tc.prepare();
     }
-
-    init_clone();
 }
 
 std::shared_ptr<output_t>
@@ -2015,8 +2006,6 @@ output_flex_t::output_flex_t(
 : output_t(mid, std::move(thread_pool), o), m_copy_thread(copy_thread),
   m_expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection)
 {
-    assert(copy_thread);
-
     init_lua(get_options()->style);
 
     // If the osm2pgsql.select_relation_members() Lua function is defined
@@ -2031,7 +2020,6 @@ output_flex_t::output_flex_t(
             "No tables defined in Lua config. Nothing to do!"};
     }
 
-    assert(m_table_connections.empty());
     for (auto &table : *m_tables) {
         m_table_connections.emplace_back(&table, m_copy_thread);
     }

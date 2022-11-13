@@ -171,7 +171,6 @@ public:
     int table_columns();
 
 private:
-    void init_clone();
     void select_relation_members();
 
     /**
