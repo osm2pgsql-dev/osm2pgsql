@@ -97,20 +97,17 @@ private:
 
 class output_flex_t : public output_t
 {
-
 public:
+    /// Constructor for new objects
     output_flex_t(
         std::shared_ptr<middle_query_t> const &mid,
         std::shared_ptr<thread_pool_t> thread_pool, options_t const &options,
-        std::shared_ptr<db_copy_thread_t> const &copy_thread,
-        bool is_clone = false, std::shared_ptr<lua_State> lua_state = nullptr,
-        prepared_lua_function_t process_node = {},
-        prepared_lua_function_t process_way = {},
-        prepared_lua_function_t process_relation = {},
-        prepared_lua_function_t select_relation_members = {},
-        std::shared_ptr<std::vector<flex_table_t>> tables =
-            std::make_shared<std::vector<flex_table_t>>(),
-        std::shared_ptr<idset_t> stage2_way_ids = std::make_shared<idset_t>());
+        std::shared_ptr<db_copy_thread_t> const &copy_thread);
+
+    /// Constructor for cloned objects
+    output_flex_t(output_flex_t const *other,
+                  std::shared_ptr<middle_query_t> mid,
+                  std::shared_ptr<db_copy_thread_t> copy_thread);
 
     output_flex_t(output_flex_t const &) = delete;
     output_flex_t &operator=(output_flex_t const &) = delete;
@@ -281,12 +278,14 @@ private:
 
     }; // relation_cache_t
 
-    std::shared_ptr<std::vector<flex_table_t>> m_tables;
+    std::shared_ptr<std::vector<flex_table_t>> m_tables =
+        std::make_shared<std::vector<flex_table_t>>();
+
     std::vector<table_connection_t> m_table_connections;
 
     // This is shared between all clones of the output and must only be
     // accessed while protected using the lua_mutex.
-    std::shared_ptr<idset_t> m_stage2_way_ids;
+    std::shared_ptr<idset_t> m_stage2_way_ids = std::make_shared<idset_t>();
 
     std::shared_ptr<db_copy_thread_t> m_copy_thread;
 
@@ -300,10 +299,10 @@ private:
     relation_cache_t m_relation_cache;
     osmium::Node const *m_context_node = nullptr;
 
-    prepared_lua_function_t m_process_node;
-    prepared_lua_function_t m_process_way;
-    prepared_lua_function_t m_process_relation;
-    prepared_lua_function_t m_select_relation_members;
+    prepared_lua_function_t m_process_node{};
+    prepared_lua_function_t m_process_way{};
+    prepared_lua_function_t m_process_relation{};
+    prepared_lua_function_t m_select_relation_members{};
 
     calling_context m_calling_context = calling_context::main;
 

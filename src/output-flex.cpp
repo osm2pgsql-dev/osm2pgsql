@@ -1980,45 +1980,50 @@ void output_flex_t::start()
     }
 }
 
+output_flex_t::output_flex_t(output_flex_t const *other,
+                             std::shared_ptr<middle_query_t> mid,
+                             std::shared_ptr<db_copy_thread_t> copy_thread)
+: output_t(other, std::move(mid)), m_tables(other->m_tables),
+  m_stage2_way_ids(other->m_stage2_way_ids),
+  m_copy_thread(std::move(copy_thread)), m_lua_state(other->m_lua_state),
+  m_expire(other->get_options()->expire_tiles_zoom,
+           other->get_options()->expire_tiles_max_bbox,
+           other->get_options()->projection),
+  m_process_node(other->m_process_node), m_process_way(other->m_process_way),
+  m_process_relation(other->m_process_relation),
+  m_select_relation_members(other->m_select_relation_members)
+{
+    assert(m_table_connections.empty());
+    for (auto &table : *m_tables) {
+        m_table_connections.emplace_back(&table, m_copy_thread);
+    }
+
+    init_clone();
+}
+
 std::shared_ptr<output_t>
 output_flex_t::clone(std::shared_ptr<middle_query_t> const &mid,
                      std::shared_ptr<db_copy_thread_t> const &copy_thread) const
 {
-    return std::make_shared<output_flex_t>(
-        mid, m_thread_pool, *get_options(), copy_thread, true, m_lua_state,
-        m_process_node, m_process_way, m_process_relation,
-        m_select_relation_members, m_tables, m_stage2_way_ids);
+    return std::make_shared<output_flex_t>(this, mid, copy_thread);
 }
 
 output_flex_t::output_flex_t(
     std::shared_ptr<middle_query_t> const &mid,
     std::shared_ptr<thread_pool_t> thread_pool, options_t const &o,
-    std::shared_ptr<db_copy_thread_t> const &copy_thread, bool is_clone,
-    std::shared_ptr<lua_State> lua_state, prepared_lua_function_t process_node,
-    prepared_lua_function_t process_way,
-    prepared_lua_function_t process_relation,
-    prepared_lua_function_t select_relation_members,
-    std::shared_ptr<std::vector<flex_table_t>> tables,
-    std::shared_ptr<idset_t> stage2_way_ids)
-: output_t(mid, std::move(thread_pool), o), m_tables(std::move(tables)),
-  m_stage2_way_ids(std::move(stage2_way_ids)), m_copy_thread(copy_thread),
-  m_lua_state(std::move(lua_state)),
-  m_expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection),
-  m_process_node(process_node), m_process_way(process_way),
-  m_process_relation(process_relation),
-  m_select_relation_members(select_relation_members)
+    std::shared_ptr<db_copy_thread_t> const &copy_thread)
+: output_t(mid, std::move(thread_pool), o), m_copy_thread(copy_thread),
+  m_expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection)
 {
     assert(copy_thread);
 
-    if (!is_clone) {
-        init_lua(get_options()->style);
+    init_lua(get_options()->style);
 
-        // If the osm2pgsql.select_relation_members() Lua function is defined
-        // it means we need two-stage processing which in turn means we need
-        // the full ways stored in the middle.
-        if (m_select_relation_members) {
-            m_output_requirements.full_ways = true;
-        }
+    // If the osm2pgsql.select_relation_members() Lua function is defined
+    // it means we need two-stage processing which in turn means we need
+    // the full ways stored in the middle.
+    if (m_select_relation_members) {
+        m_output_requirements.full_ways = true;
     }
 
     if (m_tables->empty()) {
@@ -2029,10 +2034,6 @@ output_flex_t::output_flex_t(
     assert(m_table_connections.empty());
     for (auto &table : *m_tables) {
         m_table_connections.emplace_back(&table, m_copy_thread);
-    }
-
-    if (is_clone) {
-        init_clone();
     }
 }
 

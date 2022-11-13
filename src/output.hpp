@@ -32,17 +32,24 @@ struct middle_query_t;
 class output_t
 {
 public:
+    /// Factory method for creating instances of classes derived from output_t.
     static std::shared_ptr<output_t>
     create_output(std::shared_ptr<middle_query_t> const &mid,
                   std::shared_ptr<thread_pool_t> thread_pool,
                   options_t const &options);
 
-    output_t(std::shared_ptr<middle_query_t> mid,
-             std::shared_ptr<thread_pool_t> thread_pool,
-             options_t const &options);
+    output_t(output_t const &) = default;
+    output_t &operator=(output_t const &) = default;
+
+    output_t(output_t &&) = default;
+    output_t &operator=(output_t &&) = default;
 
     virtual ~output_t();
 
+    /**
+     * This function clones instances of derived classes of output_t, it must
+     * be implemented in derived classes.
+     */
     virtual std::shared_ptr<output_t>
     clone(std::shared_ptr<middle_query_t> const &mid,
           std::shared_ptr<db_copy_thread_t> const &copy_thread) const = 0;
@@ -96,8 +103,23 @@ public:
 private:
     std::shared_ptr<middle_query_t> m_mid;
     options_t const *m_options;
+    std::shared_ptr<thread_pool_t> m_thread_pool;
 
 protected:
+    /**
+     * Constructor used for creating a new object using the create_output()
+     * function.
+     */
+    output_t(std::shared_ptr<middle_query_t> mid,
+             std::shared_ptr<thread_pool_t> thread_pool,
+             options_t const &options);
+
+    /**
+     * Constructor used for cloning an existing output using clone(). It gets
+     * a new middle query pointer, everything else is copied over.
+     */
+    output_t(output_t const *other, std::shared_ptr<middle_query_t> mid);
+
     thread_pool_t &thread_pool() const noexcept
     {
         assert(m_thread_pool);
@@ -112,7 +134,6 @@ protected:
 
     const options_t *get_options() const noexcept { return m_options; };
 
-    std::shared_ptr<thread_pool_t> m_thread_pool;
     output_requirements m_output_requirements{};
 };
 

@@ -22,6 +22,12 @@ public:
                   std::shared_ptr<thread_pool_t> thread_pool,
                   options_t const &options);
 
+    output_null_t(output_null_t const &) = default;
+    output_null_t &operator=(output_null_t const &) = default;
+
+    output_null_t(output_null_t &&) = default;
+    output_null_t &operator=(output_null_t &&) = default;
+
     ~output_null_t() override;
 
     std::shared_ptr<output_t>

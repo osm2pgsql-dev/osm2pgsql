@@ -27,10 +27,6 @@
 
 class output_pgsql_t : public output_t
 {
-    output_pgsql_t(output_pgsql_t const *other,
-                   std::shared_ptr<middle_query_t> const &mid,
-                   std::shared_ptr<db_copy_thread_t> const &copy_thread);
-
 public:
     enum table_id
     {
@@ -41,10 +37,22 @@ public:
         t_MAX
     };
 
+    /// Constructor for new objects
     output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
                    std::shared_ptr<thread_pool_t> thread_pool,
                    options_t const &options,
                    std::shared_ptr<db_copy_thread_t> const &copy_thread);
+
+    /// Constructor for cloned objects
+    output_pgsql_t(output_pgsql_t const *other,
+                   std::shared_ptr<middle_query_t> const &mid,
+                   std::shared_ptr<db_copy_thread_t> const &copy_thread);
+
+    output_pgsql_t(output_pgsql_t const &) = delete;
+    output_pgsql_t &operator=(output_pgsql_t const &) = delete;
+
+    output_pgsql_t(output_pgsql_t &&) = delete;
+    output_pgsql_t &operator=(output_pgsql_t &&) = delete;
 
     ~output_pgsql_t() override;
 

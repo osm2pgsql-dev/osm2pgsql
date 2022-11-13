@@ -21,6 +21,8 @@
 #include <memory>
 #include <string>
 
+output_gazetteer_t::~output_gazetteer_t() = default;
+
 void output_gazetteer_t::delete_unused_classes(char osm_type, osmid_t osm_id)
 {
     if (get_options()->append) {
