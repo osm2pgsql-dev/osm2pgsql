@@ -123,7 +123,10 @@ private:
     std::unique_ptr<PGresult, pg_result_deleter_t> m_result;
 };
 
-namespace {
+// Do not use anonymous namespace in header file
+// https://wiki.sei.cmu.edu/confluence/display/cplusplus/DCL59-CPP.+Do+not+define+an+unnamed+namespace+in+a+header+file
+namespace detail {
+
 /**
  * Helper for pg_conn_t::exec_prepared() function. All parameters to
  * that function are given to the exec_arg::to_str function which will
@@ -145,7 +148,7 @@ struct exec_arg<char const *>
 {
     constexpr static std::size_t const buffers_needed = 0;
     static char const *to_str(std::vector<std::string> * /*data*/,
-                              char const *param)
+                              char const *param) noexcept
     {
         return param;
     }
@@ -156,13 +159,13 @@ struct exec_arg<std::string const &>
 {
     constexpr static std::size_t const buffers_needed = 0;
     static char const *to_str(std::vector<std::string> * /*data*/,
-                              std::string const &param)
+                              std::string const &param) noexcept
     {
         return param.c_str();
     }
 };
 
-} // anonymous namespace
+} // namespace detail
 
 /**
  * PostgreSQL connection.
@@ -194,7 +197,7 @@ public:
         // so that pointers into the strings in that vector remain valid
         // after new parameters have been added.
         constexpr auto const total_buffers_needed =
-            (0 + ... + exec_arg<TArgs>::buffers_needed);
+            (0 + ... + detail::exec_arg<TArgs>::buffers_needed);
         std::vector<std::string> exec_params;
         exec_params.reserve(total_buffers_needed);
 
@@ -202,8 +205,8 @@ public:
         // to the original string parameters or to the recently converted
         // in the exec_params vector.
         std::array<char const *, sizeof...(params)> param_ptrs = {
-            exec_arg<TArgs>::to_str(&exec_params,
-                                    std::forward<TArgs>(params))...};
+            detail::exec_arg<TArgs>::to_str(&exec_params,
+                                            std::forward<TArgs>(params))...};
 
         return exec_prepared_internal(stmt, sizeof...(params),
                                       param_ptrs.data());
