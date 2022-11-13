@@ -76,9 +76,4 @@ output_t::output_t(output_t const *other, std::shared_ptr<middle_query_t> mid)
 
 output_t::~output_t() = default;
 
-void output_t::free_middle_references()
-{
-    m_mid.reset();
-}
-
-void output_t::merge_expire_trees(output_t *) {}
+void output_t::free_middle_references() { m_mid.reset(); }

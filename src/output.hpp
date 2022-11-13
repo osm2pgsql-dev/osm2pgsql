@@ -10,14 +10,11 @@
  * For a full list of authors see the git log.
  */
 
-/* Common output layer interface */
-
-/* Each output layer must provide methods for
- * storing:
- * - Nodes (Points of interest etc)
- * - Way geometries
- * Associated tags: name, type etc.
-*/
+/**
+ * \file
+ *
+ * Common output layer interface.
+ */
 
 #include <osmium/index/id_set.hpp>
 
@@ -93,9 +90,9 @@ public:
     virtual void way_delete(osmid_t id) = 0;
     virtual void relation_delete(osmid_t id) = 0;
 
-    virtual void merge_expire_trees(output_t *other);
+    virtual void merge_expire_trees(output_t * /*other*/) {}
 
-    struct output_requirements const &get_requirements() const noexcept
+    output_requirements const &get_requirements() const noexcept
     {
         return m_output_requirements;
     }
