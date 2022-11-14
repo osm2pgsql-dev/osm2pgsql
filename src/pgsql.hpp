@@ -37,12 +37,9 @@
 class pg_result_t
 {
 public:
-    pg_result_t() = default;
+    pg_result_t() noexcept = default;
 
     explicit pg_result_t(PGresult *result) noexcept : m_result(result) {}
-
-    /// Get a pointer to the underlying PGresult object.
-    PGresult *get() const noexcept { return m_result.get(); }
 
     /// Get the status of this result.
     ExecStatusType status() const noexcept
@@ -56,27 +53,42 @@ public:
     /// The number of tuples (rows) in this result.
     int num_tuples() const noexcept { return PQntuples(m_result.get()); }
 
-    /// Does the field at (row, col) has the NULL value?
+    /**
+     * Does the field at (row, col) has the NULL value?
+     *
+     * \pre 0 <= row < num_tuples() and 0 <= col < num_fields()
+     */
     bool is_null(int row, int col) const noexcept
     {
-        assert(row < num_tuples() && col < num_fields());
+        assert(row >= 0 && row < num_tuples() && col >= 0 &&
+               col < num_fields());
         return PQgetisnull(m_result.get(), row, col) != 0;
     }
 
-    /// The length of the field at (row, col) in bytes.
+    /**
+     * The length of the field at (row, col) in bytes.
+     *
+     * \pre 0 <= row < num_tuples() and 0 <= col < num_fields()
+     */
     int get_length(int row, int col) const noexcept
     {
-        assert(row < num_tuples() && col < num_fields());
+        assert(row >= 0 && row < num_tuples() && col >= 0 &&
+               col < num_fields());
         return PQgetlength(m_result.get(), row, col);
     }
 
     /**
      * Get value of the field at (row, col) as char pointer. The string is
      * null-terminated. Only valid as long as the pg_result_t is in scope.
+     *
+     * When the result is NULL, an empty string is returned.
+     *
+     * \pre 0 <= row < num_tuples() and 0 <= col < num_fields()
      */
     char const *get_value(int row, int col) const noexcept
     {
-        assert(row < num_tuples() && col < num_fields());
+        assert(row >= 0 && row < num_tuples() && col >= 0 &&
+               col < num_fields());
         return PQgetvalue(m_result.get(), row, col);
     }
 
@@ -100,7 +112,7 @@ public:
     }
 
     /// Return true if this holds an actual result.
-    explicit operator bool() { return m_result.get(); }
+    explicit operator bool() const noexcept { return m_result.get(); }
 
 private:
     struct pg_result_deleter_t
@@ -207,6 +219,10 @@ public:
     pg_result_t query(ExecStatusType expect, char const *sql) const;
     pg_result_t query(ExecStatusType expect, std::string const &sql) const;
 
+    /**
+     * Update a PostgreSQL setting (like with the SET command). Will silently
+     * ignore settings that are not available or any other errors.
+     */
     void set_config(char const *setting, char const *value) const;
 
     /**
@@ -223,6 +239,7 @@ public:
 
     void end_copy(std::string const &context) const;
 
+    /// Return the latest generated error message on this connection.
     char const *error_msg() const noexcept;
 
     /// Close database connection.
@@ -253,15 +270,15 @@ std::string tablespace_clause(std::string const &name);
 std::string qualified_name(std::string const &schema, std::string const &name);
 
 /**
- * Check that the string confirms to the identifier syntax we accept.
- * Throws a runtime exception if an invalid character is found.
+ * Check that the string conforms to the identifier syntax we accept.
  *
  * Note that PostgreSQL accepts any character in a quoted identifier.
- * This function checks for some characters that are problematic in the
- * internal functions that create SQL statements.
+ * This function checks for some characters that are potentially problematic
+ * in our internal functions that create SQL statements.
  *
- * \param name  Identifier to check.
- * \param in    Name of the identifier. Only used to create a human-readable error.
+ * \param name Identifier to check.
+ * \param in Name of the identifier. Only used to create a human-readable error.
+ * \throws runtime_exception If an invalid character is found in the name.
  */
 void check_identifier(std::string const &name, char const *in);
 
