@@ -302,25 +302,33 @@ private:
             ids_queued, type, m_clones.size()));
 
         util::timer_t timer;
-        std::vector<std::future<void>> workers;
 
-        for (auto const &clone : m_clones) {
-            workers.push_back(std::async(std::launch::async, run,
-                                         std::cref(clone), &list, &m_mutex,
-                                         function));
-        }
-        workers.push_back(
-            std::async(std::launch::async, print_stats, &list, &m_mutex));
+        if (ids_queued < 100) {
+            for (auto const oid : list) {
+                (m_clones[0].get()->*function)(oid);
+            }
+            m_clones[0]->sync();
+        } else {
+            std::vector<std::future<void>> workers;
 
-        for (auto &worker : workers) {
-            try {
-                worker.get();
-            } catch (...) {
-                // Drain the queue, so that the other workers finish early.
-                m_mutex.lock();
-                list.clear();
-                m_mutex.unlock();
-                throw;
+            for (auto const &clone : m_clones) {
+                workers.push_back(std::async(std::launch::async, run,
+                                             std::cref(clone), &list, &m_mutex,
+                                             function));
+            }
+            workers.push_back(
+                std::async(std::launch::async, print_stats, &list, &m_mutex));
+
+            for (auto &worker : workers) {
+                try {
+                    worker.get();
+                } catch (...) {
+                    // Drain the queue, so that the other workers finish early.
+                    m_mutex.lock();
+                    list.clear();
+                    m_mutex.unlock();
+                    throw;
+                }
             }
         }
 
