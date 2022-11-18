@@ -298,17 +298,19 @@ private:
     {
         auto const ids_queued = list.size();
 
-        log_info("Going over {} pending {}s (using {} threads)"_format(
-            ids_queued, type, m_clones.size()));
-
         util::timer_t timer;
 
         if (ids_queued < 100) {
+            log_info("Going over {} pending {}s"_format(ids_queued, type));
+
             for (auto const oid : list) {
                 (m_clones[0].get()->*function)(oid);
             }
             m_clones[0]->sync();
         } else {
+            log_info("Going over {} pending {}s (using {} threads)"_format(
+                ids_queued, type, m_clones.size()));
+
             std::vector<std::future<void>> workers;
 
             for (auto const &clone : m_clones) {
@@ -330,13 +332,13 @@ private:
                     throw;
                 }
             }
+
+            if (get_logger().show_progress()) {
+                fmt::print(stderr, "\rLeft to process: 0.\n");
+            }
         }
 
         timer.stop();
-
-        if (get_logger().show_progress()) {
-            fmt::print(stderr, "\rLeft to process: 0.\n");
-        }
 
         log_info("Processing {} pending {}s took {} at a rate of {:.2f}/s",
                  ids_queued, type,
