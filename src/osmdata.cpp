@@ -301,6 +301,8 @@ private:
         util::timer_t timer;
 
         if (ids_queued < 100) {
+            // Worker startup is quite expensive. Run the processing directly
+            // when only few items need to be processed.
             log_info("Going over {} pending {}s"_format(ids_queued, type));
 
             for (auto const oid : list) {
