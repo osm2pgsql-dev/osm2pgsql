@@ -14,14 +14,14 @@
 #include <cassert>
 #include <string>
 
-std::chrono::milliseconds task_result_t::wait()
+std::chrono::microseconds task_result_t::wait()
 {
     if (m_future.valid()) {
         m_result = m_future.get();
 
         // Make sure the result is not 0 so it is different than
         // "no result yet".
-        if (m_result == std::chrono::milliseconds::zero()) {
+        if (m_result == std::chrono::microseconds::zero()) {
             ++m_result;
         }
     }

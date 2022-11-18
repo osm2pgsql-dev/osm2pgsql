@@ -48,10 +48,10 @@ std::string human_readable_duration(uint64_t seconds)
     return "{}s ({}h {}m {}s)"_format(seconds, mins / 60, mins % 60, secs);
 }
 
-std::string human_readable_duration(std::chrono::milliseconds ms)
+std::string human_readable_duration(std::chrono::microseconds duration)
 {
     return human_readable_duration(static_cast<uint64_t>(
-        std::chrono::duration_cast<std::chrono::seconds>(ms).count()));
+        std::chrono::duration_cast<std::chrono::seconds>(duration).count()));
 }
 
 std::string get_password()

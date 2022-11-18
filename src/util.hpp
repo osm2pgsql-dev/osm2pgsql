@@ -83,26 +83,26 @@ private:
 }; // class string_id_list_t
 
 /**
- * Helper class for timing with a granularity of seconds. The timer will
- * start on construction and is stopped by calling stop().
+ * Helper class for timing with a granularity of microseconds. The timer will
+ * start on construction or it can be started by calling start(). It is stopped
+ * by calling stop(). Timer can be restarted and times will be added up.
  */
 class timer_t
 {
 public:
-    timer_t() noexcept : m_start(std::time(nullptr)) {}
+    timer_t() noexcept : m_start(clock::now()) {}
+
+    void start() noexcept { m_start = clock::now(); }
 
     /// Stop timer and return elapsed time
-    uint64_t stop() noexcept
+    std::chrono::microseconds stop() noexcept
     {
-        m_stop = std::time(nullptr);
-        return static_cast<uint64_t>(m_stop - m_start);
+        m_duration += std::chrono::duration_cast<std::chrono::microseconds>(
+            clock::now() - m_start);
+        return m_duration;
     }
 
-    /// Return elapsed time
-    uint64_t elapsed() const noexcept
-    {
-        return static_cast<uint64_t>(m_stop - m_start);
-    }
+    std::chrono::microseconds elapsed() const noexcept { return m_duration; }
 
     /**
      * Calculate ratio: value divided by elapsed time.
@@ -111,7 +111,9 @@ public:
      */
     double per_second(double value) const noexcept
     {
-        auto const seconds = elapsed();
+        auto const seconds =
+            std::chrono::duration_cast<std::chrono::seconds>(m_duration)
+                .count();
         if (seconds == 0) {
             return 0.0;
         }
@@ -119,14 +121,15 @@ public:
     }
 
 private:
-    std::time_t m_start;
-    std::time_t m_stop = 0;
+    using clock = std::chrono::steady_clock;
+    std::chrono::time_point<clock> m_start;
+    std::chrono::microseconds m_duration{};
 
 }; // class timer_t
 
 std::string human_readable_duration(uint64_t seconds);
 
-std::string human_readable_duration(std::chrono::milliseconds ms);
+std::string human_readable_duration(std::chrono::microseconds duration);
 
 std::string get_password();
 

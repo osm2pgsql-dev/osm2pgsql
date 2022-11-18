@@ -19,6 +19,7 @@
  */
 
 #include "logging.hpp"
+#include "util.hpp"
 
 #include <osmium/thread/function_wrapper.hpp>
 #include <osmium/thread/queue.hpp>
@@ -41,7 +42,7 @@ public:
      * Initialize this result with the future obtained from the
      * thread_pool_t::submit() function.
      */
-    void set(std::future<std::chrono::milliseconds> &&future)
+    void set(std::future<std::chrono::microseconds> &&future)
     {
         m_future = std::move(future);
     }
@@ -52,17 +53,17 @@ public:
      * \return The runtime of the task.
      * \throws Any exception the task has thrown.
      */
-    std::chrono::milliseconds wait();
+    std::chrono::microseconds wait();
 
     /**
      * Return the run-time of this task. Will be 0 if the task has not
      * yet finished or >0 if the task has finished.
      */
-    std::chrono::milliseconds runtime() const noexcept { return m_result; }
+    std::chrono::microseconds runtime() const noexcept { return m_result; }
 
 private:
-    std::future<std::chrono::milliseconds> m_future{};
-    std::chrono::milliseconds m_result{};
+    std::future<std::chrono::microseconds> m_future{};
+    std::chrono::microseconds m_result{};
 }; // class task_result_t
 
 /**
@@ -96,23 +97,21 @@ public:
      *         of the task can be queried.
      */
     template <typename TFunction>
-    std::future<std::chrono::milliseconds> submit(TFunction &&func)
+    std::future<std::chrono::microseconds> submit(TFunction &&func)
     {
-        std::packaged_task<std::chrono::milliseconds()> task{
+        std::packaged_task<std::chrono::microseconds()> task{
             [f = std::forward<TFunction>(func)]() {
                 log_debug("Starting task...");
-                auto const start_time = std::chrono::steady_clock::now();
+                util::timer_t timer;
                 f();
-                auto const end_time = std::chrono::steady_clock::now();
-                auto const run_time =
-                    std::chrono::duration_cast<std::chrono::milliseconds>(
-                        end_time - start_time);
+                timer.stop();
+                log_debug("Done task in {}.",
+                          std::chrono::duration_cast<std::chrono::milliseconds>(
+                              timer.elapsed()));
 
-                log_debug("Done task in {}.", run_time);
-
-                return run_time;
+                return timer.elapsed();
             }};
-        std::future<std::chrono::milliseconds> future_result{task.get_future()};
+        std::future<std::chrono::microseconds> future_result{task.get_future()};
         m_work_queue.push(std::move(task));
 
         return future_result;

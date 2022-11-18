@@ -122,12 +122,12 @@ struct middle_pgsql_t : public middle_t
         std::string m_prepare_fw_dep_lookups;
         std::string m_create_fw_dep_indexes;
 
-        void task_set(std::future<std::chrono::milliseconds> &&future)
+        void task_set(std::future<std::chrono::microseconds> &&future)
         {
             m_task_result.set(std::move(future));
         }
 
-        std::chrono::milliseconds task_wait() { return m_task_result.wait(); }
+        std::chrono::microseconds task_wait() { return m_task_result.wait(); }
 
     private:
         std::shared_ptr<db_target_descr_t> m_copy_target;
