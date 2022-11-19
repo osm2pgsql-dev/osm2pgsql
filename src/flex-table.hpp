@@ -237,7 +237,7 @@ public:
         return *m_proj;
     }
 
-    void task_set(std::future<std::chrono::milliseconds> &&future)
+    void task_set(std::future<std::chrono::microseconds> &&future)
     {
         m_task_result.set(std::move(future));
     }
