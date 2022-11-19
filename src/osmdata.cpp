@@ -298,37 +298,49 @@ private:
     {
         auto const ids_queued = list.size();
 
-        log_info("Going over {} pending {}s (using {} threads)"_format(
-            ids_queued, type, m_clones.size()));
-
         util::timer_t timer;
-        std::vector<std::future<void>> workers;
 
-        for (auto const &clone : m_clones) {
-            workers.push_back(std::async(std::launch::async, run,
-                                         std::cref(clone), &list, &m_mutex,
-                                         function));
-        }
-        workers.push_back(
-            std::async(std::launch::async, print_stats, &list, &m_mutex));
+        if (ids_queued < 100) {
+            // Worker startup is quite expensive. Run the processing directly
+            // when only few items need to be processed.
+            log_info("Going over {} pending {}s"_format(ids_queued, type));
 
-        for (auto &worker : workers) {
-            try {
-                worker.get();
-            } catch (...) {
-                // Drain the queue, so that the other workers finish early.
-                m_mutex.lock();
-                list.clear();
-                m_mutex.unlock();
-                throw;
+            for (auto const oid : list) {
+                (m_clones[0].get()->*function)(oid);
+            }
+            m_clones[0]->sync();
+        } else {
+            log_info("Going over {} pending {}s (using {} threads)"_format(
+                ids_queued, type, m_clones.size()));
+
+            std::vector<std::future<void>> workers;
+
+            for (auto const &clone : m_clones) {
+                workers.push_back(std::async(std::launch::async, run,
+                                             std::cref(clone), &list, &m_mutex,
+                                             function));
+            }
+            workers.push_back(
+                std::async(std::launch::async, print_stats, &list, &m_mutex));
+
+            for (auto &worker : workers) {
+                try {
+                    worker.get();
+                } catch (...) {
+                    // Drain the queue, so that the other workers finish early.
+                    m_mutex.lock();
+                    list.clear();
+                    m_mutex.unlock();
+                    throw;
+                }
+            }
+
+            if (get_logger().show_progress()) {
+                fmt::print(stderr, "\rLeft to process: 0.\n");
             }
         }
 
         timer.stop();
-
-        if (get_logger().show_progress()) {
-            fmt::print(stderr, "\rLeft to process: 0.\n");
-        }
 
         log_info("Processing {} pending {}s took {} at a rate of {:.2f}/s",
                  ids_queued, type,
