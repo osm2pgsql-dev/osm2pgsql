@@ -156,11 +156,12 @@ pg_conn_t::exec_prepared_internal(char const *stmt, int num_params,
     }
     pg_result_t res{PQexecPrepared(m_conn.get(), stmt, num_params, param_values,
                                    nullptr, nullptr, 0)};
-    if (res.status() != PGRES_TUPLES_OK) {
+    auto const status = res.status();
+    if (status != PGRES_COMMAND_OK && status != PGRES_TUPLES_OK) {
         log_error("SQL command failed: EXECUTE {}({})", stmt,
                   concat_params(num_params, param_values));
         throw std::runtime_error{
-            "Database error: {} ({})"_format(error_msg(), res.status())};
+            "Database error: {} ({})"_format(error_msg(), status)};
     }
 
     return res;
