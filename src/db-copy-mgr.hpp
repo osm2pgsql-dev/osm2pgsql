@@ -258,7 +258,7 @@ public:
         char const *const lookup_hex = "0123456789ABCDEF";
 
         for (auto c : wkb) {
-            auto const num = static_cast<unsigned int>(c);
+            unsigned int const num = static_cast<unsigned char>(c);
             m_current->buffer += lookup_hex[(num >> 4U) & 0xfU];
             m_current->buffer += lookup_hex[num & 0xfU];
         }
