@@ -418,10 +418,9 @@ std::shared_ptr<output_t> output_pgsql_t::clone(
     return std::make_shared<output_pgsql_t>(this, mid, copy_thread);
 }
 
-output_pgsql_t::output_pgsql_t(
-    std::shared_ptr<middle_query_t> const &mid,
-    std::shared_ptr<thread_pool_t> thread_pool, options_t const &o,
-    std::shared_ptr<db_copy_thread_t> const &copy_thread)
+output_pgsql_t::output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
+                               std::shared_ptr<thread_pool_t> thread_pool,
+                               options_t const &o)
 : output_t(mid, std::move(thread_pool), o), m_proj(o.projection),
   m_expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection),
   m_buffer(32768, osmium::memory::Buffer::auto_grow::yes),
@@ -435,6 +434,9 @@ output_pgsql_t::output_pgsql_t(
     m_enable_way_area = read_style_file(get_options()->style, &exlist);
 
     m_tagtransform = tagtransform_t::make_tagtransform(get_options(), exlist);
+
+    auto copy_thread =
+        std::make_shared<db_copy_thread_t>(get_options()->conninfo);
 
     //for each table
     for (size_t i = 0; i < t_MAX; ++i) {

@@ -40,8 +40,7 @@ public:
     /// Constructor for new objects
     output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
                    std::shared_ptr<thread_pool_t> thread_pool,
-                   options_t const &options,
-                   std::shared_ptr<db_copy_thread_t> const &copy_thread);
+                   options_t const &options);
 
     /// Constructor for cloned objects
     output_pgsql_t(output_pgsql_t const *other,

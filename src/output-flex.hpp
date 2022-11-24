@@ -99,10 +99,9 @@ class output_flex_t : public output_t
 {
 public:
     /// Constructor for new objects
-    output_flex_t(
-        std::shared_ptr<middle_query_t> const &mid,
-        std::shared_ptr<thread_pool_t> thread_pool, options_t const &options,
-        std::shared_ptr<db_copy_thread_t> const &copy_thread);
+    output_flex_t(std::shared_ptr<middle_query_t> const &mid,
+                  std::shared_ptr<thread_pool_t> thread_pool,
+                  options_t const &options);
 
     /// Constructor for cloned objects
     output_flex_t(output_flex_t const *other,

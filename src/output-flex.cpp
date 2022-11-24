@@ -1997,11 +1997,11 @@ output_flex_t::clone(std::shared_ptr<middle_query_t> const &mid,
     return std::make_shared<output_flex_t>(this, mid, copy_thread);
 }
 
-output_flex_t::output_flex_t(
-    std::shared_ptr<middle_query_t> const &mid,
-    std::shared_ptr<thread_pool_t> thread_pool, options_t const &o,
-    std::shared_ptr<db_copy_thread_t> const &copy_thread)
-: output_t(mid, std::move(thread_pool), o), m_copy_thread(copy_thread),
+output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
+                             std::shared_ptr<thread_pool_t> thread_pool,
+                             options_t const &o)
+: output_t(mid, std::move(thread_pool), o),
+  m_copy_thread(std::make_shared<db_copy_thread_t>(get_options()->conninfo)),
   m_expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection)
 {
     init_lua(get_options()->style);

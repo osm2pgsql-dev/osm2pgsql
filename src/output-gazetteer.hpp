@@ -32,9 +32,9 @@ public:
     /// Constructor for new objects
     output_gazetteer_t(std::shared_ptr<middle_query_t> const &mid,
                        std::shared_ptr<thread_pool_t> thread_pool,
-                       options_t const &options,
-                       std::shared_ptr<db_copy_thread_t> const &copy_thread)
-    : output_t(mid, std::move(thread_pool), options), m_copy(copy_thread),
+                       options_t const &options)
+    : output_t(mid, std::move(thread_pool), options),
+      m_copy(std::make_shared<db_copy_thread_t>(get_options()->conninfo)),
       m_proj(options.projection)
     {
         m_style.load_style(options.style);
