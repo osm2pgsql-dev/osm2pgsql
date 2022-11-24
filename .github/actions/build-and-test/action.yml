@@ -35,7 +35,7 @@ runs:
         shell: bash
         working-directory: build
         env:
-          CXXFLAGS: -pedantic -Wextra -Werror
+          CXXFLAGS: -pedantic -Wextra ${{ env.EXTRA_FLAGS }} -Werror
 
       - name: build
         run: make -j3 all man
