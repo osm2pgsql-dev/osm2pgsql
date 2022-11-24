@@ -105,41 +105,56 @@ void middle_pgsql_t::table_desc::build_index(std::string const &conninfo) const
     db_connection.exec(m_create_fw_dep_indexes);
 }
 
-namespace {
-// Decodes a portion of an array literal from postgres */
-// Argument should point to beginning of literal, on return points to delimiter */
-inline char const *decode_upto(char const *src, char *dst)
+/**
+ * Decode item in an array literal from PostgreSQL to the next delimiter.
+ *
+ * \param src Pointer to the text with the array literal.
+ * \param dst The decoded item is written to this string. The string is
+ *            cleared before use.
+ * \returns Pointer to the delimiter found.
+ * \throws runtime_error If the input string ends before the delimiter is found.
+ */
+static char const *decode_to_delimiter(char const *src, std::string *dst)
 {
+    assert(src);
+    dst->clear();
+
     bool const quoted = (*src == '"');
     if (quoted) {
         ++src;
     }
 
     while (quoted ? (*src != '"') : (*src != ',' && *src != '}')) {
+        if (*src == '\0') {
+            throw std::runtime_error{
+                "Parsing array literal from database failed."};
+        }
         if (*src == '\\') {
             switch (src[1]) {
             case 'n':
-                *dst++ = '\n';
+                dst->append(1, '\n');
                 break;
             case 't':
-                *dst++ = '\t';
+                dst->append(1, '\t');
                 break;
             default:
-                *dst++ = src[1];
+                dst->append(1, src[1]);
                 break;
             }
             src += 2;
         } else {
-            *dst++ = *src++;
+            dst->append(1, *src++);
         }
     }
+
     if (quoted) {
         ++src;
     }
-    *dst = 0;
+
     return src;
 }
 
+namespace {
 template <typename T>
 void pgsql_parse_tags(char const *string, osmium::memory::Buffer *buffer,
                       T *obuilder)
@@ -148,15 +163,15 @@ void pgsql_parse_tags(char const *string, osmium::memory::Buffer *buffer,
         return;
     }
 
-    char key[1024];
-    char val[1024];
     osmium::builder::TagListBuilder builder{*buffer, obuilder};
 
+    std::string key;
+    std::string val;
     while (*string != '}') {
-        string = decode_upto(string, key);
+        string = decode_to_delimiter(string, &key);
         // String points to the comma */
         ++string;
-        string = decode_upto(string, val);
+        string = decode_to_delimiter(string, &val);
         builder.add_tag(key, val);
         // String points to the comma or closing '}' */
         if (*string == ',') {
@@ -172,7 +187,7 @@ void pgsql_parse_members(char const *string, osmium::memory::Buffer *buffer,
         return;
     }
 
-    char role[1024];
+    std::string role;
     osmium::builder::RelationMemberListBuilder builder{*buffer, obuilder};
 
     while (*string != '}') {
@@ -180,7 +195,7 @@ void pgsql_parse_members(char const *string, osmium::memory::Buffer *buffer,
         char *endp = nullptr;
         osmid_t id = std::strtoll(string + 1, &endp, 10);
         // String points to the comma */
-        string = decode_upto(endp + 1, role);
+        string = decode_to_delimiter(endp + 1, &role);
         builder.add_member(osmium::char_to_item_type(type), id, role);
         // String points to the comma or closing '}' */
         if (*string == ',') {
