@@ -407,8 +407,7 @@ void output_pgsql_t::start()
 {
     for (auto &t : m_tables) {
         //setup the table in postgres
-        t->start(get_options()->database_options.conninfo(),
-                 get_options()->tblsmain_data);
+        t->start(get_options()->conninfo, get_options()->tblsmain_data);
     }
 }
 

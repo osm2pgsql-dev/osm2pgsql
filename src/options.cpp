@@ -248,35 +248,35 @@ static bool compare_prefix(std::string const &str,
     return std::strncmp(str.c_str(), prefix.c_str(), prefix.size()) == 0;
 }
 
-std::string database_options_t::conninfo() const
+std::string build_conninfo(database_options_t const &opt)
 {
-    if (compare_prefix(db, "postgresql://") ||
-        compare_prefix(db, "postgres://")) {
-        return db;
+    if (compare_prefix(opt.db, "postgresql://") ||
+        compare_prefix(opt.db, "postgres://")) {
+        return opt.db;
     }
 
     std::string out{"fallback_application_name='osm2pgsql'"};
 
-    if (std::strchr(db.c_str(), '=') != nullptr) {
+    if (std::strchr(opt.db.c_str(), '=') != nullptr) {
         out += " ";
-        out += db;
+        out += opt.db;
         return out;
     }
 
-    if (!db.empty()) {
-        out += " dbname='{}'"_format(db);
+    if (!opt.db.empty()) {
+        out += " dbname='{}'"_format(opt.db);
     }
-    if (!username.empty()) {
-        out += " user='{}'"_format(username);
+    if (!opt.username.empty()) {
+        out += " user='{}'"_format(opt.username);
     }
-    if (!password.empty()) {
-        out += " password='{}'"_format(password);
+    if (!opt.password.empty()) {
+        out += " password='{}'"_format(opt.password);
     }
-    if (!host.empty()) {
-        out += " host='{}'"_format(host);
+    if (!opt.host.empty()) {
+        out += " host='{}'"_format(opt.host);
     }
-    if (!port.empty()) {
-        out += " port='{}'"_format(port);
+    if (!opt.port.empty()) {
+        out += " port='{}'"_format(opt.port);
     }
 
     return out;
@@ -347,6 +347,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
         return;
     }
 
+    database_options_t database_options;
     bool help_verbose = false; // Will be set when -v/--verbose is set
 
     int c = 0;
@@ -646,6 +647,8 @@ options_t::options_t(int argc, char *argv[]) : options_t()
     if (pass_prompt) {
         database_options.password = util::get_password();
     }
+
+    conninfo = build_conninfo(database_options);
 }
 
 void options_t::check_options()

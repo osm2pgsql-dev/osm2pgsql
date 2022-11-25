@@ -30,7 +30,7 @@ osmdata_t::osmdata_t(std::unique_ptr<dependency_manager_t> dependency_manager,
                      std::shared_ptr<middle_t> mid,
                      std::shared_ptr<output_t> output, options_t const &options)
 : m_dependency_manager(std::move(dependency_manager)), m_mid(std::move(mid)),
-  m_output(std::move(output)), m_conninfo(options.database_options.conninfo()),
+  m_output(std::move(output)), m_conninfo(options.conninfo),
   m_bbox(options.bbox), m_num_procs(options.num_procs),
   m_append(options.append), m_droptemp(options.droptemp),
   m_with_extra_attrs(options.extra_attributes),

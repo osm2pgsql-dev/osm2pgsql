@@ -30,9 +30,7 @@ enum class hstore_column : char
     all = 2
 };
 
-/**
- * Database options, not specific to a table
- */
+/// Database connection options.
 struct database_options_t
 {
     std::string db;
@@ -40,9 +38,9 @@ struct database_options_t
     std::string host;
     std::string password;
     std::string port;
-
-    std::string conninfo() const;
 };
+
+std::string build_conninfo(database_options_t const &opt);
 
 /**
  * Outputs can signal their requirements to the middle by setting these fields.
@@ -93,7 +91,7 @@ public:
         return m_print_help;
     }
 
-    database_options_t database_options;
+    std::string conninfo; ///< connection info for database
 
     std::string prefix{"planet_osm"};         ///< prefix for table names
 

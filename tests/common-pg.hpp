@@ -145,14 +145,6 @@ public:
 
     std::string conninfo() const { return "dbname=" + m_db_name; }
 
-    database_options_t db_options() const
-    {
-        database_options_t opt;
-        opt.db = m_db_name;
-
-        return opt;
-    }
-
 private:
     std::string m_db_name;
 };

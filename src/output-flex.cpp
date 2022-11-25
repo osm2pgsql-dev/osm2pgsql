@@ -1967,7 +1967,7 @@ void output_flex_t::relation_modify(osmium::Relation const &rel)
 void output_flex_t::start()
 {
     for (auto &table : m_table_connections) {
-        table.connect(get_options()->database_options.conninfo());
+        table.connect(get_options()->conninfo);
         table.start(get_options()->append);
     }
 }
@@ -1987,7 +1987,7 @@ output_flex_t::output_flex_t(output_flex_t const *other,
 {
     for (auto &table : *m_tables) {
         auto &tc = m_table_connections.emplace_back(&table, m_copy_thread);
-        tc.connect(get_options()->database_options.conninfo());
+        tc.connect(get_options()->conninfo);
         tc.prepare();
     }
 }

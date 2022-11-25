@@ -36,7 +36,7 @@ static bool has_table(pg_conn_t const &db_connection, std::string const &schema,
 
 void check_db(options_t const &options)
 {
-    pg_conn_t db_connection{options.database_options.conninfo()};
+    pg_conn_t db_connection{options.conninfo};
 
     auto const settings = get_postgresql_settings(db_connection);
 
