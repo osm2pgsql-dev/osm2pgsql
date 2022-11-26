@@ -30,8 +30,7 @@ output_t::create_output(std::shared_ptr<middle_query_t> const &mid,
                         std::shared_ptr<thread_pool_t> thread_pool,
                         options_t const &options)
 {
-    auto copy_thread =
-        std::make_shared<db_copy_thread_t>(options.database_options.conninfo());
+    auto copy_thread = std::make_shared<db_copy_thread_t>(options.conninfo);
 
     if (options.output_backend == "pgsql") {
         return std::make_shared<output_pgsql_t>(mid, std::move(thread_pool),

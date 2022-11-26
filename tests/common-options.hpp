@@ -41,7 +41,7 @@ public:
     opt_t &slim(testing::pg::tempdb_t const &db)
     {
         m_opt.slim = true;
-        m_opt.database_options = db.db_options();
+        m_opt.conninfo = db.conninfo();
         return *this;
     }
 

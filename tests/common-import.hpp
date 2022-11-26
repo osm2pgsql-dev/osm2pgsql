@@ -134,7 +134,7 @@ public:
                     std::initializer_list<std::string> input_data,
                     std::string const &format = "opl")
     {
-        options.database_options = m_db.db_options();
+        options.conninfo = m_db.conninfo();
 
         auto thread_pool = std::make_shared<thread_pool_t>(1U);
         auto middle = create_middle(thread_pool, options);
@@ -172,7 +172,7 @@ public:
 
     void run_file(options_t options, char const *file = nullptr)
     {
-        options.database_options = m_db.db_options();
+        options.conninfo = m_db.conninfo();
 
         auto thread_pool = std::make_shared<thread_pool_t>(1U);
         auto middle = std::make_shared<middle_ram_t>(thread_pool, &options);

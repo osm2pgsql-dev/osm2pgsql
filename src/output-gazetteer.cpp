@@ -49,7 +49,7 @@ void output_gazetteer_t::start()
     if (!get_options()->append) {
         int const srid = get_options()->projection->target_srs();
 
-        pg_conn_t conn{get_options()->database_options.conninfo()};
+        pg_conn_t conn{get_options()->conninfo};
 
         /* Drop any existing table */
         conn.exec("DROP TABLE IF EXISTS place CASCADE");

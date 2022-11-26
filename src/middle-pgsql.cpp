@@ -691,9 +691,8 @@ void middle_pgsql_t::stop()
     } else if (!m_options->append) {
         // Building the indexes takes time, so do it asynchronously.
         for (auto &table : m_tables) {
-            table.task_set(thread_pool().submit([&]() {
-                table.build_index(m_options->database_options.conninfo());
-            }));
+            table.task_set(thread_pool().submit(
+                [&]() { table.build_index(m_options->conninfo); }));
         }
     }
 }
@@ -837,9 +836,8 @@ middle_pgsql_t::middle_pgsql_t(std::shared_ptr<thread_pool_t> thread_pool,
 : middle_t(std::move(thread_pool)), m_options(options),
   m_cache(std::make_unique<node_locations_t>(
       static_cast<std::size_t>(options->cache) * 1024UL * 1024UL)),
-  m_db_connection(m_options->database_options.conninfo()),
-  m_copy_thread(
-      std::make_shared<db_copy_thread_t>(options->database_options.conninfo())),
+  m_db_connection(m_options->conninfo),
+  m_copy_thread(std::make_shared<db_copy_thread_t>(options->conninfo)),
   m_db_copy(m_copy_thread)
 {
     if (!options->flat_node_file.empty()) {
@@ -871,7 +869,7 @@ middle_pgsql_t::get_query_instance()
     // NOTE: this is thread safe for use in pending async processing only because
     // during that process they are only read from
     auto mid = std::make_unique<middle_query_pgsql_t>(
-        m_options->database_options.conninfo(), m_cache, m_persistent_cache);
+        m_options->conninfo, m_cache, m_persistent_cache);
 
     // We use a connection per table to enable the use of COPY
     for (auto &table : m_tables) {
