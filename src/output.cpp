@@ -66,14 +66,14 @@ output_t::output_t(std::shared_ptr<middle_query_t> mid,
                    options_t const &options)
 : m_mid(std::move(mid)), m_options(&options),
   m_thread_pool(std::move(thread_pool))
+{}
 
+output_t::output_t(output_t const *other, std::shared_ptr<middle_query_t> mid)
+: m_mid(std::move(mid)), m_options(other->m_options),
+  m_thread_pool(other->m_thread_pool),
+  m_output_requirements(other->m_output_requirements)
 {}
 
 output_t::~output_t() = default;
 
-void output_t::free_middle_references()
-{
-    m_mid.reset();
-}
-
-void output_t::merge_expire_trees(output_t *) {}
+void output_t::free_middle_references() { m_mid.reset(); }

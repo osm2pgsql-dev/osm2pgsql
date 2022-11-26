@@ -28,32 +28,39 @@ struct middle_query_t;
 
 class output_gazetteer_t : public output_t
 {
-    output_gazetteer_t(output_gazetteer_t const *other,
-                       std::shared_ptr<middle_query_t> const &cloned_mid,
-                       std::shared_ptr<db_copy_thread_t> const &copy_thread)
-    : output_t(cloned_mid, other->m_thread_pool, *other->get_options()),
-      m_copy(copy_thread), m_proj(other->get_options()->projection),
-      m_osmium_buffer(PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes)
-    {}
-
 public:
+    /// Constructor for new objects
     output_gazetteer_t(std::shared_ptr<middle_query_t> const &mid,
                        std::shared_ptr<thread_pool_t> thread_pool,
                        options_t const &options,
                        std::shared_ptr<db_copy_thread_t> const &copy_thread)
     : output_t(mid, std::move(thread_pool), options), m_copy(copy_thread),
-      m_proj(options.projection),
-      m_osmium_buffer(PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes)
+      m_proj(options.projection)
     {
         m_style.load_style(options.style);
     }
+
+    /// Constructor for cloned objects
+    output_gazetteer_t(output_gazetteer_t const *other,
+                       std::shared_ptr<middle_query_t> const &mid,
+                       std::shared_ptr<db_copy_thread_t> const &copy_thread)
+    : output_t(other, mid), m_copy(copy_thread),
+      m_proj(other->get_options()->projection)
+    {}
+
+    output_gazetteer_t(output_gazetteer_t const &) = delete;
+    output_gazetteer_t &operator=(output_gazetteer_t const &) = delete;
+
+    output_gazetteer_t(output_gazetteer_t &&) = delete;
+    output_gazetteer_t &operator=(output_gazetteer_t &&) = delete;
+
+    ~output_gazetteer_t() override;
 
     std::shared_ptr<output_t>
     clone(std::shared_ptr<middle_query_t> const &mid,
           std::shared_ptr<db_copy_thread_t> const &copy_thread) const override
     {
-        return std::shared_ptr<output_t>(
-            new output_gazetteer_t{this, mid, copy_thread});
+        return std::make_shared<output_gazetteer_t>(this, mid, copy_thread);
     }
 
     void start() override;
@@ -93,7 +100,8 @@ private:
     gazetteer_style_t m_style;
 
     std::shared_ptr<reprojection> m_proj;
-    osmium::memory::Buffer m_osmium_buffer;
+    osmium::memory::Buffer m_osmium_buffer{
+        PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes};
 };
 
 #endif // OSM2PGSQL_OUTPUT_GAZETTEER_HPP

@@ -416,8 +416,7 @@ std::shared_ptr<output_t> output_pgsql_t::clone(
     std::shared_ptr<middle_query_t> const &mid,
     std::shared_ptr<db_copy_thread_t> const &copy_thread) const
 {
-    return std::shared_ptr<output_t>(
-        new output_pgsql_t{this, mid, copy_thread});
+    return std::make_shared<output_pgsql_t>(this, mid, copy_thread);
 }
 
 output_pgsql_t::output_pgsql_t(
@@ -481,8 +480,7 @@ output_pgsql_t::output_pgsql_t(
 output_pgsql_t::output_pgsql_t(
     output_pgsql_t const *other, std::shared_ptr<middle_query_t> const &mid,
     std::shared_ptr<db_copy_thread_t> const &copy_thread)
-: output_t(mid, other->m_thread_pool, *other->get_options()),
-  m_tagtransform(other->m_tagtransform->clone()),
+: output_t(other, mid), m_tagtransform(other->m_tagtransform->clone()),
   m_enable_way_area(other->m_enable_way_area),
   m_proj(get_options()->projection),
   m_expire(get_options()->expire_tiles_zoom,
