@@ -63,7 +63,6 @@ with other versions of those libraries (set the `EXTERNAL_*libname*` option to
 * [fmt](https://fmt.dev/) (>= 7.1.3)
 * [libosmium](https://osmcode.org/libosmium/) (>= 2.17.0)
 * [protozero](https://github.com/mapbox/protozero) (>= 1.6.3)
-* [rapidjson](https://rapidjson.org/) (>= 1.1.0)
 
 It also requires access to a database server running
 [PostgreSQL](https://www.postgresql.org/) 9.6+ and

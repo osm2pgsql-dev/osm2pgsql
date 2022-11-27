@@ -14,6 +14,7 @@
 #include "geom-from-osm.hpp"
 #include "geom-functions.hpp"
 #include "geom-transform.hpp"
+#include "json-writer.hpp"
 #include "logging.hpp"
 #include "lua-init.hpp"
 #include "lua-utils.hpp"
@@ -35,9 +36,6 @@ extern "C"
 #include <lauxlib.h>
 #include <lualib.h>
 }
-
-#include <rapidjson/stringbuffer.h>
-#include <rapidjson/writer.h>
 
 #include <boost/filesystem.hpp>
 
@@ -359,7 +357,6 @@ static void write_double(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
     copy_mgr->add_column(value);
 }
 
-using json_writer_type = rapidjson::Writer<rapidjson::StringBuffer>;
 using table_register_type = std::vector<void const *>;
 
 /**
@@ -403,10 +400,10 @@ static bool is_lua_array(lua_State *lua_state)
     return n != 1;
 }
 
-static void write_json(json_writer_type *writer, lua_State *lua_state,
+static void write_json(json_writer_t *writer, lua_State *lua_state,
                        table_register_type *tables);
 
-static void write_json_table(json_writer_type *writer, lua_State *lua_state,
+static void write_json_table(json_writer_t *writer, lua_State *lua_state,
                              table_register_type *tables)
 {
     void const *table_ptr = lua_topointer(lua_state, -1);
@@ -418,15 +415,16 @@ static void write_json_table(json_writer_type *writer, lua_State *lua_state,
     tables->push_back(table_ptr);
 
     if (is_lua_array(lua_state)) {
-        writer->StartArray();
+        writer->start_array();
         lua_pushnil(lua_state);
         while (lua_next(lua_state, -2) != 0) {
             write_json(writer, lua_state, tables);
+            writer->next();
             lua_pop(lua_state, 1);
         }
-        writer->EndArray();
+        writer->end_array();
     } else {
-        writer->StartObject();
+        writer->start_object();
         lua_pushnil(lua_state);
         while (lua_next(lua_state, -2) != 0) {
             int const ltype_key = lua_type(lua_state, -2);
@@ -436,36 +434,37 @@ static void write_json_table(json_writer_type *writer, lua_State *lua_state,
                         lua_typename(lua_state, ltype_key))};
             }
             char const *const key = lua_tostring(lua_state, -2);
-            writer->Key(key);
+            writer->key(key);
             write_json(writer, lua_state, tables);
+            writer->next();
             lua_pop(lua_state, 1);
         }
-        writer->EndObject();
+        writer->end_object();
     }
 }
 
-static void write_json_number(json_writer_type *writer, lua_State *lua_state)
+static void write_json_number(json_writer_t *writer, lua_State *lua_state)
 {
 #if LUA_VERSION_NUM >= 503
     int okay = 0;
     auto const num = lua_tointegerx(lua_state, -1, &okay);
     if (okay) {
-        writer->Int64(num);
+        writer->number(num);
     } else {
-        writer->Double(lua_tonumber(lua_state, -1));
+        writer->number(lua_tonumber(lua_state, -1));
     }
 #else
     double const num = lua_tonumber(lua_state, -1);
     double intpart = 0.0;
     if (std::modf(num, &intpart) == 0.0) {
-        writer->Int64(static_cast<int64_t>(num));
+        writer->number(static_cast<int64_t>(num));
     } else {
-        writer->Double(num);
+        writer->number(num);
     }
 #endif
 }
 
-static void write_json(json_writer_type *writer, lua_State *lua_state,
+static void write_json(json_writer_t *writer, lua_State *lua_state,
                        table_register_type *tables)
 {
     assert(writer);
@@ -474,16 +473,16 @@ static void write_json(json_writer_type *writer, lua_State *lua_state,
     int const ltype = lua_type(lua_state, -1);
     switch (ltype) {
     case LUA_TNIL:
-        writer->Null();
+        writer->null();
         break;
     case LUA_TBOOLEAN:
-        writer->Bool(lua_toboolean(lua_state, -1) != 0);
+        writer->boolean(lua_toboolean(lua_state, -1) != 0);
         break;
     case LUA_TNUMBER:
         write_json_number(writer, lua_state);
         break;
     case LUA_TSTRING:
-        writer->String(lua_tostring(lua_state, -1));
+        writer->string(lua_tostring(lua_state, -1));
         break;
     case LUA_TTABLE:
         write_json_table(writer, lua_state, tables);
@@ -670,11 +669,10 @@ void output_flex_t::write_column(
         }
     } else if ((column.type() == table_column_type::json) ||
                (column.type() == table_column_type::jsonb)) {
-        rapidjson::StringBuffer stream;
-        json_writer_type writer{stream};
+        json_writer_t writer;
         table_register_type tables;
         write_json(&writer, lua_state(), &tables);
-        copy_mgr->add_column(stream.GetString());
+        copy_mgr->add_column(writer.json());
     } else if (column.type() == table_column_type::direction) {
         switch (ltype) {
         case LUA_TBOOLEAN:
