@@ -138,7 +138,7 @@ char const *luaX_get_table_string(lua_State *lua_state, char const *key,
     }
     if (ltype != LUA_TSTRING) {
         throw std::runtime_error{
-            "{} must contain a '{}' string field."_format(error_msg, key)};
+            "{} field '{}' must be a string field."_format(error_msg, key)};
     }
     return lua_tostring(lua_state, -1);
 }
@@ -161,7 +161,7 @@ bool luaX_get_table_bool(lua_State *lua_state, char const *key, int table_index,
     }
 
     throw std::runtime_error{
-        "{} must contain a '{}' boolean field."_format(error_msg, key)};
+        "{} field '{}' must be a boolean field."_format(error_msg, key)};
 }
 
 
