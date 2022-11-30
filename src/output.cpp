@@ -30,23 +30,21 @@ output_t::create_output(std::shared_ptr<middle_query_t> const &mid,
                         std::shared_ptr<thread_pool_t> thread_pool,
                         options_t const &options)
 {
-    auto copy_thread = std::make_shared<db_copy_thread_t>(options.conninfo);
-
     if (options.output_backend == "pgsql") {
         return std::make_shared<output_pgsql_t>(mid, std::move(thread_pool),
-                                                options, copy_thread);
+                                                options);
     }
 
 #ifdef HAVE_LUA
     if (options.output_backend == "flex") {
         return std::make_shared<output_flex_t>(mid, std::move(thread_pool),
-                                               options, copy_thread);
+                                               options);
     }
 #endif
 
     if (options.output_backend == "gazetteer") {
         return std::make_shared<output_gazetteer_t>(mid, std::move(thread_pool),
-                                                    options, copy_thread);
+                                                    options);
     }
 
     if (options.output_backend == "null") {

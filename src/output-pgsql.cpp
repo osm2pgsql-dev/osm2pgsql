@@ -418,23 +418,25 @@ std::shared_ptr<output_t> output_pgsql_t::clone(
     return std::make_shared<output_pgsql_t>(this, mid, copy_thread);
 }
 
-output_pgsql_t::output_pgsql_t(
-    std::shared_ptr<middle_query_t> const &mid,
-    std::shared_ptr<thread_pool_t> thread_pool, options_t const &o,
-    std::shared_ptr<db_copy_thread_t> const &copy_thread)
-: output_t(mid, std::move(thread_pool), o), m_proj(o.projection),
-  m_expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection),
+output_pgsql_t::output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
+                               std::shared_ptr<thread_pool_t> thread_pool,
+                               options_t const &options)
+: output_t(mid, std::move(thread_pool), options), m_proj(options.projection),
+  m_expire(options.expire_tiles_zoom, options.expire_tiles_max_bbox,
+           options.projection),
   m_buffer(32768, osmium::memory::Buffer::auto_grow::yes),
   m_rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
 {
-    log_debug("Using projection SRS {} ({})", o.projection->target_srs(),
-              o.projection->target_desc());
+    log_debug("Using projection SRS {} ({})", options.projection->target_srs(),
+              options.projection->target_desc());
 
     export_list exlist;
 
-    m_enable_way_area = read_style_file(get_options()->style, &exlist);
+    m_enable_way_area = read_style_file(options.style, &exlist);
 
-    m_tagtransform = tagtransform_t::make_tagtransform(get_options(), exlist);
+    m_tagtransform = tagtransform_t::make_tagtransform(&options, exlist);
+
+    auto copy_thread = std::make_shared<db_copy_thread_t>(options.conninfo);
 
     //for each table
     for (size_t i = 0; i < t_MAX; ++i) {
@@ -444,7 +446,7 @@ output_pgsql_t::output_pgsql_t(
             (i == t_point) ? osmium::item_type::node : osmium::item_type::way);
 
         //figure out what name we are using for this and what type
-        std::string name = get_options()->prefix;
+        std::string name = options.prefix;
         std::string type;
         switch (i) {
         case t_point:
@@ -469,10 +471,9 @@ output_pgsql_t::output_pgsql_t(
         }
 
         m_tables[i] = std::make_unique<table_t>(
-            name, type, columns, get_options()->hstore_columns,
-            get_options()->projection->target_srs(), get_options()->append,
-            get_options()->hstore_mode, copy_thread,
-            get_options()->output_dbschema);
+            name, type, columns, options.hstore_columns,
+            options.projection->target_srs(), options.append,
+            options.hstore_mode, copy_thread, options.output_dbschema);
     }
 }
 
