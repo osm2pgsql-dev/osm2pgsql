@@ -285,17 +285,4 @@ std::string qualified_name(std::string const &schema, std::string const &name);
  */
 void check_identifier(std::string const &name, char const *in);
 
-struct postgis_version
-{
-    int major;
-    int minor;
-};
-
-/// Get all config settings from the database.
-std::map<std::string, std::string>
-get_postgresql_settings(pg_conn_t const &db_connection);
-
-/// Get PostGIS major and minor version.
-postgis_version get_postgis_version(pg_conn_t const &db_connection);
-
 #endif // OSM2PGSQL_PGSQL_HPP

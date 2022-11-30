@@ -17,23 +17,44 @@ static testing::db::import_t const db;
 
 TEST_CASE("has_extension() should work")
 {
-    auto const conn = db.db().connect();
-    REQUIRE(has_extension(conn, "postgis"));
-    REQUIRE_FALSE(has_schema(conn, "xzxzxzxz"));
+    init_database_capabilities(db.db().connect());
+    REQUIRE(has_extension("postgis"));
+    REQUIRE_FALSE(has_schema("xzxzxzxz"));
 }
 
 TEST_CASE("has_schema() should work")
 {
-    auto const conn = db.db().connect();
-    REQUIRE(has_schema(conn, "public"));
-    REQUIRE_FALSE(has_schema(conn, "xzxzxzxz"));
-    REQUIRE_FALSE(has_schema(conn, "pg_toast"));
+    init_database_capabilities(db.db().connect());
+    REQUIRE(has_schema("public"));
+    REQUIRE_FALSE(has_schema("xzxzxzxz"));
+    REQUIRE_FALSE(has_schema("pg_toast"));
 }
 
 TEST_CASE("has_tablespace() should work")
 {
-    auto const conn = db.db().connect();
-    REQUIRE(has_tablespace(conn, "pg_default"));
-    REQUIRE_FALSE(has_tablespace(conn, "xzxzxzxz"));
-    REQUIRE_FALSE(has_tablespace(conn, "pg_global"));
+    init_database_capabilities(db.db().connect());
+    REQUIRE(has_tablespace("pg_default"));
+    REQUIRE_FALSE(has_tablespace("xzxzxzxz"));
+    REQUIRE_FALSE(has_tablespace("pg_global"));
+}
+
+TEST_CASE("has_index_method() should work")
+{
+    init_database_capabilities(db.db().connect());
+    REQUIRE(has_index_method("btree"));
+    REQUIRE_FALSE(has_index_method("xzxzxzxz"));
+}
+
+TEST_CASE("PostgreSQL version")
+{
+    init_database_capabilities(db.db().connect());
+    auto const version = get_database_version();
+    REQUIRE(version >= 9);
+}
+
+TEST_CASE("PostGIS version")
+{
+    init_database_capabilities(db.db().connect());
+    auto const postgis_version = get_postgis_version();
+    REQUIRE(postgis_version.major >= 2);
 }

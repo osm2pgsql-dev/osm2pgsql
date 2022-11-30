@@ -2,7 +2,6 @@
 add_library(osm2pgsql_lib STATIC)
 
 target_sources(osm2pgsql_lib PRIVATE
-  db-check.cpp
   db-copy.cpp
   dependency-manager.cpp
   expire-tiles.cpp

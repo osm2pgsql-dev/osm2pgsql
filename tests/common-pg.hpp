@@ -18,6 +18,7 @@
 #include "format.hpp"
 #include "options.hpp"
 #include "pgsql.hpp"
+#include "pgsql-capabilities.hpp"
 #include <catch.hpp>
 
 #ifdef _MSC_VER
@@ -107,6 +108,7 @@ public:
             conn_t local = connect();
             local.exec("CREATE EXTENSION postgis");
             local.exec("CREATE EXTENSION hstore");
+            init_database_capabilities(local);
         } catch (std::runtime_error const &e) {
             fmt::print(stderr,
                        "Test database cannot be created: {}\n"

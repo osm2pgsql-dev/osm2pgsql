@@ -10,12 +10,27 @@
  * For a full list of authors see the git log.
  */
 
-#include "pgsql.hpp"
-
 #include <string>
 
-bool has_extension(pg_conn_t const &db_connection, std::string const &value);
-bool has_schema(pg_conn_t const &db_connection, std::string const &value);
-bool has_tablespace(pg_conn_t const &db_connection, std::string const &value);
+class pg_conn_t;
+
+void init_database_capabilities(pg_conn_t const &db_connection);
+
+bool has_extension(std::string const &value);
+bool has_schema(std::string const &value);
+bool has_tablespace(std::string const &value);
+bool has_index_method(std::string const &value);
+
+/// Get PostgreSQL version in the format (major * 10000 + minor).
+uint32_t get_database_version() noexcept;
+
+struct postgis_version
+{
+    int major;
+    int minor;
+};
+
+/// Get PostGIS major and minor version.
+postgis_version get_postgis_version() noexcept;
 
 #endif // OSM2PGSQL_PGSQL_CAPABILITIES_HPP
