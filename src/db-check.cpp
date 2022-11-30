@@ -51,6 +51,10 @@ void check_db(options_t const &options)
                     get_minimum_postgresql_server_version())};
         }
 
+        if (settings.at("server_encoding") != "UTF8") {
+            throw std::runtime_error{"Database is not using UTF8 encoding."};
+        }
+
         auto const postgis_version = get_postgis_version(db_connection);
         log_info("PostGIS version: {}.{}", postgis_version.major,
                  postgis_version.minor);
