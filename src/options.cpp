@@ -263,6 +263,8 @@ std::string build_conninfo(database_options_t const &opt)
         return out;
     }
 
+    out += " client_encoding='UTF8'";
+
     if (!opt.db.empty()) {
         out += " dbname='{}'"_format(opt.db);
     }

@@ -20,42 +20,43 @@
 TEST_CASE("Connection info parsing with dbname", "[NoDB]")
 {
     database_options_t db;
-    CHECK(build_conninfo(db) == "fallback_application_name='osm2pgsql'");
-    db.db = "foo";
     CHECK(build_conninfo(db) ==
-          "fallback_application_name='osm2pgsql' dbname='foo'");
+          "fallback_application_name='osm2pgsql' client_encoding='UTF8'");
+    db.db = "foo";
+    CHECK(build_conninfo(db) == "fallback_application_name='osm2pgsql' "
+                                "client_encoding='UTF8' dbname='foo'");
 }
 
 TEST_CASE("Connection info parsing with user", "[NoDB]")
 {
     database_options_t db;
     db.username = "bar";
-    CHECK(build_conninfo(db) ==
-          "fallback_application_name='osm2pgsql' user='bar'");
+    CHECK(build_conninfo(db) == "fallback_application_name='osm2pgsql' "
+                                "client_encoding='UTF8' user='bar'");
 }
 
 TEST_CASE("Connection info parsing with password", "[NoDB]")
 {
     database_options_t db;
     db.password = "bar";
-    CHECK(build_conninfo(db) ==
-          "fallback_application_name='osm2pgsql' password='bar'");
+    CHECK(build_conninfo(db) == "fallback_application_name='osm2pgsql' "
+                                "client_encoding='UTF8' password='bar'");
 }
 
 TEST_CASE("Connection info parsing with host", "[NoDB]")
 {
     database_options_t db;
     db.host = "bar";
-    CHECK(build_conninfo(db) ==
-          "fallback_application_name='osm2pgsql' host='bar'");
+    CHECK(build_conninfo(db) == "fallback_application_name='osm2pgsql' "
+                                "client_encoding='UTF8' host='bar'");
 }
 
 TEST_CASE("Connection info parsing with port", "[NoDB]")
 {
     database_options_t db;
     db.port = "bar";
-    CHECK(build_conninfo(db) ==
-          "fallback_application_name='osm2pgsql' port='bar'");
+    CHECK(build_conninfo(db) == "fallback_application_name='osm2pgsql' "
+                                "client_encoding='UTF8' port='bar'");
 }
 
 TEST_CASE("Connection info parsing with complete info", "[NoDB]")
@@ -67,6 +68,7 @@ TEST_CASE("Connection info parsing with complete info", "[NoDB]")
     db.host = "bzz";
     db.port = "123";
     CHECK(build_conninfo(db) ==
-          "fallback_application_name='osm2pgsql' dbname='foo' "
+          "fallback_application_name='osm2pgsql' client_encoding='UTF8' "
+          "dbname='foo' "
           "user='bar' password='baz' host='bzz' port='123'");
 }
