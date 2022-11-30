@@ -16,7 +16,7 @@
 
 template <typename TChar, typename TTraits>
 std::basic_ostream<TChar, TTraits> &
-operator<<(std::basic_ostream<TChar, TTraits> &out, const tile_t &tile)
+operator<<(std::basic_ostream<TChar, TTraits> &out, tile_t const &tile)
 {
     return out << "TILE(" << tile.zoom() << ", " << tile.x() << ", " << tile.y()
                << ')';

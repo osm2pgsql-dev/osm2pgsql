@@ -129,7 +129,7 @@ protected:
         return m_output_requirements;
     }
 
-    const options_t *get_options() const noexcept { return m_options; };
+    options_t const *get_options() const noexcept { return m_options; };
 
 private:
     std::shared_ptr<middle_query_t> m_mid;

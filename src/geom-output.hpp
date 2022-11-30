@@ -27,21 +27,21 @@ namespace geom {
 
 template <typename CHAR, typename TRAITS>
 std::basic_ostream<CHAR, TRAITS> &
-operator<<(std::basic_ostream<CHAR, TRAITS> &out, const nullgeom_t & /*input*/)
+operator<<(std::basic_ostream<CHAR, TRAITS> &out, nullgeom_t const & /*input*/)
 {
     return out << "NULL";
 }
 
 template <typename CHAR, typename TRAITS>
 std::basic_ostream<CHAR, TRAITS> &
-operator<<(std::basic_ostream<CHAR, TRAITS> &out, const point_t &input)
+operator<<(std::basic_ostream<CHAR, TRAITS> &out, point_t const &input)
 {
     return out << input.x() << ' ' << input.y();
 }
 
 template <typename CHAR, typename TRAITS>
 std::basic_ostream<CHAR, TRAITS> &
-operator<<(std::basic_ostream<CHAR, TRAITS> &out, const point_list_t &input)
+operator<<(std::basic_ostream<CHAR, TRAITS> &out, point_list_t const &input)
 {
     if (input.empty()) {
         return out << "EMPTY";
@@ -56,7 +56,7 @@ operator<<(std::basic_ostream<CHAR, TRAITS> &out, const point_list_t &input)
 
 template <typename CHAR, typename TRAITS>
 std::basic_ostream<CHAR, TRAITS> &
-operator<<(std::basic_ostream<CHAR, TRAITS> &out, const polygon_t &input)
+operator<<(std::basic_ostream<CHAR, TRAITS> &out, polygon_t const &input)
 {
     out << '(' << input.outer() << ')';
     for (auto const &ring : input.inners()) {
@@ -67,7 +67,7 @@ operator<<(std::basic_ostream<CHAR, TRAITS> &out, const polygon_t &input)
 
 template <typename CHAR, typename TRAITS>
 std::basic_ostream<CHAR, TRAITS> &
-operator<<(std::basic_ostream<CHAR, TRAITS> &out, const collection_t &input)
+operator<<(std::basic_ostream<CHAR, TRAITS> &out, collection_t const &input)
 {
     if (input.num_geometries() == 0) {
         return out << "EMPTY";
@@ -83,7 +83,7 @@ operator<<(std::basic_ostream<CHAR, TRAITS> &out, const collection_t &input)
 template <typename CHAR, typename TRAITS, typename GEOM>
 std::basic_ostream<CHAR, TRAITS> &
 operator<<(std::basic_ostream<CHAR, TRAITS> &out,
-           const multigeometry_t<GEOM> &input)
+           multigeometry_t<GEOM> const &input)
 {
     if (input.num_geometries() == 0) {
         return out << "EMPTY";
@@ -98,7 +98,7 @@ operator<<(std::basic_ostream<CHAR, TRAITS> &out,
 
 template <typename CHAR, typename TRAITS>
 std::basic_ostream<CHAR, TRAITS> &
-operator<<(std::basic_ostream<CHAR, TRAITS> &out, const geometry_t &geom)
+operator<<(std::basic_ostream<CHAR, TRAITS> &out, geometry_t const &geom)
 {
     out << geometry_type(geom) << '(';
     geom.visit([&](auto const &input) { out << input; });
