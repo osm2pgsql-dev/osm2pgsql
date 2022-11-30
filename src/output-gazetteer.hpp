@@ -34,7 +34,7 @@ public:
                        std::shared_ptr<thread_pool_t> thread_pool,
                        options_t const &options)
     : output_t(mid, std::move(thread_pool), options),
-      m_copy(std::make_shared<db_copy_thread_t>(get_options()->conninfo)),
+      m_copy(std::make_shared<db_copy_thread_t>(options.conninfo)),
       m_proj(options.projection)
     {
         m_style.load_style(options.style);

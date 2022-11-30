@@ -1999,12 +1999,13 @@ output_flex_t::clone(std::shared_ptr<middle_query_t> const &mid,
 
 output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
                              std::shared_ptr<thread_pool_t> thread_pool,
-                             options_t const &o)
-: output_t(mid, std::move(thread_pool), o),
-  m_copy_thread(std::make_shared<db_copy_thread_t>(get_options()->conninfo)),
-  m_expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection)
+                             options_t const &options)
+: output_t(mid, std::move(thread_pool), options),
+  m_copy_thread(std::make_shared<db_copy_thread_t>(options.conninfo)),
+  m_expire(options.expire_tiles_zoom, options.expire_tiles_max_bbox,
+           options.projection)
 {
-    init_lua(get_options()->style);
+    init_lua(options.style);
 
     // If the osm2pgsql.select_relation_members() Lua function is defined
     // it means we need two-stage processing which in turn means we need
