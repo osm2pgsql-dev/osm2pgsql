@@ -85,13 +85,13 @@ public:
                   std::back_inserter(m_objects));
     }
 
-    void add(std::initializer_list<const char *> const &objects)
+    void add(std::initializer_list<char const *> const &objects)
     {
         std::copy(std::begin(objects), std::end(objects),
                   std::back_inserter(m_objects));
     }
 
-    const char *operator()()
+    char const *operator()()
     {
         std::sort(m_objects.begin(), m_objects.end(),
                   [](std::string const &a, std::string const &b) {

@@ -566,7 +566,7 @@ std::string geom_to_ewkb(geom::geometry_t const &geom, bool ensure_multi)
 
 geom::geometry_t ewkb_to_geom(std::string const &wkb)
 {
-    const char *const end = wkb.data() + wkb.size();
+    char const *const end = wkb.data() + wkb.size();
     ewkb::ewkb_parser_t parser{wkb.data(), end};
     auto geom = parser();
 

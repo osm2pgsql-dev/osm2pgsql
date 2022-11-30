@@ -72,7 +72,7 @@ public:
      * \param nresults The number of results this function is supposed to have.
      */
     prepared_lua_function_t(lua_State *lua_state, calling_context context,
-                            const char *name, int nresults = 0);
+                            char const *name, int nresults = 0);
 
     /// Return the index of the function on the Lua stack.
     int index() const noexcept { return m_index; }

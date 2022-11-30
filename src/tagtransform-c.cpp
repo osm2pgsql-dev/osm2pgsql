@@ -58,7 +58,7 @@ static void add_z_order(taglist_t *tags, bool *roads)
     *roads = false;
 
     if (highway) {
-        for (const auto &layer : layers) {
+        for (auto const &layer : layers) {
             if (*highway == layer.highway) {
                 z_order += layer.offset;
                 *roads = layer.roads;
