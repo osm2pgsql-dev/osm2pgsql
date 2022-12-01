@@ -112,3 +112,62 @@ TEST_CASE("find_by_name()", "[NoDB]")
     REQUIRE(util::find_by_name(t, "baz") == &t[2]);
     REQUIRE(util::find_by_name(t, "nothing") == nullptr);
 }
+
+TEST_CASE("Use string_joiner_t with delim only without items", "[NoDB]")
+{
+    util::string_joiner_t joiner{','};
+    REQUIRE(joiner().empty());
+}
+
+TEST_CASE("Use string_joiner_t with all params without items", "[NoDB]")
+{
+    util::string_joiner_t joiner{',', '"', '(', ')'};
+    REQUIRE(joiner().empty());
+}
+
+TEST_CASE("Use string_joiner_t without quote char", "[NoDB]")
+{
+    util::string_joiner_t joiner{',', '\0', '(', ')'};
+    joiner.add("foo");
+    joiner.add("bar");
+    REQUIRE(joiner() == "(foo,bar)");
+}
+
+TEST_CASE("string_joiner_t without before/after", "[NoDB]")
+{
+    util::string_joiner_t joiner{','};
+    joiner.add("xxx");
+    joiner.add("yyy");
+    REQUIRE(joiner() == "xxx,yyy");
+}
+
+TEST_CASE("string_joiner_t with single single-char item", "[NoDB]")
+{
+    util::string_joiner_t joiner{','};
+    joiner.add("x");
+    REQUIRE(joiner() == "x");
+}
+
+TEST_CASE("string_joiner_t with single single-char item and wrapper", "[NoDB]")
+{
+    util::string_joiner_t joiner{',', '\0', '(', ')'};
+    joiner.add("x");
+    REQUIRE(joiner() == "(x)");
+}
+
+TEST_CASE("join strings", "[NoDB]")
+{
+    std::vector<std::string> const t{"abc", "def", "", "ghi"};
+
+    REQUIRE(util::join(t, ',') == "abc,def,,ghi");
+    REQUIRE(util::join(t, '-', '#', '[', ']') == "[#abc#-#def#-##-#ghi#]");
+    REQUIRE(util::join(t, '-', '#', '[', ']') == "[#abc#-#def#-##-#ghi#]");
+}
+
+TEST_CASE("join strings with empty list", "[NoDB]")
+{
+    std::vector<std::string> const t{};
+
+    REQUIRE(util::join(t, ',').empty());
+    REQUIRE(util::join(t, '-', '#', '[', ']').empty());
+}

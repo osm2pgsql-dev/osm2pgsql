@@ -21,6 +21,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <string>
+#include <vector>
 
 namespace util {
 
@@ -157,6 +158,63 @@ auto find_by_name(CONTAINER &container, std::string const &name)
 
     return &*it;
 }
+
+/**
+ * Class to help with joining strings.
+ *
+ * After construction call add() as many times as you want. Call the
+ * call operator to get the result, after which the class is unusable.
+ *
+ * Writes out a string like '("A","B","C")' with "delim" set to the comma,
+ * the double quotes as "quote" character and parentheses as "before" and
+ * "after" characters. If there are no items (i.e. add() is never called),
+ * the result is always empty, so the "before" and "after" characters are
+ * not added in this case.
+ */
+class string_joiner_t
+{
+public:
+    /**
+     * Constructor
+     * \param delim Char to output between items.
+     * \param quote Char to output before and after items (use '\0' for none).
+     * \param before Char to output before everything else (use '\0' for none).
+     * \param after Char to output after everything else (use '\0' for none).
+     */
+    explicit string_joiner_t(char delim, char quote = '\0', char before = '\0',
+                             char after = '\0');
+
+    /**
+     * Add one item to be joined. The quote character is added before and
+     * after the item, but the item itself is added as-is without escaping
+     * the quote character or anything like that.
+     */
+    void add(std::string const &item);
+
+    /// Return result (as value!)
+    std::string operator()();
+
+private:
+    std::string m_result;
+    char m_delim;
+    char m_quote;
+    char m_before;
+    char m_after;
+};
+
+/**
+ * Join all strings in the input vector. This is a convenient wrapper around
+ * the string_joiner_t class.
+ *
+ * \param items The input strings.
+ * \param delim Character to output between items.
+ * \param quote Character to output before and after items (use '\0' for none).
+ * \param before Character to output before everything else (use '\0' for none).
+ * \param after Character to output after everything else (use '\0' for none).
+ * \returns Result string.
+ */
+std::string join(std::vector<std::string> const &items, char delim,
+                 char quote = '\0', char before = '\0', char after = '\0');
 
 } // namespace util
 

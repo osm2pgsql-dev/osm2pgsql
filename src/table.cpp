@@ -155,28 +155,29 @@ void table_t::prepare()
 
 void table_t::generate_copy_column_list()
 {
-    m_target->rows = "osm_id,";
-    //first with the regular columns
+    util::string_joiner_t joiner{',', '"'};
+
+    joiner.add("osm_id");
+
+    // first with the regular columns
     for (auto const &column : m_columns) {
-        m_target->rows += '"';
-        m_target->rows += column.name;
-        m_target->rows += "\",";
+        joiner.add(column.name);
     }
 
-    //then with the hstore columns
+    // then with the hstore columns
     for (auto const &hcolumn : m_hstore_columns) {
-        m_target->rows += '"';
-        m_target->rows += hcolumn;
-        m_target->rows += "\",";
+        joiner.add(hcolumn);
     }
 
-    //add tags column and geom column
+    // add tags column
     if (m_hstore_mode != hstore_column::none) {
-        m_target->rows += "tags,way";
-        //or just the geom column
-    } else {
-        m_target->rows += "way";
+        joiner.add("tags");
     }
+
+    // add geom column
+    joiner.add("way");
+
+    m_target->rows = joiner();
 }
 
 void table_t::stop(bool updateable, bool enable_hstore_index,
