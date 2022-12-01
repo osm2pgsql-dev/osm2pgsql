@@ -39,8 +39,7 @@ jobs:
         env:
           PGHOST: /tmp
 
-
-  ubuntu18-pg95-gcc7-jit:
+  ubuntu18-pg96-gcc7-jit:
     runs-on: ubuntu-18.04
 
     env:
@@ -48,7 +47,7 @@ jobs:
       CXX: g++-7
       LUA_VERSION: 5.3
       LUAJIT_OPTION: ON
-      POSTGRESQL_VERSION: 9.5
+      POSTGRESQL_VERSION: 9.6
       POSTGIS_VERSION: 2.4
       BUILD_TYPE: Release
 

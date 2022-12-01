@@ -66,10 +66,10 @@ if (NOT WIN32 AND NOT APPLE)
     set(PostgreSQL_TYPE_INCLUDE_DIR /usr/include)
 endif()
 
-set(MINIMUM_POSTGRESQL_SERVER_VERSION "9.5")
-set(MINIMUM_POSTGRESQL_SERVER_VERSION_NUM "90500")
+set(MINIMUM_POSTGRESQL_SERVER_VERSION "9.6")
+set(MINIMUM_POSTGRESQL_SERVER_VERSION_NUM "90600")
 
-set(PostgreSQL_ADDITIONAL_VERSIONS "14" "13" "12" "11" "10" "9.6" "9.5")
+set(PostgreSQL_ADDITIONAL_VERSIONS "15" "14" "13" "12" "11" "10" "9.6")
 
 #############################################################
 # Version
