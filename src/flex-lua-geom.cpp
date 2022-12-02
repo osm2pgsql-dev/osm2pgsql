@@ -98,7 +98,7 @@ static int geom_centroid(lua_State *lua_state)
 static int geom_geometry_n(lua_State *lua_state)
 {
     auto const *const input_geometry = unpack_geometry(lua_state);
-    int const index = luaL_checkinteger(lua_state, 2);
+    auto const index = static_cast<int>(luaL_checkinteger(lua_state, 2));
 
     try {
         auto *geom = create_lua_geometry_object(lua_state);
@@ -216,7 +216,7 @@ static int geom_tostring(lua_State *lua_state)
 static int geom_transform(lua_State *lua_state)
 {
     auto const *const input_geometry = unpack_geometry(lua_state);
-    int const srid = luaL_checkinteger(lua_state, 2);
+    auto const srid = static_cast<int>(luaL_checkinteger(lua_state, 2));
 
     try {
         if (input_geometry->srid() != 4326) {

@@ -109,7 +109,7 @@ public:
      *
      * Returns 0 if the elapsed time is 0.
      */
-    double per_second(double value) const noexcept
+    double per_second(std::size_t value) const noexcept
     {
         auto const seconds =
             std::chrono::duration_cast<std::chrono::seconds>(m_duration)
@@ -117,7 +117,7 @@ public:
         if (seconds == 0) {
             return 0.0;
         }
-        return value / static_cast<double>(seconds);
+        return static_cast<double>(value) / static_cast<double>(seconds);
     }
 
 private:

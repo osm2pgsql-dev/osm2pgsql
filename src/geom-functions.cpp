@@ -548,7 +548,7 @@ void line_merge(geometry_t *output, geometry_t const &input)
     std::vector<endpoint_t> endpoints;
 
     // ...and a list of connections.
-    constexpr std::size_t const NOCONN = -1UL;
+    constexpr auto const NOCONN = std::numeric_limits<std::size_t>::max();
 
     struct connection_t
     {

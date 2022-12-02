@@ -65,10 +65,10 @@ osmium::Location node_locations_t::get(osmid_t id) const
     for (std::size_t n = 0; n < block_size && begin != end; ++n) {
         auto const bid = did.update(
             static_cast<int64_t>(protozero::decode_varint(&begin, end)));
-        int32_t const x = dx.update(
-            protozero::decode_zigzag64(protozero::decode_varint(&begin, end)));
-        int32_t const y = dy.update(
-            protozero::decode_zigzag64(protozero::decode_varint(&begin, end)));
+        auto const x = static_cast<int32_t>(dx.update(
+            protozero::decode_zigzag64(protozero::decode_varint(&begin, end))));
+        auto const y = static_cast<int32_t>(dy.update(
+            protozero::decode_zigzag64(protozero::decode_varint(&begin, end))));
         if (bid == id) {
             return osmium::Location{x, y};
         }
