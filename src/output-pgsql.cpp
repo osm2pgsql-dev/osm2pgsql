@@ -439,7 +439,7 @@ output_pgsql_t::output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
     auto copy_thread = std::make_shared<db_copy_thread_t>(options.conninfo);
 
     //for each table
-    for (size_t i = 0; i < t_MAX; ++i) {
+    for (std::size_t i = 0; i < m_tables.size(); ++i) {
 
         //figure out the columns this table needs
         columns_t columns = exlist.normal_columns(
@@ -488,10 +488,10 @@ output_pgsql_t::output_pgsql_t(
   m_buffer(1024, osmium::memory::Buffer::auto_grow::yes),
   m_rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
 {
-    for (size_t i = 0; i < t_MAX; ++i) {
+    for (std::size_t i = 0; i < m_tables.size(); ++i) {
         //copy constructor will just connect to the already there table
         m_tables[i] =
-            std::make_unique<table_t>(*(other->m_tables[i].get()), copy_thread);
+            std::make_unique<table_t>(*(other->m_tables[i]), copy_thread);
     }
 }
 
