@@ -83,4 +83,49 @@ std::string get_password()
     return password;
 }
 
+string_joiner_t::string_joiner_t(char delim, char quote, char before,
+                                 char after)
+: m_delim(delim), m_quote(quote), m_before(before), m_after(after)
+{
+    if (m_before) {
+        m_result += m_before;
+    }
+}
+
+void string_joiner_t::add(std::string const &item)
+{
+    if (m_quote) {
+        m_result += m_quote;
+        m_result += item;
+        m_result += m_quote;
+    } else {
+        m_result += item;
+    }
+    m_result += m_delim;
+}
+
+std::string string_joiner_t::operator()()
+{
+    if (m_result.size() == 1 && m_before) {
+        m_result.clear();
+    } else if (m_result.size() > 1) {
+        if (m_after) {
+            m_result.back() = m_after;
+        } else {
+            m_result.resize(m_result.size() - 1);
+        }
+    }
+    return std::move(m_result);
+}
+
+std::string join(std::vector<std::string> const &items, char delim, char quote,
+                 char before, char after)
+{
+    string_joiner_t joiner{delim, quote, before, after};
+    for (auto const &item : items) {
+        joiner.add(item);
+    }
+    return joiner();
+}
+
 } // namespace util

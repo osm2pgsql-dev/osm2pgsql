@@ -202,18 +202,15 @@ std::string flex_table_t::build_sql_column_list() const
 {
     assert(!m_columns.empty());
 
-    std::string result;
+    util::string_joiner_t joiner{',', '"'};
+
     for (auto const &column : m_columns) {
         if (!column.create_only()) {
-            result += '"';
-            result += column.name();
-            result += '"';
-            result += ',';
+            joiner.add(column.name());
         }
     }
-    result.resize(result.size() - 1);
 
-    return result;
+    return joiner();
 }
 
 std::string flex_table_t::build_sql_create_id_index() const
