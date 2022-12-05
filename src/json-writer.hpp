@@ -13,8 +13,10 @@
 #include "format.hpp"
 
 #include <cassert>
+#include <cmath>
 #include <iterator>
 #include <string>
+#include <type_traits>
 
 class json_writer_t
 {
@@ -23,7 +25,18 @@ public:
 
     void boolean(bool value) { m_buffer.append(value ? "true" : "false"); }
 
-    template <typename T>
+    template <typename T,
+              std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
+    void number(T value)
+    {
+        if (std::isfinite(value)) {
+            fmt::format_to(std::back_inserter(m_buffer), "{}"_format(value));
+        } else {
+            null();
+        }
+    }
+
+    template <typename T, std::enable_if_t<std::is_integral_v<T>, bool> = true>
     void number(T value)
     {
         fmt::format_to(std::back_inserter(m_buffer), "{}"_format(value));

@@ -46,6 +46,20 @@ TEST_CASE("json writer writes real number", "[NoDB]")
     REQUIRE(writer.json() == "3.141");
 }
 
+TEST_CASE("json writer writes invalid real number as null", "[NoDB]")
+{
+    json_writer_t writer;
+    writer.number(INFINITY);
+    REQUIRE(writer.json() == "null");
+}
+
+TEST_CASE("json writer writes NaN as null", "[NoDB]")
+{
+    json_writer_t writer;
+    writer.number(NAN);
+    REQUIRE(writer.json() == "null");
+}
+
 TEST_CASE("json writer writes string", "[NoDB]")
 {
     json_writer_t writer;
