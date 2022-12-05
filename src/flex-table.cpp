@@ -255,7 +255,7 @@ void table_connection_t::start(bool append)
 {
     assert(m_db_connection);
 
-    if (!has_schema(*m_db_connection, table().schema())) {
+    if (!has_schema(table().schema())) {
         throw std::runtime_error{
             "Schema '{0}' not available. "
             "Use 'CREATE SCHEMA \"{0}\";' to create it."_format(
@@ -264,7 +264,7 @@ void table_connection_t::start(bool append)
 
     for (auto const &ts :
          {table().data_tablespace(), table().index_tablespace()}) {
-        if (!has_tablespace(*m_db_connection, ts)) {
+        if (!has_tablespace(ts)) {
             throw std::runtime_error{
                 "Tablespace '{0}' not available. "
                 "Use 'CREATE TABLESPACE \"{0}\" ...;' to create it."_format(
@@ -273,7 +273,7 @@ void table_connection_t::start(bool append)
     }
 
     if (table().has_hstore_column()) {
-        if (!has_extension(*m_db_connection, "hstore")) {
+        if (!has_extension("hstore")) {
             throw std::runtime_error{"Extension 'hstore' not available. Use "
                                      "'CREATE EXTENSION hstore;' to load it."};
         }
@@ -333,7 +333,7 @@ void table_connection_t::stop(bool updateable, bool append)
         std::string sql = "INSERT INTO {} ({}) SELECT {} FROM {}"_format(
             table().full_tmp_name(), columns, columns, table().full_name());
 
-        auto const postgis_version = get_postgis_version(*m_db_connection);
+        auto const postgis_version = get_postgis_version();
 
         sql += " ORDER BY ";
         if (postgis_version.major == 2 && postgis_version.minor < 4) {

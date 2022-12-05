@@ -18,6 +18,7 @@
 #include "format.hpp"
 #include "logging.hpp"
 #include "options.hpp"
+#include "pgsql-capabilities.hpp"
 #include "pgsql-helper.hpp"
 #include "table.hpp"
 #include "taginfo.hpp"
@@ -206,7 +207,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
             "CREATE TABLE {} {} AS SELECT * FROM {}"_format(
                 qual_tmp_name, m_table_space, qual_name);
 
-        auto const postgis_version = get_postgis_version(*m_sql_conn);
+        auto const postgis_version = get_postgis_version();
 
         sql += " ORDER BY ";
         if (postgis_version.major == 2 && postgis_version.minor < 4) {

@@ -23,6 +23,7 @@ TEST_CASE("config with schema should work")
 
     auto conn = db.db().connect();
     conn.exec("CREATE SCHEMA IF NOT EXISTS myschema;");
+    init_database_capabilities(conn);
 
     REQUIRE_NOTHROW(db.run_file(options, data_file));
 

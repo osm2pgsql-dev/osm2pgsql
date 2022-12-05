@@ -8,59 +8,169 @@
  */
 
 #include "format.hpp"
+#include "logging.hpp"
+#include "pgsql-capabilities.hpp"
 #include "pgsql.hpp"
-#include "pgsql-helper.hpp"
+#include "version.hpp"
 
+#include <map>
 #include <set>
+#include <stdexcept>
 #include <string>
 
-static std::set<std::string> init_set_from_table(pg_conn_t const &db_connection,
-                                                 char const *table,
-                                                 char const *column,
-                                                 char const *condition)
+struct database_capabilities_t
 {
-    std::set<std::string> values;
+    std::map<std::string, std::string> settings;
 
+    std::set<std::string> extensions;
+    std::set<std::string> schemas;
+    std::set<std::string> tablespaces;
+    std::set<std::string> index_methods;
+
+    std::string database_name;
+
+    uint32_t database_version = 0;
+    postgis_version postgis{};
+};
+
+static database_capabilities_t &capabilities() noexcept
+{
+    static database_capabilities_t c;
+    return c;
+}
+
+static void init_set_from_query(std::set<std::string> *set,
+                                pg_conn_t const &db_connection,
+                                char const *table, char const *column,
+                                char const *condition = "true")
+{
     auto const res = db_connection.query(
         PGRES_TUPLES_OK,
         "SELECT {} FROM {} WHERE {}"_format(column, table, condition));
     for (int i = 0; i < res.num_tuples(); ++i) {
-        values.insert(res.get_value_as_string(i, 0));
+        set->insert(res.get_value_as_string(i, 0));
+    }
+}
+
+/// Get all config settings from the database.
+static void init_settings(pg_conn_t const &db_connection)
+{
+    auto const res = db_connection.query(
+        PGRES_TUPLES_OK, "SELECT name, setting FROM pg_settings");
+
+    for (int i = 0; i < res.num_tuples(); ++i) {
+        capabilities().settings.emplace(res.get_value_as_string(i, 0),
+                                        res.get_value_as_string(i, 1));
+    }
+}
+
+static void init_database_name(pg_conn_t const &db_connection)
+{
+    auto const res =
+        db_connection.query(PGRES_TUPLES_OK, "SELECT current_catalog");
+
+    if (res.num_tuples() != 1) {
+        throw std::runtime_error{
+            "Database error: Can not access database name."};
     }
 
-    return values;
+    capabilities().database_name = res.get_value_as_string(0, 0);
 }
 
-bool has_extension(pg_conn_t const &db_connection, std::string const &value)
+static void init_postgis_version(pg_conn_t const &db_connection)
 {
-    static const std::set<std::string> values = init_set_from_table(
-        db_connection, "pg_catalog.pg_extension", "extname", "true");
+    auto const res = db_connection.query(
+        PGRES_TUPLES_OK, "SELECT regexp_split_to_table(extversion, '\\.') FROM"
+                         " pg_extension WHERE extname='postgis'");
 
-    return values.count(value);
+    if (res.num_tuples() == 0) {
+        throw std::runtime_error{
+            "The postgis extension is not enabled on the database '{}'."
+            " Are you using the correct database?"
+            " Enable with 'CREATE EXTENSION postgis;'"_format(
+                capabilities().database_name)};
+    }
+
+    capabilities().postgis = {std::stoi(res.get_value_as_string(0, 0)),
+                              std::stoi(res.get_value_as_string(1, 0))};
 }
 
-bool has_schema(pg_conn_t const &db_connection, std::string const &value)
+void init_database_capabilities(pg_conn_t const &db_connection)
 {
-    static const std::set<std::string> values = init_set_from_table(
-        db_connection, "pg_catalog.pg_namespace", "nspname",
-        "nspname !~ '^pg_' AND nspname <> 'information_schema'");
+    init_settings(db_connection);
+    init_database_name(db_connection);
+    init_postgis_version(db_connection);
 
+    try {
+        log_info("Database version: {}",
+                 capabilities().settings.at("server_version"));
+        log_info("PostGIS version: {}.{}", capabilities().postgis.major,
+                 capabilities().postgis.minor);
+
+        auto const version_str =
+            capabilities().settings.at("server_version_num");
+        capabilities().database_version =
+            std::strtoul(version_str.c_str(), nullptr, 10);
+        if (capabilities().database_version <
+            get_minimum_postgresql_server_version_num()) {
+            throw std::runtime_error{
+                "Your database version is too old (need at least {})."_format(
+                    get_minimum_postgresql_server_version())};
+        }
+
+        if (capabilities().settings.at("server_encoding") != "UTF8") {
+            throw std::runtime_error{"Database is not using UTF8 encoding."};
+        }
+
+    } catch (std::out_of_range const &) {
+        // Thrown by the settings.at() if the named setting isn't found
+        throw std::runtime_error{"Can't access database setting."};
+    }
+
+    init_set_from_query(&capabilities().extensions, db_connection,
+                        "pg_catalog.pg_extension", "extname");
+    init_set_from_query(
+        &capabilities().schemas, db_connection, "pg_catalog.pg_namespace",
+        "nspname", "nspname !~ '^pg_' AND nspname <> 'information_schema'");
+    init_set_from_query(&capabilities().tablespaces, db_connection,
+                        "pg_catalog.pg_tablespace", "spcname",
+                        "spcname != 'pg_global'");
+    init_set_from_query(&capabilities().index_methods, db_connection,
+                        "pg_catalog.pg_am", "amname", "amtype = 'i'");
+}
+
+bool has_extension(std::string const &value)
+{
+    return capabilities().extensions.count(value);
+}
+
+bool has_schema(std::string const &value)
+{
     if (value.empty()) {
         return true;
     }
-
-    return values.count(value);
+    return capabilities().schemas.count(value);
 }
 
-bool has_tablespace(pg_conn_t const &db_connection, std::string const &value)
+bool has_tablespace(std::string const &value)
 {
-    static const std::set<std::string> values =
-        init_set_from_table(db_connection, "pg_catalog.pg_tablespace",
-                            "spcname", "spcname != 'pg_global'");
-
     if (value.empty()) {
         return true;
     }
+    return capabilities().tablespaces.count(value);
+}
 
-    return values.count(value);
+bool has_index_method(std::string const &value)
+{
+    return capabilities().index_methods.count(value);
+}
+
+uint32_t get_database_version() noexcept
+{
+    return capabilities().database_version;
+}
+
+postgis_version get_postgis_version() noexcept
+{
+    return capabilities().postgis;
 }

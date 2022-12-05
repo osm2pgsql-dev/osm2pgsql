@@ -77,3 +77,15 @@ void analyze_table(pg_conn_t const &db_connection, std::string const &schema,
     auto const qual_name = qualified_name(schema, name);
     db_connection.exec("ANALYZE {}"_format(qual_name));
 }
+
+bool has_table(pg_conn_t const &db_connection, std::string const &schema,
+               std::string const &table)
+{
+    auto const sql = "SELECT count(*) FROM pg_tables"
+                     "  WHERE schemaname='{}' AND tablename='{}'"_format(
+                         schema.empty() ? "public" : schema, table);
+    auto const res = db_connection.query(PGRES_TUPLES_OK, sql);
+    char const *const num = res.get_value(0, 0);
+
+    return num[0] == '1' && num[1] == '\0';
+}

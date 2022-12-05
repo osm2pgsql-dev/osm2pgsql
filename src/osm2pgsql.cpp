@@ -7,7 +7,6 @@
  * For a full list of authors see the git log.
  */
 
-#include "db-check.hpp"
 #include "dependency-manager.hpp"
 #include "input.hpp"
 #include "logging.hpp"
@@ -15,6 +14,9 @@
 #include "options.hpp"
 #include "osmdata.hpp"
 #include "output.hpp"
+#include "pgsql.hpp"
+#include "pgsql-capabilities.hpp"
+#include "pgsql-helper.hpp"
 #include "util.hpp"
 #include "version.hpp"
 
@@ -74,6 +76,26 @@ static void run(options_t const &options)
     // Process pending ways and relations. Cluster database tables and
     // create indexes.
     osmdata.stop();
+}
+
+void check_db(options_t const &options)
+{
+    pg_conn_t db_connection{options.conninfo};
+
+    init_database_capabilities(db_connection);
+
+    // If we are in append mode and the middle nodes table isn't there,
+    // it probably means we used a flat node store when we created this
+    // database. Check for that and stop if it looks like we are missing
+    // the node location store option.
+    if (options.append && options.flat_node_file.empty()) {
+        if (!has_table(db_connection, options.middle_dbschema,
+                        options.prefix + "_nodes")) {
+            throw std::runtime_error{
+                "You seem to not have a nodes table. Did "
+                "you forget the --flat-nodes option?"};
+        }
+    }
 }
 
 int main(int argc, char *argv[])
