@@ -186,12 +186,12 @@ bool lua_tagtransform_t::filter_rel_member_tags(
     lua_newtable(lua_state()); /* member roles table */
 
     for (size_t i = 0; i < num_members; ++i) {
-        lua_pushnumber(lua_state(), i + 1);
+        lua_pushnumber(lua_state(), static_cast<lua_Number>(i + 1));
         lua_pushstring(lua_state(), member_roles[i]);
         lua_rawset(lua_state(), -3);
     }
 
-    lua_pushnumber(lua_state(), num_members);
+    lua_pushnumber(lua_state(), static_cast<lua_Number>(num_members));
 
     if (lua_pcall(lua_state(), 4, 6, 0)) {
         /* lua function failed */

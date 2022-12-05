@@ -19,7 +19,7 @@ static double count_per_second(std::size_t count, uint64_t elapsed) noexcept
     }
 
     if (elapsed == 0) {
-        return count;
+        return static_cast<double>(count);
     }
 
     return static_cast<double>(count) / elapsed;
@@ -115,4 +115,3 @@ uint64_t progress_display_t::overall_time(std::time_t now) const noexcept
 {
     return static_cast<uint64_t>(now - m_node.start);
 }
-

@@ -124,8 +124,8 @@ struct counting_output_t : public output_null_t
 
     type_stats_t node, way, relation;
     long long sum_ids = 0;
-    unsigned sum_nds = 0;
-    unsigned sum_members = 0;
+    std::size_t sum_nds = 0;
+    std::size_t sum_members = 0;
 };
 
 struct counts_t {

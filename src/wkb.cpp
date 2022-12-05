@@ -309,7 +309,8 @@ class ewkb_parser_t
 {
 public:
     ewkb_parser_t(char const *it, char const *end)
-    : m_it(it), m_end(end), m_max_length((end - it) / (sizeof(double) * 2))
+    : m_it(it), m_end(end),
+      m_max_length(static_cast<uint32_t>(end - it) / (sizeof(double) * 2))
     {}
 
     geom::geometry_t operator()()
