@@ -291,8 +291,7 @@ int expire_from_result(expire_tiles *expire, pg_result_t const &result)
     auto const num_tuples = result.num_tuples();
 
     for (int i = 0; i < num_tuples; ++i) {
-        char const *const wkb = result.get_value(i, 0);
-        expire->from_geometry(ewkb_to_geom(decode_hex(wkb)));
+        expire->from_geometry(ewkb_to_geom(result.get(i, 0)));
     }
 
     return num_tuples;
