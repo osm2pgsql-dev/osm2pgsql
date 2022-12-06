@@ -130,18 +130,13 @@ void pg_conn_t::end_copy(std::string const &context) const
 static std::string concat_params(int num_params,
                                  char const *const *param_values)
 {
-    std::string params;
+    util::string_joiner_t joiner{','};
 
     for (int i = 0; i < num_params; ++i) {
-        params += param_values[i] ? param_values[i] : "<NULL>";
-        params += ',';
+        joiner.add(param_values[i] ? param_values[i] : "<NULL>");
     }
 
-    if (!params.empty()) {
-        params.resize(params.size() - 1);
-    }
-
-    return params;
+    return joiner();
 }
 
 pg_result_t
