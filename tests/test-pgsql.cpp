@@ -41,7 +41,7 @@ TEST_CASE("query with SELECT should work")
     REQUIRE(result.status() == PGRES_TUPLES_OK);
     REQUIRE(result.num_fields() == 1);
     REQUIRE(result.num_tuples() == 1);
-    REQUIRE(result.get_value_as_string(0, 0) == "42");
+    REQUIRE(result.get(0, 0) == "42");
 }
 
 TEST_CASE("query with invalid SQL should fail")
@@ -65,7 +65,7 @@ TEST_CASE("exec_prepared without parameters should work")
     REQUIRE(result.status() == PGRES_TUPLES_OK);
     REQUIRE(result.num_fields() == 1);
     REQUIRE(result.num_tuples() == 1);
-    REQUIRE(result.get_value_as_string(0, 0) == "42");
+    REQUIRE(result.get(0, 0) == "42");
 }
 
 TEST_CASE("exec_prepared with single string parameters should work")
@@ -77,7 +77,7 @@ TEST_CASE("exec_prepared with single string parameters should work")
     REQUIRE(result.status() == PGRES_TUPLES_OK);
     REQUIRE(result.num_fields() == 1);
     REQUIRE(result.num_tuples() == 1);
-    REQUIRE(result.get_value_as_string(0, 0) == "17");
+    REQUIRE(result.get(0, 0) == "17");
 }
 
 TEST_CASE("exec_prepared with string parameters should work")
@@ -89,7 +89,7 @@ TEST_CASE("exec_prepared with string parameters should work")
     REQUIRE(result.status() == PGRES_TUPLES_OK);
     REQUIRE(result.num_fields() == 1);
     REQUIRE(result.num_tuples() == 1);
-    REQUIRE(result.get_value_as_string(0, 0) == "6");
+    REQUIRE(result.get(0, 0) == "6");
 }
 
 TEST_CASE("exec_prepared with non-string parameters should work")
@@ -101,5 +101,5 @@ TEST_CASE("exec_prepared with non-string parameters should work")
     REQUIRE(result.status() == PGRES_TUPLES_OK);
     REQUIRE(result.num_fields() == 1);
     REQUIRE(result.num_tuples() == 1);
-    REQUIRE(result.get_value_as_string(0, 0) == "6");
+    REQUIRE(result.get(0, 0) == "6");
 }

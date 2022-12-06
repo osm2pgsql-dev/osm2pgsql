@@ -43,7 +43,7 @@ public:
     {
         pg_result_t const res = query(PGRES_TUPLES_OK, cmd);
         REQUIRE(res.num_tuples() == 1);
-        return res.get_value_as_string(0, 0);
+        return std::string{res.get(0, 0)};
     }
 
     int result_as_int(std::string const &cmd) const

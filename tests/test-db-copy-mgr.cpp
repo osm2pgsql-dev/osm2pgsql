@@ -235,7 +235,7 @@ TEST_CASE("copy_mgr_t")
         auto const res = conn.query(PGRES_TUPLES_OK,
                                     "SELECT t FROM test_copy_mgr ORDER BY id");
         CHECK(res.num_tuples() == 2);
-        CHECK(res.get_value_as_string(0, 0) == "good");
-        CHECK(res.get_value_as_string(1, 0) == "better");
+        CHECK(res.get(0, 0) == "good");
+        CHECK(res.get(1, 0) == "better");
     }
 }

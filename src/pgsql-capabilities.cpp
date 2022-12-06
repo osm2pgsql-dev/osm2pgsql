@@ -48,7 +48,7 @@ static void init_set_from_query(std::set<std::string> *set,
         PGRES_TUPLES_OK,
         "SELECT {} FROM {} WHERE {}"_format(column, table, condition));
     for (int i = 0; i < res.num_tuples(); ++i) {
-        set->insert(res.get_value_as_string(i, 0));
+        set->emplace(res.get(i, 0));
     }
 }
 
@@ -59,8 +59,7 @@ static void init_settings(pg_conn_t const &db_connection)
         PGRES_TUPLES_OK, "SELECT name, setting FROM pg_settings");
 
     for (int i = 0; i < res.num_tuples(); ++i) {
-        capabilities().settings.emplace(res.get_value_as_string(i, 0),
-                                        res.get_value_as_string(i, 1));
+        capabilities().settings.emplace(res.get(i, 0), res.get(i, 1));
     }
 }
 
@@ -74,7 +73,7 @@ static void init_database_name(pg_conn_t const &db_connection)
             "Database error: Can not access database name."};
     }
 
-    capabilities().database_name = res.get_value_as_string(0, 0);
+    capabilities().database_name = res.get(0, 0);
 }
 
 static void init_postgis_version(pg_conn_t const &db_connection)
@@ -91,8 +90,8 @@ static void init_postgis_version(pg_conn_t const &db_connection)
                 capabilities().database_name)};
     }
 
-    capabilities().postgis = {std::stoi(res.get_value_as_string(0, 0)),
-                              std::stoi(res.get_value_as_string(1, 0))};
+    capabilities().postgis = {std::stoi(std::string{res.get(0, 0)}),
+                              std::stoi(std::string{res.get(1, 0)})};
 }
 
 void init_database_capabilities(pg_conn_t const &db_connection)
