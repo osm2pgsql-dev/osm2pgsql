@@ -233,7 +233,7 @@ public:
                                             std::forward<TArgs>(params))...};
 
         return exec_prepared_internal(stmt, sizeof...(params),
-                                      param_ptrs.data());
+                                      param_ptrs.data(), nullptr, nullptr, 0);
     }
 
     /**
@@ -254,7 +254,9 @@ public:
 
 private:
     pg_result_t exec_prepared_internal(char const *stmt, int num_params,
-                                       char const *const *param_values) const;
+                                       char const *const *param_values,
+                                       int *param_lengths, int *param_formats,
+                                       int result_format) const;
 
     struct pg_conn_deleter_t
     {
