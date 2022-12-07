@@ -219,6 +219,11 @@ std::string flex_table_t::build_sql_create_id_index() const
         full_name(), id_column_names(), tablespace_clause(index_tablespace()));
 }
 
+flex_index_t &flex_table_t::add_index(std::string method)
+{
+    return m_indexes.emplace_back(std::move(method));
+}
+
 void table_connection_t::connect(std::string const &conninfo)
 {
     assert(!m_db_connection);
@@ -367,15 +372,16 @@ void table_connection_t::stop(bool updateable, bool append)
         }
     }
 
-    if (table().has_geom_column()) {
-        log_info("Creating geometry index on table '{}'...", table().name());
-
-        // Use fillfactor 100 for un-updateable imports
-        m_db_connection->exec(
-            R"(CREATE INDEX ON {} USING GIST ("{}") {} {})"_format(
-                table().full_name(), table().geom_column().name(),
-                (updateable ? "" : "WITH (fillfactor = 100)"),
-                tablespace_clause(table().index_tablespace())));
+    if (table().indexes().empty()) {
+        log_info("No indexes to create on table '{}'.", table().name());
+    } else {
+        for (auto const &index : table().indexes()) {
+            log_info("Creating index on table '{}' {}..."_format(
+                table().name(), index.columns()));
+            auto const sql = index.create_index(
+                qualified_name(table().schema(), table().name()));
+            m_db_connection->exec(sql);
+        }
     }
 
     if (updateable && table().has_id_column()) {

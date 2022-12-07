@@ -11,6 +11,7 @@
  */
 
 #include "db-copy-mgr.hpp"
+#include "flex-index.hpp"
 #include "flex-table-column.hpp"
 #include "pgsql.hpp"
 #include "reprojection.hpp"
@@ -146,6 +147,13 @@ public:
         return m_has_multiple_geom_columns;
     }
 
+    std::vector<flex_index_t> const &indexes() const noexcept
+    {
+        return m_indexes;
+    }
+
+    flex_index_t &add_index(std::string method);
+
 private:
     /// The name of the table
     std::string m_name;
@@ -167,6 +175,11 @@ private:
      * the id columns).
      */
     std::vector<flex_table_column_t> m_columns;
+
+    /**
+     * The indexes defined on this table. Does not include the id index.
+     */
+    std::vector<flex_index_t> m_indexes;
 
     /**
      * Index of the (first) geometry column in m_columns. Default means no

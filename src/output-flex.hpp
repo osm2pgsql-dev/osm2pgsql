@@ -188,6 +188,7 @@ private:
     flex_table_t &create_flex_table();
     void setup_id_columns(flex_table_t *table);
     void setup_flex_table_columns(flex_table_t *table);
+    void setup_indexes(flex_table_t *table);
 
     flex_table_t const &get_table_from_param();
 

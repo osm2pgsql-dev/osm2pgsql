@@ -67,6 +67,9 @@ def before_all(context):
                 cur.execute("""SELECT spcname FROM pg_tablespace
                                WHERE spcname = 'tablespacetest'""")
                 context.config.userdata['HAVE_TABLESPACE'] = cur.rowcount > 0
+                cur.execute("""SELECT setting FROM pg_settings
+                               WHERE name = 'server_version_num'""")
+                context.config.userdata['PG_VERSION'] = int(cur.fetchone()[0])
 
     # Get the osm2pgsql configuration
     proc = subprocess.Popen([str(context.config.userdata['BINARY']), '--version'],
@@ -125,3 +128,9 @@ def test_db(context, **kwargs):
 def working_directory(context, **kwargs):
     with tempfile.TemporaryDirectory() as tmpdir:
         yield Path(tmpdir)
+
+def before_tag(context, tag):
+    if tag == 'needs-pg-index-includes':
+        if context.config.userdata['PG_VERSION'] < 110000:
+            context.scenario.skip("No index includes in PostgreSQL < 11")
+
