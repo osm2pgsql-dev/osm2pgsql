@@ -195,13 +195,6 @@ private:
     void check_context_and_state(char const *name, char const *context,
                                  bool condition);
 
-    void write_column(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
-                      flex_table_column_t const &column);
-
-    void write_row(table_connection_t *table_connection,
-                   osmium::item_type id_type, osmid_t id,
-                   geom::geometry_t const &geom, int srid);
-
     osmium::OSMObject const &
     check_and_get_context_object(flex_table_t const &table);
 
