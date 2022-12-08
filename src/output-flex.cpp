@@ -1002,84 +1002,6 @@ int output_flex_t::table_cluster()
     return 1;
 }
 
-static std::unique_ptr<geom_transform_t>
-get_transform(lua_State *lua_state, flex_table_column_t const &column)
-{
-    assert(lua_state);
-    assert(lua_gettop(lua_state) == 1);
-
-    std::unique_ptr<geom_transform_t> transform{};
-
-    lua_getfield(lua_state, -1, column.name().c_str());
-    int const ltype = lua_type(lua_state, -1);
-
-    // Field not set, return null transform
-    if (ltype == LUA_TNIL) {
-        lua_pop(lua_state, 1); // geom field
-        return transform;
-    }
-
-    // Field set to anything but a Lua table is not allowed
-    if (ltype != LUA_TTABLE) {
-        lua_pop(lua_state, 1); // geom field
-        throw std::runtime_error{
-            "Invalid geometry transformation for column '{}'."_format(
-                column.name())};
-    }
-
-    lua_getfield(lua_state, -1, "create");
-    char const *create_type = lua_tostring(lua_state, -1);
-    if (create_type == nullptr) {
-        throw std::runtime_error{
-            "Missing geometry transformation for column '{}'."_format(
-                column.name())};
-    }
-
-    transform = create_geom_transform(create_type);
-    lua_pop(lua_state, 1); // 'create' field
-    init_geom_transform(transform.get(), lua_state);
-    if (!transform->is_compatible_with(column.type())) {
-        throw std::runtime_error{
-            "Geometry transformation is not compatible "
-            "with column type '{}'."_format(column.type_name())};
-    }
-
-    lua_pop(lua_state, 1); // geom field
-
-    return transform;
-}
-
-static geom_transform_t const *
-get_default_transform(flex_table_column_t const &column,
-                      osmium::item_type object_type)
-{
-    static geom_transform_point_t const default_transform_node_to_point{};
-    static geom_transform_line_t const default_transform_way_to_line{};
-    static geom_transform_area_t const default_transform_way_to_area{};
-
-    switch (object_type) {
-    case osmium::item_type::node:
-        if (column.type() == table_column_type::point) {
-            return &default_transform_node_to_point;
-        }
-        break;
-    case osmium::item_type::way:
-        if (column.type() == table_column_type::linestring) {
-            return &default_transform_way_to_line;
-        }
-        if (column.type() == table_column_type::polygon) {
-            return &default_transform_way_to_area;
-        }
-        break;
-    default:
-        break;
-    }
-
-    throw std::runtime_error{
-        "Missing geometry transformation for column '{}'."_format(
-            column.name())};
-}
-
 geom::geometry_t output_flex_t::run_transform(reprojection const &proj,
                                               geom_transform_t const *transform,
                                               osmium::Node const &node)
@@ -1140,17 +1062,16 @@ void output_flex_t::add_row(table_connection_t *table_connection,
             "Need two parameters: The osm2pgsql.Table and the row data."};
     }
 
+    auto const &proj = table_connection->proj();
+    auto const type = table.geom_column().type();
+
     auto const geom_transform = get_transform(lua_state(), table.geom_column());
     assert(lua_gettop(lua_state()) == 1);
 
     geom_transform_t const *transform = geom_transform.get();
-
     if (!transform) {
         transform = get_default_transform(table.geom_column(), object.type());
     }
-
-    auto const &proj = table_connection->proj();
-    auto const type = table.geom_column().type();
 
     // The geometry returned by run_transform() is in 4326 if it is a
     // (multi)polygon. If it is a point or linestring, it is already in the
