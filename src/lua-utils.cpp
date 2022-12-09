@@ -202,3 +202,34 @@ int luaX_pcall(lua_State *lua_state, int narg, int nres)
 }
 
 #endif
+
+bool luaX_is_empty_table(lua_State *lua_state)
+{
+    assert(lua_istable(lua_state, -1));
+    lua_pushnil(lua_state);
+    if (lua_next(lua_state, -2) == 0) {
+        return true;
+    }
+    lua_pop(lua_state, 2);
+    return false;
+}
+
+bool luaX_is_array(lua_State *lua_state)
+{
+    // Checking that a Lua table is an array is surprisingly difficult.
+    // This code is based on:
+    // https://web.archive.org/web/20140227143701/http://ericjmritz.name/2014/02/26/lua-is_array/
+    assert(lua_istable(lua_state, -1));
+    int i = 0;
+    lua_pushnil(lua_state);
+    while (lua_next(lua_state, -2) != 0) {
+        ++i;
+        lua_rawgeti(lua_state, -3, i);
+        if (lua_isnil(lua_state, -1)) {
+            lua_pop(lua_state, 3);
+            return false;
+        }
+        lua_pop(lua_state, 2);
+    }
+    return true;
+}

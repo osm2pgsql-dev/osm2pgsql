@@ -85,6 +85,7 @@ set_test(test-wkb LABELS NoDB)
 # these tests require LUA support
 if (WITH_LUA)
     set_test(test-flex-indexes)
+    set_test(test-lua-utils)
     set_test(test-output-flex)
     set_test(test-output-flex-multi-input)
     set_test(test-output-flex-nodes)

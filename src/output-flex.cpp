@@ -577,13 +577,11 @@ void output_flex_t::setup_flex_table_columns(flex_table_t *table)
                         table->name());
     }
 
+    if (!luaX_is_array(lua_state())) {
+        throw std::runtime_error{"The 'columns' field must contain an array."};
+    }
     std::size_t num_columns = 0;
-    lua_pushnil(lua_state());
-    while (lua_next(lua_state(), -2) != 0) {
-        if (!lua_isnumber(lua_state(), -2)) {
-            throw std::runtime_error{
-                "The 'columns' field must contain an array."};
-        }
+    luaX_for_each(lua_state(), [&]() {
         if (!lua_istable(lua_state(), -1)) {
             throw std::runtime_error{
                 "The entries in the 'columns' array must be tables."};
@@ -611,16 +609,15 @@ void output_flex_t::setup_flex_table_columns(flex_table_t *table)
                 column.type() == table_column_type::area) {
                 column.set_projection(lua_tostring(lua_state(), -1));
             } else {
-                throw std::runtime_error{
-                    "Projection can only be set on geometry and area columns."};
+                throw std::runtime_error{"Projection can only be set on "
+                                         "geometry and area columns."};
             }
         }
 
-        // stack has: projection, create_only, not_null, sql_type, column,
-        //            type, table
-        lua_pop(lua_state(), 7);
+        // stack has: projection, create_only, not_null, sql_type, column, type
+        lua_pop(lua_state(), 6);
         ++num_columns;
-    }
+    });
 
     if (num_columns == 0 && !table->has_id_column()) {
         throw fmt_error("No columns defined for table '{}'.", table->name());
@@ -655,21 +652,18 @@ void output_flex_t::setup_indexes(flex_table_t *table)
                         table->name());
     }
 
-    lua_pushnil(lua_state());
-    while (lua_next(lua_state(), -2) != 0) {
-        if (!lua_isnumber(lua_state(), -2)) {
-            throw std::runtime_error{
-                "The 'indexes' field must contain an array."};
-        }
+    if (!luaX_is_array(lua_state())) {
+        throw std::runtime_error{"The 'indexes' field must contain an array."};
+    }
+
+    luaX_for_each(lua_state(), [&]() {
         if (!lua_istable(lua_state(), -1)) {
             throw std::runtime_error{
                 "The entries in the 'indexes' array must be Lua tables."};
         }
 
         flex_lua_setup_index(lua_state(), table);
-
-        lua_pop(lua_state(), 1);
-    }
+    });
 
     lua_pop(lua_state(), 1); // "indexes"
 }
@@ -1179,25 +1173,24 @@ void output_flex_t::select_relation_members()
     }
 
     // Iterate over the 'ways' table to get all ids...
-    lua_pushnil(lua_state());
-    while (lua_next(lua_state(), -2) != 0) {
-        if (!lua_isnumber(lua_state(), -2)) {
-            throw std::runtime_error{
-                "Table returned from select_relation_members() contains 'ways' "
-                "field, but it isn't an array table."};
-        }
-
-        osmid_t const id = lua_tointeger(lua_state(), -1);
-        if (id == 0) {
-            throw std::runtime_error{
-                "Table returned from select_relation_members() contains 'ways' "
-                "field, which must contain an array of non-zero integer way "
-                "ids."};
-        }
-
-        m_stage2_way_ids->set(id);
-        lua_pop(lua_state(), 1); // value pushed by lua_next()
+    if (!luaX_is_array(lua_state())) {
+        throw std::runtime_error{
+            "Table returned from select_relation_members() contains 'ways' "
+            "field, but it isn't an array table."};
     }
+
+    luaX_for_each(
+        lua_state(), [&]() {
+            osmid_t const id = lua_tointeger(lua_state(), -1);
+            if (id == 0) {
+                throw std::runtime_error{
+                    "Table returned from select_relation_members() contains "
+                    "'ways' field, which must contain an array of non-zero "
+                    "integer way ids."};
+            }
+
+            m_stage2_way_ids->set(id);
+        });
 
     lua_pop(lua_state(), 2); // return value (a table), ways field (a table)
 }
