@@ -10,33 +10,21 @@
 #include "format.hpp"
 #include "logging.hpp"
 #include "pgsql-capabilities.hpp"
+#include "pgsql-capabilities-int.hpp"
 #include "pgsql.hpp"
 #include "version.hpp"
 
-#include <map>
-#include <set>
 #include <stdexcept>
-#include <string>
-
-struct database_capabilities_t
-{
-    std::map<std::string, std::string> settings;
-
-    std::set<std::string> extensions;
-    std::set<std::string> schemas;
-    std::set<std::string> tablespaces;
-    std::set<std::string> index_methods;
-
-    std::string database_name;
-
-    uint32_t database_version = 0;
-    postgis_version postgis{};
-};
 
 static database_capabilities_t &capabilities() noexcept
 {
     static database_capabilities_t c;
     return c;
+}
+
+database_capabilities_t &database_capabilities_for_testing() noexcept
+{
+    return capabilities();
 }
 
 static void init_set_from_query(std::set<std::string> *set,
