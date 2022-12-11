@@ -50,6 +50,8 @@ if (WITH_LUA)
         flex-table.cpp
         flex-table-column.cpp
         flex-lua-geom.cpp
+        flex-lua-index.cpp
+        flex-write.cpp
         geom-transform.cpp
         lua-utils.cpp
         output-flex.cpp
