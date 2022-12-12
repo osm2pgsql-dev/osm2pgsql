@@ -93,13 +93,12 @@ public:
     }
 
     /**
-     * Create a std::string with the value of the field at (row, col). This
-     * does the correct thing for binary data.
+     * Return a std::string_view with the value of the field at (row, col).
      */
-    std::string get_value_as_string(int row, int col) const noexcept
+    std::string_view get(int row, int col) const noexcept
     {
-        return std::string(get_value(row, col),
-                           (std::size_t)get_length(row, col));
+        return {get_value(row, col),
+                static_cast<std::size_t>(get_length(row, col))};
     }
 
     /**
