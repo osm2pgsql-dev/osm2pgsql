@@ -49,16 +49,18 @@ static void check_and_add_columns(flex_table_t const &table,
 
 void flex_lua_setup_index(lua_State *lua_state, flex_table_t *table)
 {
+    // get method
     char const *const method =
         luaX_get_table_string(lua_state, "method", -1, "Index definition");
     if (!has_index_method(method)) {
         throw std::runtime_error{"Unknown index method '{}'."_format(method)};
     }
-
+    lua_pop(lua_state, 1);
     auto &index = table->add_index(method);
 
+    // get columns
     std::vector<std::string> columns;
-    lua_getfield(lua_state, -2, "column");
+    lua_getfield(lua_state, -1, "column");
     if (lua_isstring(lua_state, -1)) {
         check_and_add_column(*table, &columns, lua_tostring(lua_state, -1));
         index.set_columns(columns);
@@ -75,19 +77,21 @@ void flex_lua_setup_index(lua_State *lua_state, flex_table_t *table)
             "The 'column' field in an index definition must contain a "
             "string or an array."};
     }
+    lua_pop(lua_state, 1);
 
+    // get expression
     std::string const expression = luaX_get_table_string(
-        lua_state, "expression", -3, "Index definition", "");
-
-    index.set_expression(expression);
-
+        lua_state, "expression", -1, "Index definition", "");
+    lua_pop(lua_state, 1);
     if (expression.empty() == columns.empty()) {
         throw std::runtime_error{"You must set either the 'column' or the "
                                  "'expression' field in index definition."};
     }
+    index.set_expression(expression);
 
+    // get include columns
     std::vector<std::string> include_columns;
-    lua_getfield(lua_state, -4, "include");
+    lua_getfield(lua_state, -1, "include");
     if (get_database_version() >= 110000) {
         if (lua_isstring(lua_state, -1)) {
             check_and_add_column(*table, &include_columns,
@@ -105,9 +109,12 @@ void flex_lua_setup_index(lua_State *lua_state, flex_table_t *table)
             "Database version ({}) doesn't support"
             " include columns in indexes."_format(get_database_version())};
     }
+    lua_pop(lua_state, 1);
 
+    // get tablespace
     std::string const tablespace = luaX_get_table_string(
-        lua_state, "tablespace", -5, "Index definition", "");
+        lua_state, "tablespace", -1, "Index definition", "");
+    lua_pop(lua_state, 1);
     check_identifier(tablespace, "tablespace");
     if (!has_tablespace(tablespace)) {
         throw std::runtime_error{"Unknown tablespace '{}'."_format(tablespace)};
@@ -115,13 +122,13 @@ void flex_lua_setup_index(lua_State *lua_state, flex_table_t *table)
     index.set_tablespace(tablespace.empty() ? table->index_tablespace()
                                             : tablespace);
 
-    index.set_is_unique(luaX_get_table_bool(lua_state, "unique", -6,
+    // get unique
+    index.set_is_unique(luaX_get_table_bool(lua_state, "unique", -1,
                                             "Index definition", false));
+    lua_pop(lua_state, 1);
 
+    // get where condition
     index.set_where_condition(
-        luaX_get_table_string(lua_state, "where", -7, "Index definition", ""));
-
-    // stack has: "where", "unique", "tablespace", "includes", "expression",
-    // "column", "method"
-    lua_pop(lua_state, 7);
+        luaX_get_table_string(lua_state, "where", -1, "Index definition", ""));
+    lua_pop(lua_state, 1);
 }
