@@ -122,4 +122,10 @@ std::unique_ptr<geom_transform_t> create_geom_transform(char const *type);
 
 void init_geom_transform(geom_transform_t *transform, lua_State *lua_state);
 
+std::unique_ptr<geom_transform_t>
+get_transform(lua_State *lua_state, flex_table_column_t const &column);
+
+geom_transform_t const *get_default_transform(flex_table_column_t const &column,
+                                              osmium::item_type object_type);
+
 #endif // OSM2PGSQL_GEOM_TRANSFORM_HPP
