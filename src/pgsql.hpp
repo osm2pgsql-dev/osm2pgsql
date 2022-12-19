@@ -237,9 +237,9 @@ public:
     void exec(char const *sql) const;
     void exec(std::string const &sql) const;
 
-    void copy_data(std::string const &sql, std::string const &context) const;
-
-    void end_copy(std::string const &context) const;
+    void copy_start(char const *sql) const;
+    void copy_send(std::string const &data, std::string const &context) const;
+    void copy_end(std::string const &context) const;
 
     /// Return the latest generated error message on this connection.
     char const *error_msg() const noexcept;

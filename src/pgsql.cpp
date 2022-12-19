@@ -80,13 +80,25 @@ void pg_conn_t::exec(std::string const &sql) const
     }
 }
 
-void pg_conn_t::copy_data(std::string const &sql,
+void pg_conn_t::copy_start(char const *sql) const
+{
+    assert(m_conn);
+
+    log_sql("{}", sql);
+    pg_result_t const res{PQexec(m_conn.get(), sql)};
+    if (res.status() != PGRES_COPY_IN) {
+        throw std::runtime_error{
+            "Database error on COPY: {}"_format(error_msg())};
+    }
+}
+
+void pg_conn_t::copy_send(std::string const &data,
                           std::string const &context) const
 {
     assert(m_conn);
 
-    log_sql_data("Copy data to '{}':\n{}", context, sql);
-    int const r = PQputCopyData(m_conn.get(), sql.c_str(), (int)sql.size());
+    log_sql_data("Copy data to '{}':\n{}", context, data);
+    int const r = PQputCopyData(m_conn.get(), data.c_str(), (int)data.size());
 
     switch (r) {
     case 0: // need to wait for write ready
@@ -101,17 +113,17 @@ void pg_conn_t::copy_data(std::string const &sql,
         break;
     }
 
-    if (sql.size() < 1100) {
-        log_error("Data: {}", sql);
+    if (data.size() < 1100) {
+        log_error("Data: {}", data);
     } else {
-        log_error("Data: {}\n...\n{}", std::string(sql, 0, 500),
-                  std::string(sql, sql.size() - 500));
+        log_error("Data: {}\n...\n{}", std::string(data, 0, 500),
+                  std::string(data, data.size() - 500));
     }
 
     throw std::runtime_error{"COPYing data to Postgresql."};
 }
 
-void pg_conn_t::end_copy(std::string const &context) const
+void pg_conn_t::copy_end(std::string const &context) const
 {
     assert(m_conn);
 
