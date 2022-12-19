@@ -180,6 +180,17 @@ public:
     explicit pg_conn_t(std::string const &conninfo);
 
     /**
+     * Run the specified SQL command.
+     *
+     * \param sql The SQL command. If this is empty, nothing is done and a
+     *        default constructed pg_result_t is returned.
+     * \throws std::runtime_exception If the command failed (didn't return
+     *         status code PGRES_COMMAND_OK or PGRES_TUPLES_OK).
+     */
+    pg_result_t exec(char const *sql) const;
+    pg_result_t exec(std::string const &sql) const;
+
+    /**
      * Run the named prepared SQL statement and return the results.
      *
      * \param stmt The name of the prepared statement.
@@ -212,30 +223,10 @@ public:
     }
 
     /**
-     * Run the specified SQL query and return the results.
-     *
-     * \param expect The expected status code of the SQL command.
-     * \param sql The SQL command.
-     * \throws exception if the result is not as expected.
-     */
-    pg_result_t query(ExecStatusType expect, char const *sql) const;
-    pg_result_t query(ExecStatusType expect, std::string const &sql) const;
-
-    /**
      * Update a PostgreSQL setting (like with the SET command). Will silently
      * ignore settings that are not available or any other errors.
      */
     void set_config(char const *setting, char const *value) const;
-
-    /**
-     * Run the specified SQL query. This can only be used for commands that
-     * have no output and return status code PGRES_COMMAND_OK.
-     *
-     * \param sql The SQL command.
-     * \throws exception if the command failed.
-     */
-    void exec(char const *sql) const;
-    void exec(std::string const &sql) const;
 
     void copy_start(char const *sql) const;
     void copy_send(std::string const &data, std::string const &context) const;

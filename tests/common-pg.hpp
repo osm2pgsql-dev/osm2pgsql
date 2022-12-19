@@ -41,7 +41,7 @@ public:
 
     std::string result_as_string(std::string const &cmd) const
     {
-        pg_result_t const res = query(PGRES_TUPLES_OK, cmd);
+        pg_result_t const res = exec(cmd);
         REQUIRE(res.num_tuples() == 1);
         return std::string{res.get(0, 0)};
     }
@@ -63,14 +63,14 @@ public:
 
     void assert_null(std::string const &cmd) const
     {
-        pg_result_t const res = query(PGRES_TUPLES_OK, cmd);
+        pg_result_t const res = exec(cmd);
         REQUIRE(res.num_tuples() == 1);
         REQUIRE(res.is_null(0, 0));
     }
 
     pg_result_t require_row(std::string const &cmd) const
     {
-        pg_result_t res = query(PGRES_TUPLES_OK, cmd);
+        pg_result_t res = exec(cmd);
         REQUIRE(res.num_tuples() == 1);
 
         return res;

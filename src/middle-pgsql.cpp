@@ -826,8 +826,7 @@ static table_sql sql_for_relations() noexcept
 static bool check_bucket_index(pg_conn_t *db_connection,
                                std::string const &prefix)
 {
-    auto const res = db_connection->query(
-        PGRES_TUPLES_OK,
+    auto const res = db_connection->exec(
         "SELECT relname FROM pg_class WHERE relkind='i' AND"
         "  relname = '{}_ways_nodes_bucket_idx';"_format(prefix));
     return res.num_tuples() > 0;

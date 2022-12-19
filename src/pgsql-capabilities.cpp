@@ -32,8 +32,7 @@ static void init_set_from_query(std::set<std::string> *set,
                                 char const *table, char const *column,
                                 char const *condition = "true")
 {
-    auto const res = db_connection.query(
-        PGRES_TUPLES_OK,
+    auto const res = db_connection.exec(
         "SELECT {} FROM {} WHERE {}"_format(column, table, condition));
     for (int i = 0; i < res.num_tuples(); ++i) {
         set->emplace(res.get(i, 0));
@@ -43,8 +42,8 @@ static void init_set_from_query(std::set<std::string> *set,
 /// Get all config settings from the database.
 static void init_settings(pg_conn_t const &db_connection)
 {
-    auto const res = db_connection.query(
-        PGRES_TUPLES_OK, "SELECT name, setting FROM pg_settings");
+    auto const res =
+        db_connection.exec("SELECT name, setting FROM pg_settings");
 
     for (int i = 0; i < res.num_tuples(); ++i) {
         capabilities().settings.emplace(res.get(i, 0), res.get(i, 1));
@@ -53,8 +52,7 @@ static void init_settings(pg_conn_t const &db_connection)
 
 static void init_database_name(pg_conn_t const &db_connection)
 {
-    auto const res =
-        db_connection.query(PGRES_TUPLES_OK, "SELECT current_catalog");
+    auto const res = db_connection.exec("SELECT current_catalog");
 
     if (res.num_tuples() != 1) {
         throw std::runtime_error{
@@ -66,9 +64,9 @@ static void init_database_name(pg_conn_t const &db_connection)
 
 static void init_postgis_version(pg_conn_t const &db_connection)
 {
-    auto const res = db_connection.query(
-        PGRES_TUPLES_OK, "SELECT regexp_split_to_table(extversion, '\\.') FROM"
-                         " pg_extension WHERE extname='postgis'");
+    auto const res = db_connection.exec(
+        "SELECT regexp_split_to_table(extversion, '\\.') FROM"
+        " pg_extension WHERE extname='postgis'");
 
     if (res.num_tuples() == 0) {
         throw std::runtime_error{

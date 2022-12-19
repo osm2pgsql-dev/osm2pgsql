@@ -260,7 +260,7 @@ private:
             "SELECT skeys({}), svals({}) FROM place"
             " WHERE osm_type = '{}' AND osm_id = {}"
             " AND class = '{}'"_format(column, column, tchar, id, cls);
-        auto const res = conn.query(PGRES_TUPLES_OK, sql);
+        auto const res = conn.exec(sql);
 
         hstore_list actual;
         for (int i = 0; i < res.num_tuples(); ++i) {

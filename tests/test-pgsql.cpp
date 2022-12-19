@@ -37,7 +37,7 @@ TEST_CASE("Table name with schema")
 TEST_CASE("query with SELECT should work")
 {
     auto conn = db.db().connect();
-    auto const result = conn.query(PGRES_TUPLES_OK, "SELECT 42");
+    auto const result = conn.exec("SELECT 42");
     REQUIRE(result.status() == PGRES_TUPLES_OK);
     REQUIRE(result.num_fields() == 1);
     REQUIRE(result.num_tuples() == 1);
@@ -47,7 +47,7 @@ TEST_CASE("query with SELECT should work")
 TEST_CASE("query with invalid SQL should fail")
 {
     auto conn = db.db().connect();
-    REQUIRE_THROWS(conn.query(PGRES_TUPLES_OK, "NOT-VALID-SQL"));
+    REQUIRE_THROWS(conn.exec("NOT-VALID-SQL"));
 }
 
 TEST_CASE("exec with invalid SQL should fail")

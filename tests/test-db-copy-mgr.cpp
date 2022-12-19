@@ -232,8 +232,7 @@ TEST_CASE("copy_mgr_t")
         mgr.sync();
 
         auto const conn = db.connect();
-        auto const res = conn.query(PGRES_TUPLES_OK,
-                                    "SELECT t FROM test_copy_mgr ORDER BY id");
+        auto const res = conn.exec("SELECT t FROM test_copy_mgr ORDER BY id");
         CHECK(res.num_tuples() == 2);
         CHECK(res.get(0, 0) == "good");
         CHECK(res.get(1, 0) == "better");
