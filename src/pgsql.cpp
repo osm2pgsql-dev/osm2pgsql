@@ -66,18 +66,11 @@ void pg_conn_t::set_config(char const *setting, char const *value) const
     query(PGRES_TUPLES_OK, sql);
 }
 
-void pg_conn_t::exec(char const *sql) const
-{
-    if (sql && sql[0] != '\0') {
-        query(PGRES_COMMAND_OK, sql);
-    }
-}
+void pg_conn_t::exec(char const *sql) const { query(PGRES_COMMAND_OK, sql); }
 
 void pg_conn_t::exec(std::string const &sql) const
 {
-    if (!sql.empty()) {
-        query(PGRES_COMMAND_OK, sql.c_str());
-    }
+    query(PGRES_COMMAND_OK, sql.c_str());
 }
 
 void pg_conn_t::copy_start(char const *sql) const

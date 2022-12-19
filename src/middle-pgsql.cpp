@@ -670,7 +670,9 @@ void middle_pgsql_t::start()
             auto const qual_name = qualified_name(table.schema(), table.name());
             m_db_connection.exec(
                 "DROP TABLE IF EXISTS {} CASCADE"_format(qual_name));
-            m_db_connection.exec(table.m_create_table);
+            if (!table.m_create_table.empty()) {
+                m_db_connection.exec(table.m_create_table);
+            }
         }
     }
 }
@@ -873,7 +875,9 @@ middle_pgsql_t::get_query_instance()
 
     // We use a connection per table to enable the use of COPY
     for (auto &table : m_tables) {
-        mid->exec_sql(table.m_prepare_query);
+        if (!table.m_prepare_query.empty()) {
+            mid->exec_sql(table.m_prepare_query);
+        }
     }
 
     return std::shared_ptr<middle_query_t>(mid.release());
