@@ -37,56 +37,51 @@ char const *pg_conn_t::error_msg() const noexcept
     return PQerrorMessage(m_conn.get());
 }
 
-pg_result_t pg_conn_t::query(ExecStatusType expect, char const *sql) const
-{
-    assert(m_conn);
-
-    log_sql("{}", sql);
-    pg_result_t res{PQexec(m_conn.get(), sql)};
-    if (res.status() != expect) {
-        throw std::runtime_error{"Database error: {}"_format(error_msg())};
-    }
-    return res;
-}
-
-pg_result_t pg_conn_t::query(ExecStatusType expect,
-                             std::string const &sql) const
-{
-    return query(expect, sql.c_str());
-}
-
 void pg_conn_t::set_config(char const *setting, char const *value) const
 {
     // Update pg_settings instead of using SET because it does not yield
     // errors on older versions of PostgreSQL where the settings are not
     // implemented.
-    auto const sql =
-        "UPDATE pg_settings SET setting = '{}' WHERE name = '{}'"_format(
-            value, setting);
-    query(PGRES_TUPLES_OK, sql);
+    exec("UPDATE pg_settings SET setting = '{}' WHERE name = '{}'"_format(
+        value, setting));
 }
 
-void pg_conn_t::exec(char const *sql) const
+pg_result_t pg_conn_t::exec(char const *sql) const
 {
-    if (sql && sql[0] != '\0') {
-        query(PGRES_COMMAND_OK, sql);
+    assert(m_conn);
+
+    log_sql("{}", sql);
+    pg_result_t res{PQexec(m_conn.get(), sql)};
+    if (res.status() != PGRES_COMMAND_OK && res.status() != PGRES_TUPLES_OK) {
+        throw std::runtime_error{"Database error: {}"_format(error_msg())};
+    }
+    return res;
+}
+
+pg_result_t pg_conn_t::exec(std::string const &sql) const
+{
+    return exec(sql.c_str());
+}
+
+void pg_conn_t::copy_start(char const *sql) const
+{
+    assert(m_conn);
+
+    log_sql("{}", sql);
+    pg_result_t const res{PQexec(m_conn.get(), sql)};
+    if (res.status() != PGRES_COPY_IN) {
+        throw std::runtime_error{
+            "Database error on COPY: {}"_format(error_msg())};
     }
 }
 
-void pg_conn_t::exec(std::string const &sql) const
-{
-    if (!sql.empty()) {
-        query(PGRES_COMMAND_OK, sql.c_str());
-    }
-}
-
-void pg_conn_t::copy_data(std::string const &sql,
+void pg_conn_t::copy_send(std::string const &data,
                           std::string const &context) const
 {
     assert(m_conn);
 
-    log_sql_data("Copy data to '{}':\n{}", context, sql);
-    int const r = PQputCopyData(m_conn.get(), sql.c_str(), (int)sql.size());
+    log_sql_data("Copy data to '{}':\n{}", context, data);
+    int const r = PQputCopyData(m_conn.get(), data.c_str(), (int)data.size());
 
     switch (r) {
     case 0: // need to wait for write ready
@@ -101,17 +96,17 @@ void pg_conn_t::copy_data(std::string const &sql,
         break;
     }
 
-    if (sql.size() < 1100) {
-        log_error("Data: {}", sql);
+    if (data.size() < 1100) {
+        log_error("Data: {}", data);
     } else {
-        log_error("Data: {}\n...\n{}", std::string(sql, 0, 500),
-                  std::string(sql, sql.size() - 500));
+        log_error("Data: {}\n...\n{}", std::string(data, 0, 500),
+                  std::string(data, data.size() - 500));
     }
 
     throw std::runtime_error{"COPYing data to Postgresql."};
 }
 
-void pg_conn_t::end_copy(std::string const &context) const
+void pg_conn_t::copy_end(std::string const &context) const
 {
     assert(m_conn);
 

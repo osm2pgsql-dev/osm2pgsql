@@ -184,7 +184,7 @@ void db_copy_thread_t::thread_t::write_to_db(db_cmd_copy_t *buffer)
         start_copy(buffer->target);
     }
 
-    m_conn->copy_data(buffer->buffer, buffer->target->name);
+    m_conn->copy_send(buffer->buffer, buffer->target->name);
 }
 
 void db_copy_thread_t::thread_t::start_copy(
@@ -205,7 +205,7 @@ void db_copy_thread_t::thread_t::start_copy(
     }
 
     sql.push_back('\0');
-    m_conn->query(PGRES_COPY_IN, sql.data());
+    m_conn->copy_start(sql.data());
 
     m_inflight = target;
 }
@@ -213,7 +213,7 @@ void db_copy_thread_t::thread_t::start_copy(
 void db_copy_thread_t::thread_t::finish_copy()
 {
     if (m_inflight) {
-        m_conn->end_copy(m_inflight->name);
+        m_conn->copy_end(m_inflight->name);
         m_inflight.reset();
     }
 }
