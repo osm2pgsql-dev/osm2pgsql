@@ -294,14 +294,14 @@ options_t::options_t()
     }
 }
 
-static osmium::Box parse_bbox(char const *bbox)
+static osmium::Box parse_bbox_param(char const *arg)
 {
     double minx = NAN;
     double maxx = NAN;
     double miny = NAN;
     double maxy = NAN;
 
-    int const n = sscanf(bbox, "%lf,%lf,%lf,%lf", &minx, &miny, &maxx, &maxy);
+    int const n = sscanf(arg, "%lf,%lf,%lf,%lf", &minx, &miny, &maxx, &maxy);
     if (n != 4) {
         throw std::runtime_error{"Bounding box must be specified like: "
                                  "minlon,minlat,maxlon,maxlat."};
@@ -322,7 +322,7 @@ static osmium::Box parse_bbox(char const *bbox)
     return osmium::Box{minx, miny, maxx, maxy};
 }
 
-static unsigned int number_of_threads(char const *arg)
+static unsigned int parse_number_processes_param(char const *arg)
 {
     int num = atoi(arg);
     if (num < 1) {
@@ -338,6 +338,118 @@ static unsigned int number_of_threads(char const *arg)
     }
 
     return static_cast<unsigned int>(num);
+}
+
+static void parse_expire_tiles_param(char const *arg,
+                                     uint32_t *expire_tiles_zoom_min,
+                                     uint32_t *expire_tiles_zoom)
+{
+    if (!arg || arg[0] == '-') {
+        throw std::runtime_error{"Missing argument for option --expire-tiles."
+                                 " Zoom levels must be positive."};
+    }
+
+    char *next_char = nullptr;
+    *expire_tiles_zoom_min =
+        static_cast<uint32_t>(std::strtoul(arg, &next_char, 10));
+
+    if (*expire_tiles_zoom_min == 0) {
+        throw std::runtime_error{"Bad argument for option --expire-tiles."
+                                 " Minimum zoom level must be larger than 0."};
+    }
+
+    // The first character after the number is ignored because that is the
+    // separating hyphen.
+    if (*next_char == '-') {
+        ++next_char;
+        // Second number must not be negative because zoom levels must be
+        // positive.
+        if (next_char && *next_char != '-' && isdigit(*next_char)) {
+            char *after_maxzoom = nullptr;
+            *expire_tiles_zoom = static_cast<uint32_t>(
+                std::strtoul(next_char, &after_maxzoom, 10));
+            if (*expire_tiles_zoom == 0 || *after_maxzoom != '\0') {
+                throw std::runtime_error{"Invalid maximum zoom level"
+                                         " given for tile expiry."};
+            }
+        } else {
+            throw std::runtime_error{
+                "Invalid maximum zoom level given for tile expiry."};
+        }
+        return;
+    }
+
+    if (*next_char == '\0') {
+        // end of string, no second zoom level given
+        *expire_tiles_zoom = *expire_tiles_zoom_min;
+        return;
+    }
+
+    throw std::runtime_error{"Minimum and maximum zoom level for"
+                             " tile expiry must be separated by '-'."};
+}
+
+static void parse_log_level_param(char const *arg)
+{
+    if (std::strcmp(arg, "debug") == 0) {
+        get_logger().set_level(log_level::debug);
+    } else if (std::strcmp(arg, "info") == 0) {
+        get_logger().set_level(log_level::info);
+    } else if ((std::strcmp(arg, "warn") == 0) ||
+               (std::strcmp(arg, "warning") == 0)) {
+        get_logger().set_level(log_level::warn);
+    } else if (std::strcmp(arg, "error") == 0) {
+        get_logger().set_level(log_level::error);
+    } else {
+        throw std::runtime_error{
+            "Unknown value for --log-level option: {}"_format(arg)};
+    }
+}
+
+static void parse_log_progress_param(char const *arg)
+{
+    if (std::strcmp(arg, "true") == 0) {
+        get_logger().enable_progress();
+    } else if (std::strcmp(arg, "false") == 0) {
+        get_logger().disable_progress();
+    } else if (std::strcmp(arg, "auto") == 0) {
+        get_logger().auto_progress();
+    } else {
+        throw std::runtime_error{
+            "Unknown value for --log-progress option: {}"_format(arg)};
+    }
+}
+
+static bool parse_with_forward_dependencies_param(char const *arg)
+{
+    if (std::strcmp(arg, "false") == 0) {
+        return false;
+    }
+
+    if (std::strcmp(arg, "true") == 0) {
+        return true;
+    }
+
+    throw std::runtime_error{
+        "Unknown value for --with-forward-dependencies option: {}\n"_format(
+            arg)};
+}
+
+static void print_version()
+{
+    fmt::print(stderr, "Build: {}\n", get_build_type());
+    fmt::print(stderr, "Compiled using the following library versions:\n");
+    fmt::print(stderr, "Libosmium {}\n", LIBOSMIUM_VERSION_STRING);
+    fmt::print(stderr, "Proj {}\n", get_proj_version());
+#ifdef HAVE_LUA
+#ifdef HAVE_LUAJIT
+    fmt::print(stderr, "{} ({})\n", LUA_RELEASE, LUAJIT_VERSION);
+#else
+    fmt::print(stderr, "{}\n", LUA_RELEASE);
+#endif
+#else
+    fmt::print(stderr, "Lua support not included\n");
+#endif
 }
 
 options_t::options_t(int argc, char *argv[]) : options_t()
@@ -364,251 +476,174 @@ options_t::options_t(int argc, char *argv[]) : options_t()
 
         //handle the current arg
         switch (c) {
-        case 'a':
+        case 'a': // --append
             append = true;
             break;
-        case 'b':
-            bbox = parse_bbox(optarg);
+        case 'b': // --bbox
+            bbox = parse_bbox_param(optarg);
             break;
-        case 'c':
+        case 'c': // --create
             create = true;
             break;
-        case 'v':
+        case 'v': // --verbose
             help_verbose = true;
             get_logger().set_level(log_level::debug);
             break;
-        case 's':
+        case 's': // --slim
             slim = true;
             break;
-        case 'K':
+        case 'K': // --keep-coastlines
             keep_coastlines = true;
             break;
-        case 'l':
+        case 'l': // --latlong
             projection = reprojection::create_projection(PROJ_LATLONG);
             break;
-        case 'm':
+        case 'm': // --merc
             projection = reprojection::create_projection(PROJ_SPHERE_MERC);
             break;
-        case 'E':
+        case 'E': // --proj
 #ifdef HAVE_GENERIC_PROJ
             projection = reprojection::create_projection(atoi(optarg));
 #else
             throw std::runtime_error{"Generic projections not available."};
 #endif
             break;
-        case 'p':
+        case 'p': // --prefix
             prefix = optarg;
             check_identifier(prefix, "--prefix parameter");
             break;
-        case 'd':
+        case 'd': // --database
             database_options.db = optarg;
             break;
-        case 'C':
+        case 'C': // --cache
             cache = atoi(optarg);
             break;
-        case 'U':
+        case 'U': // --username
             database_options.username = optarg;
             break;
-        case 'W':
+        case 'W': // --password
             pass_prompt = true;
             break;
-        case 'H':
+        case 'H': // --host
             database_options.host = optarg;
             break;
-        case 'P':
+        case 'P': // --port
             database_options.port = optarg;
             break;
-        case 'S':
+        case 'S': // --style
             style = optarg;
             break;
-        case 'i':
+        case 'i': // --tablespace-index
             tblsmain_index = optarg;
             tblsslim_index = tblsmain_index;
             break;
-        case 200:
+        case 200: // --tablespace-slim-data
             tblsslim_data = optarg;
             break;
-        case 201:
+        case 201: // --tablespace-slim-index
             tblsslim_index = optarg;
             break;
-        case 202:
+        case 202: // --tablespace-main-data
             tblsmain_data = optarg;
             break;
-        case 203:
+        case 203: // --tablespace-main-index
             tblsmain_index = optarg;
             break;
-        case 'e':
-            if (!optarg || optarg[0] == '-') {
-                throw std::runtime_error{
-                    "Missing argument for option --expire-tiles. Zoom "
-                    "levels must be positive."};
-            }
-            char *next_char;
-            expire_tiles_zoom_min =
-                static_cast<uint32_t>(std::strtoul(optarg, &next_char, 10));
-            if (expire_tiles_zoom_min == 0) {
-                throw std::runtime_error{
-                    "Bad argument for option --expire-tiles. "
-                    "Minimum zoom level must be larger "
-                    "than 0."};
-            }
-            // The first character after the number is ignored because that is the separating hyphen.
-            if (*next_char == '-') {
-                ++next_char;
-                // Second number must not be negative because zoom levels must be positive.
-                if (next_char && *next_char != '-' && isdigit(*next_char)) {
-                    char *after_maxzoom = nullptr;
-                    expire_tiles_zoom = static_cast<uint32_t>(
-                        std::strtoul(next_char, &after_maxzoom, 10));
-                    if (expire_tiles_zoom == 0 || *after_maxzoom != '\0') {
-                        throw std::runtime_error{"Invalid maximum zoom level "
-                                                 "given for tile expiry."};
-                    }
-                } else {
-                    throw std::runtime_error{
-                        "Invalid maximum zoom level given for tile expiry."};
-                }
-            } else if (*next_char == '\0') {
-                // end of string, no second zoom level given
-                expire_tiles_zoom = expire_tiles_zoom_min;
-            } else {
-                throw std::runtime_error{"Minimum and maximum zoom level for "
-                                         "tile expiry must be separated by "
-                                         "'-'."};
-            }
+        case 'e': // --expire-tiles
+            parse_expire_tiles_param(optarg, &expire_tiles_zoom_min,
+                                     &expire_tiles_zoom);
             break;
-        case 'o':
+        case 'o': // --expire-output
             expire_tiles_filename = optarg;
             break;
-        case 214:
+        case 214: // --expire-bbox-size
             expire_tiles_max_bbox = atof(optarg);
             break;
-        case 'O':
+        case 'O': // --output
             output_backend = optarg;
             break;
-        case 'x':
+        case 'x': // --extra-attributes
             extra_attributes = true;
             break;
-        case 'k':
+        case 'k': // --hstore
             if (hstore_mode != hstore_column::none) {
                 throw std::runtime_error{"You can not specify both --hstore "
                                          "(-k) and --hstore-all (-j)."};
             }
             hstore_mode = hstore_column::norm;
             break;
-        case 208:
+        case 208: // --hstore-match-only
             hstore_match_only = true;
             break;
-        case 'j':
+        case 'j': // --hstore-all
             if (hstore_mode != hstore_column::none) {
                 throw std::runtime_error{"You can not specify both --hstore "
                                          "(-k) and --hstore-all (-j)."};
             }
             hstore_mode = hstore_column::all;
             break;
-        case 'z':
+        case 'z': // --hstore-column
             hstore_columns.emplace_back(optarg);
             break;
-        case 'G':
+        case 'G': // --multi-geometry
             enable_multi = true;
             break;
-        case 'r':
+        case 'r': // --input-reader
             if (std::strcmp(optarg, "auto") != 0) {
                 input_format = optarg;
             }
             break;
-        case 'h':
+        case 'h': // --help
             m_print_help = true;
             break;
-        case 'I':
+        case 'I': // --disable-parallel-indexing
             parallel_indexing = false;
             break;
-        case 204:
+        case 204: // -cache-strategy
             log_warn("Deprecated option --cache-strategy ignored");
             break;
-        case 205:
-            num_procs = number_of_threads(optarg);
+        case 205: // --number-processes
+            num_procs = parse_number_processes_param(optarg);
             break;
-        case 206:
+        case 206: // --drop
             droptemp = true;
             break;
-        case 'F':
+        case 'F': // --flat-nodes
             flat_node_file = optarg;
             break;
-        case 211:
+        case 211: // --hstore-add-index
             enable_hstore_index = true;
             break;
-        case 212:
+        case 212: // --tag-transform-script
             tag_transform_script = optarg;
             break;
-        case 213:
+        case 213: // --reproject-area
             reproject_area = true;
             break;
-        case 'V':
-            fmt::print(stderr, "Build: {}\n", get_build_type());
-            fmt::print(stderr, "Compiled using the following library versions:\n");
-            fmt::print(stderr, "Libosmium {}\n", LIBOSMIUM_VERSION_STRING);
-            fmt::print(stderr, "Proj {}\n", get_proj_version());
-#ifdef HAVE_LUA
-#ifdef HAVE_LUAJIT
-            fmt::print(stderr, "{} ({})\n", LUA_RELEASE, LUAJIT_VERSION);
-#else
-            fmt::print(stderr, "{}\n", LUA_RELEASE);
-#endif
-#else
-            fmt::print(stderr, "Lua support not included\n");
-#endif
+        case 'V': // --version
+            print_version();
             exit(EXIT_SUCCESS);
             break;
-        case 215:
+        case 215: // --middle-schema
             middle_dbschema = optarg;
             check_identifier(middle_dbschema, "--middle-schema parameter");
             break;
-        case 216:
+        case 216: // --output-pgsql-schema
             output_dbschema = optarg;
             check_identifier(output_dbschema, "--output-pgsql-schema parameter");
             break;
-        case 217:
-            if (std::strcmp(optarg, "false") == 0) {
-                with_forward_dependencies = false;
-            } else if (std::strcmp(optarg, "true") == 0) {
-                with_forward_dependencies = true;
-            } else {
-                throw std::runtime_error{
-                    "Unknown value for --with-forward-dependencies option: {}\n"_format(
-                        optarg)};
-            }
+        case 217: // --with-forward-dependencies=BOOL
+            with_forward_dependencies =
+                parse_with_forward_dependencies_param(optarg);
             break;
-        case 300:
+        case 300: // --middle-way-node-index-id-shift
             way_node_index_id_shift = atoi(optarg);
             break;
         case 400: // --log-level=LEVEL
-            if (std::strcmp(optarg, "debug") == 0) {
-                get_logger().set_level(log_level::debug);
-            } else if (std::strcmp(optarg, "info") == 0) {
-                get_logger().set_level(log_level::info);
-            } else if ((std::strcmp(optarg, "warn") == 0) ||
-                       (std::strcmp(optarg, "warning") == 0)) {
-                get_logger().set_level(log_level::warn);
-            } else if (std::strcmp(optarg, "error") == 0) {
-                get_logger().set_level(log_level::error);
-            } else {
-                throw std::runtime_error{
-                    "Unknown value for --log-level option: {}"_format(optarg)};
-            }
+            parse_log_level_param(optarg);
             break;
         case 401: // --log-progress=VALUE
-            if (std::strcmp(optarg, "true") == 0) {
-                get_logger().enable_progress();
-            } else if (std::strcmp(optarg, "false") == 0) {
-                get_logger().disable_progress();
-            } else if (std::strcmp(optarg, "auto") == 0) {
-                get_logger().auto_progress();
-            } else {
-                throw std::runtime_error{
-                    "Unknown value for --log-progress option: {}"_format(
-                        optarg)};
-            }
+            parse_log_progress_param(optarg);
             break;
         case 402: // --log-sql
             get_logger().enable_sql();

@@ -15,7 +15,7 @@
 #include "taginfo-impl.hpp"
 #include "tagtransform.hpp"
 
-char const *const TEST_PBF = "foo.pbf";
+static char const *const TEST_PBF = "foo.pbf";
 
 static void bad_opt(std::vector<char const *> opts, char const *msg)
 {
@@ -67,6 +67,47 @@ TEST_CASE("Lua styles", "[NoDB]")
     REQUIRE_THROWS_WITH(tagtransform_t::make_tagtransform(&options, exlist),
                         Catch::Matchers::Contains("No such file or directory"));
 #endif
+}
+
+TEST_CASE("Parsing bbox", "[NoDB]")
+{
+    auto const opt1 = opt({"-b", "1.2,3.4,5.6,7.8"});
+    CHECK(opt1.bbox == osmium::Box{1.2, 3.4, 5.6, 7.8});
+
+    auto const opt2 = opt({"--bbox", "1.2,3.4,5.6,7.8"});
+    CHECK(opt2.bbox == osmium::Box{1.2, 3.4, 5.6, 7.8});
+
+    auto const opt3 = opt({"--bbox", "1.2, 3.4, 5.6, 7.8"});
+    CHECK(opt3.bbox == osmium::Box{1.2, 3.4, 5.6, 7.8});
+}
+
+TEST_CASE("Parsing bbox fails if coordinates in wrong order", "[NoDB]")
+{
+    bad_opt({"--bbox", "1.0,2.0,0.0,0.0"}, "Bounding box failed due to");
+}
+
+TEST_CASE("Parsing bbox fails if wrong format", "[NoDB]")
+{
+    bad_opt({"-b", "123"}, "Bounding box must be specified like:"
+                           " minlon,minlat,maxlon,maxlat.");
+}
+
+TEST_CASE("Parsing number-processes", "[NoDB]")
+{
+    auto const opt1 = opt({"--number-processes", "0"});
+    CHECK(opt1.num_procs == 1);
+
+    auto const opt2 = opt({"--number-processes", "1"});
+    CHECK(opt2.num_procs == 1);
+
+    auto const opt3 = opt({"--number-processes", "2"});
+    CHECK(opt3.num_procs == 2);
+
+    auto const opt4 = opt({"--number-processes", "32"});
+    CHECK(opt4.num_procs == 32);
+
+    auto const opt5 = opt({"--number-processes", "33"});
+    CHECK(opt5.num_procs == 32);
 }
 
 TEST_CASE("Parsing tile expiry zoom levels", "[NoDB]")
@@ -121,4 +162,47 @@ TEST_CASE("Parsing tile expiry zoom levels fails", "[NoDB]")
     bad_opt({"-e", "0"},
             "Bad argument for option --expire-tiles. Minimum zoom level "
             "must be larger than 0.");
+}
+
+TEST_CASE("Parsing log-level", "[NoDB]")
+{
+    opt({"--log-level", "debug"});
+    opt({"--log-level", "info"});
+    opt({"--log-level", "warn"});
+    opt({"--log-level", "warning"});
+    opt({"--log-level", "error"});
+}
+
+TEST_CASE("Parsing log-level fails for unknown level", "[NoDB]")
+{
+    bad_opt({"--log-level", "foo"}, "Unknown value for --log-level option: ");
+}
+
+TEST_CASE("Parsing log-progress", "[NoDB]")
+{
+    opt({"--log-progress", "true"});
+    opt({"--log-progress", "false"});
+    opt({"--log-progress", "auto"});
+}
+
+TEST_CASE("Parsing log-progress fails for unknown value", "[NoDB]")
+{
+    bad_opt({"--log-progress", "foo"},
+            "Unknown value for --log-progress option: ");
+}
+
+TEST_CASE("Parsing with-forward-dependencies", "[NoDB]")
+{
+    auto const opt1 = opt({"--with-forward-dependencies", "true"});
+    CHECK(opt1.with_forward_dependencies);
+
+    auto const opt2 = opt({"--with-forward-dependencies", "false"});
+    CHECK_FALSE(opt2.with_forward_dependencies);
+}
+
+TEST_CASE("Parsing with-forward-dependencies fails for unknown value", "[NoDB]")
+{
+    bad_opt({"--with-forward-dependencies", "foo"},
+            "Unknown value for"
+            " --with-forward-dependencies option: ");
 }
