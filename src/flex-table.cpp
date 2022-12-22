@@ -340,16 +340,19 @@ void table_connection_t::stop(bool updateable, bool append)
 
         auto const postgis_version = get_postgis_version();
 
+        auto const geom_column_name =
+            "\"" + table().geom_column().name() + "\"";
+
         sql += " ORDER BY ";
         if (postgis_version.major == 2 && postgis_version.minor < 4) {
             log_debug("Using GeoHash for clustering table '{}'",
                       table().name());
             if (table().geom_column().srid() == 4326) {
-                sql += "ST_GeoHash({},10)"_format(table().geom_column().name());
+                sql += "ST_GeoHash({},10)"_format(geom_column_name);
             } else {
                 sql +=
                     "ST_GeoHash(ST_Transform(ST_Envelope({}),4326),10)"_format(
-                        table().geom_column().name());
+                        geom_column_name);
             }
             sql += " COLLATE \"C\"";
         } else {
@@ -357,7 +360,7 @@ void table_connection_t::stop(bool updateable, bool append)
                       table().name());
             // Since Postgis 2.4 the order function for geometries gives
             // useful results.
-            sql += table().geom_column().name();
+            sql += geom_column_name;
         }
 
         m_db_connection->exec(sql);
