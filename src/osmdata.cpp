@@ -303,15 +303,15 @@ private:
         if (ids_queued < 100) {
             // Worker startup is quite expensive. Run the processing directly
             // when only few items need to be processed.
-            log_info("Going over {} pending {}s"_format(ids_queued, type));
+            log_info("Going over {} pending {}s", ids_queued, type);
 
             for (auto const oid : list) {
                 (m_clones[0].get()->*function)(oid);
             }
             m_clones[0]->sync();
         } else {
-            log_info("Going over {} pending {}s (using {} threads)"_format(
-                ids_queued, type, m_clones.size()));
+            log_info("Going over {} pending {}s (using {} threads)", ids_queued,
+                     type, m_clones.size());
 
             std::vector<std::future<void>> workers;
 

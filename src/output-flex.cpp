@@ -1430,8 +1430,7 @@ output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
 
     log_debug("Tables:");
     for (auto const &table : *m_tables) {
-        log_debug(
-            "- TABLE {}"_format(qualified_name(table.schema(), table.name())));
+        log_debug("- TABLE {}", qualified_name(table.schema(), table.name()));
         log_debug("  - columns:");
         for (auto const &column : table) {
             log_debug("    - \"{}\" {} ({}) not_null={} create_only={}",
@@ -1586,8 +1585,8 @@ idset_t const &output_flex_t::get_marked_way_ids()
     if (m_stage2_way_ids->empty()) {
         log_info("Skipping stage 1c (no marked ways).");
     } else {
-        log_info("Entering stage 1c processing of {} ways..."_format(
-            m_stage2_way_ids->size()));
+        log_info("Entering stage 1c processing of {} ways...",
+                 m_stage2_way_ids->size());
         m_stage2_way_ids->sort_unique();
     }
 
@@ -1614,8 +1613,8 @@ void output_flex_t::reprocess_marked()
             }
         }
 
-        log_info("Creating id indexes took {}"_format(
-            util::human_readable_duration(timer.stop())));
+        log_info("Creating id indexes took {}",
+                 util::human_readable_duration(timer.stop()));
     }
 
     lua_gc(lua_state(), LUA_GCCOLLECT, 0);
@@ -1629,8 +1628,7 @@ void output_flex_t::reprocess_marked()
 
     m_stage2_way_ids->sort_unique();
 
-    log_info(
-        "There are {} ways to reprocess..."_format(m_stage2_way_ids->size()));
+    log_info("There are {} ways to reprocess...", m_stage2_way_ids->size());
 
     for (osmid_t const id : *m_stage2_way_ids) {
         if (!m_way_cache.init(middle(), id)) {

@@ -376,8 +376,8 @@ void table_connection_t::stop(bool updateable, bool append)
         log_info("No indexes to create on table '{}'.", table().name());
     } else {
         for (auto const &index : table().indexes()) {
-            log_info("Creating index on table '{}' {}..."_format(
-                table().name(), index.columns()));
+            log_info("Creating index on table '{}' {}...", table().name(),
+                     index.columns());
             auto const sql = index.create_index(
                 qualified_name(table().schema(), table().name()));
             m_db_connection->exec(sql);
