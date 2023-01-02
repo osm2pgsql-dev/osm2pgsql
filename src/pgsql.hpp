@@ -182,8 +182,7 @@ public:
     /**
      * Run the specified SQL command.
      *
-     * \param sql The SQL command. If this is empty, nothing is done and a
-     *        default constructed pg_result_t is returned.
+     * \param sql The SQL command.
      * \throws std::runtime_exception If the command failed (didn't return
      *         status code PGRES_COMMAND_OK or PGRES_TUPLES_OK).
      */
