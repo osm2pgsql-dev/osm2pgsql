@@ -55,7 +55,6 @@ endif()
 option(EXTERNAL_LIBOSMIUM "Do not use the bundled libosmium" OFF)
 option(EXTERNAL_PROTOZERO "Do not use the bundled protozero" OFF)
 option(EXTERNAL_FMT       "Do not use the bundled fmt"       OFF)
-option(EXTERNAL_RAPIDJSON "Do not use the bundled rapidjson" OFF)
 
 set(USE_PROJ_LIB "auto" CACHE STRING "Which version of PROJ API to use: ('4', '6', 'off', or 'auto')")
 
@@ -176,14 +175,10 @@ if (NOT EXTERNAL_FMT)
     set(FMT_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/fmt/include")
 endif()
 
-if (NOT EXTERNAL_RAPIDJSON)
-    set(RAPIDJSON_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/rapidjson/include")
-endif()
-
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR})
 
 find_package(Osmium 2.17.3 REQUIRED COMPONENTS io)
-include_directories(SYSTEM ${OSMIUM_INCLUDE_DIRS} ${PROTOZERO_INCLUDE_DIR} ${FMT_INCLUDE_DIR} ${RAPIDJSON_INCLUDE_DIR})
+include_directories(SYSTEM ${OSMIUM_INCLUDE_DIRS} ${PROTOZERO_INCLUDE_DIR} ${FMT_INCLUDE_DIR})
 
 if (WITH_LUA)
     if (WITH_LUAJIT)
