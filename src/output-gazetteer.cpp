@@ -57,16 +57,17 @@ void output_gazetteer_t::start()
         /* Create the new table */
 
         std::string const sql =
-            "CREATE TABLE place ("
-            "  osm_id int8 NOT NULL,"
-            "  osm_type char(1) NOT NULL,"
-            "  class text NOT NULL,"
-            "  type text NOT NULL,"
-            "  name hstore,"
-            "  admin_level smallint,"
-            "  address hstore,"
-            "  extratags hstore," +
-            "  geometry Geometry(Geometry,{}) NOT NULL"_format(srid) + ")" +
+            fmt::format("CREATE TABLE place ("
+                        "  osm_id int8 NOT NULL,"
+                        "  osm_type char(1) NOT NULL,"
+                        "  class text NOT NULL,"
+                        "  type text NOT NULL,"
+                        "  name hstore,"
+                        "  admin_level smallint,"
+                        "  address hstore,"
+                        "  extratags hstore,"
+                        "  geometry Geometry(Geometry,{}) NOT NULL)",
+                        srid) +
             tablespace_clause(get_options()->tblsmain_data);
 
         conn.exec(sql);

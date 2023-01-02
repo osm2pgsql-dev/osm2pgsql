@@ -102,19 +102,19 @@ void table_t::start(std::string const &conninfo, std::string const &table_space)
     if (!m_append) {
         //define the new table
         auto sql =
-            "CREATE UNLOGGED TABLE {} (osm_id int8,"_format(qual_name);
+            fmt::format("CREATE UNLOGGED TABLE {} (osm_id int8,", qual_name);
 
         //first with the regular columns
         for (auto const &column : m_columns) {
             check_identifier(column.name, "column names");
             check_identifier(column.type_name, "column types");
-            sql += R"("{}" {},)"_format(column.name, column.type_name);
+            sql += fmt::format(R"("{}" {},)", column.name, column.type_name);
         }
 
         //then with the hstore columns
         for (auto const &hcolumn : m_hstore_columns) {
             check_identifier(hcolumn, "column names");
-            sql += R"("{}" hstore,)"_format(hcolumn);
+            sql += fmt::format(R"("{}" hstore,)", hcolumn);
         }
 
         //add tags column
@@ -122,7 +122,7 @@ void table_t::start(std::string const &conninfo, std::string const &table_space)
             sql += "\"tags\" hstore,";
         }
 
-        sql += "way geometry({},{}) )"_format(m_type, m_srid);
+        sql += fmt::format("way geometry({},{}) )", m_type, m_srid);
 
         // The final tables are created with CREATE TABLE AS ... SELECT * FROM ...
         // This means that they won't get this autovacuum setting, so it doesn't
@@ -201,9 +201,8 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
         // because they say nothing about the validity of the geometry in OSM.
         m_sql_conn->exec("SET client_min_messages = WARNING");
 
-        std::string sql =
-            "CREATE TABLE {} {} AS SELECT * FROM {}"_format(
-                qual_tmp_name, m_table_space, qual_name);
+        std::string sql = fmt::format("CREATE TABLE {} {} AS SELECT * FROM {}",
+                                      qual_tmp_name, m_table_space, qual_name);
 
         auto const postgis_version = get_postgis_version();
 

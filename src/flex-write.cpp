@@ -36,8 +36,8 @@ static void write_null(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
 {
     if (column.not_null()) {
         throw not_null_exception{
-            "Can not add NULL to column '{}' declared NOT NULL."_format(
-                column.name()),
+            fmt::format("Can not add NULL to column '{}' declared NOT NULL.",
+                        column.name()),
             &column};
     }
     copy_mgr->add_null_column();

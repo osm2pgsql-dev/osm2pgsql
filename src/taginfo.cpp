@@ -91,7 +91,7 @@ bool read_style_file(std::string const &filename, export_list *exlist)
     if (!in) {
         throw std::system_error{
             errno, std::system_category(),
-            "Couldn't open style file '{}'"_format(filename)};
+            fmt::format("Couldn't open style file '{}'", filename)};
     }
 
     char buffer[1024];
@@ -179,7 +179,7 @@ bool read_style_file(std::string const &filename, export_list *exlist)
         std::fclose(in);
         throw std::system_error{
             err, std::system_category(),
-            "Error reading style file '{}'"_format(filename)};
+            fmt::format("Error reading style file '{}'", filename)};
     }
 
     std::fclose(in);

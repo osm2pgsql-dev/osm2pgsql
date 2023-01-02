@@ -217,10 +217,10 @@ public:
     int obj_count(testing::pg::conn_t const &conn, osmid_t id, char const *cls)
     {
         char const tchar = m_opl_factory.type();
-        return conn.get_count("place",
-                              "osm_type = '{}' "
-                              "AND osm_id = {} "
-                              "AND class = '{}'"_format(tchar, id, cls));
+        return conn.get_count("place", fmt::format("osm_type = '{}' AND"
+                                                   " osm_id = {} AND"
+                                                   " class = '{}'",
+                                                   tchar, id, cls));
     }
 
     void obj_names(testing::pg::conn_t const &conn, osmid_t id, char const *cls,
@@ -245,9 +245,10 @@ public:
                           char const *cls, char const *column)
     {
         char const tchar = m_opl_factory.type();
-        return conn.result_as_string(
+        return conn.result_as_string(fmt::format(
             "SELECT {} FROM place WHERE osm_type = '{}' AND osm_id = {}"
-            " AND class = '{}'"_format(column, tchar, id, cls));
+            " AND class = '{}'",
+            column, tchar, id, cls));
     }
 
 private:
@@ -256,11 +257,10 @@ private:
                         hstore_list const &names)
     {
         char const tchar = m_opl_factory.type();
-        auto const sql =
-            "SELECT skeys({}), svals({}) FROM place"
-            " WHERE osm_type = '{}' AND osm_id = {}"
-            " AND class = '{}'"_format(column, column, tchar, id, cls);
-        auto const res = conn.exec(sql);
+        auto const res = conn.exec("SELECT skeys({}), svals({}) FROM place"
+                                   " WHERE osm_type = '{}' AND "
+                                   " osm_id = {} AND class = '{}'",
+                                   column, column, tchar, id, cls);
 
         hstore_list actual;
         for (int i = 0; i < res.num_tuples(); ++i) {
@@ -279,7 +279,7 @@ struct StringMaker<hstore_item>
 {
     static std::string convert(hstore_item const &value)
     {
-        return "({}, {})"_format(std::get<0>(value), std::get<1>(value));
+        return fmt::format("({}, {})", std::get<0>(value), std::get<1>(value));
     }
 };
 } // namespace Catch
