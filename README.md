@@ -20,7 +20,6 @@ to install and run osm2pgsql.
 * Can apply diffs to keep the database up to date
 * Support the choice of output projection
 * Configurable table names
-* Gazetteer back-end for [Nominatim](https://wiki.openstreetmap.org/wiki/Nominatim)
 * Support for hstore field type to store the complete set of tags in one database
   field if desired
 
