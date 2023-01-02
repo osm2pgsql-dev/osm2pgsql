@@ -681,7 +681,7 @@ int output_flex_t::app_define_table()
     setup_indexes(&new_table);
 
     void *ptr = lua_newuserdata(lua_state(), sizeof(std::size_t));
-    std::size_t *num = new (ptr) std::size_t{};
+    auto *num = new (ptr) std::size_t{};
     *num = m_tables->size() - 1;
     luaL_getmetatable(lua_state(), osm2pgsql_table_name);
     lua_setmetatable(lua_state(), -2);

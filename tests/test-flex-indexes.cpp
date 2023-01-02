@@ -34,7 +34,7 @@ public:
 
     lua_State *lua_state() const noexcept { return m_lua_state.get(); }
 
-    bool run_lua(char const *code)
+    bool run_lua(char const *code) const
     {
         return luaL_dostring(lua_state(), code) == 0;
     }
@@ -168,7 +168,7 @@ TEST_CASE("check index with expression and where clause", "[NoDB]")
     REQUIRE(table.indexes().size() == 1);
     auto const &idx = table.indexes()[0];
     REQUIRE(idx.method() == "btree");
-    REQUIRE(idx.columns() == "");
+    REQUIRE(idx.columns().empty());
     REQUIRE_FALSE(idx.is_unique());
     REQUIRE(idx.tablespace().empty());
     REQUIRE(idx.expression() == "lower(col)");

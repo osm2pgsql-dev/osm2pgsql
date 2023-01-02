@@ -123,7 +123,7 @@ struct counting_output_t : public output_null_t
     void relation_delete(osmid_t) override { ++relation.deleted; }
 
     type_stats_t node, way, relation;
-    long long sum_ids = 0;
+    uint64_t sum_ids = 0;
     std::size_t sum_nds = 0;
     std::size_t sum_members = 0;
 };

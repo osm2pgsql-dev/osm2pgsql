@@ -103,18 +103,22 @@ TEST_CASE("expire linestring away from tile boundary", "[NoDB]")
 {
     expire_tiles et{zoom, 20000, defproj};
 
-    geom::linestring_t line{{5000.0, 4000.0}, {5100.0, 4200.0}};
-
-    SECTION("line") { et.from_geometry(line); }
+    SECTION("line")
+    {
+        geom::linestring_t line{{5000.0, 4000.0}, {5100.0, 4200.0}};
+        et.from_geometry(line);
+    }
 
     SECTION("geom")
     {
+        geom::linestring_t line{{5000.0, 4000.0}, {5100.0, 4200.0}};
         geom::geometry_t geom{std::move(line)};
         et.from_geometry(geom);
     }
 
     SECTION("geom with check")
     {
+        geom::linestring_t line{{5000.0, 4000.0}, {5100.0, 4200.0}};
         geom::geometry_t geom{std::move(line)};
         geom.set_srid(3857);
         et.from_geometry_if_3857(geom);
@@ -129,18 +133,22 @@ TEST_CASE("expire linestring crossing tile boundary", "[NoDB]")
 {
     expire_tiles et{zoom, 20000, defproj};
 
-    geom::linestring_t line{{5000.0, 5000.0}, {5000.0, 15000.0}};
-
-    SECTION("line") { et.from_geometry(line); }
+    SECTION("line")
+    {
+        geom::linestring_t line{{5000.0, 5000.0}, {5000.0, 15000.0}};
+        et.from_geometry(line);
+    }
 
     SECTION("geom")
     {
+        geom::linestring_t line{{5000.0, 5000.0}, {5000.0, 15000.0}};
         geom::geometry_t geom{std::move(line)};
         et.from_geometry(geom);
     }
 
     SECTION("geom with check")
     {
+        geom::linestring_t line{{5000.0, 5000.0}, {5000.0, 15000.0}};
         geom::geometry_t geom{std::move(line)};
         geom.set_srid(3857);
         et.from_geometry_if_3857(geom);
@@ -156,22 +164,34 @@ TEST_CASE("expire small polygon", "[NoDB]")
 {
     expire_tiles et{zoom, 20000, defproj};
 
-    geom::polygon_t poly{{{5000.0, 5000.0},
-                          {5100.0, 5000.0},
-                          {5100.0, 5100.0},
-                          {5000.0, 5100.0},
-                          {5000.0, 5000.0}}};
-
-    SECTION("polygon") { et.from_geometry(poly); }
+    SECTION("polygon")
+    {
+        geom::polygon_t poly{{{5000.0, 5000.0},
+                              {5100.0, 5000.0},
+                              {5100.0, 5100.0},
+                              {5000.0, 5100.0},
+                              {5000.0, 5000.0}}};
+        et.from_geometry(poly);
+    }
 
     SECTION("geom")
     {
+        geom::polygon_t poly{{{5000.0, 5000.0},
+                              {5100.0, 5000.0},
+                              {5100.0, 5100.0},
+                              {5000.0, 5100.0},
+                              {5000.0, 5000.0}}};
         geom::geometry_t geom{std::move(poly)};
         et.from_geometry(geom);
     }
 
     SECTION("geom with check")
     {
+        geom::polygon_t poly{{{5000.0, 5000.0},
+                              {5100.0, 5000.0},
+                              {5100.0, 5100.0},
+                              {5000.0, 5100.0},
+                              {5000.0, 5000.0}}};
         geom::geometry_t geom{std::move(poly)};
         geom.set_srid(3857);
         et.from_geometry_if_3857(geom);
@@ -186,22 +206,34 @@ TEST_CASE("expire large polygon as bbox", "[NoDB]")
 {
     expire_tiles et{zoom, 40000, defproj};
 
-    geom::polygon_t poly{{{5000.0, 5000.0},
-                          {25000.0, 5000.0},
-                          {25000.0, 25000.0},
-                          {5000.0, 25000.0},
-                          {5000.0, 5000.0}}};
-
-    SECTION("polygon") { et.from_geometry(poly); }
+    SECTION("polygon")
+    {
+        geom::polygon_t poly{{{5000.0, 5000.0},
+                              {25000.0, 5000.0},
+                              {25000.0, 25000.0},
+                              {5000.0, 25000.0},
+                              {5000.0, 5000.0}}};
+        et.from_geometry(poly);
+    }
 
     SECTION("geom")
     {
+        geom::polygon_t poly{{{5000.0, 5000.0},
+                              {25000.0, 5000.0},
+                              {25000.0, 25000.0},
+                              {5000.0, 25000.0},
+                              {5000.0, 5000.0}}};
         geom::geometry_t geom{std::move(poly)};
         et.from_geometry(geom);
     }
 
     SECTION("geom with check")
     {
+        geom::polygon_t poly{{{5000.0, 5000.0},
+                              {25000.0, 5000.0},
+                              {25000.0, 25000.0},
+                              {5000.0, 25000.0},
+                              {5000.0, 5000.0}}};
         geom::geometry_t geom{std::move(poly)};
         geom.set_srid(3857);
         et.from_geometry_if_3857(geom);
@@ -226,24 +258,44 @@ TEST_CASE("expire large polygon as boundary", "[NoDB]")
 {
     expire_tiles et{zoom, 10000, defproj};
 
-    geom::polygon_t poly{{{5000.0, 5000.0},
-                          {25000.0, 5000.0},
-                          {25000.0, 25000.0},
-                          {5000.0, 25000.0},
-                          {5000.0, 5000.0}}};
+    SECTION("polygon")
+    {
+        geom::polygon_t poly{{{5000.0, 5000.0},
+                              {25000.0, 5000.0},
+                              {25000.0, 25000.0},
+                              {5000.0, 25000.0},
+                              {5000.0, 5000.0}}};
+        et.from_geometry(poly);
+    }
 
-    SECTION("polygon") { et.from_geometry(poly); }
-
-    SECTION("polygon boundary") { et.from_polygon_boundary(poly); }
+    SECTION("polygon boundary")
+    {
+        geom::polygon_t poly{{{5000.0, 5000.0},
+                              {25000.0, 5000.0},
+                              {25000.0, 25000.0},
+                              {5000.0, 25000.0},
+                              {5000.0, 5000.0}}};
+        et.from_polygon_boundary(poly);
+    }
 
     SECTION("geom")
     {
+        geom::polygon_t poly{{{5000.0, 5000.0},
+                              {25000.0, 5000.0},
+                              {25000.0, 25000.0},
+                              {5000.0, 25000.0},
+                              {5000.0, 5000.0}}};
         geom::geometry_t geom{std::move(poly)};
         et.from_geometry(geom);
     }
 
     SECTION("geom with check")
     {
+        geom::polygon_t poly{{{5000.0, 5000.0},
+                              {25000.0, 5000.0},
+                              {25000.0, 25000.0},
+                              {5000.0, 25000.0},
+                              {5000.0, 5000.0}}};
         geom::geometry_t geom{std::move(poly)};
         geom.set_srid(3857);
         et.from_geometry_if_3857(geom);
@@ -269,20 +321,29 @@ TEST_CASE("expire multipoint geometry", "[NoDB]")
 
     geom::point_t p1{0.0, 0.0};
     geom::point_t p2{15000.0, 15000.0};
-    geom::multipoint_t mpt;
-    mpt.add_geometry(std::move(p1));
-    mpt.add_geometry(std::move(p2));
 
-    SECTION("multipoint") { et.from_geometry(mpt); }
+    SECTION("multipoint")
+    {
+        geom::multipoint_t mpt;
+        mpt.add_geometry(std::move(p1));
+        mpt.add_geometry(std::move(p2));
+        et.from_geometry(mpt);
+    }
 
     SECTION("geom")
     {
+        geom::multipoint_t mpt;
+        mpt.add_geometry(std::move(p1));
+        mpt.add_geometry(std::move(p2));
         geom::geometry_t geom{std::move(mpt)};
         et.from_geometry(geom);
     }
 
     SECTION("geom with check")
     {
+        geom::multipoint_t mpt;
+        mpt.add_geometry(std::move(p1));
+        mpt.add_geometry(std::move(p2));
         geom::geometry_t geom{std::move(mpt)};
         geom.set_srid(3857);
         et.from_geometry_if_3857(geom);
