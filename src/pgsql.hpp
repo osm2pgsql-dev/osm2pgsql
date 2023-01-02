@@ -190,6 +190,20 @@ public:
     pg_result_t exec(std::string const &sql) const;
 
     /**
+     * Run the specified SQL command.
+     *
+     * \param sql The SQL command using fmt lib patterns.
+     * \param params Any number of arguments for the fmt lib.
+     * \throws std::runtime_exception If the command failed (didn't return
+     *         status code PGRES_COMMAND_OK or PGRES_TUPLES_OK).
+     */
+    template <typename... TArgs>
+    pg_result_t exec(char const *sql, TArgs... params) const
+    {
+        return exec(fmt::format(sql, std::forward<TArgs>(params)...));
+    }
+
+    /**
      * Run the named prepared SQL statement and return the results.
      *
      * \param stmt The name of the prepared statement.

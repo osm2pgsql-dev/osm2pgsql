@@ -101,9 +101,9 @@ public:
             conn_t conn{"dbname=postgres"};
 
             m_db_name = "osm2pgsql-test-{}-{}"_format(getpid(), time(nullptr));
-            conn.exec("DROP DATABASE IF EXISTS \"{}\""_format(m_db_name));
-            conn.exec("CREATE DATABASE \"{}\" WITH ENCODING 'UTF8'"_format(
-                m_db_name));
+            conn.exec(R"(DROP DATABASE IF EXISTS "{}")", m_db_name);
+            conn.exec(R"(CREATE DATABASE "{}" WITH ENCODING 'UTF8')",
+                      m_db_name);
 
             conn_t local = connect();
             local.exec("CREATE EXTENSION postgis");
@@ -136,7 +136,7 @@ public:
             }
             try {
                 conn_t conn{"dbname=postgres"};
-                conn.exec("DROP DATABASE IF EXISTS \"{}\""_format(m_db_name));
+                conn.exec(R"(DROP DATABASE IF EXISTS "{}")", m_db_name);
             } catch (...) {
                 fprintf(stderr, "DROP DATABASE failed. Ignored.\n");
             }

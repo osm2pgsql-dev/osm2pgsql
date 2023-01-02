@@ -39,24 +39,24 @@ void create_geom_check_trigger(pg_conn_t *db_connection,
 {
     std::string func_name = qualified_name(schema, table + "_osm2pgsql_valid");
 
-    db_connection->exec(
-        "CREATE OR REPLACE FUNCTION {}()\n"
-        "RETURNS TRIGGER AS $$\n"
-        "BEGIN\n"
-        "  IF {} THEN \n"
-        "    RETURN NEW;\n"
-        "  END IF;\n"
-        "  RETURN NULL;\n"
-        "END;"
-        "$$ LANGUAGE plpgsql;"_format(func_name, condition));
+    db_connection->exec("CREATE OR REPLACE FUNCTION {}()\n"
+                        "RETURNS TRIGGER AS $$\n"
+                        "BEGIN\n"
+                        "  IF {} THEN \n"
+                        "    RETURN NEW;\n"
+                        "  END IF;\n"
+                        "  RETURN NULL;\n"
+                        "END;"
+                        "$$ LANGUAGE plpgsql",
+                        func_name, condition);
 
-    db_connection->exec(
-        "CREATE TRIGGER \"{}\""
-        " BEFORE INSERT OR UPDATE"
-        " ON {}"
-        " FOR EACH ROW EXECUTE PROCEDURE"
-        " {}();"_format(table + "_osm2pgsql_valid",
-                        qualified_name(schema, table), func_name));
+    db_connection->exec("CREATE TRIGGER \"{}\""
+                        " BEFORE INSERT OR UPDATE"
+                        " ON {}"
+                        " FOR EACH ROW EXECUTE PROCEDURE"
+                        " {}()",
+                        table + "_osm2pgsql_valid",
+                        qualified_name(schema, table), func_name);
 }
 
 void drop_geom_check_trigger(pg_conn_t *db_connection,
@@ -65,17 +65,18 @@ void drop_geom_check_trigger(pg_conn_t *db_connection,
 {
     std::string func_name = qualified_name(schema, table + "_osm2pgsql_valid");
 
-    db_connection->exec(R"(DROP TRIGGER "{}" ON {};)"_format(
-        table + "_osm2pgsql_valid", qualified_name(schema, table)));
+    db_connection->exec(R"(DROP TRIGGER "{}" ON {})",
+                        table + "_osm2pgsql_valid",
+                        qualified_name(schema, table));
 
-    db_connection->exec("DROP FUNCTION IF EXISTS {} ();"_format(func_name));
+    db_connection->exec("DROP FUNCTION IF EXISTS {} ()", func_name);
 }
 
 void analyze_table(pg_conn_t const &db_connection, std::string const &schema,
                    std::string const &name)
 {
     auto const qual_name = qualified_name(schema, name);
-    db_connection.exec("ANALYZE {}"_format(qual_name));
+    db_connection.exec("ANALYZE {}", qual_name);
 }
 
 bool has_table(pg_conn_t const &db_connection, std::string const &schema,
