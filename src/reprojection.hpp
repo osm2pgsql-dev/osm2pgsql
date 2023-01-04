@@ -71,4 +71,10 @@ private:
 
 std::string get_proj_version();
 
+/**
+ * Get projection object for given srs. Objects are only created once and
+ * then cached.
+ */
+reprojection const &get_projection(int srs);
+
 #endif // OSM2PGSQL_REPROJECTION_HPP

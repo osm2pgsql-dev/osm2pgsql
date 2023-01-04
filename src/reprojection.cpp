@@ -86,3 +86,18 @@ std::shared_ptr<reprojection> reprojection::create_projection(int srs)
 
     return make_generic_projection(srs);
 }
+
+reprojection const &get_projection(int srs)
+{
+    // In almost all cases there will be only one or two projections used, so
+    // storing them in a vector and doing linear search is totally fine.
+    static std::vector<std::shared_ptr<reprojection>> projections;
+
+    for (auto const &p : projections) {
+        if (p->target_srs() == srs) {
+            return *p;
+        }
+    }
+
+    return *projections.emplace_back(reprojection::create_projection(srs));
+}

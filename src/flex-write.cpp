@@ -473,9 +473,8 @@ void flex_write_column(lua_State *lua_state,
                     expire->from_geometry_if_3857(*geom);
                     copy_mgr->add_hex_geom(geom_to_ewkb(*geom, wrap_multi));
                 } else {
-                    auto const proj =
-                        reprojection::create_projection(column.srid());
-                    auto const tgeom = geom::transform(*geom, *proj);
+                    auto const &proj = get_projection(column.srid());
+                    auto const tgeom = geom::transform(*geom, proj);
                     expire->from_geometry_if_3857(tgeom);
                     copy_mgr->add_hex_geom(geom_to_ewkb(tgeom, wrap_multi));
                 }
@@ -512,8 +511,7 @@ void flex_write_row(lua_State *lua_state, table_connection_t *table_connection,
     geom::geometry_t projected_geom;
     geom::geometry_t const *output_geom = &geom;
     if (srid && geom.srid() != srid) {
-        auto const proj = reprojection::create_projection(srid);
-        projected_geom = geom::transform(geom, *proj);
+        projected_geom = geom::transform(geom, get_projection(srid));
         output_geom = &projected_geom;
     }
 
@@ -543,11 +541,8 @@ void flex_write_row(lua_State *lua_state, table_connection_t *table_connection,
                 } else if (column.srid() == srid) {
                     area = geom::area(projected_geom);
                 } else {
-                    // XXX there is some overhead here always dynamically
-                    // creating the same projection object. Needs refactoring.
-                    auto const mproj =
-                        reprojection::create_projection(column.srid());
-                    area = geom::area(geom::transform(geom, *mproj));
+                    auto const &mproj = get_projection(column.srid());
+                    area = geom::area(geom::transform(geom, mproj));
                 }
                 copy_mgr->add_column(area);
             }

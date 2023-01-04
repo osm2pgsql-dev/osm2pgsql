@@ -223,10 +223,8 @@ static int geom_transform(lua_State *lua_state)
             throw std::runtime_error{
                 "Can not transform already transformed geometry."};
         }
-        auto const proj = reprojection::create_projection(srid);
-
         auto *geom = create_lua_geometry_object(lua_state);
-        geom::transform(geom, *input_geometry, *proj);
+        geom::transform(geom, *input_geometry, get_projection(srid));
     } catch (...) {
         return luaL_error(lua_state, "Unknown error in 'transform()'.\n");
     }
