@@ -120,9 +120,8 @@ bool read_style_file(std::string const &filename, export_list *exlist)
 
         if (fields < 3) {
             std::fclose(in);
-            throw std::runtime_error{
-                "Error reading style file line {} (fields={})."_format(lineno,
-                                                                       fields)};
+            throw fmt_error("Error reading style file line {} (fields={}).",
+                            lineno, fields);
         }
 
         //place to keep info about this tag
@@ -144,8 +143,8 @@ bool read_style_file(std::string const &filename, export_list *exlist)
             ((temp.name.find('?') != std::string::npos) ||
              (temp.name.find('*') != std::string::npos))) {
             std::fclose(in);
-            throw std::runtime_error{
-                "Wildcard '{}' in non-delete style entry."_format(temp.name)};
+            throw fmt_error("Wildcard '{}' in non-delete style entry.",
+                            temp.name);
         }
 
         if ((temp.name == "way_area") && (temp.flags == FLAG_DELETE)) {
@@ -169,8 +168,7 @@ bool read_style_file(std::string const &filename, export_list *exlist)
         //do we really want to completely quit on an unusable line?
         if (!kept) {
             std::fclose(in);
-            throw std::runtime_error{
-                "Weird style line {}:{}."_format(filename, lineno)};
+            throw fmt_error("Weird style line {}:{}.", filename, lineno);
         }
 
         read_valid_column = true;

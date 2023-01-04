@@ -67,18 +67,16 @@ private:
             m_context.get(), source.c_str(), target.c_str(), nullptr)};
 
         if (!trans) {
-            throw std::runtime_error{
-                "Invalid projection from {} to {}: {}"_format(from, to,
-                                                              errormsg())};
+            throw fmt_error("Invalid projection from {} to {}: {}", from, to,
+                            errormsg());
         }
 
         std::unique_ptr<PJ, pj_deleter_t> trans_vis{
             proj_normalize_for_visualization(m_context.get(), trans.get())};
 
         if (!trans_vis) {
-            throw std::runtime_error{
-                "Invalid projection from {} to {}: {}"_format(from, to,
-                                                              errormsg())};
+            throw fmt_error("Invalid projection from {} to {}: {}", from, to,
+                            errormsg());
         }
 
         return trans_vis;

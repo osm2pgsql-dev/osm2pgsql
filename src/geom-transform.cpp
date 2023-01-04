@@ -102,8 +102,9 @@ bool geom_transform_area_t::set_param(char const *name, lua_State *lua_state)
         return true;
     }
 
-    throw std::runtime_error{"Unknown value for 'split_at' field in a geometry"
-                             " transformation: '{}'"_format(val)};
+    throw fmt_error("Unknown value for 'split_at' field in a geometry"
+                    " transformation: '{}'",
+                    val);
 }
 
 bool geom_transform_area_t::is_compatible_with(
@@ -142,8 +143,7 @@ std::unique_ptr<geom_transform_t> create_geom_transform(char const *type)
         return std::make_unique<geom_transform_area_t>();
     }
 
-    throw std::runtime_error{
-        "Unknown geometry transformation '{}'."_format(type)};
+    throw fmt_error("Unknown geometry transformation '{}'.", type);
 }
 
 void init_geom_transform(geom_transform_t *transform, lua_State *lua_state)
@@ -194,26 +194,24 @@ get_transform(lua_State *lua_state, flex_table_column_t const &column)
     // Field set to anything but a Lua table is not allowed
     if (ltype != LUA_TTABLE) {
         lua_pop(lua_state, 1); // geom field
-        throw std::runtime_error{
-            "Invalid geometry transformation for column '{}'."_format(
-                column.name())};
+        throw fmt_error("Invalid geometry transformation for column '{}'.",
+                        column.name());
     }
 
     lua_getfield(lua_state, -1, "create");
     char const *create_type = lua_tostring(lua_state, -1);
     if (create_type == nullptr) {
-        throw std::runtime_error{
-            "Missing geometry transformation for column '{}'."_format(
-                column.name())};
+        throw fmt_error("Missing geometry transformation for column '{}'.",
+                        column.name());
     }
 
     transform = create_geom_transform(create_type);
     lua_pop(lua_state, 1); // 'create' field
     init_geom_transform(transform.get(), lua_state);
     if (!transform->is_compatible_with(column.type())) {
-        throw std::runtime_error{
-            "Geometry transformation is not compatible "
-            "with column type '{}'."_format(column.type_name())};
+        throw fmt_error("Geometry transformation is not compatible"
+                        " with column type '{}'.",
+                        column.type_name());
     }
 
     lua_pop(lua_state, 1); // geom field
@@ -246,7 +244,6 @@ geom_transform_t const *get_default_transform(flex_table_column_t const &column,
         break;
     }
 
-    throw std::runtime_error{
-        "Missing geometry transformation for column '{}'."_format(
-            column.name())};
+    throw fmt_error("Missing geometry transformation for column '{}'.",
+                    column.name());
 }

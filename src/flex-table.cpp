@@ -262,19 +262,18 @@ void table_connection_t::start(bool append)
     assert(m_db_connection);
 
     if (!has_schema(table().schema())) {
-        throw std::runtime_error{
-            "Schema '{0}' not available. "
-            "Use 'CREATE SCHEMA \"{0}\";' to create it."_format(
-                table().schema())};
+        throw fmt_error("Schema '{0}' not available."
+                        " Use 'CREATE SCHEMA \"{0}\";' to create it.",
+                        table().schema());
     }
 
     for (auto const &ts :
          {table().data_tablespace(), table().index_tablespace()}) {
         if (!has_tablespace(ts)) {
-            throw std::runtime_error{
-                "Tablespace '{0}' not available. "
-                "Use 'CREATE TABLESPACE \"{0}\" ...;' to create it."_format(
-                    ts)};
+            throw fmt_error(
+                "Tablespace '{0}' not available."
+                " Use 'CREATE TABLESPACE \"{0}\" ...;' to create it.",
+                ts);
         }
     }
 

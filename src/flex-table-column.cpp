@@ -58,7 +58,7 @@ static table_column_type get_column_type_from_string(std::string const &type)
 {
     auto const *column_type = util::find_by_name(column_types, type);
     if (!column_type) {
-        throw std::runtime_error{"Unknown column type '{}'."_format(type)};
+        throw fmt_error("Unknown column type '{}'.", type);
     }
 
     return column_type->type;
@@ -106,8 +106,7 @@ void flex_table_column_t::set_projection(char const *projection)
     m_srid = static_cast<int>(std::strtoul(projection, &end, 10));
 
     if (*end != '\0') {
-        throw std::runtime_error{
-            "Unknown projection: '{}'."_format(projection)};
+        throw fmt_error("Unknown projection: '{}'.", projection);
     }
 }
 

@@ -400,8 +400,7 @@ static void parse_log_level_param(char const *arg)
     } else if (std::strcmp(arg, "error") == 0) {
         get_logger().set_level(log_level::error);
     } else {
-        throw std::runtime_error{
-            "Unknown value for --log-level option: {}"_format(arg)};
+        throw fmt_error("Unknown value for --log-level option: {}", arg);
     }
 }
 
@@ -414,8 +413,7 @@ static void parse_log_progress_param(char const *arg)
     } else if (std::strcmp(arg, "auto") == 0) {
         get_logger().auto_progress();
     } else {
-        throw std::runtime_error{
-            "Unknown value for --log-progress option: {}"_format(arg)};
+        throw fmt_error("Unknown value for --log-progress option: {}", arg);
     }
 }
 
@@ -432,9 +430,8 @@ static bool parse_with_forward_dependencies_param(char const *arg)
         return true;
     }
 
-    throw std::runtime_error{
-        "Unknown value for --with-forward-dependencies option: {}\n"_format(
-            arg)};
+    throw fmt_error("Unknown value for --with-forward-dependencies option: {}",
+                    arg);
 }
 
 static void print_version()

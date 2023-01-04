@@ -25,8 +25,7 @@ pg_conn_t::pg_conn_t(std::string const &conninfo)
         throw std::runtime_error{"Connecting to database failed."};
     }
     if (PQstatus(m_conn.get()) != CONNECTION_OK) {
-        throw std::runtime_error{
-            "Connecting to database failed: {}."_format(error_msg())};
+        throw fmt_error("Connecting to database failed: {}.", error_msg());
     }
 }
 
@@ -53,7 +52,7 @@ pg_result_t pg_conn_t::exec(char const *sql) const
     log_sql("{}", sql);
     pg_result_t res{PQexec(m_conn.get(), sql)};
     if (res.status() != PGRES_COMMAND_OK && res.status() != PGRES_TUPLES_OK) {
-        throw std::runtime_error{"Database error: {}"_format(error_msg())};
+        throw fmt_error("Database error: {}", error_msg());
     }
     return res;
 }
@@ -70,8 +69,7 @@ void pg_conn_t::copy_start(char const *sql) const
     log_sql("{}", sql);
     pg_result_t const res{PQexec(m_conn.get(), sql)};
     if (res.status() != PGRES_COPY_IN) {
-        throw std::runtime_error{
-            "Database error on COPY: {}"_format(error_msg())};
+        throw fmt_error("Database error on COPY: {}", error_msg());
     }
 }
 
@@ -111,14 +109,14 @@ void pg_conn_t::copy_end(std::string const &context) const
     assert(m_conn);
 
     if (PQputCopyEnd(m_conn.get(), nullptr) != 1) {
-        throw std::runtime_error{"Ending COPY mode for '{}' failed: {}."_format(
-            context, error_msg())};
+        throw fmt_error("Ending COPY mode for '{}' failed: {}.", context,
+                        error_msg());
     }
 
     pg_result_t const res{PQgetResult(m_conn.get())};
     if (res.status() != PGRES_COMMAND_OK) {
-        throw std::runtime_error{fmt::format(
-            "Ending COPY mode for '{}' failed: {}.", context, error_msg())};
+        throw fmt_error("Ending COPY mode for '{}' failed: {}.", context,
+                        error_msg());
     }
 }
 
@@ -150,8 +148,7 @@ pg_conn_t::exec_prepared_internal(char const *stmt, int num_params,
     if (status != PGRES_COMMAND_OK && status != PGRES_TUPLES_OK) {
         log_error("SQL command failed: EXECUTE {}({})", stmt,
                   concat_params(num_params, param_values));
-        throw std::runtime_error{
-            "Database error: {} ({})"_format(error_msg(), status)};
+        throw fmt_error("Database error: {} ({})", error_msg(), status);
     }
 
     return res;
@@ -196,6 +193,6 @@ void check_identifier(std::string const &name, char const *in)
         return;
     }
 
-    throw std::runtime_error{
-        "Special characters are not allowed in {}: '{}'."_format(in, name)};
+    throw fmt_error("Special characters are not allowed in {}: '{}'.", in,
+                    name);
 }
