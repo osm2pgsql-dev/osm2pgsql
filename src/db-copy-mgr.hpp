@@ -80,17 +80,10 @@ public:
      *
      * See add_column().
      */
-    template <typename T, typename... ARGS>
-    void add_columns(T value, ARGS &&... args)
+    template <typename... ARGS>
+    void add_columns(ARGS &&...args)
     {
-        add_column(value);
-        add_columns(std::forward<ARGS>(args)...);
-    }
-
-    template <typename T>
-    void add_columns(T value)
-    {
-        add_column(value);
+        (add_column(std::forward<ARGS>(args)), ...);
     }
 
     /**
