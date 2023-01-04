@@ -362,8 +362,7 @@ std::size_t middle_query_pgsql_t::get_way_node_locations_flatnodes(
 
 osmium::Location middle_query_pgsql_t::get_node_location_db(osmid_t id) const
 {
-    auto const res =
-        m_sql_conn.exec_prepared("get_node_list", "{{{}}}"_format(id));
+    auto const res = m_sql_conn.exec_prepared("get_node", id);
     if (res.num_tuples() == 0) {
         return osmium::Location{};
     }
@@ -724,7 +723,10 @@ static table_sql sql_for_nodes(bool create_table) noexcept
         sql.prepare_query =
             "PREPARE get_node_list(int8[]) AS"
             "  SELECT id, lon, lat FROM {schema}\"{prefix}_nodes\""
-            "  WHERE id = ANY($1::int8[]);\n";
+            "  WHERE id = ANY($1::int8[]);\n"
+            "PREPARE get_node(int8) AS"
+            "  SELECT id, lon, lat FROM {schema}\"{prefix}_nodes\""
+            "  WHERE id = $1;\n";
     }
 
     return sql;
