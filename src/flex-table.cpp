@@ -178,16 +178,17 @@ flex_table_t::build_sql_create_table(table_type ttype,
     std::string sql = "CREATE {} TABLE IF NOT EXISTS {} ("_format(
         ttype == table_type::interim ? "UNLOGGED" : "", table_name);
 
+    util::string_joiner_t joiner{','};
     for (auto const &column : m_columns) {
         // create_only columns are only created in permanent, not in the
         // interim tables
         if (ttype == table_type::permanent || !column.create_only()) {
-            sql += column.sql_create();
+            joiner.add(column.sql_create());
         }
     }
 
-    assert(sql.back() == ',');
-    sql.back() = ')';
+    sql += joiner();
+    sql += ')';
 
     if (ttype == table_type::interim) {
         sql += " WITH (autovacuum_enabled = off)";

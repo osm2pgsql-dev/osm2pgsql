@@ -181,5 +181,5 @@ std::string flex_table_column_t::sql_modifiers() const
 
 std::string flex_table_column_t::sql_create() const
 {
-    return R"("{}" {} {},)"_format(m_name, sql_type_name(), sql_modifiers());
+    return R"("{}" {} {})"_format(m_name, sql_type_name(), sql_modifiers());
 }
