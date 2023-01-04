@@ -254,33 +254,33 @@ std::string build_conninfo(database_options_t const &opt)
         return opt.db;
     }
 
-    std::string out{"fallback_application_name='osm2pgsql'"};
+    util::string_joiner_t joiner{' '};
+    joiner.add("fallback_application_name='osm2pgsql'");
 
     if (std::strchr(opt.db.c_str(), '=') != nullptr) {
-        out += " ";
-        out += opt.db;
-        return out;
+        joiner.add(opt.db);
+        return joiner();
     }
 
-    out += " client_encoding='UTF8'";
+    joiner.add("client_encoding='UTF8'");
 
     if (!opt.db.empty()) {
-        out += " dbname='{}'"_format(opt.db);
+        joiner.add(fmt::format("dbname='{}'", opt.db));
     }
     if (!opt.username.empty()) {
-        out += " user='{}'"_format(opt.username);
+        joiner.add(fmt::format("user='{}'", opt.username));
     }
     if (!opt.password.empty()) {
-        out += " password='{}'"_format(opt.password);
+        joiner.add(fmt::format("password='{}'", opt.password));
     }
     if (!opt.host.empty()) {
-        out += " host='{}'"_format(opt.host);
+        joiner.add(fmt::format("host='{}'", opt.host));
     }
     if (!opt.port.empty()) {
-        out += " port='{}'"_format(opt.port);
+        joiner.add(fmt::format("port='{}'", opt.port));
     }
 
-    return out;
+    return joiner();
 }
 
 options_t::options_t()
