@@ -41,6 +41,7 @@ static bool fill_point_list(point_list_t *list,
 {
     osmium::Location last{};
 
+    list->reserve(nodes.size());
     for (auto const &node : nodes) {
         auto const loc = node.location();
         if (loc.valid() && loc != last) {
