@@ -92,12 +92,11 @@ void table_t::start(std::string const &conninfo, std::string const &table_space)
 
     // we are making a new table
     if (!m_append) {
-        m_sql_conn->exec(
-            "DROP TABLE IF EXISTS {} CASCADE"_format(qual_name));
+        m_sql_conn->exec("DROP TABLE IF EXISTS {} CASCADE", qual_name);
     }
 
     // These _tmp tables can be left behind if we run out of disk space.
-    m_sql_conn->exec("DROP TABLE IF EXISTS {}"_format(qual_tmp_name));
+    m_sql_conn->exec("DROP TABLE IF EXISTS {}", qual_tmp_name);
     m_sql_conn->exec("RESET client_min_messages");
 
     //making a new table
@@ -149,9 +148,9 @@ void table_t::prepare()
 {
     //let postgres cache this query as it will presumably happen a lot
     auto const qual_name = qualified_name(m_target->schema, m_target->name);
-    m_sql_conn->exec(
-        "PREPARE get_wkb(int8) AS SELECT way FROM {} WHERE osm_id = $1"_format(
-            qual_name));
+    m_sql_conn->exec("PREPARE get_wkb(int8) AS"
+                     " SELECT way FROM {} WHERE osm_id = $1",
+                     qual_name);
 }
 
 void table_t::generate_copy_column_list()
@@ -229,23 +228,22 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
 
         m_sql_conn->exec(sql);
 
-        m_sql_conn->exec("DROP TABLE {}"_format(qual_name));
-        m_sql_conn->exec(R"(ALTER TABLE {} RENAME TO "{}")"_format(
-            qual_tmp_name, m_target->name));
+        m_sql_conn->exec("DROP TABLE {}", qual_name);
+        m_sql_conn->exec(R"(ALTER TABLE {} RENAME TO "{}")", qual_tmp_name,
+                         m_target->name);
 
         log_info("Creating geometry index on table '{}'...", m_target->name);
 
         // Use fillfactor 100 for un-updatable imports
-        m_sql_conn->exec("CREATE INDEX ON {} USING GIST (way) {} {}"_format(
-            qual_name, (updateable ? "" : "WITH (fillfactor = 100)"),
-            tablespace_clause(table_space_index)));
+        m_sql_conn->exec("CREATE INDEX ON {} USING GIST (way) {} {}", qual_name,
+                         (updateable ? "" : "WITH (fillfactor = 100)"),
+                         tablespace_clause(table_space_index));
 
         /* slim mode needs this to be able to apply diffs */
         if (updateable) {
             log_info("Creating osm_id index on table '{}'...", m_target->name);
-            m_sql_conn->exec(
-                "CREATE INDEX ON {} USING BTREE (osm_id) {}"_format(
-                    qual_name, tablespace_clause(table_space_index)));
+            m_sql_conn->exec("CREATE INDEX ON {} USING BTREE (osm_id) {}",
+                             qual_name, tablespace_clause(table_space_index));
             if (m_srid != "4326") {
                 create_geom_check_trigger(m_sql_conn.get(), m_target->schema,
                                           m_target->name,
@@ -258,15 +256,14 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
             log_info("Creating hstore indexes on table '{}'...",
                      m_target->name);
             if (m_hstore_mode != hstore_column::none) {
-                m_sql_conn->exec(
-                    "CREATE INDEX ON {} USING GIN (tags) {}"_format(
-                        qual_name, tablespace_clause(table_space_index)));
+                m_sql_conn->exec("CREATE INDEX ON {} USING GIN (tags) {}",
+                                 qual_name,
+                                 tablespace_clause(table_space_index));
             }
             for (auto const &hcolumn : m_hstore_columns) {
-                m_sql_conn->exec(
-                    R"(CREATE INDEX ON {} USING GIN ("{}") {})"_format(
-                        qual_name, hcolumn,
-                        tablespace_clause(table_space_index)));
+                m_sql_conn->exec(R"(CREATE INDEX ON {} USING GIN ("{}") {})",
+                                 qual_name, hcolumn,
+                                 tablespace_clause(table_space_index));
             }
         }
         log_info("Analyzing table '{}'...", m_target->name);

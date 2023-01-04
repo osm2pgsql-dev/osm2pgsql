@@ -287,13 +287,12 @@ void table_connection_t::start(bool append)
     m_db_connection->exec("SET client_min_messages = WARNING");
 
     if (!append) {
-        m_db_connection->exec(
-            "DROP TABLE IF EXISTS {} CASCADE"_format(table().full_name()));
+        m_db_connection->exec("DROP TABLE IF EXISTS {} CASCADE",
+                              table().full_name());
     }
 
     // These _tmp tables can be left behind if we run out of disk space.
-    m_db_connection->exec(
-        "DROP TABLE IF EXISTS {}"_format(table().full_tmp_name()));
+    m_db_connection->exec("DROP TABLE IF EXISTS {}", table().full_tmp_name());
     m_db_connection->exec("RESET client_min_messages");
 
     if (!append) {
@@ -365,9 +364,9 @@ void table_connection_t::stop(bool updateable, bool append)
 
         m_db_connection->exec(sql);
 
-        m_db_connection->exec("DROP TABLE {}"_format(table().full_name()));
-        m_db_connection->exec(R"(ALTER TABLE {} RENAME TO "{}")"_format(
-            table().full_tmp_name(), table().name()));
+        m_db_connection->exec("DROP TABLE {}", table().full_name());
+        m_db_connection->exec(R"(ALTER TABLE {} RENAME TO "{}")",
+                              table().full_tmp_name(), table().name());
         m_id_index_created = false;
 
         if (updateable) {

@@ -85,7 +85,7 @@ void middle_pgsql_t::table_desc::drop_table(
     log_info("Dropping table '{}'", name());
 
     auto const qual_name = qualified_name(schema(), name());
-    db_connection.exec("DROP TABLE IF EXISTS {}"_format(qual_name));
+    db_connection.exec("DROP TABLE IF EXISTS {}", qual_name);
 
     log_info("Table '{}' dropped in {}", name(),
              util::human_readable_duration(timer.stop()));
@@ -668,8 +668,7 @@ void middle_pgsql_t::start()
         for (auto const &table : m_tables) {
             log_debug("Setting up table '{}'", table.name());
             auto const qual_name = qualified_name(table.schema(), table.name());
-            m_db_connection.exec(
-                "DROP TABLE IF EXISTS {} CASCADE"_format(qual_name));
+            m_db_connection.exec("DROP TABLE IF EXISTS {} CASCADE", qual_name);
             if (!table.m_create_table.empty()) {
                 m_db_connection.exec(table.m_create_table);
             }
@@ -826,9 +825,11 @@ static table_sql sql_for_relations() noexcept
 static bool check_bucket_index(pg_conn_t *db_connection,
                                std::string const &prefix)
 {
-    auto const res = db_connection->exec(
-        "SELECT relname FROM pg_class WHERE relkind='i' AND"
-        "  relname = '{}_ways_nodes_bucket_idx';"_format(prefix));
+    auto const res =
+        db_connection->exec("SELECT relname FROM pg_class"
+                            " WHERE relkind='i'"
+                            " AND relname = '{}_ways_nodes_bucket_idx'",
+                            prefix);
     return res.num_tuples() > 0;
 }
 
