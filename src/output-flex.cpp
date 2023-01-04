@@ -115,7 +115,7 @@ prepared_lua_function_t::prepared_lua_function_t(lua_State *lua_state,
         return;
     }
 
-    throw std::runtime_error{"osm2pgsql.{} must be a function."_format(name)};
+    throw fmt_error("osm2pgsql.{} must be a function.", name);
 }
 
 static void push_osm_object_to_lua_stack(lua_State *lua_state,
@@ -255,14 +255,12 @@ void output_flex_t::check_context_and_state(char const *name,
                                             char const *context, bool condition)
 {
     if (condition) {
-        throw std::runtime_error{
-            "The function {}() can only be called from the {}."_format(
-                name, context)};
+        throw fmt_error("The function {}() can only be called from the {}.",
+                        name, context);
     }
 
     if (lua_gettop(lua_state()) > 1) {
-        throw std::runtime_error{
-            "No parameter(s) needed for {}()."_format(name)};
+        throw fmt_error("No parameter(s) needed for {}().", name);
     }
 }
 
@@ -444,8 +442,7 @@ flex_table_t &output_flex_t::create_flex_table()
     check_identifier(table_name, "table names");
 
     if (util::find_by_name(*m_tables, table_name)) {
-        throw std::runtime_error{
-            "Table with name '{}' already exists."_format(table_name)};
+        throw fmt_error("Table with name '{}' already exists.", table_name);
     }
 
     m_tables->emplace_back(table_name);
@@ -472,9 +469,9 @@ flex_table_t &output_flex_t::create_flex_table()
         } else if (cluster == "no") {
             new_table.set_cluster_by_geom(false);
         } else {
-            throw std::runtime_error{
-                "Unknown value '{}' for 'cluster' table option"
-                " (use 'auto' or 'no')."_format(cluster)};
+            throw fmt_error("Unknown value '{}' for 'cluster' table option"
+                            " (use 'auto' or 'no').",
+                            cluster);
         }
     } else if (cluster_type == LUA_TNIL) {
         // ignore
@@ -542,7 +539,7 @@ void output_flex_t::setup_id_columns(flex_table_t *table)
         }
         lua_pop(lua_state(), 1); // type_column
     } else {
-        throw std::runtime_error{"Unknown ids type: {}."_format(type)};
+        throw fmt_error("Unknown ids type: {}.", type);
     }
 
     std::string const name =
@@ -559,9 +556,8 @@ void output_flex_t::setup_flex_table_columns(flex_table_t *table)
     assert(table);
     lua_getfield(lua_state(), -1, "columns");
     if (lua_type(lua_state(), -1) != LUA_TTABLE) {
-        throw std::runtime_error{
-            "No 'columns' field (or not an array) in table '{}'."_format(
-                table->name())};
+        throw fmt_error("No 'columns' field (or not an array) in table '{}'.",
+                        table->name());
     }
 
     std::size_t num_columns = 0;
@@ -610,8 +606,7 @@ void output_flex_t::setup_flex_table_columns(flex_table_t *table)
     }
 
     if (num_columns == 0 && !table->has_id_column()) {
-        throw std::runtime_error{
-            "No columns defined for table '{}'."_format(table->name())};
+        throw fmt_error("No columns defined for table '{}'.", table->name());
     }
 
     lua_pop(lua_state(), 1); // "columns"
@@ -638,9 +633,9 @@ void output_flex_t::setup_indexes(flex_table_t *table)
     }
 
     if (lua_type(lua_state(), -1) != LUA_TTABLE) {
-        throw std::runtime_error{
-            "The 'indexes' field in definition of"
-            " table '{}' is not an array."_format(table->name())};
+        throw fmt_error("The 'indexes' field in definition of"
+                        " table '{}' is not an array.",
+                        table->name());
     }
 
     lua_pushnil(lua_state());
@@ -842,20 +837,18 @@ int output_flex_t::table_add_row()
 
     if (m_calling_context == calling_context::process_node) {
         if (!table.matches_type(osmium::item_type::node)) {
-            throw std::runtime_error{
-                "Trying to add node to table '{}'."_format(table.name())};
+            throw fmt_error("Trying to add node to table '{}'.", table.name());
         }
         add_row(&table_connection, *m_context_node);
     } else if (m_calling_context == calling_context::process_way) {
         if (!table.matches_type(osmium::item_type::way)) {
-            throw std::runtime_error{
-                "Trying to add way to table '{}'."_format(table.name())};
+            throw fmt_error("Trying to add way to table '{}'.", table.name());
         }
         add_row(&table_connection, m_way_cache.get());
     } else if (m_calling_context == calling_context::process_relation) {
         if (!table.matches_type(osmium::item_type::relation)) {
-            throw std::runtime_error{
-                "Trying to add relation to table '{}'."_format(table.name())};
+            throw fmt_error("Trying to add relation to table '{}'.",
+                            table.name());
         }
         add_row(&table_connection, m_relation_cache.get());
     }
@@ -868,16 +861,14 @@ output_flex_t::check_and_get_context_object(flex_table_t const &table)
 {
     if (m_calling_context == calling_context::process_node) {
         if (!table.matches_type(osmium::item_type::node)) {
-            throw std::runtime_error{
-                "Trying to add node to table '{}'."_format(table.name())};
+            throw fmt_error("Trying to add node to table '{}'.", table.name());
         }
         return *m_context_node;
     }
 
     if (m_calling_context == calling_context::process_way) {
         if (!table.matches_type(osmium::item_type::way)) {
-            throw std::runtime_error{
-                "Trying to add way to table '{}'."_format(table.name())};
+            throw fmt_error("Trying to add way to table '{}'.", table.name());
         }
         return m_way_cache.get();
     }
@@ -885,8 +876,7 @@ output_flex_t::check_and_get_context_object(flex_table_t const &table)
     assert(m_calling_context == calling_context::process_relation);
 
     if (!table.matches_type(osmium::item_type::relation)) {
-        throw std::runtime_error{
-            "Trying to add relation to table '{}'."_format(table.name())};
+        throw fmt_error("Trying to add relation to table '{}'.", table.name());
     }
     return m_relation_cache.get();
 }
@@ -1040,10 +1030,10 @@ void output_flex_t::add_row(table_connection_t *table_connection,
     auto const &table = table_connection->table();
 
     if (table.has_multiple_geom_columns()) {
-        throw std::runtime_error{
-            "Table '{}' has more than one geometry column."
-            " This is not allowed with 'add_row()'."
-            " Maybe use 'insert()' instead?"_format(table.name())};
+        throw fmt_error("Table '{}' has more than one geometry column."
+                        " This is not allowed with 'add_row()'."
+                        " Maybe use 'insert()' instead?",
+                        table.name());
     }
 
     osmid_t const id = table.map_id(object.type(), object.id());
@@ -1106,9 +1096,8 @@ void output_flex_t::call_lua_function(prepared_lua_function_t func,
 
     luaX_set_context(lua_state(), this);
     if (luaX_pcall(lua_state(), 1, func.nresults())) {
-        throw std::runtime_error{
-            "Failed to execute Lua function 'osm2pgsql.{}':"
-            " {}."_format(func.name(), lua_tostring(lua_state(), -1))};
+        throw fmt_error("Failed to execute Lua function 'osm2pgsql.{}': {}.",
+                        func.name(), lua_tostring(lua_state(), -1));
     }
 
     m_calling_context = calling_context::main;
@@ -1521,8 +1510,8 @@ void output_flex_t::init_lua(std::string const &filename)
 
     // Load compiled in init.lua
     if (luaL_dostring(lua_state(), lua_init())) {
-        throw std::runtime_error{"Internal error in Lua setup: {}."_format(
-            lua_tostring(lua_state(), -1))};
+        throw fmt_error("Internal error in Lua setup: {}.",
+                        lua_tostring(lua_state(), -1));
     }
 
     // Store the methods on OSM objects in its metatable.
@@ -1559,8 +1548,8 @@ void output_flex_t::init_lua(std::string const &filename)
     // Load user config file
     luaX_set_context(lua_state(), this);
     if (luaL_dofile(lua_state(), filename.c_str())) {
-        throw std::runtime_error{"Error loading lua config: {}."_format(
-            lua_tostring(lua_state(), -1))};
+        throw fmt_error("Error loading lua config: {}.",
+                        lua_tostring(lua_state(), -1));
     }
 
     // Check whether the process_* functions are available and store them on

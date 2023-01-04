@@ -81,7 +81,7 @@ std::shared_ptr<reprojection> reprojection::create_projection(int srs)
     }
 
     if (srs <= 0) {
-        throw std::runtime_error{"Invalid projection SRID '{}'."_format(srs)};
+        throw fmt_error("Invalid projection SRID '{}'.", srs);
     }
 
     return make_generic_projection(srs);

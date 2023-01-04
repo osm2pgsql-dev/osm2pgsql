@@ -25,8 +25,8 @@ lua_tagtransform_t::lua_tagtransform_t(std::string const *tag_transform_script,
     m_lua_state.reset(luaL_newstate());
     luaL_openlibs(lua_state());
     if (luaL_dofile(lua_state(), m_lua_file->c_str())) {
-        throw std::runtime_error{"Lua tag transform style error: {}."_format(
-            lua_tostring(lua_state(), -1))};
+        throw fmt_error("Lua tag transform style error: {}.",
+                        lua_tostring(lua_state(), -1));
     }
 
     check_lua_function_exists(node_func);
@@ -44,9 +44,8 @@ void lua_tagtransform_t::check_lua_function_exists(char const *func_name)
 {
     lua_getglobal(lua_state(), func_name);
     if (!lua_isfunction(lua_state(), -1)) {
-        throw std::runtime_error{
-            "Tag transform style does not contain a function {}."_format(
-                func_name)};
+        throw fmt_error("Tag transform style does not contain a function {}.",
+                        func_name);
     }
     lua_pop(lua_state(), 1);
 }
@@ -63,20 +62,18 @@ static void get_out_tags(lua_State *lua_state, taglist_t *out_tags)
         // below will change it to a string and the lua_next() iteration will
         // break.
         if (key_type != LUA_TSTRING) {
-            throw std::runtime_error{
-                "Basic tag processing found incorrect data type"
-                "'{}', use a string."_format(
-                    lua_typename(lua_state, key_type))};
+            throw fmt_error("Basic tag processing found incorrect data type"
+                            " '{}', use a string.",
+                            lua_typename(lua_state, key_type));
         }
 
         auto const value_type = lua_type(lua_state, -1);
         // They key must be a string or number (which will automatically be
         // converted to a string).
         if (value_type != LUA_TSTRING && value_type != LUA_TNUMBER) {
-            throw std::runtime_error{
-                "Basic tag processing found incorrect data type"
-                "'{}', use a string."_format(
-                    lua_typename(lua_state, value_type))};
+            throw fmt_error("Basic tag processing found incorrect data type"
+                            " '{}', use a string.",
+                            lua_typename(lua_state, value_type));
         }
 
         char const *const key = lua_tostring(lua_state, -2);
@@ -129,9 +126,9 @@ bool lua_tagtransform_t::filter_tags(osmium::OSMObject const &o, bool *polygon,
     if (lua_pcall(lua_state(), 2, (o.type() == osmium::item_type::way) ? 4 : 2,
                   0)) {
         /* lua function failed */
-        throw std::runtime_error{
-            "Failed to execute lua function for basic tag "
-            "processing: {}."_format(lua_tostring(lua_state(), -1))};
+        throw fmt_error("Failed to execute lua function for"
+                        " basic tag processing: {}.",
+                        lua_tostring(lua_state(), -1));
     }
 
     if (o.type() == osmium::item_type::way) {
@@ -195,9 +192,9 @@ bool lua_tagtransform_t::filter_rel_member_tags(
 
     if (lua_pcall(lua_state(), 4, 6, 0)) {
         /* lua function failed */
-        throw std::runtime_error{
-            "Failed to execute lua function for relation tag "
-            "processing: {}."_format(lua_tostring(lua_state(), -1))};
+        throw fmt_error("Failed to execute lua function for"
+                        " relation tag processing: {}.",
+                        lua_tostring(lua_state(), -1));
     }
 
     *roads = (int)lua_tointeger(lua_state(), -1);

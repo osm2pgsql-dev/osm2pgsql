@@ -201,9 +201,8 @@ static void write_json_table(json_writer_t *writer, lua_State *lua_state,
         while (lua_next(lua_state, -2) != 0) {
             int const ltype_key = lua_type(lua_state, -2);
             if (ltype_key != LUA_TSTRING) {
-                throw std::runtime_error{
-                    "Incorrect data type '{}' as key."_format(
-                        lua_typename(lua_state, ltype_key))};
+                throw fmt_error("Incorrect data type '{}' as key.",
+                                lua_typename(lua_state, ltype_key));
             }
             char const *const key = lua_tostring(lua_state, -2);
             writer->key(key);
@@ -260,9 +259,8 @@ static void write_json(json_writer_t *writer, lua_State *lua_state,
         write_json_table(writer, lua_state, tables);
         break;
     default:
-        throw std::runtime_error{
-            "Invalid type '{}' for json/jsonb column."_format(
-                lua_typename(lua_state, ltype))};
+        throw fmt_error("Invalid type '{}' for json/jsonb column.",
+                        lua_typename(lua_state, ltype));
     }
 }
 
@@ -323,9 +321,8 @@ void flex_write_column(lua_State *lua_state,
     if (column.type() == table_column_type::text) {
         auto const *const str = lua_tolstring(lua_state, -1, nullptr);
         if (!str) {
-            throw std::runtime_error{
-                "Invalid type '{}' for text column."_format(
-                    lua_typename(lua_state, ltype))};
+            throw fmt_error("Invalid type '{}' for text column.",
+                            lua_typename(lua_state, ltype));
         }
         copy_mgr->add_column(str);
     } else if (column.type() == table_column_type::boolean) {
@@ -341,9 +338,8 @@ void flex_write_column(lua_State *lua_state,
                           lua_tolstring(lua_state, -1, nullptr));
             break;
         default:
-            throw std::runtime_error{
-                "Invalid type '{}' for boolean column."_format(
-                    lua_typename(lua_state, ltype))};
+            throw fmt_error("Invalid type '{}' for boolean column.",
+                            lua_typename(lua_state, ltype));
         }
     } else if (column.type() == table_column_type::int2) {
         if (ltype == LUA_TNUMBER) {
@@ -360,9 +356,8 @@ void flex_write_column(lua_State *lua_state,
         } else if (ltype == LUA_TBOOLEAN) {
             copy_mgr->add_column(lua_toboolean(lua_state, -1));
         } else {
-            throw std::runtime_error{
-                "Invalid type '{}' for int2 column."_format(
-                    lua_typename(lua_state, ltype))};
+            throw fmt_error("Invalid type '{}' for int2 column.",
+                            lua_typename(lua_state, ltype));
         }
     } else if (column.type() == table_column_type::int4) {
         if (ltype == LUA_TNUMBER) {
@@ -379,9 +374,8 @@ void flex_write_column(lua_State *lua_state,
         } else if (ltype == LUA_TBOOLEAN) {
             copy_mgr->add_column(lua_toboolean(lua_state, -1));
         } else {
-            throw std::runtime_error{
-                "Invalid type '{}' for int4 column."_format(
-                    lua_typename(lua_state, ltype))};
+            throw fmt_error("Invalid type '{}' for int4 column.",
+                            lua_typename(lua_state, ltype));
         }
     } else if (column.type() == table_column_type::int8) {
         if (ltype == LUA_TNUMBER) {
@@ -392,9 +386,8 @@ void flex_write_column(lua_State *lua_state,
         } else if (ltype == LUA_TBOOLEAN) {
             copy_mgr->add_column(lua_toboolean(lua_state, -1));
         } else {
-            throw std::runtime_error{
-                "Invalid type '{}' for int8 column."_format(
-                    lua_typename(lua_state, ltype))};
+            throw fmt_error("Invalid type '{}' for int8 column.",
+                            lua_typename(lua_state, ltype));
         }
     } else if (column.type() == table_column_type::real) {
         if (ltype == LUA_TNUMBER) {
@@ -403,9 +396,8 @@ void flex_write_column(lua_State *lua_state,
             write_double(copy_mgr, column,
                          lua_tolstring(lua_state, -1, nullptr));
         } else {
-            throw std::runtime_error{
-                "Invalid type '{}' for real column."_format(
-                    lua_typename(lua_state, ltype))};
+            throw fmt_error("Invalid type '{}' for real column.",
+                            lua_typename(lua_state, ltype));
         }
     } else if (column.type() == table_column_type::hstore) {
         if (ltype == LUA_TTABLE) {
@@ -417,17 +409,17 @@ void flex_write_column(lua_State *lua_state,
                 char const *const val = lua_tostring(lua_state, -1);
                 if (key == nullptr) {
                     int const ltype_key = lua_type(lua_state, -2);
-                    throw std::runtime_error{
+                    throw fmt_error(
                         "NULL key for hstore. Possibly this is due to"
-                        " an incorrect data type '{}' as key."_format(
-                            lua_typename(lua_state, ltype_key))};
+                        " an incorrect data type '{}' as key.",
+                        lua_typename(lua_state, ltype_key));
                 }
                 if (val == nullptr) {
                     int const ltype_value = lua_type(lua_state, -1);
-                    throw std::runtime_error{
+                    throw fmt_error(
                         "NULL value for hstore. Possibly this is due to"
-                        " an incorrect data type '{}' for key '{}'."_format(
-                            lua_typename(lua_state, ltype_value), key)};
+                        " an incorrect data type '{}' for key '{}'.",
+                        lua_typename(lua_state, ltype_value), key);
                 }
                 copy_mgr->add_hash_elem(key, val);
                 lua_pop(lua_state, 1);
@@ -435,9 +427,8 @@ void flex_write_column(lua_State *lua_state,
 
             copy_mgr->finish_hash();
         } else {
-            throw std::runtime_error{
-                "Invalid type '{}' for hstore column."_format(
-                    lua_typename(lua_state, ltype))};
+            throw fmt_error("Invalid type '{}' for hstore column.",
+                            lua_typename(lua_state, ltype));
         }
     } else if ((column.type() == table_column_type::json) ||
                (column.type() == table_column_type::jsonb)) {
@@ -458,9 +449,8 @@ void flex_write_column(lua_State *lua_state,
                             lua_tolstring(lua_state, -1, nullptr));
             break;
         default:
-            throw std::runtime_error{
-                "Invalid type '{}' for direction column."_format(
-                    lua_typename(lua_state, ltype))};
+            throw fmt_error("Invalid type '{}' for direction column.",
+                            lua_typename(lua_state, ltype));
         }
     } else if (column.is_geometry_column()) {
         // If this is a geometry column, the Lua function 'insert()' was
@@ -471,10 +461,9 @@ void flex_write_column(lua_State *lua_state,
             if (geom && !geom->is_null()) {
                 auto const type = column.type();
                 if (!is_compatible(*geom, type)) {
-                    throw std::runtime_error{
-                        "Geometry data for geometry column '{}'"
-                        " has the wrong type ({})."_format(
-                            column.name(), geometry_type(*geom))};
+                    throw fmt_error("Geometry data for geometry column '{}'"
+                                    " has the wrong type ({}).",
+                                    column.name(), geometry_type(*geom));
                 }
                 bool const wrap_multi =
                     (type == table_column_type::multipoint ||
@@ -494,9 +483,8 @@ void flex_write_column(lua_State *lua_state,
                 write_null(copy_mgr, column);
             }
         } else {
-            throw std::runtime_error{
-                "Need geometry data for geometry column '{}'."_format(
-                    column.name())};
+            throw fmt_error("Need geometry data for geometry column '{}'.",
+                            column.name());
         }
     } else if (column.type() == table_column_type::area) {
         // If this is an area column, the Lua function 'insert()' was
@@ -505,8 +493,8 @@ void flex_write_column(lua_State *lua_state,
         throw std::runtime_error{"Column type 'area' not allowed with "
                                  "'insert()'. Maybe use 'real'?"};
     } else {
-        throw std::runtime_error{"Column type {} not implemented."_format(
-            static_cast<uint8_t>(column.type()))};
+        throw fmt_error("Column type {} not implemented.",
+                        static_cast<uint8_t>(column.type()));
     }
 
     lua_pop(lua_state, 1);

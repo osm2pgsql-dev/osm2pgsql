@@ -346,8 +346,8 @@ public:
             parse_collection(&geom);
             break;
         default:
-            throw std::runtime_error{
-                "Invalid WKB geometry: Unknown geometry type {}"_format(type)};
+            throw fmt_error("Invalid WKB geometry: Unknown geometry type {}",
+                            type);
         }
 
         return geom;
@@ -440,10 +440,9 @@ private:
     {
         auto const num_points = parse_length();
         if (num_points < min_points) {
-            throw std::runtime_error{
-                "Invalid WKB geometry: {} are not"
-                " enough points (must be at least {})"_format(num_points,
-                                                              min_points)};
+            throw fmt_error("Invalid WKB geometry: {} are not"
+                            " enough points (must be at least {})",
+                            num_points, min_points);
         }
         points->reserve(num_points);
         for (uint32_t i = 0; i < num_points; ++i) {
@@ -480,9 +479,9 @@ private:
             auto &point = multipoint.add_geometry();
             uint32_t const type = parse_header();
             if (type != geometry_type::wkb_point) {
-                throw std::runtime_error{
-                    "Invalid WKB geometry: Multipoint containing"
-                    " something other than point: {}"_format(type)};
+                throw fmt_error("Invalid WKB geometry: Multipoint containing"
+                                " something other than point: {}",
+                                type);
             }
             parse_point(&point);
         }
@@ -502,9 +501,10 @@ private:
             auto &linestring = multilinestring.add_geometry();
             uint32_t const type = parse_header();
             if (type != geometry_type::wkb_line) {
-                throw std::runtime_error{
+                throw fmt_error(
                     "Invalid WKB geometry: Multilinestring containing"
-                    " something other than linestring: {}"_format(type)};
+                    " something other than linestring: {}",
+                    type);
             }
             parse_point_list(&linestring, 2);
         }
@@ -524,9 +524,9 @@ private:
             auto &polygon = multipolygon.add_geometry();
             uint32_t const type = parse_header();
             if (type != geometry_type::wkb_polygon) {
-                throw std::runtime_error{
-                    "Invalid WKB geometry: Multipolygon containing"
-                    " something other than polygon: {}"_format(type)};
+                throw fmt_error("Invalid WKB geometry: Multipolygon containing"
+                                " something other than polygon: {}",
+                                type);
             }
             parse_polygon(&polygon);
         }

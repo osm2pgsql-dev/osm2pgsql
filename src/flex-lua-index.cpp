@@ -22,8 +22,8 @@ static void check_and_add_column(flex_table_t const &table,
 {
     auto const *column = util::find_by_name(table, column_name);
     if (!column) {
-        throw std::runtime_error{"Unknown column '{}' in table '{}'."_format(
-            column_name, table.name())};
+        throw fmt_error("Unknown column '{}' in table '{}'.", column_name,
+                        table.name());
     }
     columns->push_back(column_name);
 }
@@ -53,7 +53,7 @@ void flex_lua_setup_index(lua_State *lua_state, flex_table_t *table)
     char const *const method =
         luaX_get_table_string(lua_state, "method", -1, "Index definition");
     if (!has_index_method(method)) {
-        throw std::runtime_error{"Unknown index method '{}'."_format(method)};
+        throw fmt_error("Unknown index method '{}'.", method);
     }
     lua_pop(lua_state, 1);
     auto &index = table->add_index(method);
@@ -105,9 +105,9 @@ void flex_lua_setup_index(lua_State *lua_state, flex_table_t *table)
         }
         index.set_include_columns(include_columns);
     } else if (!lua_isnil(lua_state, -1)) {
-        throw std::runtime_error{
-            "Database version ({}) doesn't support"
-            " include columns in indexes."_format(get_database_version())};
+        throw fmt_error("Database version ({}) doesn't support"
+                        " include columns in indexes.",
+                        get_database_version());
     }
     lua_pop(lua_state, 1);
 
@@ -117,7 +117,7 @@ void flex_lua_setup_index(lua_State *lua_state, flex_table_t *table)
     lua_pop(lua_state, 1);
     check_identifier(tablespace, "tablespace");
     if (!has_tablespace(tablespace)) {
-        throw std::runtime_error{"Unknown tablespace '{}'."_format(tablespace)};
+        throw fmt_error("Unknown tablespace '{}'.", tablespace);
     }
     index.set_tablespace(tablespace.empty() ? table->index_tablespace()
                                             : tablespace);

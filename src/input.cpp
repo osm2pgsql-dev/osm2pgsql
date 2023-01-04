@@ -24,9 +24,8 @@
 type_id check_input(type_id const &last, type_id curr)
 {
     if (curr.id < 0) {
-        throw std::runtime_error{
-            "Negative OSM object ids are not allowed: {} id {}."_format(
-                osmium::item_type_to_name(curr.type), curr.id)};
+        throw fmt_error("Negative OSM object ids are not allowed: {} id {}.",
+                        osmium::item_type_to_name(curr.type), curr.id);
     }
 
     if (last.type == curr.type) {
@@ -35,15 +34,14 @@ type_id check_input(type_id const &last, type_id curr)
         }
 
         if (last.id > curr.id) {
-            throw std::runtime_error{
-                "Input data is not ordered: {} id {} after {}."_format(
-                    osmium::item_type_to_name(last.type), curr.id, last.id)};
+            throw fmt_error("Input data is not ordered: {} id {} after {}.",
+                            osmium::item_type_to_name(last.type), curr.id,
+                            last.id);
         }
 
-        throw std::runtime_error{
-            "Input data is not ordered:"
-            " {} id {} appears more than once."_format(
-                osmium::item_type_to_name(last.type), curr.id)};
+        throw fmt_error("Input data is not ordered:"
+                        " {} id {} appears more than once.",
+                        osmium::item_type_to_name(last.type), curr.id);
     }
 
     if (item_type_to_nwr_index(last.type) <=
@@ -51,9 +49,9 @@ type_id check_input(type_id const &last, type_id curr)
         return curr;
     }
 
-    throw std::runtime_error{"Input data is not ordered: {} after {}."_format(
-        osmium::item_type_to_name(curr.type),
-        osmium::item_type_to_name(last.type))};
+    throw fmt_error("Input data is not ordered: {} after {}.",
+                    osmium::item_type_to_name(curr.type),
+                    osmium::item_type_to_name(last.type));
 }
 
 type_id check_input(type_id const &last, osmium::OSMObject const &object)
@@ -186,12 +184,11 @@ prepare_input_files(std::vector<std::string> const &input_files,
 
         if (file.format() == osmium::io::file_format::unknown) {
             if (input_format.empty()) {
-                throw std::runtime_error{
-                    "Cannot detect file format for '{}'. Try using -r."_format(
-                        filename)};
+                throw fmt_error("Cannot detect file format for '{}'."
+                                " Try using -r.",
+                                filename);
             }
-            throw std::runtime_error{
-                "Unknown file format '{}'."_format(input_format)};
+            throw fmt_error("Unknown file format '{}'.", input_format);
         }
 
         if (!append && file.has_multiple_object_versions()) {

@@ -69,11 +69,11 @@ static void init_postgis_version(pg_conn_t const &db_connection)
         " pg_extension WHERE extname='postgis'");
 
     if (res.num_tuples() == 0) {
-        throw std::runtime_error{
+        throw fmt_error(
             "The postgis extension is not enabled on the database '{}'."
             " Are you using the correct database?"
-            " Enable with 'CREATE EXTENSION postgis;'"_format(
-                capabilities().database_name)};
+            " Enable with 'CREATE EXTENSION postgis;'",
+            capabilities().database_name);
     }
 
     capabilities().postgis = {std::stoi(std::string{res.get(0, 0)}),
@@ -98,9 +98,9 @@ void init_database_capabilities(pg_conn_t const &db_connection)
             std::strtoul(version_str.c_str(), nullptr, 10);
         if (capabilities().database_version <
             get_minimum_postgresql_server_version_num()) {
-            throw std::runtime_error{
-                "Your database version is too old (need at least {})."_format(
-                    get_minimum_postgresql_server_version())};
+            throw fmt_error(
+                "Your database version is too old (need at least {}).",
+                get_minimum_postgresql_server_version());
         }
 
         if (capabilities().settings.at("server_encoding") != "UTF8") {
