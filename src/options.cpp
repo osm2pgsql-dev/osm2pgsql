@@ -119,9 +119,8 @@ Common options:\n\
     -O|--output=OUTPUT  Set output. Options are:\n\
                     pgsql - Output to a PostGIS database (default)\n\
                     flex - More flexible output to PostGIS database\n\
-                    multi - Multiple Custom Table Output to a PostGIS \n\
-                            database (deprecated)\n\
                     gazetteer - Output to a PostGIS database for Nominatim\n\
+                                (deprecated)\n\
                     null - No output. Used for testing.\n\
     -S|--style=FILE  Location of the style file. Defaults to\n\
                     '" DEFAULT_STYLE "'.\n\
@@ -422,6 +421,9 @@ static void parse_log_progress_param(char const *arg)
 
 static bool parse_with_forward_dependencies_param(char const *arg)
 {
+    log_warn("The option --with-forward-dependencies is deprecated and will "
+             "soon be removed.");
+
     if (std::strcmp(arg, "false") == 0) {
         return false;
     }
@@ -761,5 +763,10 @@ void options_t::check_options()
             throw std::runtime_error{
                 "You have to set the config file with the -S|--style option."};
         }
+    }
+
+    if (output_backend == "gazetteer") {
+        log_warn(
+            "The 'gazetteer' output is deprecated and will soon be removed.");
     }
 }
