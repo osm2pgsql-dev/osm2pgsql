@@ -15,9 +15,6 @@
 
 #include <stdexcept>
 
-// NOLINTNEXTLINE(google-global-names-in-headers,google-build-using-namespace)
-using namespace fmt::literals;
-
 template <typename S, typename... TArgs>
 std::runtime_error fmt_error(S const &format_str, TArgs &&...args)
 {

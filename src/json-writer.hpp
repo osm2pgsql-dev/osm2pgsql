@@ -30,7 +30,7 @@ public:
     void number(T value)
     {
         if (std::isfinite(value)) {
-            fmt::format_to(std::back_inserter(m_buffer), "{}"_format(value));
+            m_buffer += fmt::to_string(value);
         } else {
             null();
         }
@@ -39,7 +39,7 @@ public:
     template <typename T, std::enable_if_t<std::is_integral_v<T>, bool> = true>
     void number(T value)
     {
-        fmt::format_to(std::back_inserter(m_buffer), "{}"_format(value));
+        m_buffer += fmt::to_string(value);
     }
 
     void string(char const *str)
@@ -70,8 +70,8 @@ public:
                 break;
             default:
                 if (c <= 0x1f) {
-                    m_buffer.append(
-                        R"(\u{:04x})"_format(static_cast<unsigned char>(c)));
+                    m_buffer.append(fmt::format(R"(\u{:04x})",
+                                                static_cast<unsigned char>(c)));
                 } else {
                     m_buffer += c;
                 }
