@@ -455,6 +455,11 @@ flex_table_t &output_flex_t::create_flex_table()
     if (lua_isstring(lua_state(), -1)) {
         std::string const schema = lua_tostring(lua_state(), -1);
         check_identifier(schema, "schema field");
+        if (!has_schema(schema)) {
+            throw fmt_error("Schema '{0}' not available."
+                            " Use 'CREATE SCHEMA \"{0}\";' to create it.",
+                            schema);
+        }
         new_table.set_schema(schema);
     }
     lua_pop(lua_state(), 1);
