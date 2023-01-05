@@ -253,16 +253,6 @@ void table_connection_t::start(bool append)
 {
     assert(m_db_connection);
 
-    for (auto const &ts :
-         {table().data_tablespace(), table().index_tablespace()}) {
-        if (!has_tablespace(ts)) {
-            throw fmt_error(
-                "Tablespace '{0}' not available."
-                " Use 'CREATE TABLESPACE \"{0}\" ...;' to create it.",
-                ts);
-        }
-    }
-
     m_db_connection->exec("SET client_min_messages = WARNING");
 
     if (!append) {
