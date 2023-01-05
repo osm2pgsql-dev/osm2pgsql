@@ -46,30 +46,6 @@ TEST_CASE("double_to_buffer 3.141", "[NoDB]")
     REQUIRE(std::strcmp(buffer.c_str(), "3.141") == 0);
 }
 
-TEST_CASE("string_id_list_t with one element", "[NoDB]")
-{
-    util::string_id_list_t list;
-    REQUIRE(list.empty());
-
-    list.add(17);
-
-    REQUIRE_FALSE(list.empty());
-    REQUIRE(list.get() == "{17}");
-}
-
-TEST_CASE("string_id_list_t with several elements", "[NoDB]")
-{
-    util::string_id_list_t list;
-    REQUIRE(list.empty());
-
-    list.add(17);
-    list.add(3);
-    list.add(99);
-
-    REQUIRE_FALSE(list.empty());
-    REQUIRE(list.get() == "{17,3,99}");
-}
-
 TEST_CASE("human readable time durations", "[NoDB]")
 {
     REQUIRE(util::human_readable_duration(0) == "0s");
@@ -116,21 +92,37 @@ TEST_CASE("find_by_name()", "[NoDB]")
 TEST_CASE("Use string_joiner_t with delim only without items", "[NoDB]")
 {
     util::string_joiner_t joiner{','};
+    REQUIRE(joiner.empty());
     REQUIRE(joiner().empty());
 }
 
 TEST_CASE("Use string_joiner_t with all params without items", "[NoDB]")
 {
     util::string_joiner_t joiner{',', '"', '(', ')'};
+    REQUIRE(joiner.empty());
     REQUIRE(joiner().empty());
 }
 
 TEST_CASE("Use string_joiner_t without quote char", "[NoDB]")
 {
     util::string_joiner_t joiner{',', '\0', '(', ')'};
+    REQUIRE(joiner.empty());
     joiner.add("foo");
+    REQUIRE_FALSE(joiner.empty());
     joiner.add("bar");
+    REQUIRE_FALSE(joiner.empty());
     REQUIRE(joiner() == "(foo,bar)");
+}
+
+TEST_CASE("Use string_joiner_t with quote char", "[NoDB]")
+{
+    util::string_joiner_t joiner{',', '-', '(', ')'};
+    REQUIRE(joiner.empty());
+    joiner.add("foo");
+    REQUIRE_FALSE(joiner.empty());
+    joiner.add("bar");
+    REQUIRE_FALSE(joiner.empty());
+    REQUIRE(joiner() == "(-foo-,-bar-)");
 }
 
 TEST_CASE("string_joiner_t without before/after", "[NoDB]")
@@ -138,6 +130,7 @@ TEST_CASE("string_joiner_t without before/after", "[NoDB]")
     util::string_joiner_t joiner{','};
     joiner.add("xxx");
     joiner.add("yyy");
+    REQUIRE_FALSE(joiner.empty());
     REQUIRE(joiner() == "xxx,yyy");
 }
 

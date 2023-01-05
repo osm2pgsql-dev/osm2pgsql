@@ -251,7 +251,7 @@ std::size_t middle_query_pgsql_t::get_way_node_locations_db(
     osmium::WayNodeList *nodes) const
 {
     size_t count = 0;
-    util::string_id_list_t id_list;
+    util::string_joiner_t id_list{',', '\0', '{', '}'};
 
     // get nodes where possible from cache,
     // at the same time build a list for querying missing nodes from DB
@@ -261,7 +261,7 @@ std::size_t middle_query_pgsql_t::get_way_node_locations_db(
             n.set_location(loc);
             ++count;
         } else {
-            id_list.add(n.ref());
+            id_list.add(fmt::to_string(n.ref()));
         }
     }
 
@@ -271,7 +271,7 @@ std::size_t middle_query_pgsql_t::get_way_node_locations_db(
 
     // get any remaining nodes from the DB
     // Nodes must have been written back at this point.
-    auto const res = m_sql_conn.exec_prepared("get_node_list", id_list.get());
+    auto const res = m_sql_conn.exec_prepared("get_node_list", id_list());
     std::unordered_map<osmid_t, osmium::Location> locs;
     for (int i = 0; i < res.num_tuples(); ++i) {
         locs.emplace(
@@ -478,16 +478,16 @@ middle_query_pgsql_t::rel_members_get(osmium::Relation const &rel,
     idlist_t wayidspg;
     if (types & osmium::osm_entity_bits::way) {
         // collect ids from all way members into a list..
-        util::string_id_list_t way_ids;
+        util::string_joiner_t way_ids{',', '\0', '{', '}'};
         for (auto const &member : rel.members()) {
             if (member.type() == osmium::item_type::way) {
-                way_ids.add(member.ref());
+                way_ids.add(fmt::to_string(member.ref()));
             }
         }
 
         // ...and get those ways from database
         if (!way_ids.empty()) {
-            res = m_sql_conn.exec_prepared("get_way_list", way_ids.get());
+            res = m_sql_conn.exec_prepared("get_way_list", way_ids());
             wayidspg = get_ids_from_result(res);
         }
     }
