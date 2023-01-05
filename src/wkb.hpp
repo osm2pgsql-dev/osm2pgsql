@@ -13,6 +13,7 @@
 #include "geom.hpp"
 
 #include <string>
+#include <string_view>
 
 /**
  * \file
@@ -37,7 +38,7 @@
  * \param wkb Input EWKB geometry in binary format
  * \returns Geometry
  */
-[[nodiscard]] geom::geometry_t ewkb_to_geom(std::string const &wkb);
+[[nodiscard]] geom::geometry_t ewkb_to_geom(std::string_view wkb);
 
 /**
  * Decode one hex character (0-9A-F or 0-9a-f) and return its value. Throw
