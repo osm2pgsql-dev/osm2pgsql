@@ -35,7 +35,7 @@ static void delete_location(node_persistent_cache *cache, osmid_t id)
 TEST_CASE("Persistent cache", "[NoDB]")
 {
     std::string const flat_node_file = "test_middle_flat.flat.nodes.bin";
-    testing::cleanup::file_t flatnode_cleaner{flat_node_file};
+    testing::cleanup::file_t const flatnode_cleaner{flat_node_file};
 
     // create a new cache
     {

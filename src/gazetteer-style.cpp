@@ -480,7 +480,7 @@ void gazetteer_style_t::copy_out(osmium::OSMObject const &o,
         buffer->add_column(std::get<1>(tag));
         // names
         if (std::get<2>(tag) & SF_MAIN_NAMED_KEY) {
-            DomainMatcher m{std::get<0>(tag)};
+            DomainMatcher const m{std::get<0>(tag)};
             buffer->new_hash();
             for (auto const &t : o.tags()) {
                 char const *const k = m(t);
@@ -562,7 +562,7 @@ void gazetteer_style_t::copy_out(osmium::OSMObject const &o,
                     "osm_changeset", o.changeset());
             }
             if (m_metadata_fields.timestamp() && o.timestamp()) {
-                std::string timestamp = o.timestamp().to_iso();
+                std::string const timestamp = o.timestamp().to_iso();
                 buffer->add_hash_elem_noescape("osm_timestamp",
                                                timestamp.c_str());
             }

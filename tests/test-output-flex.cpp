@@ -35,7 +35,7 @@ struct options_slim_latlon
 TEMPLATE_TEST_CASE("liechtenstein regression", "", options_slim_default,
                    options_slim_latlon)
 {
-    options_t options = TestType::options();
+    options_t const options = TestType::options();
 
     REQUIRE_NOTHROW(db.run_file(options, "liechtenstein-2013-08-03.osm.pbf"));
 

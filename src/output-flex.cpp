@@ -1123,7 +1123,7 @@ void output_flex_t::call_lua_function(prepared_lua_function_t func,
 void output_flex_t::get_mutex_and_call_lua_function(
     prepared_lua_function_t func, osmium::OSMObject const &object)
 {
-    std::lock_guard<std::mutex> guard{lua_mutex};
+    std::lock_guard<std::mutex> const guard{lua_mutex};
     call_lua_function(func, object);
 }
 
@@ -1148,7 +1148,7 @@ void output_flex_t::select_relation_members()
         return;
     }
 
-    std::lock_guard<std::mutex> guard{lua_mutex};
+    std::lock_guard<std::mutex> const guard{lua_mutex};
     call_lua_function(m_select_relation_members, m_relation_cache.get());
 
     // If the function returned nil there is nothing to be marked.

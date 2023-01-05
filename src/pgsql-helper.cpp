@@ -37,7 +37,8 @@ void create_geom_check_trigger(pg_conn_t *db_connection,
                                std::string const &table,
                                std::string const &condition)
 {
-    std::string func_name = qualified_name(schema, table + "_osm2pgsql_valid");
+    std::string const func_name =
+        qualified_name(schema, table + "_osm2pgsql_valid");
 
     db_connection->exec("CREATE OR REPLACE FUNCTION {}()\n"
                         "RETURNS TRIGGER AS $$\n"
@@ -63,7 +64,8 @@ void drop_geom_check_trigger(pg_conn_t *db_connection,
                              std::string const &schema,
                              std::string const &table)
 {
-    std::string func_name = qualified_name(schema, table + "_osm2pgsql_valid");
+    std::string const func_name =
+        qualified_name(schema, table + "_osm2pgsql_valid");
 
     db_connection->exec(R"(DROP TRIGGER "{}" ON {})",
                         table + "_osm2pgsql_valid",

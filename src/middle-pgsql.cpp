@@ -99,7 +99,7 @@ void middle_pgsql_t::table_desc::build_index(std::string const &conninfo) const
 
     // Use a temporary connection here because we might run in a separate
     // thread context.
-    pg_conn_t db_connection{conninfo};
+    pg_conn_t const db_connection{conninfo};
 
     log_info("Building index on table '{}'", name());
     db_connection.exec(m_create_fw_dep_indexes);
@@ -191,9 +191,9 @@ void pgsql_parse_members(char const *string, osmium::memory::Buffer *buffer,
     osmium::builder::RelationMemberListBuilder builder{*buffer, obuilder};
 
     while (*string != '}') {
-        char type = string[0];
+        char const type = string[0];
         char *endp = nullptr;
-        osmid_t id = std::strtoll(string + 1, &endp, 10);
+        osmid_t const id = std::strtoll(string + 1, &endp, 10);
         // String points to the comma */
         string = decode_to_delimiter(endp + 1, &role);
         builder.add_member(osmium::char_to_item_type(type), id, role);

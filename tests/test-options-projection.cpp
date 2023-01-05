@@ -73,7 +73,8 @@ TEST_CASE("Projection setup")
 
     option_params.push_back("foo");
 
-    options_t options{(int)option_params.size(), (char **)option_params.data()};
+    options_t const options{(int)option_params.size(),
+                            (char **)option_params.data()};
 
     if (!proj_name.empty()) {
         CHECK(options.projection->target_desc() == proj_name);

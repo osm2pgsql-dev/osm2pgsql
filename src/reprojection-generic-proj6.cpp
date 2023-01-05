@@ -63,7 +63,7 @@ private:
         std::string const source = "epsg:{}"_format(from);
         std::string const target = "epsg:{}"_format(to);
 
-        std::unique_ptr<PJ, pj_deleter_t> trans{proj_create_crs_to_crs(
+        std::unique_ptr<PJ, pj_deleter_t> const trans{proj_create_crs_to_crs(
             m_context.get(), source.c_str(), target.c_str(), nullptr)};
 
         if (!trans) {
