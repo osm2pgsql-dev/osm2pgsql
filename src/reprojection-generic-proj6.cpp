@@ -82,8 +82,8 @@ private:
         return trans_vis;
     }
 
-    geom::point_t transform(PJ *transformation,
-                            geom::point_t point) const noexcept
+    static geom::point_t transform(PJ *transformation,
+                                   geom::point_t point) noexcept
     {
         PJ_COORD c_in;
         c_in.lpzt.z = 0.0;

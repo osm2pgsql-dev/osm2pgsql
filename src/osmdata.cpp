@@ -314,7 +314,7 @@ private:
                      type, m_clones.size());
 
             std::vector<std::future<void>> workers;
-
+            workers.reserve(m_clones.size() + 1);
             for (auto const &clone : m_clones) {
                 workers.push_back(std::async(std::launch::async, run,
                                              std::cref(clone), &list, &m_mutex,

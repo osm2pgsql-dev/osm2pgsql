@@ -106,12 +106,12 @@ void long_usage(char const *arg0, bool verbose)
     char const *const name = program_name(arg0);
 
     fmt::print(stdout, "\nUsage: {} [OPTIONS] OSM-FILE...\n", name);
-    std::fputs(
+    (void)std::fputs(
         "\nImport data from the OSM file(s) into a PostgreSQL database.\n\n\
 Full documentation is available at https://osm2pgsql.org/\n\n",
         stdout);
 
-    std::fputs("\
+    (void)std::fputs("\
 Common options:\n\
     -a|--append     Update existing osm2pgsql database with data from file.\n\
     -c|--create     Import OSM data from file into database. This is the\n\
@@ -127,12 +127,12 @@ Common options:\n\
     -k|--hstore     Add tags without column to an additional hstore column.\n",
                stdout);
 #ifdef HAVE_LUA
-    std::fputs("\
+    (void)std::fputs("\
        --tag-transform-script=SCRIPT  Specify a Lua script to handle tag\n\
                     filtering and normalisation (pgsql output only).\n",
                stdout);
 #endif
-    std::fputs("\
+    (void)std::fputs("\
     -s|--slim       Store temporary data in the database. This switch is\n\
                     required if you want to update with --append later.\n\
         --drop      Only with --slim: drop temporary tables after import\n\
@@ -153,7 +153,7 @@ Database options:\n\
                stdout);
 
     if (verbose) {
-        std::fputs("\n\
+        (void)std::fputs("\n\
 Logging options:\n\
        --log-level=LEVEL  Set log level ('debug', 'info' (default), 'warn',\n\
                     or 'error').\n\
@@ -470,6 +470,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
     // errors - setting it to zero seems to work, though. see
     // http://stackoverflow.com/questions/15179963/is-it-possible-to-repeat-getopt#15179990
     optind = 0;
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
     while (-1 != (c = getopt_long(argc, argv, short_options, long_options,
                                   nullptr))) {
 
@@ -621,7 +622,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             break;
         case 'V': // --version
             print_version();
-            exit(EXIT_SUCCESS);
+            std::exit(EXIT_SUCCESS); // NOLINT(concurrency-mt-unsafe)
             break;
         case 215: // --middle-schema
             middle_dbschema = optarg;

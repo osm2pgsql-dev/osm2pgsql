@@ -24,7 +24,9 @@ static testing::db::import_t db;
 static char const *const data_file = "liechtenstein-2013-08-03.osm.pbf";
 
 std::vector<std::string> get_files() {
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
     char const *env = std::getenv("EXAMPLE_FILES");
+    REQUIRE(env);
     return osmium::split_string(env, ',', true);
 }
 

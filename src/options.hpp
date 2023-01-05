@@ -81,6 +81,7 @@ public:
     /**
      * Constructor parsing the options from the command line.
      */
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
     options_t(int argc, char *argv[]);
 
     /**
