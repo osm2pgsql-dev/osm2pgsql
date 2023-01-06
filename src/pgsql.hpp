@@ -122,51 +122,6 @@ private:
     std::unique_ptr<PGresult, pg_result_deleter_t> m_result;
 };
 
-// Do not use anonymous namespace in header file
-// https://wiki.sei.cmu.edu/confluence/display/cplusplus/DCL59-CPP.+Do+not+define+an+unnamed+namespace+in+a+header+file
-namespace detail {
-
-/**
- * Helper for pg_conn_t::exec_prepared() function. All parameters to
- * that function are given to the exec_arg::to_str function which will
- * pass through string-like parameters and convert other parameters to
- * strings.
- */
-template <typename T>
-struct exec_arg
-{
-    constexpr static std::size_t const buffers_needed = 1;
-    static char const *to_str(std::vector<std::string> *data, T param)
-    {
-        return data->emplace_back(fmt::to_string(std::forward<T>(param)))
-            .c_str();
-    }
-};
-
-template <>
-struct exec_arg<char const *>
-{
-    constexpr static std::size_t const buffers_needed = 0;
-    static char const *to_str(std::vector<std::string> * /*data*/,
-                              char const *param) noexcept
-    {
-        return param;
-    }
-};
-
-template <>
-struct exec_arg<std::string const &>
-{
-    constexpr static std::size_t const buffers_needed = 0;
-    static char const *to_str(std::vector<std::string> * /*data*/,
-                              std::string const &param) noexcept
-    {
-        return param.c_str();
-    }
-};
-
-} // namespace detail
-
 /**
  * PostgreSQL connection.
  *
@@ -259,6 +214,39 @@ private:
                                        int result_format) const;
 
     /**
+     * Helper for pg_conn_t::exec_prepared_with_result_format() function. Used
+     * to find out how many buffers we need. Must always be in sync with the
+     * to_str() function below.
+     */
+    template <typename T>
+    static constexpr std::size_t buffers_needed() noexcept
+    {
+        if constexpr (std::is_same_v<T, char const *>) {
+            return 0;
+        } else if constexpr (std::is_same_v<T, std::string>) {
+            return 0;
+        }
+        return 1;
+    }
+
+    /**
+     * Helper for pg_conn_t::exec_prepared_with_result_format() function. All
+     * parameters to that function are given to the to_str() function which
+     * will pass through string-like parameters and convert other parameters to
+     * strings.
+     */
+    template <typename T>
+    static char const *to_str(std::vector<std::string> *data, T const &param)
+    {
+        if constexpr (std::is_same_v<T, char const *>) {
+            return param;
+        } else if constexpr (std::is_same_v<T, std::string>) {
+            return param.c_str();
+        }
+        return data->emplace_back(fmt::to_string(param)).c_str();
+    }
+
+    /**
      * Run the named prepared SQL statement and return the results.
      *
      * \param stmt The name of the prepared statement.
@@ -279,7 +267,7 @@ private:
         // so that pointers into the strings in that vector remain valid
         // after new parameters have been added.
         constexpr auto const total_buffers_needed =
-            (0 + ... + detail::exec_arg<TArgs>::buffers_needed);
+            (0 + ... + buffers_needed<std::decay_t<TArgs>>());
         std::vector<std::string> exec_params;
         exec_params.reserve(total_buffers_needed);
 
@@ -287,8 +275,8 @@ private:
         // to the original string parameters or to the recently converted
         // in the exec_params vector.
         std::array<char const *, sizeof...(params)> param_ptrs = {
-            detail::exec_arg<TArgs>::to_str(&exec_params,
-                                            std::forward<TArgs>(params))...};
+            to_str<std::decay_t<TArgs>>(&exec_params,
+                                        std::forward<TArgs>(params))...};
 
         return exec_prepared_internal(stmt, sizeof...(params),
                                       param_ptrs.data(), nullptr, nullptr,
