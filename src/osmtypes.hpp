@@ -189,9 +189,10 @@ public:
     }
 
     /// Add tag to list without checking for duplicates
-    void add_tag(char const *key, char const *value)
+    template <typename T>
+    void add_tag(char const *key, T&& value)
     {
-        m_tags.emplace_back(key, value);
+        m_tags.emplace_back(key, std::move(value));
     }
 
     /// Add tag to list if there is no tag with that key yet
