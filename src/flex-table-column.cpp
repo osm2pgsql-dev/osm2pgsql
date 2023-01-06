@@ -9,6 +9,7 @@
 
 #include "flex-table-column.hpp"
 #include "format.hpp"
+#include "pgsql-capabilities.hpp"
 #include "util.hpp"
 
 #include <algorithm>
@@ -82,7 +83,14 @@ flex_table_column_t::flex_table_column_t(std::string name,
 : m_name(std::move(name)), m_type_name(lowercase(type)),
   m_sql_type(std::move(sql_type)),
   m_type(get_column_type_from_string(m_type_name))
-{}
+{
+    if (m_type == table_column_type::hstore) {
+        if (!has_extension("hstore")) {
+            throw std::runtime_error{"Extension 'hstore' not available. Use "
+                                     "'CREATE EXTENSION hstore;' to load it."};
+        }
+    }
+}
 
 void flex_table_column_t::set_projection(char const *projection)
 {

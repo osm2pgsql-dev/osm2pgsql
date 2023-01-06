@@ -64,21 +64,24 @@ public:
         return m_index_tablespace;
     }
 
-    void set_schema(std::string const &schema) noexcept { m_schema = schema; }
+    void set_schema(std::string schema) noexcept
+    {
+        m_schema = std::move(schema);
+    }
 
     void set_cluster_by_geom(bool cluster) noexcept
     {
         m_cluster_by_geom = cluster;
     }
 
-    void set_data_tablespace(std::string const &tablespace) noexcept
+    void set_data_tablespace(std::string tablespace) noexcept
     {
-        m_data_tablespace = tablespace;
+        m_data_tablespace = std::move(tablespace);
     }
 
-    void set_index_tablespace(std::string const &tablespace) noexcept
+    void set_index_tablespace(std::string tablespace) noexcept
     {
-        m_index_tablespace = tablespace;
+        m_index_tablespace = std::move(tablespace);
     }
 
     osmium::item_type id_type() const noexcept { return m_id_type; }
@@ -103,8 +106,6 @@ public:
     {
         return m_geom_column != std::numeric_limits<std::size_t>::max();
     }
-
-    bool has_hstore_column() const noexcept;
 
     /// Get the (first, if there are multiple) geometry column.
     flex_table_column_t const &geom_column() const noexcept

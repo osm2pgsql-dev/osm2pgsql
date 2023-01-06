@@ -74,14 +74,6 @@ bool flex_table_t::has_id_column() const noexcept
            (m_columns[0].type() == table_column_type::id_num);
 }
 
-bool flex_table_t::has_hstore_column() const noexcept
-{
-    auto const it = std::find_if(begin(), end(), [&](auto const &column) {
-        return column.type() == table_column_type::hstore;
-    });
-    return it != end();
-}
-
 bool flex_table_t::matches_type(osmium::item_type type) const noexcept
 {
     // This table takes any type -> okay
@@ -260,29 +252,6 @@ enable_check_trigger(pg_conn_t *db_connection, flex_table_t const &table)
 void table_connection_t::start(bool append)
 {
     assert(m_db_connection);
-
-    if (!has_schema(table().schema())) {
-        throw fmt_error("Schema '{0}' not available."
-                        " Use 'CREATE SCHEMA \"{0}\";' to create it.",
-                        table().schema());
-    }
-
-    for (auto const &ts :
-         {table().data_tablespace(), table().index_tablespace()}) {
-        if (!has_tablespace(ts)) {
-            throw fmt_error(
-                "Tablespace '{0}' not available."
-                " Use 'CREATE TABLESPACE \"{0}\" ...;' to create it.",
-                ts);
-        }
-    }
-
-    if (table().has_hstore_column()) {
-        if (!has_extension("hstore")) {
-            throw std::runtime_error{"Extension 'hstore' not available. Use "
-                                     "'CREATE EXTENSION hstore;' to load it."};
-        }
-    }
 
     m_db_connection->exec("SET client_min_messages = WARNING");
 

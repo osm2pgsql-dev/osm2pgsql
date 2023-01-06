@@ -434,6 +434,16 @@ int output_flex_t::app_as_geometrycollection()
     return 1;
 }
 
+static void check_tablespace(std::string const &tablespace)
+{
+    if (!has_tablespace(tablespace)) {
+        throw fmt_error(
+            "Tablespace '{0}' not available."
+            " Use 'CREATE TABLESPACE \"{0}\" ...;' to create it.",
+            tablespace);
+    }
+}
+
 flex_table_t &output_flex_t::create_flex_table()
 {
     std::string const table_name =
@@ -455,6 +465,11 @@ flex_table_t &output_flex_t::create_flex_table()
     if (lua_isstring(lua_state(), -1)) {
         std::string const schema = lua_tostring(lua_state(), -1);
         check_identifier(schema, "schema field");
+        if (!has_schema(schema)) {
+            throw fmt_error("Schema '{0}' not available."
+                            " Use 'CREATE SCHEMA \"{0}\";' to create it.",
+                            schema);
+        }
         new_table.set_schema(schema);
     }
     lua_pop(lua_state(), 1);
@@ -486,6 +501,7 @@ flex_table_t &output_flex_t::create_flex_table()
     if (lua_isstring(lua_state(), -1)) {
         std::string const tablespace = lua_tostring(lua_state(), -1);
         check_identifier(tablespace, "data_tablespace field");
+        check_tablespace(tablespace);
         new_table.set_data_tablespace(tablespace);
     }
     lua_pop(lua_state(), 1);
@@ -495,6 +511,7 @@ flex_table_t &output_flex_t::create_flex_table()
     if (lua_isstring(lua_state(), -1)) {
         std::string const tablespace = lua_tostring(lua_state(), -1);
         check_identifier(tablespace, "index_tablespace field");
+        check_tablespace(tablespace);
         new_table.set_index_tablespace(tablespace);
     }
     lua_pop(lua_state(), 1);
