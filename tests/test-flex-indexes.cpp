@@ -45,7 +45,7 @@ private:
 
 TEST_CASE("check index with single column", "[NoDB]")
 {
-    test_framework tf;
+    test_framework const tf;
 
     flex_table_t table{"test_table"};
     table.add_column("geom", "geometry", "");
@@ -68,7 +68,7 @@ TEST_CASE("check index with single column", "[NoDB]")
 
 TEST_CASE("check index with multiple columns", "[NoDB]")
 {
-    test_framework tf;
+    test_framework const tf;
 
     flex_table_t table{"test_table"};
     table.add_column("a", "int", "");
@@ -90,7 +90,7 @@ TEST_CASE("check index with multiple columns", "[NoDB]")
 
 TEST_CASE("check unique index", "[NoDB]")
 {
-    test_framework tf;
+    test_framework const tf;
 
     flex_table_t table{"test_table"};
     table.add_column("col", "int", "");
@@ -112,7 +112,7 @@ TEST_CASE("check unique index", "[NoDB]")
 
 TEST_CASE("check index with tablespace from table", "[NoDB]")
 {
-    test_framework tf;
+    test_framework const tf;
 
     flex_table_t table{"test_table"};
     table.set_index_tablespace("foo");
@@ -134,7 +134,7 @@ TEST_CASE("check index with tablespace from table", "[NoDB]")
 
 TEST_CASE("check index with tablespace", "[NoDB]")
 {
-    test_framework tf;
+    test_framework const tf;
 
     flex_table_t table{"test_table"};
     table.add_column("col", "int", "");
@@ -156,7 +156,7 @@ TEST_CASE("check index with tablespace", "[NoDB]")
 
 TEST_CASE("check index with expression and where clause", "[NoDB]")
 {
-    test_framework tf;
+    test_framework const tf;
 
     flex_table_t table{"test_table"};
     table.add_column("col", "text", "");
@@ -178,7 +178,7 @@ TEST_CASE("check index with expression and where clause", "[NoDB]")
 
 TEST_CASE("check index with include", "[NoDB]")
 {
-    test_framework tf;
+    test_framework const tf;
 
     flex_table_t table{"test_table"};
     table.add_column("col", "int", "");
@@ -201,7 +201,7 @@ TEST_CASE("check index with include", "[NoDB]")
 
 TEST_CASE("check index with include as array", "[NoDB]")
 {
-    test_framework tf;
+    test_framework const tf;
 
     flex_table_t table{"test_table"};
     table.add_column("col", "int", "");
@@ -224,7 +224,7 @@ TEST_CASE("check index with include as array", "[NoDB]")
 
 TEST_CASE("check index with empty include array", "[NoDB]")
 {
-    test_framework tf;
+    test_framework const tf;
 
     flex_table_t table{"test_table"};
     table.add_column("col", "int", "");
@@ -247,7 +247,7 @@ TEST_CASE("check index with empty include array", "[NoDB]")
 
 TEST_CASE("check multiple indexes", "[NoDB]")
 {
-    test_framework tf;
+    test_framework const tf;
 
     flex_table_t table{"test_table"};
     table.add_column("a", "int", "");
@@ -270,7 +270,7 @@ TEST_CASE("check multiple indexes", "[NoDB]")
 
 TEST_CASE("check various broken index configs", "[NoDB]")
 {
-    test_framework tf;
+    test_framework const tf;
 
     flex_table_t table{"test_table"};
     table.add_column("col", "text", "");

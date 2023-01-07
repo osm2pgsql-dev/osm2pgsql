@@ -442,7 +442,7 @@ output_pgsql_t::output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
     for (std::size_t i = 0; i < m_tables.size(); ++i) {
 
         //figure out the columns this table needs
-        columns_t columns = exlist.normal_columns(
+        columns_t const columns = exlist.normal_columns(
             (i == t_point) ? osmium::item_type::node : osmium::item_type::way);
 
         //figure out what name we are using for this and what type

@@ -268,7 +268,7 @@ TEST_CASE("parse xml file with extra args")
 
 TEST_CASE("invalid location")
 {
-    options_t options = testing::opt_t();
+    options_t const options = testing::opt_t();
 
     auto const middle = std::make_shared<counting_middle_t>(false);
     auto const output = std::make_shared<counting_output_t>(options);

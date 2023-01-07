@@ -180,7 +180,7 @@ prepare_input_files(std::vector<std::string> const &input_files,
     std::vector<osmium::io::File> files;
 
     for (auto const &filename : input_files) {
-        osmium::io::File file{filename, input_format};
+        osmium::io::File const file{filename, input_format};
 
         if (file.format() == osmium::io::file_format::unknown) {
             if (input_format.empty()) {

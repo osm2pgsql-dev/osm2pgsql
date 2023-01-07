@@ -51,7 +51,7 @@ TEST_CASE("with three input files")
 
 TEST_CASE("should use newest version of any object")
 {
-    options_t options = testing::opt_t().slim().flex(conf_file);
+    options_t const options = testing::opt_t().slim().flex(conf_file);
 
     REQUIRE_NOTHROW(
         db.run_import(options, {"n10 v1 dV x10.0 y10.0 Ta=10.1\n"

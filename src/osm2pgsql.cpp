@@ -33,7 +33,7 @@
  */
 static void show_memory_usage()
 {
-    osmium::MemoryUsage mem;
+    osmium::MemoryUsage const mem;
     if (mem.peak() != 0) {
         log_debug("Overall memory usage: peak={}MByte current={}MByte",
                   mem.peak(), mem.current());
@@ -80,7 +80,7 @@ static void run(options_t const &options)
 
 void check_db(options_t const &options)
 {
-    pg_conn_t db_connection{options.conninfo};
+    pg_conn_t const db_connection{options.conninfo};
 
     init_database_capabilities(db_connection);
 

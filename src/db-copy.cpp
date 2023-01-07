@@ -60,7 +60,7 @@ void db_deleter_by_type_and_id_t::delete_rows(std::string const &table,
 
         auto const pos = column.find(',');
         assert(pos != std::string::npos);
-        std::string type = column.substr(0, pos);
+        std::string const type = column.substr(0, pos);
 
         fmt::format_to(std::back_inserter(sql),
                        ") AS t (osm_type, osm_id) WHERE"
@@ -106,7 +106,7 @@ void db_copy_thread_t::add_buffer(std::unique_ptr<db_cmd_t> &&buffer)
 void db_copy_thread_t::sync_and_wait()
 {
     std::promise<void> barrier;
-    std::future<void> sync = barrier.get_future();
+    std::future<void> const sync = barrier.get_future();
     add_buffer(std::make_unique<db_cmd_sync_t>(std::move(barrier)));
     sync.wait();
 }

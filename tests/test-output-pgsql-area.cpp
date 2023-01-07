@@ -16,7 +16,7 @@ static testing::db::import_t db;
 
 TEST_CASE("default projection")
 {
-    options_t options = testing::opt_t().slim();
+    options_t const options = testing::opt_t().slim();
 
     REQUIRE_NOTHROW(db.run_file(options, "test_output_pgsql_area.osm"));
 
@@ -33,7 +33,7 @@ TEST_CASE("default projection")
 
 TEST_CASE("latlon projection")
 {
-    options_t options = testing::opt_t().slim().srs(PROJ_LATLONG);
+    options_t const options = testing::opt_t().slim().srs(PROJ_LATLONG);
 
     REQUIRE_NOTHROW(db.run_file(options, "test_output_pgsql_area.osm"));
 
