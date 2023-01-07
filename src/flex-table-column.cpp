@@ -146,21 +146,21 @@ std::string flex_table_column_t::sql_type_name() const
     case table_column_type::direction:
         return "int2";
     case table_column_type::geometry:
-        return "Geometry(GEOMETRY, {})"_format(m_srid);
+        return fmt::format("Geometry(GEOMETRY, {})", m_srid);
     case table_column_type::point:
-        return "Geometry(POINT, {})"_format(m_srid);
+        return fmt::format("Geometry(POINT, {})", m_srid);
     case table_column_type::linestring:
-        return "Geometry(LINESTRING, {})"_format(m_srid);
+        return fmt::format("Geometry(LINESTRING, {})", m_srid);
     case table_column_type::polygon:
-        return "Geometry(POLYGON, {})"_format(m_srid);
+        return fmt::format("Geometry(POLYGON, {})", m_srid);
     case table_column_type::multipoint:
-        return "Geometry(MULTIPOINT, {})"_format(m_srid);
+        return fmt::format("Geometry(MULTIPOINT, {})", m_srid);
     case table_column_type::multilinestring:
-        return "Geometry(MULTILINESTRING, {})"_format(m_srid);
+        return fmt::format("Geometry(MULTILINESTRING, {})", m_srid);
     case table_column_type::multipolygon:
-        return "Geometry(MULTIPOLYGON, {})"_format(m_srid);
+        return fmt::format("Geometry(MULTIPOLYGON, {})", m_srid);
     case table_column_type::geometrycollection:
-        return "Geometry(GEOMETRYCOLLECTION, {})"_format(m_srid);
+        return fmt::format("Geometry(GEOMETRYCOLLECTION, {})", m_srid);
     case table_column_type::area:
         return "real";
     case table_column_type::id_type:
@@ -188,5 +188,6 @@ std::string flex_table_column_t::sql_modifiers() const
 
 std::string flex_table_column_t::sql_create() const
 {
-    return R"("{}" {} {})"_format(m_name, sql_type_name(), sql_modifiers());
+    return fmt::format(R"("{}" {} {})", m_name, sql_type_name(),
+                       sql_modifiers());
 }

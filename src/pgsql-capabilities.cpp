@@ -32,8 +32,8 @@ static void init_set_from_query(std::set<std::string> *set,
                                 char const *table, char const *column,
                                 char const *condition = "true")
 {
-    auto const res = db_connection.exec(
-        "SELECT {} FROM {} WHERE {}"_format(column, table, condition));
+    auto const res = db_connection.exec("SELECT {} FROM {} WHERE {}", column,
+                                        table, condition);
     for (int i = 0; i < res.num_tuples(); ++i) {
         set->emplace(res.get(i, 0));
     }

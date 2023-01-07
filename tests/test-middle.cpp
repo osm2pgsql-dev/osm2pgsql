@@ -160,8 +160,8 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         // set nodes
         for (osmid_t i = 1; i <= 10; ++i) {
             nds.push_back(i);
-            auto const &node = buffer.add_node("n{} x{:.7f} y{:.7f}"_format(
-                i, lon - i * 0.003, lat + i * 0.001));
+            auto const &node = buffer.add_node(fmt::format(
+                "n{} x{:.7f} y{:.7f}", i, lon - i * 0.003, lat + i * 0.001));
             mid->node(node);
         }
         mid->after_nodes();

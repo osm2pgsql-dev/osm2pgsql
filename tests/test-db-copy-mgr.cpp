@@ -192,7 +192,7 @@ TEST_CASE("copy_mgr_t")
 
         for (auto const &[k, v] : values) {
             auto const res = c.result_as_string(
-                "SELECT h->'{}' FROM test_copy_mgr"_format(k));
+                fmt::format("SELECT h->'{}' FROM test_copy_mgr", k));
             CHECK(res == v);
         }
     }

@@ -84,9 +84,9 @@ void analyze_table(pg_conn_t const &db_connection, std::string const &schema,
 bool has_table(pg_conn_t const &db_connection, std::string const &schema,
                std::string const &table)
 {
-    auto const sql = "SELECT count(*) FROM pg_tables"
-                     "  WHERE schemaname='{}' AND tablename='{}'"_format(
-                         schema.empty() ? "public" : schema, table);
+    auto const sql = fmt::format("SELECT count(*) FROM pg_tables"
+                                 " WHERE schemaname='{}' AND tablename='{}'",
+                                 schema.empty() ? "public" : schema, table);
     auto const res = db_connection.exec(sql);
     char const *const num = res.get_value(0, 0);
 

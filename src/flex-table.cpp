@@ -150,15 +150,16 @@ flex_table_column_t &flex_table_t::add_column(std::string const &name,
 std::string flex_table_t::build_sql_prepare_get_wkb() const
 {
     if (has_multicolumn_id_index()) {
-        return "PREPARE get_wkb(char(1), bigint) AS"
-               " SELECT \"{}\" FROM {} WHERE \"{}\" = $1 AND \"{}\" = $2"_format(
-                   geom_column().name(), full_name(), m_columns[0].name(),
-                   m_columns[1].name());
+        return fmt::format(
+            "PREPARE get_wkb(char(1), bigint) AS"
+            " SELECT \"{}\" FROM {} WHERE \"{}\" = $1 AND \"{}\" = $2",
+            geom_column().name(), full_name(), m_columns[0].name(),
+            m_columns[1].name());
     }
 
-    return "PREPARE get_wkb(bigint) AS"
-           " SELECT \"{}\" FROM {} WHERE \"{}\" = $1"_format(
-               geom_column().name(), full_name(), id_column_names());
+    return fmt::format("PREPARE get_wkb(bigint) AS"
+                       " SELECT \"{}\" FROM {} WHERE \"{}\" = $1",
+                       geom_column().name(), full_name(), id_column_names());
 }
 
 std::string
@@ -167,8 +168,9 @@ flex_table_t::build_sql_create_table(table_type ttype,
 {
     assert(!m_columns.empty());
 
-    std::string sql = "CREATE {} TABLE IF NOT EXISTS {} ("_format(
-        ttype == table_type::interim ? "UNLOGGED" : "", table_name);
+    std::string sql =
+        fmt::format("CREATE {} TABLE IF NOT EXISTS {} (",
+                    ttype == table_type::interim ? "UNLOGGED" : "", table_name);
 
     util::string_joiner_t joiner{','};
     for (auto const &column : m_columns) {
@@ -208,8 +210,9 @@ std::string flex_table_t::build_sql_column_list() const
 
 std::string flex_table_t::build_sql_create_id_index() const
 {
-    return "CREATE INDEX ON {} USING BTREE ({}) {}"_format(
-        full_name(), id_column_names(), tablespace_clause(index_tablespace()));
+    return fmt::format("CREATE INDEX ON {} USING BTREE ({}) {}", full_name(),
+                       id_column_names(),
+                       tablespace_clause(index_tablespace()));
 }
 
 flex_index_t &flex_table_t::add_index(std::string method)
@@ -232,9 +235,9 @@ enable_check_trigger(pg_conn_t *db_connection, flex_table_t const &table)
 
     for (auto const &column : table) {
         if (column.is_geometry_column() && column.needs_isvalid()) {
-            checks.append(
-                R"((NEW."{0}" IS NULL OR ST_IsValid(NEW."{0}")) AND )"_format(
-                    column.name()));
+            checks.append(fmt::format(
+                R"((NEW."{0}" IS NULL OR ST_IsValid(NEW."{0}")) AND )",
+                column.name()));
         }
     }
 
@@ -303,8 +306,9 @@ void table_connection_t::stop(bool updateable, bool append)
             flex_table_t::table_type::permanent, table().full_tmp_name()));
 
         std::string const columns = table().build_sql_column_list();
-        std::string sql = "INSERT INTO {} ({}) SELECT {} FROM {}"_format(
-            table().full_tmp_name(), columns, columns, table().full_name());
+        std::string sql = fmt::format("INSERT INTO {} ({}) SELECT {} FROM {}",
+                                      table().full_tmp_name(), columns, columns,
+                                      table().full_name());
 
         auto const postgis_version = get_postgis_version();
 
@@ -316,11 +320,11 @@ void table_connection_t::stop(bool updateable, bool append)
             log_debug("Using GeoHash for clustering table '{}'",
                       table().name());
             if (table().geom_column().srid() == 4326) {
-                sql += "ST_GeoHash({},10)"_format(geom_column_name);
+                sql += fmt::format("ST_GeoHash({},10)", geom_column_name);
             } else {
-                sql +=
-                    "ST_GeoHash(ST_Transform(ST_Envelope({}),4326),10)"_format(
-                        geom_column_name);
+                sql += fmt::format(
+                    "ST_GeoHash(ST_Transform(ST_Envelope({}),4326),10)",
+                    geom_column_name);
             }
             sql += " COLLATE \"C\"";
         } else {

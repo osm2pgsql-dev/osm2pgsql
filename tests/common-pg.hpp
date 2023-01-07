@@ -78,15 +78,16 @@ public:
 
     int get_count(char const *table_name, std::string const &where = "") const
     {
-        auto const query = "SELECT count(*) FROM {} {} {}"_format(
-            table_name, (where.empty() ? "" : "WHERE"), where);
+        auto const query =
+            fmt::format("SELECT count(*) FROM {} {} {}", table_name,
+                        (where.empty() ? "" : "WHERE"), where);
 
         return result_as_int(query);
     }
 
     void require_has_table(char const *table_name) const
     {
-        auto const where = "oid = '{}'::regclass"_format(table_name);
+        auto const where = fmt::format("oid = '{}'::regclass", table_name);
 
         REQUIRE(get_count("pg_catalog.pg_class", where) == 1);
     }
@@ -100,7 +101,8 @@ public:
         try {
             conn_t conn{"dbname=postgres"};
 
-            m_db_name = "osm2pgsql-test-{}-{}"_format(getpid(), time(nullptr));
+            m_db_name =
+                fmt::format("osm2pgsql-test-{}-{}", getpid(), time(nullptr));
             conn.exec(R"(DROP DATABASE IF EXISTS "{}")", m_db_name);
             conn.exec(R"(CREATE DATABASE "{}" WITH ENCODING 'UTF8')",
                       m_db_name);

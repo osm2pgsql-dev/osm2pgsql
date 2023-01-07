@@ -49,7 +49,7 @@ flex_index_t::create_index(std::string const &qualified_table_name) const
 
     if (m_fillfactor != 0) {
         joiner.add("WITH");
-        joiner.add("(fillfactor = {})"_format(m_fillfactor));
+        joiner.add(fmt::format("(fillfactor = {})", m_fillfactor));
     }
 
     if (!m_tablespace.empty()) {

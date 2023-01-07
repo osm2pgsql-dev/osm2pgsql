@@ -60,8 +60,8 @@ private:
     {
         assert(m_context);
 
-        std::string const source = "epsg:{}"_format(from);
-        std::string const target = "epsg:{}"_format(to);
+        std::string const source = fmt::format("epsg:{}", from);
+        std::string const target = fmt::format("epsg:{}", to);
 
         std::unique_ptr<PJ, pj_deleter_t> const trans{proj_create_crs_to_crs(
             m_context.get(), source.c_str(), target.c_str(), nullptr)};
@@ -119,6 +119,6 @@ std::shared_ptr<reprojection> reprojection::make_generic_projection(int srs)
 
 std::string get_proj_version()
 {
-    return "[API 6] {}"_format(proj_info().version);
+    return fmt::format("[API 6] {}", proj_info().version);
 }
 

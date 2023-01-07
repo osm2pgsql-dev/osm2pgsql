@@ -739,7 +739,7 @@ int output_flex_t::table_tostring()
 {
     auto const &table = get_table_from_param();
 
-    std::string const str{"osm2pgsql.Table[{}]"_format(table.name())};
+    std::string const str{fmt::format("osm2pgsql.Table[{}]", table.name())};
     lua_pushstring(lua_state(), str.c_str());
 
     return 1;
