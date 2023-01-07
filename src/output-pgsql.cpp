@@ -48,11 +48,11 @@ static double calculate_area(bool reproject_area,
                              geom::geometry_t const &geom4326,
                              geom::geometry_t const &geom)
 {
+    static thread_local auto const proj3857 =
+        reprojection::create_projection(3857);
+
     if (reproject_area) {
-        // XXX there is some overhead here always dynamically
-        // creating the same projection object. Needs refactoring.
-        auto const ogeom =
-            geom::transform(geom4326, *reprojection::create_projection(3857));
+        auto const ogeom = geom::transform(geom4326, *proj3857);
         return geom::area(ogeom);
     }
     return geom::area(geom);
