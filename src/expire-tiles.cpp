@@ -257,7 +257,8 @@ void expire_tiles::merge_and_destroy(expire_tiles *other)
     }
 
     if (m_dirty_tiles.empty()) {
-        m_dirty_tiles = std::move(other->m_dirty_tiles);
+        using std::swap;
+        swap(m_dirty_tiles, other->m_dirty_tiles);
     } else {
         m_dirty_tiles.insert(other->m_dirty_tiles.begin(),
                              other->m_dirty_tiles.end());
