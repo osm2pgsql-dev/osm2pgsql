@@ -11,6 +11,7 @@
 #include "flex-write.hpp"
 #include "geom-functions.hpp"
 #include "json-writer.hpp"
+#include "lua-utils.hpp"
 #include "wkb.hpp"
 
 #include <algorithm>
@@ -188,17 +189,14 @@ static void write_json_table(json_writer_t *writer, lua_State *lua_state,
 
     if (is_lua_array(lua_state)) {
         writer->start_array();
-        lua_pushnil(lua_state);
-        while (lua_next(lua_state, -2) != 0) {
+        luaX_for_each(lua_state, [&]() {
             write_json(writer, lua_state, tables);
             writer->next();
-            lua_pop(lua_state, 1);
-        }
+        });
         writer->end_array();
     } else {
         writer->start_object();
-        lua_pushnil(lua_state);
-        while (lua_next(lua_state, -2) != 0) {
+        luaX_for_each(lua_state, [&]() {
             int const ltype_key = lua_type(lua_state, -2);
             if (ltype_key != LUA_TSTRING) {
                 throw fmt_error("Incorrect data type '{}' as key.",
@@ -208,8 +206,7 @@ static void write_json_table(json_writer_t *writer, lua_State *lua_state,
             writer->key(key);
             write_json(writer, lua_state, tables);
             writer->next();
-            lua_pop(lua_state, 1);
-        }
+        });
         writer->end_object();
     }
 }
@@ -403,8 +400,7 @@ void flex_write_column(lua_State *lua_state,
         if (ltype == LUA_TTABLE) {
             copy_mgr->new_hash();
 
-            lua_pushnil(lua_state);
-            while (lua_next(lua_state, -2) != 0) {
+            luaX_for_each(lua_state, [&]() {
                 char const *const key = lua_tostring(lua_state, -2);
                 char const *const val = lua_tostring(lua_state, -1);
                 if (key == nullptr) {
@@ -422,8 +418,7 @@ void flex_write_column(lua_State *lua_state,
                         lua_typename(lua_state, ltype_value), key);
                 }
                 copy_mgr->add_hash_elem(key, val);
-                lua_pop(lua_state, 1);
-            }
+            });
 
             copy_mgr->finish_hash();
         } else {
