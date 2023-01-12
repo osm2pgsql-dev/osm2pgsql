@@ -398,12 +398,11 @@ pg_result_t table_connection_t::get_geom_by_id(osmium::item_type type,
 {
     assert(table().has_geom_column());
     assert(m_db_connection);
-    std::string const id_str = fmt::to_string(id);
     if (table().has_multicolumn_id_index()) {
-        return m_db_connection->exec_prepared(
-            "get_wkb", type_to_char(type), id_str.c_str());
+        return m_db_connection->exec_prepared("get_wkb", type_to_char(type),
+                                              id);
     }
-    return m_db_connection->exec_prepared("get_wkb", id_str);
+    return m_db_connection->exec_prepared("get_wkb", id);
 }
 
 void table_connection_t::delete_rows_with(osmium::item_type type, osmid_t id)
