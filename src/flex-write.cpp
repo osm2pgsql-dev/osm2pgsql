@@ -132,47 +132,6 @@ static void write_double(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
 
 using table_register_type = std::vector<void const *>;
 
-/**
- * Check that the value on the top of the Lua stack is a simple array.
- * This means that all keys must be consecutive integers starting from 1.
- */
-static bool is_lua_array(lua_State *lua_state)
-{
-    uint32_t n = 1;
-    lua_pushnil(lua_state);
-    while (lua_next(lua_state, -2) != 0) {
-        lua_pop(lua_state, 1); // remove value from stack
-#if LUA_VERSION_NUM >= 503
-        if (!lua_isinteger(lua_state, -1)) {
-            lua_pop(lua_state, 1);
-            return false;
-        }
-        int okay = 0;
-        auto const num = lua_tointegerx(lua_state, -1, &okay);
-        if (!okay || num != n++) {
-            lua_pop(lua_state, 1);
-            return false;
-        }
-#else
-        if (!lua_isnumber(lua_state, -1)) {
-            lua_pop(lua_state, 1);
-            return false;
-        }
-        double const num = lua_tonumber(lua_state, -1);
-        double intpart = 0.0;
-        if (std::modf(num, &intpart) != 0.0 || intpart < 0 ||
-            static_cast<uint32_t>(num) != n++) {
-            lua_pop(lua_state, 1);
-            return false;
-        }
-#endif
-    }
-
-    // An empty lua table could be both, we decide here that it is not stored
-    // as a JSON array but as a JSON object.
-    return n != 1;
-}
-
 static void write_json(json_writer_t *writer, lua_State *lua_state,
                        table_register_type *tables);
 
@@ -187,7 +146,12 @@ static void write_json_table(json_writer_t *writer, lua_State *lua_state,
     }
     tables->push_back(table_ptr);
 
-    if (is_lua_array(lua_state)) {
+    if (luaX_is_empty_table(lua_state)) {
+        // An empty lua table could be both, we decide here that it is not
+        // stored as a JSON array but as a JSON object.
+        writer->start_object();
+        writer->end_object();
+    } else if (luaX_is_array(lua_state)) {
         writer->start_array();
         luaX_for_each(lua_state, [&]() {
             write_json(writer, lua_state, tables);
