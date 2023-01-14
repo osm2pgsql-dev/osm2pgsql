@@ -84,8 +84,7 @@ static void add_z_order(taglist_t *tags, bool *roads)
         z_order -= 100;
     }
 
-    util::integer_to_buffer z{z_order};
-    tags->add_tag("z_order", z.c_str());
+    tags->add_tag("z_order", fmt::to_string(z_order));
 }
 
 c_tagtransform_t::c_tagtransform_t(options_t const *options, export_list exlist)

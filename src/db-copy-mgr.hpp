@@ -290,13 +290,7 @@ private:
     template <typename T>
     void add_value(T value)
     {
-        m_current->buffer += std::to_string(value);
-    }
-
-    void add_value(double value)
-    {
-        util::double_to_buffer tmp{value};
-        m_current->buffer += tmp.c_str();
+        m_current->buffer += fmt::to_string(value);
     }
 
     void add_value(std::string const &s) { add_value(s.c_str()); }
