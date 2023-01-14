@@ -17,6 +17,7 @@
 #include <cstring>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <utility>
 
 namespace ewkb {
@@ -298,26 +299,23 @@ private:
  * Empty Multi* geometries and Geometry Collections will return a NULL
  * geometry object.
  *
- * Call next() to get a pointer to the next character that is not part of the
- * geometry any more. If this is not the same as the end pointer given to
- * the constructor, this means that there is extra data available in the
- * input data.
+ * Call is_done() to check whether the parser read all available data.
  *
  * Can only parse (E)WKB in native byte order.
  */
 class ewkb_parser_t
 {
 public:
-    ewkb_parser_t(char const *it, char const *end)
-    : m_it(it), m_end(end),
-      m_max_length(static_cast<uint32_t>(end - it) / (sizeof(double) * 2))
+    ewkb_parser_t(std::string_view input)
+    : m_data(input),
+      m_max_length(static_cast<uint32_t>(input.size()) / (sizeof(double) * 2))
     {}
 
     geom::geometry_t operator()()
     {
         geom::geometry_t geom;
 
-        if (m_it == m_end) {
+        if (m_data.empty()) {
             return geom;
         }
 
@@ -353,12 +351,12 @@ public:
         return geom;
     }
 
-    char const *next() const noexcept { return m_it; }
+    bool is_done() const noexcept { return m_data.empty(); }
 
 private:
     void check_bytes(uint32_t bytes) const
     {
-        if (static_cast<std::size_t>(m_end - m_it) < bytes) {
+        if (m_data.size() < bytes) {
             throw std::runtime_error{"Invalid WKB geometry: Incomplete"};
         }
     }
@@ -368,8 +366,8 @@ private:
         check_bytes(sizeof(uint32_t));
 
         uint32_t data = 0;
-        std::memcpy(&data, m_it, sizeof(uint32_t));
-        m_it += sizeof(uint32_t);
+        std::memcpy(&data, m_data.data(), sizeof(uint32_t));
+        m_data.remove_prefix(sizeof(uint32_t));
 
         return data;
     }
@@ -393,7 +391,7 @@ private:
 
     uint32_t parse_header(geom::geometry_t *geom = nullptr)
     {
-        if (static_cast<uint8_t>(*m_it++) !=
+        if (static_cast<uint8_t>(m_data.front()) !=
             ewkb::wkb_byte_order_type_t::Endian) {
             throw std::runtime_error
             {
@@ -407,6 +405,7 @@ private:
                 "osm2pgsql can only process geometries in native byte order."
             };
         }
+        m_data.remove_prefix(1);
 
         auto type = parse_uint32();
         if (type & ewkb::geometry_type::wkb_srid) {
@@ -429,8 +428,8 @@ private:
         check_bytes(sizeof(double) * 2);
 
         std::array<double, 2> data{};
-        std::memcpy(data.data(), m_it, sizeof(double) * 2);
-        m_it += sizeof(double) * 2;
+        std::memcpy(data.data(), m_data.data(), sizeof(double) * 2);
+        m_data.remove_prefix(sizeof(double) * 2);
 
         point->set_x(data[0]);
         point->set_y(data[1]);
@@ -543,14 +542,13 @@ private:
 
         collection.reserve(num_geoms);
         for (uint32_t i = 0; i < num_geoms; ++i) {
-            ewkb_parser_t parser{m_it, m_end};
+            ewkb_parser_t parser{m_data};
             collection.add_geometry(parser());
-            m_it = parser.next();
+            m_data = parser.m_data;
         }
     }
 
-    char const *m_it;
-    char const *m_end;
+    std::string_view m_data;
     uint32_t m_max_length;
 
 }; // class ewkb_parser_t
@@ -565,13 +563,12 @@ std::string geom_to_ewkb(geom::geometry_t const &geom, bool ensure_multi)
         static_cast<uint32_t>(geom.srid()), ensure_multi});
 }
 
-geom::geometry_t ewkb_to_geom(std::string const &wkb)
+geom::geometry_t ewkb_to_geom(std::string_view wkb)
 {
-    char const *const end = wkb.data() + wkb.size();
-    ewkb::ewkb_parser_t parser{wkb.data(), end};
+    ewkb::ewkb_parser_t parser{wkb};
     auto geom = parser();
 
-    if (parser.next() != end) {
+    if (!parser.is_done()) {
         throw std::runtime_error{"Invalid WKB geometry: Extra data at end"};
     }
 
