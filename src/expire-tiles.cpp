@@ -173,9 +173,7 @@ void expire_tiles::from_line(geom::point_t const &a, geom::point_t const &b)
            but for simplicity, treat the coordinates as a bounding box
            and expire everything within that box. */
         if (y1 > y2) {
-            double const temp = y2;
-            y2 = y1;
-            y1 = temp;
+            std::swap(y1, y2);
         }
         for (int x = x1 - tile_expiry_leeway; x <= x2 + tile_expiry_leeway;
              ++x) {
@@ -257,7 +255,8 @@ void expire_tiles::merge_and_destroy(expire_tiles *other)
     }
 
     if (m_dirty_tiles.empty()) {
-        m_dirty_tiles = std::move(other->m_dirty_tiles);
+        using std::swap;
+        swap(m_dirty_tiles, other->m_dirty_tiles);
     } else {
         m_dirty_tiles.insert(other->m_dirty_tiles.begin(),
                              other->m_dirty_tiles.end());

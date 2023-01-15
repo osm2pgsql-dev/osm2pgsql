@@ -144,6 +144,105 @@ TEST_CASE("simple expire z18", "[NoDB]")
     CHECK(*(itr++) == tile_t(18, 131072, 131072));
 }
 
+TEST_CASE("expire a simple line", "[NoDB]")
+{
+    uint32_t const zoom = 18;
+    expire_tiles et{zoom, 20000, defproj};
+
+    et.from_geometry(
+        geom::linestring_t{{1398725.0, 7493354.0}, {1399030.0, 7493354.0}});
+
+    auto const tiles = get_tiles_ordered(&et, zoom, zoom);
+    CHECK(tiles.size() == 3);
+
+    auto itr = tiles.begin();
+    CHECK(*(itr++) == tile_t(18, 140221, 82055));
+    CHECK(*(itr++) == tile_t(18, 140222, 82055));
+    CHECK(*(itr++) == tile_t(18, 140223, 82055));
+}
+
+TEST_CASE("expire a line near the tile border", "[NoDB]")
+{
+    uint32_t const zoom = 18;
+    expire_tiles et{zoom, 20000, defproj};
+
+    et.from_geometry(
+        geom::linestring_t{{1398945.0, 7493267.0}, {1398960.0, 7493282.0}});
+
+    auto const tiles = get_tiles_ordered(&et, zoom, zoom);
+    REQUIRE(tiles.size() == 4);
+
+    auto itr = tiles.begin();
+    CHECK(*(itr++) == tile_t(18, 140222, 82055));
+    CHECK(*(itr++) == tile_t(18, 140223, 82055));
+    CHECK(*(itr++) == tile_t(18, 140222, 82056));
+    CHECK(*(itr++) == tile_t(18, 140223, 82056));
+}
+
+TEST_CASE("expire a u-shaped linestring", "[NoDB]")
+{
+    uint32_t const zoom = 18;
+    expire_tiles et{zoom, 20000, defproj};
+
+    et.from_geometry(geom::linestring_t{{1398586.0, 7493485.0},
+                                        {1398575.0, 7493347.0},
+                                        {1399020.0, 7493344.0},
+                                        {1399012.0, 7493470.0}});
+
+    auto const tiles = get_tiles_unordered(&et, zoom);
+    REQUIRE(tiles.size() == 6);
+
+    CHECK(tiles.count(tile_t(18, 140220, 82054)) == 1);
+    CHECK(tiles.count(tile_t(18, 140220, 82055)) == 1);
+    CHECK(tiles.count(tile_t(18, 140221, 82055)) == 1);
+    CHECK(tiles.count(tile_t(18, 140222, 82055)) == 1);
+    CHECK(tiles.count(tile_t(18, 140223, 82055)) == 1);
+    CHECK(tiles.count(tile_t(18, 140223, 82054)) == 1);
+}
+
+TEST_CASE("expire longer horizontal line", "[NoDB]")
+{
+    uint32_t const zoom = 18;
+    expire_tiles et{zoom, 20000, defproj};
+
+    et.from_geometry(
+        geom::linestring_t{{1397815.0, 7493800.0}, {1399316.0, 7493780.0}});
+
+    auto const tiles = get_tiles_unordered(&et, zoom);
+    REQUIRE(tiles.size() == 11);
+
+    for (uint32_t x = 140215; x <= 140225; ++x) {
+        CHECK(tiles.count(tile_t(18, x, 82052)) == 1);
+    }
+}
+
+TEST_CASE("expire longer diagonal line", "[NoDB]")
+{
+    uint32_t const zoom = 18;
+    expire_tiles et{zoom, 20000, defproj};
+
+    et.from_geometry(
+        geom::linestring_t{{1398427.0, 7494118.0}, {1398869.0, 7493189.0}});
+
+    auto const tiles = get_tiles_unordered(&et, zoom);
+    REQUIRE(tiles.size() == 14);
+
+    CHECK(tiles.count(tile_t(18, 140219, 82050)) == 1);
+    CHECK(tiles.count(tile_t(18, 140220, 82050)) == 1);
+    CHECK(tiles.count(tile_t(18, 140219, 82051)) == 1);
+    CHECK(tiles.count(tile_t(18, 140220, 82051)) == 1);
+    CHECK(tiles.count(tile_t(18, 140219, 82052)) == 1);
+    CHECK(tiles.count(tile_t(18, 140220, 82052)) == 1);
+    CHECK(tiles.count(tile_t(18, 140221, 82052)) == 1);
+    CHECK(tiles.count(tile_t(18, 140220, 82053)) == 1);
+    CHECK(tiles.count(tile_t(18, 140221, 82053)) == 1);
+    CHECK(tiles.count(tile_t(18, 140221, 82054)) == 1);
+    CHECK(tiles.count(tile_t(18, 140221, 82055)) == 1);
+    CHECK(tiles.count(tile_t(18, 140222, 82055)) == 1);
+    CHECK(tiles.count(tile_t(18, 140221, 82056)) == 1);
+    CHECK(tiles.count(tile_t(18, 140222, 82056)) == 1);
+}
+
 /**
  * Test tile expiry on two zoom levels.
  */
