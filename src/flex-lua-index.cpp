@@ -32,19 +32,18 @@ static void check_and_add_columns(flex_table_t const &table,
                                   std::vector<std::string> *columns,
                                   lua_State *lua_state)
 {
-    lua_pushnil(lua_state);
-    while (lua_next(lua_state, -2) != 0) {
-        if (!lua_isnumber(lua_state, -2)) {
-            throw std::runtime_error{
-                "The 'column' field must contain a string or an array."};
-        }
+    if (!luaX_is_array(lua_state)) {
+        throw std::runtime_error{
+            "The 'column' field must contain a string or an array."};
+    }
+
+    luaX_for_each(lua_state, [&]() {
         if (!lua_isstring(lua_state, -1)) {
             throw std::runtime_error{
                 "The entries in the 'column' array must be strings."};
         }
         check_and_add_column(table, columns, lua_tostring(lua_state, -1));
-        lua_pop(lua_state, 1); // table
-    }
+    });
 }
 
 void flex_lua_setup_index(lua_State *lua_state, flex_table_t *table)

@@ -11,6 +11,7 @@
 #include "geom-functions.hpp"
 #include "geom-transform.hpp"
 #include "logging.hpp"
+#include "lua-utils.hpp"
 
 #include <osmium/osm.hpp>
 
@@ -153,8 +154,7 @@ void init_geom_transform(geom_transform_t *transform, lua_State *lua_state)
     assert(transform);
     assert(lua_state);
 
-    lua_pushnil(lua_state);
-    while (lua_next(lua_state, -2) != 0) {
+    luaX_for_each(lua_state, [&]() {
         char const *const field = lua_tostring(lua_state, -2);
         if (field == nullptr) {
             throw std::runtime_error{"All fields in geometry transformation "
@@ -169,9 +169,7 @@ void init_geom_transform(geom_transform_t *transform, lua_State *lua_state)
                 show_warning = false;
             }
         }
-
-        lua_pop(lua_state, 1);
-    }
+    });
 }
 
 std::unique_ptr<geom_transform_t>

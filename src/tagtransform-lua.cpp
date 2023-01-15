@@ -14,6 +14,7 @@ extern "C"
 }
 
 #include "format.hpp"
+#include "lua-utils.hpp"
 #include "tagtransform-lua.hpp"
 
 #include <stdexcept>
@@ -55,11 +56,10 @@ void lua_tagtransform_t::check_lua_function_exists(char const *func_name)
  */
 static void get_out_tags(lua_State *lua_state, taglist_t *out_tags)
 {
-    lua_pushnil(lua_state);
-    while (lua_next(lua_state, -2) != 0) {
+    luaX_for_each(lua_state, [&]() {
         auto const key_type = lua_type(lua_state, -2);
         // They key must be a string, otherwise the lua_tostring() function
-        // below will change it to a string and the lua_next() iteration will
+        // below will change it to a string and the Lua array iteration will
         // break.
         if (key_type != LUA_TSTRING) {
             throw fmt_error("Basic tag processing found incorrect data type"
@@ -79,8 +79,7 @@ static void get_out_tags(lua_State *lua_state, taglist_t *out_tags)
         char const *const key = lua_tostring(lua_state, -2);
         char const *const value = lua_tostring(lua_state, -1);
         out_tags->add_tag(key, value);
-        lua_pop(lua_state, 1);
-    }
+    });
     lua_pop(lua_state, 1);
 }
 
