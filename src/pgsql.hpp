@@ -138,7 +138,8 @@ struct exec_arg
     constexpr static std::size_t const buffers_needed = 1;
     static char const *to_str(std::vector<std::string> *data, T param)
     {
-        return data->emplace_back("{}"_format(std::forward<T>(param))).c_str();
+        return data->emplace_back(fmt::to_string(std::forward<T>(param)))
+            .c_str();
     }
 };
 
