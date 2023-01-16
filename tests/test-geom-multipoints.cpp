@@ -21,7 +21,7 @@
 TEST_CASE("multipoint_t with a single point", "[NoDB]")
 {
     geom::point_t const expected{1, 1};
-    geom::point_t point = expected;
+    geom::point_t const point = expected;
 
     geom::geometry_t geom{geom::multipoint_t{}};
     auto &mp = geom.get<geom::multipoint_t>();
@@ -41,9 +41,9 @@ TEST_CASE("multipoint_t with a single point", "[NoDB]")
 
 TEST_CASE("multipoint_t with several points", "[NoDB]")
 {
-    geom::point_t p0{1, 1};
-    geom::point_t p1{2, 1};
-    geom::point_t p2{3, 1};
+    geom::point_t const p0{1, 1};
+    geom::point_t const p1{2, 1};
+    geom::point_t const p2{3, 1};
 
     geom::geometry_t geom{geom::multipoint_t{}};
     auto &mp = geom.get<geom::multipoint_t>();

@@ -30,7 +30,7 @@ TEST_CASE("expire null geometry does nothing", "[NoDB]")
 
     SECTION("geom")
     {
-        geom::geometry_t geom{};
+        geom::geometry_t const geom{};
         et.from_geometry(geom);
     }
 
@@ -48,13 +48,13 @@ TEST_CASE("expire point at tile boundary", "[NoDB]")
 {
     expire_tiles et{zoom, 20000, defproj};
 
-    geom::point_t pt{0.0, 0.0};
+    geom::point_t const pt{0.0, 0.0};
 
     SECTION("point") { et.from_geometry(pt); }
 
     SECTION("geom")
     {
-        geom::geometry_t geom{pt};
+        geom::geometry_t const geom{pt};
         et.from_geometry(geom);
     }
 
@@ -77,13 +77,13 @@ TEST_CASE("expire point away from tile boundary", "[NoDB]")
 {
     expire_tiles et{zoom, 20000, defproj};
 
-    geom::point_t pt{5000.0, 5000.0};
+    geom::point_t const pt{5000.0, 5000.0};
 
     SECTION("point") { et.from_geometry(pt); }
 
     SECTION("geom")
     {
-        geom::geometry_t geom{pt};
+        geom::geometry_t const geom{pt};
         et.from_geometry(geom);
     }
 
@@ -105,14 +105,14 @@ TEST_CASE("expire linestring away from tile boundary", "[NoDB]")
 
     SECTION("line")
     {
-        geom::linestring_t line{{5000.0, 4000.0}, {5100.0, 4200.0}};
+        geom::linestring_t const line{{5000.0, 4000.0}, {5100.0, 4200.0}};
         et.from_geometry(line);
     }
 
     SECTION("geom")
     {
         geom::linestring_t line{{5000.0, 4000.0}, {5100.0, 4200.0}};
-        geom::geometry_t geom{std::move(line)};
+        geom::geometry_t const geom{std::move(line)};
         et.from_geometry(geom);
     }
 
@@ -135,14 +135,14 @@ TEST_CASE("expire linestring crossing tile boundary", "[NoDB]")
 
     SECTION("line")
     {
-        geom::linestring_t line{{5000.0, 5000.0}, {5000.0, 15000.0}};
+        geom::linestring_t const line{{5000.0, 5000.0}, {5000.0, 15000.0}};
         et.from_geometry(line);
     }
 
     SECTION("geom")
     {
         geom::linestring_t line{{5000.0, 5000.0}, {5000.0, 15000.0}};
-        geom::geometry_t geom{std::move(line)};
+        geom::geometry_t const geom{std::move(line)};
         et.from_geometry(geom);
     }
 
@@ -166,11 +166,11 @@ TEST_CASE("expire small polygon", "[NoDB]")
 
     SECTION("polygon")
     {
-        geom::polygon_t poly{{{5000.0, 5000.0},
-                              {5100.0, 5000.0},
-                              {5100.0, 5100.0},
-                              {5000.0, 5100.0},
-                              {5000.0, 5000.0}}};
+        geom::polygon_t const poly{{{5000.0, 5000.0},
+                                    {5100.0, 5000.0},
+                                    {5100.0, 5100.0},
+                                    {5000.0, 5100.0},
+                                    {5000.0, 5000.0}}};
         et.from_geometry(poly);
     }
 
@@ -181,7 +181,7 @@ TEST_CASE("expire small polygon", "[NoDB]")
                               {5100.0, 5100.0},
                               {5000.0, 5100.0},
                               {5000.0, 5000.0}}};
-        geom::geometry_t geom{std::move(poly)};
+        geom::geometry_t const geom{std::move(poly)};
         et.from_geometry(geom);
     }
 
@@ -208,11 +208,11 @@ TEST_CASE("expire large polygon as bbox", "[NoDB]")
 
     SECTION("polygon")
     {
-        geom::polygon_t poly{{{5000.0, 5000.0},
-                              {25000.0, 5000.0},
-                              {25000.0, 25000.0},
-                              {5000.0, 25000.0},
-                              {5000.0, 5000.0}}};
+        geom::polygon_t const poly{{{5000.0, 5000.0},
+                                    {25000.0, 5000.0},
+                                    {25000.0, 25000.0},
+                                    {5000.0, 25000.0},
+                                    {5000.0, 5000.0}}};
         et.from_geometry(poly);
     }
 
@@ -223,7 +223,7 @@ TEST_CASE("expire large polygon as bbox", "[NoDB]")
                               {25000.0, 25000.0},
                               {5000.0, 25000.0},
                               {5000.0, 5000.0}}};
-        geom::geometry_t geom{std::move(poly)};
+        geom::geometry_t const geom{std::move(poly)};
         et.from_geometry(geom);
     }
 
@@ -260,21 +260,21 @@ TEST_CASE("expire large polygon as boundary", "[NoDB]")
 
     SECTION("polygon")
     {
-        geom::polygon_t poly{{{5000.0, 5000.0},
-                              {25000.0, 5000.0},
-                              {25000.0, 25000.0},
-                              {5000.0, 25000.0},
-                              {5000.0, 5000.0}}};
+        geom::polygon_t const poly{{{5000.0, 5000.0},
+                                    {25000.0, 5000.0},
+                                    {25000.0, 25000.0},
+                                    {5000.0, 25000.0},
+                                    {5000.0, 5000.0}}};
         et.from_geometry(poly);
     }
 
     SECTION("polygon boundary")
     {
-        geom::polygon_t poly{{{5000.0, 5000.0},
-                              {25000.0, 5000.0},
-                              {25000.0, 25000.0},
-                              {5000.0, 25000.0},
-                              {5000.0, 5000.0}}};
+        geom::polygon_t const poly{{{5000.0, 5000.0},
+                                    {25000.0, 5000.0},
+                                    {25000.0, 25000.0},
+                                    {5000.0, 25000.0},
+                                    {5000.0, 5000.0}}};
         et.from_polygon_boundary(poly);
     }
 
@@ -285,7 +285,7 @@ TEST_CASE("expire large polygon as boundary", "[NoDB]")
                               {25000.0, 25000.0},
                               {5000.0, 25000.0},
                               {5000.0, 5000.0}}};
-        geom::geometry_t geom{std::move(poly)};
+        geom::geometry_t const geom{std::move(poly)};
         et.from_geometry(geom);
     }
 
@@ -335,7 +335,7 @@ TEST_CASE("expire multipoint geometry", "[NoDB]")
         geom::multipoint_t mpt;
         mpt.add_geometry(std::move(p1));
         mpt.add_geometry(std::move(p2));
-        geom::geometry_t geom{std::move(mpt)};
+        geom::geometry_t const geom{std::move(mpt)};
         et.from_geometry(geom);
     }
 
@@ -372,7 +372,7 @@ TEST_CASE("expire multilinestring geometry", "[NoDB]")
 
     SECTION("geom")
     {
-        geom::geometry_t geom{std::move(ml)};
+        geom::geometry_t const geom{std::move(ml)};
         et.from_geometry(geom);
     }
 
@@ -419,7 +419,7 @@ TEST_CASE("expire multipolygon geometry", "[NoDB]")
 
     SECTION("geom")
     {
-        geom::geometry_t geom{std::move(mp)};
+        geom::geometry_t const geom{std::move(mp)};
         et.from_geometry(geom);
     }
 
@@ -460,7 +460,7 @@ TEST_CASE("expire geometry collection", "[NoDB]")
 
     SECTION("geom")
     {
-        geom::geometry_t geom{std::move(collection)};
+        geom::geometry_t const geom{std::move(collection)};
         et.from_geometry(geom);
     }
 

@@ -63,7 +63,7 @@ TEST_CASE("Lua styles", "[NoDB]")
 {
 #ifdef HAVE_LUA
     auto options = opt({"--tag-transform-script", "non_existing.lua"});
-    export_list exlist;
+    export_list const exlist;
     REQUIRE_THROWS_WITH(tagtransform_t::make_tagtransform(&options, exlist),
                         Catch::Matchers::Contains("No such file or directory"));
 #endif

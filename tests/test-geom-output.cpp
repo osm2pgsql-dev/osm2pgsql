@@ -15,12 +15,12 @@
 
 TEST_CASE("nullgeom_t output", "[NoDB]")
 {
-    geom::nullgeom_t g;
+    geom::nullgeom_t const g;
     std::stringstream ss1;
     ss1 << g;
     CHECK(ss1.str() == "NULL");
 
-    geom::geometry_t geom;
+    geom::geometry_t const geom;
     std::stringstream ss2;
     ss2 << geom;
     CHECK(ss2.str() == "NULL(NULL)");
@@ -28,12 +28,12 @@ TEST_CASE("nullgeom_t output", "[NoDB]")
 
 TEST_CASE("point_t output", "[NoDB]")
 {
-    geom::point_t g{1, 2};
+    geom::point_t const g{1, 2};
     std::stringstream ss1;
     ss1 << g;
     CHECK(ss1.str() == "1 2");
 
-    geom::geometry_t geom{g};
+    geom::geometry_t const geom{g};
     std::stringstream ss2;
     ss2 << geom;
     CHECK(ss2.str() == "POINT(1 2)");
@@ -46,7 +46,7 @@ TEST_CASE("linestring_t output", "[NoDB]")
     ss1 << g;
     CHECK(ss1.str() == "1 2,2 2");
 
-    geom::geometry_t geom{std::move(g)};
+    geom::geometry_t const geom{std::move(g)};
     std::stringstream ss2;
     ss2 << geom;
     CHECK(ss2.str() == "LINESTRING(1 2,2 2)");
@@ -59,7 +59,7 @@ TEST_CASE("polygon_t with no inner rings output", "[NoDB]")
     ss1 << g;
     CHECK(ss1.str() == "(0 0,1 0,1 1,0 1,0 0)");
 
-    geom::geometry_t geom{std::move(g)};
+    geom::geometry_t const geom{std::move(g)};
     std::stringstream ss2;
     ss2 << geom;
     CHECK(ss2.str() == "POLYGON((0 0,1 0,1 1,0 1,0 0))");
@@ -73,7 +73,7 @@ TEST_CASE("polygon_t with inner ring output", "[NoDB]")
     ss1 << g;
     CHECK(ss1.str() == "(0 0,3 0,3 3,0 3,0 0),(1 1,1 2,2 2,2 1,1 1)");
 
-    geom::geometry_t geom{std::move(g)};
+    geom::geometry_t const geom{std::move(g)};
     std::stringstream ss2;
     ss2 << geom;
     CHECK(ss2.str() == "POLYGON((0 0,3 0,3 3,0 3,0 0),(1 1,1 2,2 2,2 1,1 1))");
@@ -88,7 +88,7 @@ TEST_CASE("multipoint_t output", "[NoDB]")
     ss1 << g;
     CHECK(ss1.str() == "(1 2),(4 3)");
 
-    geom::geometry_t geom{std::move(g)};
+    geom::geometry_t const geom{std::move(g)};
     std::stringstream ss2;
     ss2 << geom;
     CHECK(ss2.str() == "MULTIPOINT((1 2),(4 3))");
@@ -103,7 +103,7 @@ TEST_CASE("multilinestring_t output", "[NoDB]")
     ss1 << g;
     CHECK(ss1.str() == "(1 2,2 2),(4 3,1 1)");
 
-    geom::geometry_t geom{std::move(g)};
+    geom::geometry_t const geom{std::move(g)};
     std::stringstream ss2;
     ss2 << geom;
     CHECK(ss2.str() == "MULTILINESTRING((1 2,2 2),(4 3,1 1))");
@@ -118,7 +118,7 @@ TEST_CASE("multipolygon_t output", "[NoDB]")
     ss1 << g;
     CHECK(ss1.str() == "((0 0,0 1,1 1)),((2 2,2 3,3 2))");
 
-    geom::geometry_t geom{std::move(g)};
+    geom::geometry_t const geom{std::move(g)};
     std::stringstream ss2;
     ss2 << geom;
     CHECK(ss2.str() == "MULTIPOLYGON(((0 0,0 1,1 1)),((2 2,2 3,3 2)))");
@@ -134,7 +134,7 @@ TEST_CASE("collection_t output", "[NoDB]")
     ss1 << g;
     CHECK(ss1.str() == "POLYGON((0 0,0 1,1 1)),POINT(2 3)");
 
-    geom::geometry_t geom{std::move(g)};
+    geom::geometry_t const geom{std::move(g)};
     std::stringstream ss2;
     ss2 << geom;
     CHECK(ss2.str() == "GEOMETRYCOLLECTION(POLYGON((0 0,0 1,1 1)),POINT(2 3))");
