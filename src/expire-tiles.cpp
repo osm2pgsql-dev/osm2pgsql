@@ -72,7 +72,7 @@ void expire_tiles::from_point_list(geom::point_list_t const &list,
                                    expire_config_t const &expire_config)
 {
     for_each_segment(list, [&](geom::point_t const &a, geom::point_t const &b) {
-        from_line(a, b, expire_config);
+        from_line_segment(a, b, expire_config);
     });
 }
 
@@ -153,8 +153,9 @@ void expire_tiles::from_geometry_if_3857(geom::geometry_t const &geom,
 /*
  * Expire tiles that a line crosses
  */
-void expire_tiles::from_line(geom::point_t const &a, geom::point_t const &b,
-                             expire_config_t const &expire_config)
+void expire_tiles::from_line_segment(geom::point_t const &a,
+                                     geom::point_t const &b,
+                                     expire_config_t const &expire_config)
 {
     auto tilec_a = coords_to_tile(a);
     auto tilec_b = coords_to_tile(b);
