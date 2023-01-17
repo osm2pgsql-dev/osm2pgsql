@@ -1274,9 +1274,9 @@ void output_flex_t::stop()
 
     if (get_options()->expire_tiles_zoom_min > 0) {
         auto const count = output_tiles_to_file(
-            m_expire.get_tiles(), get_options()->expire_tiles_filename.c_str(),
-            get_options()->expire_tiles_zoom_min,
-            get_options()->expire_tiles_zoom);
+            m_expire.get_tiles(), get_options()->expire_tiles_zoom_min,
+            get_options()->expire_tiles_zoom,
+            get_options()->expire_tiles_filename);
         log_info("Wrote {} entries to expired tiles list", count);
     }
 }
