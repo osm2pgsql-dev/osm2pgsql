@@ -83,13 +83,17 @@ TEST_CASE("exec_prepared with single string parameters should work")
 TEST_CASE("exec_prepared with string parameters should work")
 {
     auto conn = db.db().connect();
-    conn.exec("PREPARE test(int, int, int) AS SELECT $1 + $2 + $3");
+    conn.exec("PREPARE test(int, int, int, int, int)"
+              " AS SELECT $1 + $2 + $3 + $4 + $5");
 
-    auto const result = conn.exec_prepared("test", "1", "2", std::string{"3"});
+    std::string a{"4"}; // NOLINT(misc-const-correctness)
+    std::string const b{"5"};
+    auto const result =
+        conn.exec_prepared("test", "1", "2", std::string{"3"}, a, b);
     REQUIRE(result.status() == PGRES_TUPLES_OK);
     REQUIRE(result.num_fields() == 1);
     REQUIRE(result.num_tuples() == 1);
-    REQUIRE(result.get(0, 0) == "6");
+    REQUIRE(result.get(0, 0) == "15");
 }
 
 TEST_CASE("exec_prepared with non-string parameters should work")
