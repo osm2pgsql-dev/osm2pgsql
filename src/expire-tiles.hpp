@@ -101,8 +101,8 @@ private:
 
     uint32_t normalise_tile_x_coord(int x) const;
 
-    void from_line(geom::point_t const &a, geom::point_t const &b,
-                   expire_config_t const &expire_config);
+    void from_line_segment(geom::point_t const &a, geom::point_t const &b,
+                           expire_config_t const &expire_config);
 
     void from_point_list(geom::point_list_t const &list,
                          expire_config_t const &expire_config);
