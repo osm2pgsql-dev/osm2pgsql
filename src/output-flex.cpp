@@ -608,14 +608,17 @@ void output_flex_t::setup_flex_table_columns(flex_table_t *table)
             lua_state(), "sql_type", -3, "Column entry", "");
 
         auto &column = table->add_column(name, type, sql_type);
+        lua_pop(lua_state(), 3); // "type", "column", "sql_type"
 
-        column.set_not_null(luaX_get_table_bool(lua_state(), "not_null", -4,
+        column.set_not_null(luaX_get_table_bool(lua_state(), "not_null", -1,
                                                 "Entry 'not_null'", false));
+        lua_pop(lua_state(), 1); // "not_null"
 
         column.set_create_only(luaX_get_table_bool(
-            lua_state(), "create_only", -5, "Entry 'create_only'", false));
+            lua_state(), "create_only", -1, "Entry 'create_only'", false));
+        lua_pop(lua_state(), 1); // "create_only"
 
-        lua_getfield(lua_state(), -6, "projection");
+        lua_getfield(lua_state(), -1, "projection");
         if (!lua_isnil(lua_state(), -1)) {
             if (column.is_geometry_column() ||
                 column.type() == table_column_type::area) {
@@ -625,9 +628,8 @@ void output_flex_t::setup_flex_table_columns(flex_table_t *table)
                                          "geometry and area columns."};
             }
         }
+        lua_pop(lua_state(), 1); // "projection"
 
-        // stack has: projection, create_only, not_null, sql_type, column, type
-        lua_pop(lua_state(), 6);
         ++num_columns;
     });
 
