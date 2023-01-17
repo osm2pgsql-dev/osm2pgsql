@@ -55,7 +55,7 @@ TEST_CASE("geom::polygon_t", "[NoDB]")
     REQUIRE(polygon.num_geometries() == 1);
     REQUIRE(polygon.inners().size() == 1);
 
-    geom::geometry_t geom{std::move(polygon)};
+    geom::geometry_t const geom{std::move(polygon)};
     REQUIRE(dimension(geom) == 2);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(8.0));

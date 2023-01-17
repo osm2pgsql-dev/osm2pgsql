@@ -990,7 +990,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
     // closed properly.
     {
         auto mid = std::make_shared<middle_pgsql_t>(thread_pool, &options);
-        full_dependency_manager_t dependency_manager{mid};
+        full_dependency_manager_t const dependency_manager{mid};
         mid->start();
 
         mid->node(node10);
