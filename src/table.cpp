@@ -451,6 +451,6 @@ void table_t::escape_type(std::string const &value, ColumnType flags)
 
 pg_result_t table_t::get_wkb(osmid_t id)
 {
-    return m_sql_conn->exec_prepared("get_wkb", id);
+    return m_sql_conn->exec_prepared_as_binary("get_wkb", id);
 }
 

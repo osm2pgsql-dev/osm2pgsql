@@ -205,7 +205,8 @@ public:
     }
 
     /**
-     * Run the named prepared SQL statement and return the results.
+     * Run the named prepared SQL statement and return the results in text
+     * format.
      *
      * \param stmt The name of the prepared statement.
      * \param params Any number of arguments (will be converted to strings
@@ -215,25 +216,24 @@ public:
     template <typename... TArgs>
     pg_result_t exec_prepared(char const *stmt, TArgs... params) const
     {
-        // We have to convert all non-string parameters into strings and
-        // store them somewhere. We use the exec_params vector for this.
-        // It needs to be large enough to hold all parameters without resizing
-        // so that pointers into the strings in that vector remain valid
-        // after new parameters have been added.
-        constexpr auto const total_buffers_needed =
-            (0 + ... + detail::exec_arg<TArgs>::buffers_needed);
-        std::vector<std::string> exec_params;
-        exec_params.reserve(total_buffers_needed);
+        return exec_prepared_with_result_format(stmt, false,
+                                                std::forward<TArgs>(params)...);
+    }
 
-        // This array holds the pointers to all parameter strings, either
-        // to the original string parameters or to the recently converted
-        // in the exec_params vector.
-        std::array<char const *, sizeof...(params)> param_ptrs = {
-            detail::exec_arg<TArgs>::to_str(&exec_params,
-                                            std::forward<TArgs>(params))...};
-
-        return exec_prepared_internal(stmt, sizeof...(params),
-                                      param_ptrs.data());
+    /**
+     * Run the named prepared SQL statement and return the results in binary
+     * format.
+     *
+     * \param stmt The name of the prepared statement.
+     * \param params Any number of arguments (will be converted to strings
+     *               if necessary).
+     * \throws exception if the command failed.
+     */
+    template <typename... TArgs>
+    pg_result_t exec_prepared_as_binary(char const *stmt, TArgs... params) const
+    {
+        return exec_prepared_with_result_format(stmt, true,
+                                                std::forward<TArgs>(params)...);
     }
 
     /**
@@ -254,7 +254,46 @@ public:
 
 private:
     pg_result_t exec_prepared_internal(char const *stmt, int num_params,
-                                       char const *const *param_values) const;
+                                       char const *const *param_values,
+                                       int *param_lengths, int *param_formats,
+                                       int result_format) const;
+
+    /**
+     * Run the named prepared SQL statement and return the results.
+     *
+     * \param stmt The name of the prepared statement.
+     * \param result_as_binary Ask for the resuls to be returned in binary
+     *                         format.
+     * \param params Any number of arguments (will be converted to strings
+     *               if necessary).
+     * \throws exception if the command failed.
+     */
+    template <typename... TArgs>
+    pg_result_t exec_prepared_with_result_format(char const *stmt,
+                                                 bool result_as_binary,
+                                                 TArgs... params) const
+    {
+        // We have to convert all non-string parameters into strings and
+        // store them somewhere. We use the exec_params vector for this.
+        // It needs to be large enough to hold all parameters without resizing
+        // so that pointers into the strings in that vector remain valid
+        // after new parameters have been added.
+        constexpr auto const total_buffers_needed =
+            (0 + ... + detail::exec_arg<TArgs>::buffers_needed);
+        std::vector<std::string> exec_params;
+        exec_params.reserve(total_buffers_needed);
+
+        // This array holds the pointers to all parameter strings, either
+        // to the original string parameters or to the recently converted
+        // in the exec_params vector.
+        std::array<char const *, sizeof...(params)> param_ptrs = {
+            detail::exec_arg<TArgs>::to_str(&exec_params,
+                                            std::forward<TArgs>(params))...};
+
+        return exec_prepared_internal(stmt, sizeof...(params),
+                                      param_ptrs.data(), nullptr, nullptr,
+                                      result_as_binary ? 1 : 0);
+    }
 
     struct pg_conn_deleter_t
     {

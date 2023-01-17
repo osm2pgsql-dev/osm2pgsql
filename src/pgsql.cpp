@@ -132,9 +132,11 @@ static std::string concat_params(int num_params,
     return joiner();
 }
 
-pg_result_t
-pg_conn_t::exec_prepared_internal(char const *stmt, int num_params,
-                                  char const *const *param_values) const
+pg_result_t pg_conn_t::exec_prepared_internal(char const *stmt, int num_params,
+                                              char const *const *param_values,
+                                              int *param_lengths,
+                                              int *param_formats,
+                                              int result_format) const
 {
     assert(m_conn);
 
@@ -142,8 +144,11 @@ pg_conn_t::exec_prepared_internal(char const *stmt, int num_params,
         log_sql("EXECUTE {}({})", stmt,
                 concat_params(num_params, param_values));
     }
+
     pg_result_t res{PQexecPrepared(m_conn.get(), stmt, num_params, param_values,
-                                   nullptr, nullptr, 0)};
+                                   param_lengths, param_formats,
+                                   result_format)};
+
     auto const status = res.status();
     if (status != PGRES_COMMAND_OK && status != PGRES_TUPLES_OK) {
         log_error("SQL command failed: EXECUTE {}({})", stmt,
