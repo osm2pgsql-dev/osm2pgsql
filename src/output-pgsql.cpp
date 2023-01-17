@@ -67,7 +67,7 @@ void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
 
         auto const wkb = geom_to_ewkb(projected_geom);
         if (!wkb.empty()) {
-            m_expire.from_geometry_if_3857(projected_geom);
+            m_expire.from_geometry_if_3857(projected_geom, m_expire_config);
             if (m_enable_way_area) {
                 double const area = calculate_area(
                     get_options()->reproject_area, geom, projected_geom);
@@ -82,7 +82,7 @@ void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
         auto const geoms = geom::split_multi(geom::segmentize(
             geom::transform(geom::create_linestring(way), *m_proj), split_at));
         for (auto const &sgeom : geoms) {
-            m_expire.from_geometry_if_3857(sgeom);
+            m_expire.from_geometry_if_3857(sgeom, m_expire_config);
             auto const wkb = geom_to_ewkb(sgeom);
             m_tables[t_line]->write_row(way.id(), *tags, wkb);
             if (roads) {
@@ -169,7 +169,7 @@ void output_pgsql_t::node_add(osmium::Node const &node)
     }
 
     auto const geom = geom::transform(geom::create_point(node), *m_proj);
-    m_expire.from_geometry_if_3857(geom);
+    m_expire.from_geometry_if_3857(geom, m_expire_config);
     auto const wkb = geom_to_ewkb(geom);
     m_tables[t_point]->write_row(node.id(), outtags, wkb);
 }
@@ -272,7 +272,7 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
         }
         auto const geoms = geom::split_multi(std::move(projected_geom));
         for (auto const &sgeom : geoms) {
-            m_expire.from_geometry_if_3857(sgeom);
+            m_expire.from_geometry_if_3857(sgeom, m_expire_config);
             auto const wkb = geom_to_ewkb(sgeom);
             m_tables[t_line]->write_row(-rel.id(), outtags, wkb);
             if (roads) {
@@ -288,7 +288,7 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
                               !get_options()->enable_multi);
         for (auto const &sgeom : geoms) {
             auto const projected_geom = geom::transform(sgeom, *m_proj);
-            m_expire.from_geometry_if_3857(projected_geom);
+            m_expire.from_geometry_if_3857(projected_geom, m_expire_config);
             auto const wkb = geom_to_ewkb(projected_geom);
             if (m_enable_way_area) {
                 double const area = calculate_area(
@@ -327,7 +327,7 @@ void output_pgsql_t::node_delete(osmid_t osm_id)
 {
     if (m_expire.enabled()) {
         auto const results = m_tables[t_point]->get_wkb(osm_id);
-        if (expire_from_result(&m_expire, results) != 0) {
+        if (expire_from_result(&m_expire, results, m_expire_config) != 0) {
             m_tables[t_point]->delete_row(osm_id);
         }
     } else {
@@ -342,7 +342,7 @@ void output_pgsql_t::delete_from_output_and_expire(osmid_t id)
     for (auto table : {t_line, t_poly}) {
         if (m_expire.enabled()) {
             auto const results = m_tables[table]->get_wkb(id);
-            if (expire_from_result(&m_expire, results) != 0) {
+            if (expire_from_result(&m_expire, results, m_expire_config) != 0) {
                 m_tables[table]->delete_row(id);
             }
         } else {
@@ -422,11 +422,15 @@ output_pgsql_t::output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
                                std::shared_ptr<thread_pool_t> thread_pool,
                                options_t const &options)
 : output_t(mid, std::move(thread_pool), options), m_proj(options.projection),
-  m_expire(options.expire_tiles_zoom, options.expire_tiles_max_bbox,
-           options.projection),
+  m_expire(options.expire_tiles_zoom, options.projection),
   m_buffer(32768, osmium::memory::Buffer::auto_grow::yes),
   m_rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
 {
+    m_expire_config.full_area_limit = get_options()->expire_tiles_max_bbox;
+    if (get_options()->expire_tiles_max_bbox > 0.0) {
+        m_expire_config.mode = expire_mode::hybrid;
+    }
+
     log_debug("Using projection SRS {} ({})", options.projection->target_srs(),
               options.projection->target_desc());
 
@@ -482,9 +486,8 @@ output_pgsql_t::output_pgsql_t(
     std::shared_ptr<db_copy_thread_t> const &copy_thread)
 : output_t(other, mid), m_tagtransform(other->m_tagtransform->clone()),
   m_enable_way_area(other->m_enable_way_area),
-  m_proj(get_options()->projection),
-  m_expire(get_options()->expire_tiles_zoom,
-           get_options()->expire_tiles_max_bbox, get_options()->projection),
+  m_proj(get_options()->projection), m_expire_config(other->m_expire_config),
+  m_expire(get_options()->expire_tiles_zoom, get_options()->projection),
   m_buffer(1024, osmium::memory::Buffer::auto_grow::yes),
   m_rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
 {

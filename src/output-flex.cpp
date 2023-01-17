@@ -690,7 +690,8 @@ int output_flex_t::table_insert()
             } else if (column.type() == table_column_type::id_num) {
                 copy_mgr->add_column(id);
             } else {
-                flex_write_column(lua_state(), copy_mgr, column, &m_expire);
+                flex_write_column(lua_state(), copy_mgr, column, &m_expire,
+                                  m_expire_config);
             }
         }
     } catch (not_null_exception const &e) {
@@ -803,7 +804,7 @@ void output_flex_t::add_row(table_connection_t *table_connection,
 
     if (!table.has_geom_column()) {
         flex_write_row(lua_state(), table_connection, object.type(), id, {}, 0,
-                       &m_expire);
+                       &m_expire, m_expire_config);
         return;
     }
 
@@ -841,9 +842,9 @@ void output_flex_t::add_row(table_connection_t *table_connection,
 
     auto const geoms = geom::split_multi(std::move(geom), split_multi);
     for (auto const &sgeom : geoms) {
-        m_expire.from_geometry_if_3857(sgeom);
+        m_expire.from_geometry_if_3857(sgeom, m_expire_config);
         flex_write_row(lua_state(), table_connection, object.type(), id, sgeom,
-                       table.geom_column().srid(), &m_expire);
+                       table.geom_column().srid(), &m_expire, m_expire_config);
     }
 }
 
@@ -1084,7 +1085,7 @@ void output_flex_t::delete_from_table(table_connection_t *table_connection,
     if (m_expire.enabled() && table.has_geom_column() &&
         table.geom_column().srid() == 3857) {
         auto const result = table_connection->get_geom_by_id(type, id);
-        expire_from_result(&m_expire, result);
+        expire_from_result(&m_expire, result, m_expire_config);
     }
 
     table_connection->delete_rows_with(type, id);
@@ -1150,8 +1151,8 @@ output_flex_t::output_flex_t(output_flex_t const *other,
 : output_t(other, std::move(mid)), m_tables(other->m_tables),
   m_stage2_way_ids(other->m_stage2_way_ids),
   m_copy_thread(std::move(copy_thread)), m_lua_state(other->m_lua_state),
+  m_expire_config(other->m_expire_config),
   m_expire(other->get_options()->expire_tiles_zoom,
-           other->get_options()->expire_tiles_max_bbox,
            other->get_options()->projection),
   m_process_node(other->m_process_node), m_process_way(other->m_process_way),
   m_process_relation(other->m_process_relation),
@@ -1176,9 +1177,13 @@ output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
                              options_t const &options)
 : output_t(mid, std::move(thread_pool), options),
   m_copy_thread(std::make_shared<db_copy_thread_t>(options.conninfo)),
-  m_expire(options.expire_tiles_zoom, options.expire_tiles_max_bbox,
-           options.projection)
+  m_expire(options.expire_tiles_zoom, options.projection)
 {
+    m_expire_config.full_area_limit = get_options()->expire_tiles_max_bbox;
+    if (get_options()->expire_tiles_max_bbox > 0.0) {
+        m_expire_config.mode = expire_mode::hybrid;
+    }
+
     init_lua(options.style);
 
     // If the osm2pgsql.select_relation_members() Lua function is defined
