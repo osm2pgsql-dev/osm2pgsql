@@ -104,6 +104,7 @@ private:
     std::array<std::unique_ptr<table_t>, t_MAX> m_tables;
 
     std::shared_ptr<reprojection> m_proj;
+    expire_config_t m_expire_config;
     expire_tiles m_expire;
 
     osmium::memory::Buffer m_buffer;

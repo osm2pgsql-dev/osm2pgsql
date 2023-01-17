@@ -10,6 +10,7 @@
  * For a full list of authors see the git log.
  */
 
+#include "expire-config.hpp"
 #include "expire-tiles.hpp"
 #include "flex-table-column.hpp"
 #include "flex-table.hpp"
@@ -286,6 +287,7 @@ private:
     // accessed while protected using the lua_mutex.
     std::shared_ptr<lua_State> m_lua_state;
 
+    expire_config_t m_expire_config;
     expire_tiles m_expire;
 
     way_cache_t m_way_cache;
