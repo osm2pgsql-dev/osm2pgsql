@@ -456,10 +456,9 @@ flex_table_t &output_flex_t::create_flex_table()
         throw fmt_error("Table with name '{}' already exists.", table_name);
     }
 
-    m_tables->emplace_back(table_name);
-    auto &new_table = m_tables->back();
+    auto &new_table = m_tables->emplace_back(table_name);
 
-    lua_pop(lua_state(), 1);
+    lua_pop(lua_state(), 1); // "name"
 
     // optional "schema" field
     lua_getfield(lua_state(), -1, "schema");
@@ -1445,7 +1444,7 @@ output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
         log_debug("- TABLE {}", qualified_name(table.schema(), table.name()));
         log_debug("  - columns:");
         for (auto const &column : table) {
-            log_debug("    - \"{}\" {} ({}) not_null={} create_only={}",
+            log_debug(R"(    - "{}" {} ({}) not_null={} create_only={})",
                       column.name(), column.type_name(), column.sql_type_name(),
                       column.not_null(), column.create_only());
         }

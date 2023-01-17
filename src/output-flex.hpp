@@ -190,6 +190,7 @@ private:
     void setup_flex_table_columns(flex_table_t *table);
     void setup_indexes(flex_table_t *table);
 
+    // Get the flex table that is as first parameter on the Lua stack.
     flex_table_t const &get_table_from_param();
 
     void check_context_and_state(char const *name, char const *context,
