@@ -290,11 +290,11 @@ void expire_tiles::merge_and_destroy(expire_tiles *other)
     }
 }
 
-std::size_t output_tiles_to_file(quadkey_list_t const &tiles_maxzoom,
-                                 char const *filename, uint32_t minzoom,
-                                 uint32_t maxzoom)
+std::size_t output_tiles_to_file(quadkey_list_t const &tiles_at_maxzoom,
+                                 uint32_t minzoom, uint32_t maxzoom,
+                                 std::string_view filename)
 {
-    FILE *outfile = std::fopen(filename, "a");
+    FILE *outfile = std::fopen(filename.data(), "a");
     if (outfile == nullptr) {
         log_warn("Failed to open expired tiles file ({}).  Tile expiry "
                  "list will not be written!",
@@ -302,8 +302,8 @@ std::size_t output_tiles_to_file(quadkey_list_t const &tiles_maxzoom,
         return 0;
     }
 
-    auto const count =
-        for_each_tile(tiles_maxzoom, minzoom, maxzoom, [&](tile_t const &tile) {
+    auto const count = for_each_tile(
+        tiles_at_maxzoom, minzoom, maxzoom, [&](tile_t const &tile) {
             fmt::print(outfile, "{}/{}/{}\n", tile.zoom(), tile.x(), tile.y());
         });
 

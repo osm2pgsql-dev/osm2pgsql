@@ -11,6 +11,7 @@
  */
 
 #include <memory>
+#include <string_view>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -186,13 +187,13 @@ std::size_t for_each_tile(quadkey_list_t const &tiles, uint32_t minzoom,
 /**
  * Write the list of tiles to a file.
  *
- * \param tiles The list of tiles at maximum zoom level
- * \param filename Name of the file
+ * \param tiles_at_maxzoom The list of tiles at maximum zoom level
  * \param minzoom Minimum zoom level
  * \param maxzoom Maximum zoom level
+ * \param filename Name of the file
  */
-std::size_t output_tiles_to_file(quadkey_list_t const &tiles,
-                                 char const *filename, uint32_t minzoom,
-                                 uint32_t maxzoom);
+std::size_t output_tiles_to_file(quadkey_list_t const &tiles_at_maxzoom,
+                                 uint32_t minzoom, uint32_t maxzoom,
+                                 std::string_view filename);
 
 #endif // OSM2PGSQL_EXPIRE_TILES_HPP
