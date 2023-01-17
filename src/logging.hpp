@@ -55,7 +55,9 @@ public:
         str += fmt::format(ts, format_str, std::forward<TArgs>(args)...);
         str += '\n';
 
-        std::fputs(str.c_str(), stderr);
+        if (std::fputs(str.c_str(), stderr) < 0) {
+            throw std::runtime_error{"Can not write to log"};
+        }
     }
 
     bool log_sql() const noexcept { return m_log_sql; }

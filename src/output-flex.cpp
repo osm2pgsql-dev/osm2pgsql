@@ -57,6 +57,7 @@ static std::mutex lua_mutex;
 // C "trampoline" functions which are called from Lua which get the current
 // context (the output_flex_t object) and call the respective function on the
 // context object.
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TRAMPOLINE(func_name, lua_name)                                        \
     static int lua_trampoline_##func_name(lua_State *lua_state)                \
     {                                                                          \

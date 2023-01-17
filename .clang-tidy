@@ -1,5 +1,5 @@
 ---
-Checks: '*,-altera-*,-android-cloexec-*,-cert-err58-cpp,-cppcoreguidelines-avoid-magic-numbers,-cppcoreguidelines-avoid-non-const-global-variables,-cppcoreguidelines-owning-memory,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-cppcoreguidelines-pro-type-cstyle-cast,-cppcoreguidelines-pro-type-reinterpret-cast,-cppcoreguidelines-pro-type-static-cast-downcast,-cppcoreguidelines-pro-type-vararg,-fuchsia-*,-google-readability-casting,-google-readability-todo,-hicpp-named-parameter,-hicpp-no-array-decay,-hicpp-vararg,-llvm-include-order,-llvm-header-guard,-llvmlibc-*,-misc-no-recursion,-modernize-use-nodiscard,-modernize-use-trailing-return-type,-readability-identifier-length,-readability-implicit-bool-conversion,-readability-named-parameter,-readability-magic-numbers'
+Checks: '*,-abseil-*,-altera-*,-android-cloexec-*,-bugprone-easily-swappable-parameters,-cert-err58-cpp,-cppcoreguidelines-avoid-magic-numbers,-cppcoreguidelines-avoid-non-const-global-variables,-cppcoreguidelines-owning-memory,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-cppcoreguidelines-pro-type-cstyle-cast,-cppcoreguidelines-pro-type-reinterpret-cast,-cppcoreguidelines-pro-type-static-cast-downcast,-cppcoreguidelines-pro-type-vararg,-fuchsia-*,-google-readability-casting,-google-readability-todo,-hicpp-named-parameter,-hicpp-no-array-decay,-hicpp-vararg,-llvm-include-order,-llvm-header-guard,-llvmlibc-*,-misc-no-recursion,-modernize-use-nodiscard,-modernize-use-trailing-return-type,-readability-identifier-length,-readability-implicit-bool-conversion,-readability-named-parameter,-readability-magic-numbers'
 #
 #  cppcoreguidelines-pro-type-cstyle-cast
 #  google-build-using-namespace
@@ -10,11 +10,17 @@ Checks: '*,-altera-*,-android-cloexec-*,-cert-err58-cpp,-cppcoreguidelines-avoid
 #  readability-named-parameter
 #    Differ from our style guidelines
 #
+#  abseil-*
+#    Not applicable.
+#
 #  altera-*
 #    Not applicable.
 #
 #  android-cloexec-*
 #    O_CLOEXEC isn't available on Windows
+#
+#  bugprone-easily-swappable-parameters
+#    Can't always be avoided.
 #
 #  cert-err58-cpp
 #    There are many of these in the test code, most of them from the Catch

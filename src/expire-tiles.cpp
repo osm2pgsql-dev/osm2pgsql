@@ -281,7 +281,7 @@ std::size_t output_tiles_to_file(quadkey_list_t const &tiles_maxzoom,
             fmt::print(outfile, "{}/{}/{}\n", tile.zoom(), tile.x(), tile.y());
         });
 
-    std::fclose(outfile);
+    (void)std::fclose(outfile);
 
     return count;
 }

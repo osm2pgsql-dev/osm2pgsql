@@ -192,7 +192,7 @@ public:
     template <typename T>
     void add_tag(char const *key, T&& value)
     {
-        m_tags.emplace_back(key, std::move(value));
+        m_tags.emplace_back(key, std::forward<T>(value));
     }
 
     /// Add tag to list if there is no tag with that key yet
