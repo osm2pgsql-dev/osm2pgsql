@@ -447,38 +447,45 @@ int output_flex_t::app_define_table()
                             get_options()->slim && !get_options()->droptemp);
 }
 
-// Check that the first element on the Lua stack is an osm2pgsql.Table
-// parameter and return its internal table index.
-static std::size_t table_idx_from_param(lua_State *lua_state)
+// Check that the first element on the Lua stack is a "type_name"
+// parameter and return its internal index.
+static std::size_t idx_from_param(lua_State *lua_state, char const *type_name)
 {
+    assert(lua_gettop(lua_state) >= 1);
+
     void const *const user_data = lua_touserdata(lua_state, 1);
 
     if (user_data == nullptr || !lua_getmetatable(lua_state, 1)) {
-        throw std::runtime_error{
-            "First parameter must be of type osm2pgsql.Table."};
+        throw fmt_error("First parameter must be of type {}.", type_name);
     }
 
-    luaL_getmetatable(lua_state, osm2pgsql_table_name);
+    luaL_getmetatable(lua_state, type_name);
     if (!lua_rawequal(lua_state, -1, -2)) {
-        throw std::runtime_error{
-            "First parameter must be of type osm2pgsql.Table."};
+        throw fmt_error("First parameter must be of type {}.", type_name);
     }
-    lua_pop(lua_state, 2);
+    lua_pop(lua_state, 2); // remove the two metatables
 
     return *static_cast<std::size_t const *>(user_data);
 }
 
-// Get the flex table that is as first parameter on the Lua stack.
-flex_table_t const &output_flex_t::get_table_from_param()
+template <typename CONTAINER>
+static typename CONTAINER::value_type const &
+get_from_idx_param(lua_State *lua_state, CONTAINER *container,
+                   char const *type_name)
 {
-    if (lua_gettop(lua_state()) != 1) {
-        throw std::runtime_error{
-            "Need exactly one parameter of type osm2pgsql.Table."};
+    if (lua_gettop(lua_state) != 1) {
+        throw fmt_error("Need exactly one parameter of type {}.", type_name);
     }
 
-    auto const &table = m_tables->at(table_idx_from_param(lua_state()));
-    lua_remove(lua_state(), 1);
-    return table;
+    auto const &item = container->at(idx_from_param(lua_state, type_name));
+    lua_remove(lua_state, 1);
+    return item;
+}
+
+flex_table_t const &output_flex_t::get_table_from_param()
+{
+    return get_from_idx_param(lua_state(), m_tables.get(),
+                              osm2pgsql_table_name);
 }
 
 int output_flex_t::table_tostring()
@@ -588,8 +595,9 @@ int output_flex_t::table_add_row()
             "Need two parameters: The osm2pgsql.Table and the row data."};
     }
 
-    auto &table_connection =
-        m_table_connections.at(table_idx_from_param(lua_state()));
+    auto &table_connection = m_table_connections.at(
+        idx_from_param(lua_state(), osm2pgsql_table_name));
+
     auto const &table = table_connection.table();
 
     // If there is a second parameter, it must be a Lua table.
@@ -665,8 +673,8 @@ int output_flex_t::table_insert()
     }
 
     // The first parameter is the table object.
-    auto &table_connection =
-        m_table_connections.at(table_idx_from_param(lua_state()));
+    auto &table_connection = m_table_connections.at(
+        idx_from_param(lua_state(), osm2pgsql_table_name));
 
     // The second parameter must be a Lua table with the contents for the
     // fields.
