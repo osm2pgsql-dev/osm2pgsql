@@ -48,6 +48,11 @@ public:
     constexpr double width() const noexcept { return m_max_x - m_min_x; }
     constexpr double height() const noexcept { return m_max_y - m_min_y; }
 
+    constexpr point_t center() const noexcept
+    {
+        return {m_min_x + width() / 2.0, m_min_y + height() / 2.0};
+    }
+
     constexpr point_t min() const noexcept { return {m_min_x, m_min_y}; }
     constexpr point_t max() const noexcept { return {m_max_x, m_max_y}; }
 

@@ -9,6 +9,7 @@
 
 #include "flex-lua-geom.hpp"
 #include "geom-functions.hpp"
+#include "geom-pole-of-inaccessibility.hpp"
 #include "lua-utils.hpp"
 
 extern "C"
@@ -167,6 +168,34 @@ static int geom_num_geometries(lua_State *lua_state)
     return 1;
 }
 
+static int geom_pole_of_inaccessibility(lua_State *lua_state)
+{
+    auto const *const input_geometry = unpack_geometry(lua_state);
+
+    double stretch = 1.0;
+    if (lua_gettop(lua_state) > 1) {
+        if (lua_type(lua_state, 2) != LUA_TTABLE) {
+            throw std::runtime_error{
+                "Argument #2 to 'pole_of_inaccessibility' must be a table."};
+        }
+
+        lua_getfield(lua_state, 2, "stretch");
+        if (lua_isnumber(lua_state, -1)) {
+            stretch = lua_tonumber(lua_state, -1);
+            if (stretch <= 0.0) {
+                throw std::runtime_error{"The 'stretch' factor must be > 0."};
+            }
+        } else {
+            throw std::runtime_error{"The 'stretch' factor must be a number."};
+        }
+    }
+
+    auto *geom = create_lua_geometry_object(lua_state);
+    geom::pole_of_inaccessibility(geom, *input_geometry, 0, stretch);
+
+    return 1;
+}
+
 static int geom_segmentize(lua_State *lua_state)
 {
     auto const *const input_geometry = unpack_geometry(lua_state);
@@ -257,6 +286,8 @@ void init_geometry_class(lua_State *lua_state)
     luaX_add_table_func(lua_state, "line_merge", geom_line_merge);
     luaX_add_table_func(lua_state, "reverse", geom_reverse);
     luaX_add_table_func(lua_state, "num_geometries", geom_num_geometries);
+    luaX_add_table_func(lua_state, "pole_of_inaccessibility",
+                        geom_pole_of_inaccessibility);
     luaX_add_table_func(lua_state, "segmentize", geom_segmentize);
     luaX_add_table_func(lua_state, "simplify", geom_simplify);
     luaX_add_table_func(lua_state, "srid", geom_srid);
