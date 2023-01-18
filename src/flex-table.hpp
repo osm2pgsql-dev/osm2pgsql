@@ -155,6 +155,16 @@ public:
 
     flex_index_t &add_index(std::string method);
 
+    void set_always_build_id_index() noexcept
+    {
+        m_always_build_id_index = true;
+    }
+
+    bool always_build_id_index() const noexcept
+    {
+        return m_always_build_id_index;
+    }
+
 private:
     /// The name of the table
     std::string m_name;
@@ -199,6 +209,9 @@ private:
 
     /// Does this table have more than one geometry column?
     bool m_has_multiple_geom_columns = false;
+
+    /// Always build the id index, not only when it is needed for updates?
+    bool m_always_build_id_index = false;
 
 }; // class flex_table_t
 

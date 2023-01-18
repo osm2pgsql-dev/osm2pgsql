@@ -359,7 +359,8 @@ void table_connection_t::stop(bool updateable, bool append)
         }
     }
 
-    if (updateable && table().has_id_column()) {
+    if (table().always_build_id_index() ||
+        (updateable && table().has_id_column())) {
         create_id_index();
     }
 

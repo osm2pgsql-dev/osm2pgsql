@@ -121,6 +121,12 @@ def table_exists(conn, table):
     num = scalar(conn, """SELECT count(*) FROM pg_tables
                           WHERE tablename = %s AND schemaname = %s""",
                 (tablename, schema))
+    if num == 1:
+        return True
+
+    num = scalar(conn, """SELECT count(*) FROM pg_views
+                          WHERE viewname = %s AND schemaname = %s""",
+                (tablename, schema))
     return num == 1
 
 

@@ -566,6 +566,16 @@ void output_flex_t::setup_id_columns(flex_table_t *table)
     lua_pop(lua_state(), 1); // "id_column"
     check_identifier(name, "column names");
 
+    std::string const create_index = luaX_get_table_string(
+        lua_state(), "create_index", -1, "The ids field", "auto");
+    lua_pop(lua_state(), 1); // "create_index"
+    if (create_index == "always") {
+        table->set_always_build_id_index();
+    } else if (create_index != "auto") {
+        throw fmt_error("Unknown value '{}' for 'create_index' field of ids",
+                        create_index);
+    }
+
     auto &column = table->add_column(name, "id_num", "");
     column.set_not_null();
     lua_pop(lua_state(), 1); // "ids"

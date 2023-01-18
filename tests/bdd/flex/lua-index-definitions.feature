@@ -476,3 +476,64 @@ Feature: Index definitions in Lua file
         Then SELECT schemaname, tablename FROM pg_catalog.pg_indexes WHERE tablename = 'mytable' AND indexdef LIKE '%USING btree (name)%' AND indexdef LIKE '%WHERE (name = lower(name))%'
             | schemaname | tablename |
             | public     | mytable   |
+
+    Scenario: Don't create id index if the configuration doesn't mention it
+        Given the input file 'liechtenstein-2013-08-03.osm.pbf'
+        And the lua style
+            """
+            local t = osm2pgsql.define_table({
+                name = 'mytable',
+                ids = { type = 'node', id_column = 'node_id' },
+                columns = {
+                    { column = 'name', type = 'text' },
+                    { column = 'tags', type = 'jsonb' },
+                    { column = 'geom', type = 'geometry' },
+                }
+            })
+            """
+        When running osm2pgsql flex
+        Then table pg_catalog.pg_indexes has 0 rows with condition
+            """
+            schemaname = 'public' AND tablename = 'mytable' AND indexname LIKE '%node_id%'
+            """
+
+    Scenario: Don't create id index if the configuration doesn't says so
+        Given the input file 'liechtenstein-2013-08-03.osm.pbf'
+        And the lua style
+            """
+            local t = osm2pgsql.define_table({
+                name = 'mytable',
+                ids = { type = 'node', id_column = 'node_id', create_index = 'auto' },
+                columns = {
+                    { column = 'name', type = 'text' },
+                    { column = 'tags', type = 'jsonb' },
+                    { column = 'geom', type = 'geometry' },
+                }
+            })
+            """
+        When running osm2pgsql flex
+        Then table pg_catalog.pg_indexes has 0 rows with condition
+            """
+            schemaname = 'public' AND tablename = 'mytable' AND indexname LIKE '%node_id%'
+            """
+
+    Scenario: Always create id index if the configuration says so
+        Given the input file 'liechtenstein-2013-08-03.osm.pbf'
+        And the lua style
+            """
+            local t = osm2pgsql.define_table({
+                name = 'mytable',
+                ids = { type = 'node', id_column = 'node_id', create_index = 'always' },
+                columns = {
+                    { column = 'name', type = 'text' },
+                    { column = 'tags', type = 'jsonb' },
+                    { column = 'geom', type = 'geometry' },
+                }
+            })
+            """
+        When running osm2pgsql flex
+        Then table pg_catalog.pg_indexes has 1 rows with condition
+            """
+            schemaname = 'public' AND tablename = 'mytable' AND indexname LIKE '%node_id%'
+            """
+
