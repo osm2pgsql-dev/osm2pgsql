@@ -6,6 +6,8 @@ runs:
   steps:
     - name: Test
       run: ctest --output-on-failure -C Release
+      env:
+        PYTHONUTF8: 1
       shell: bash
       working-directory: build
 
