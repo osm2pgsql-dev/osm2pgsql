@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2022 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2023 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -137,8 +137,8 @@ namespace osmium {
             using pointer           = value_type*;
             using reference         = value_type&;
 
-            CollectionFilterIterator(const TFilter& filter, CollectionIterator<TMember> begin, CollectionIterator<TMember> end) :
-                m_filter(filter),
+            CollectionFilterIterator(TFilter filter, CollectionIterator<TMember> begin, CollectionIterator<TMember> end) :
+                m_filter(std::move(filter)),
                 m_it(begin),
                 m_end(end) {
                 advance();

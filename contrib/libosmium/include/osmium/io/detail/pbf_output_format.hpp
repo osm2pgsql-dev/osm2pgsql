@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2022 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2023 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -645,7 +645,7 @@ namespace osmium {
 
                     const std::string osmosis_replication_timestamp{header.get("osmosis_replication_timestamp")};
                     if (!osmosis_replication_timestamp.empty()) {
-                        osmium::Timestamp ts{osmosis_replication_timestamp.c_str()};
+                        const osmium::Timestamp ts{osmosis_replication_timestamp.c_str()};
                         pbf_header_block.add_int64(OSMFormat::HeaderBlock::optional_int64_osmosis_replication_timestamp, uint32_t(ts));
                     }
 

@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2022 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2023 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -197,7 +197,7 @@ namespace osmium {
     struct OSMIUM_EXPORT unknown_type : public std::runtime_error {
 
         unknown_type() :
-            std::runtime_error("unknown item type") {
+            std::runtime_error{"unknown item type"} {
         }
 
     }; // struct unknown_type
