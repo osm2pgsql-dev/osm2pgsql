@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2022 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2023 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -198,6 +198,8 @@ namespace osmium {
             }
         }
 
+        // XXX Changeset id is not added to the CRC. This is an oversight,
+        // but we don't want to change this now to keep compatibility.
         void update(const osmium::OSMObject& object) noexcept {
             update_int64(static_cast<uint64_t>(object.id()));
             update_bool(object.visible());

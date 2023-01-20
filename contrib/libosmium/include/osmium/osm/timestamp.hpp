@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2022 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2023 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -33,7 +33,6 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
-#include <osmium/util/compatibility.hpp>
 #include <osmium/util/minmax.hpp> // IWYU pragma: keep
 
 #include <array>
@@ -243,15 +242,6 @@ namespace osmium {
         /// Explicit conversion into uint64_t.
         explicit constexpr operator uint64_t() const noexcept {
             return uint64_t(m_timestamp);
-        }
-
-        /**
-         * Implicit conversion into time_t.
-         *
-         * @deprecated You should call seconds_since_epoch() explicitly instead.
-         */
-        OSMIUM_DEPRECATED constexpr operator time_t() const noexcept { // NOLINT(google-explicit-constructor, hicpp-explicit-conversions)
-            return static_cast<time_t>(m_timestamp);
         }
 
         template <typename T>

@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2022 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2023 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -48,7 +48,6 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/osm/timestamp.hpp>
 #include <osmium/osm/types.hpp>
 #include <osmium/osm/way.hpp>
-#include <osmium/util/compatibility.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -488,12 +487,6 @@ namespace osmium {
                 return set_user(user.data(), static_cast<string_size_type>(user.size()));
             }
 
-            /// @deprecated Use set_user(...) instead.
-            template <typename... TArgs>
-            OSMIUM_DEPRECATED void add_user(TArgs&&... args) {
-                set_user(std::forward<TArgs>(args)...);
-            }
-
             OSMIUM_FORWARD(set_id)
             OSMIUM_FORWARD(set_visible)
             OSMIUM_FORWARD(set_deleted)
@@ -648,11 +641,6 @@ namespace osmium {
             OSMIUM_FORWARD(set_attribute)
             OSMIUM_FORWARD(set_removed)
 
-            // @deprecated Use set_bounds() instead.
-            OSMIUM_DEPRECATED osmium::Box& bounds() noexcept {
-                return object().bounds();
-            }
-
             ChangesetBuilder& set_bounds(const osmium::Box& box) noexcept {
                 object().bounds() = box;
                 return *this;
@@ -702,12 +690,6 @@ namespace osmium {
             ChangesetBuilder& set_user(const std::string& user) {
                 assert(user.size() < std::numeric_limits<string_size_type>::max());
                 return set_user(user.data(), static_cast<string_size_type>(user.size()));
-            }
-
-            /// @deprecated Use set_user(...) instead.
-            template <typename... TArgs>
-            OSMIUM_DEPRECATED void add_user(TArgs&&... args) {
-                set_user(std::forward<TArgs>(args)...);
             }
 
         }; // class ChangesetBuilder

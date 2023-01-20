@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2022 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2023 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -259,7 +259,7 @@ namespace osmium {
 
                 while (data != end_ptr) {
                     const char* prev = data;
-                    uint32_t c = next_utf8_codepoint(&data, end_ptr);
+                    const uint32_t c = next_utf8_codepoint(&data, end_ptr);
 
                     // This is a list of Unicode code points that we let
                     // through instead of escaping them. It is incomplete

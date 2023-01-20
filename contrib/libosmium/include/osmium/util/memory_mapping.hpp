@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2022 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2023 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -33,7 +33,6 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
-#include <osmium/util/compatibility.hpp>
 #include <osmium/util/file.hpp>
 
 #include <cassert>
@@ -205,16 +204,6 @@ namespace osmium {
              */
             MemoryMapping(std::size_t size, mapping_mode mode, int fd = -1, off_t offset = 0);
 
-            /**
-             * @deprecated
-             * For backwards compatibility only. Use the constructor taking
-             * a mapping_mode as second argument instead.
-             */
-            // cppcheck-suppress noExplicitConstructor
-            OSMIUM_DEPRECATED MemoryMapping(std::size_t size, bool writable = true, int fd = -1, off_t offset = 0) : // NOLINT(google-explicit-constructor, hicpp-explicit-conversions)
-                MemoryMapping(size, writable ? mapping_mode::write_shared : mapping_mode::readonly, fd, offset)  {
-            }
-
             /// You can not copy construct a MemoryMapping.
             MemoryMapping(const MemoryMapping&) = delete;
 
@@ -376,18 +365,6 @@ namespace osmium {
              */
             TypedMemoryMapping(std::size_t size, MemoryMapping::mapping_mode mode, int fd, off_t offset = 0) :
                 m_mapping(sizeof(T) * size, mode, fd, sizeof(T) * offset) {
-            }
-
-            /**
-             * @deprecated
-             * For backwards compatibility only. Use the constructor taking
-             * a mapping_mode as second argument instead.
-             */
-            OSMIUM_DEPRECATED TypedMemoryMapping(std::size_t size, bool writable, int fd, off_t offset = 0) :
-                m_mapping(sizeof(T) * size,
-                          writable ? MemoryMapping::mapping_mode::write_shared : MemoryMapping::mapping_mode::readonly,
-                          fd,
-                          sizeof(T) * offset) {
             }
 
             /// You can not copy construct a TypedMemoryMapping.
