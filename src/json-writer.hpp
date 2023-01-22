@@ -69,7 +69,7 @@ public:
                 m_buffer.append("\\\\");
                 break;
             default:
-                if (c <= 0x1f) {
+                if (static_cast<unsigned char>(c) <= 0x1fU) {
                     m_buffer.append(fmt::format(R"(\u{:04x})",
                                                 static_cast<unsigned char>(c)));
                 } else {
