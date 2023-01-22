@@ -11,12 +11,12 @@ tables.t2 = osm2pgsql.define_relation_table('osm2pgsql_test_t2', {
 
 function osm2pgsql.process_relation(object)
     if object.tags.t1 then
-        tables.t1:add_row({
+        tables.t1:insert({
             tags = object.tags
         })
     end
     if object.tags.t2 then
-        tables.t2:add_row({
+        tables.t2:insert({
             tags = object.tags
         })
     end
