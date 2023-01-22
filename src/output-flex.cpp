@@ -534,6 +534,7 @@ void output_flex_t::setup_id_columns(flex_table_t *table)
 
     std::string const type{
         luaX_get_table_string(lua_state(), "type", -1, "The ids field")};
+    lua_pop(lua_state(), 1); // "type"
 
     if (type == "node") {
         table->set_id_type(osmium::item_type::node);
@@ -545,7 +546,7 @@ void output_flex_t::setup_id_columns(flex_table_t *table)
         table->set_id_type(osmium::item_type::area);
     } else if (type == "any") {
         table->set_id_type(osmium::item_type::undefined);
-        lua_getfield(lua_state(), -2, "type_column");
+        lua_getfield(lua_state(), -1, "type_column");
         if (lua_isstring(lua_state(), -1)) {
             std::string const column_name =
                 lua_tolstring(lua_state(), -1, nullptr);
@@ -555,18 +556,29 @@ void output_flex_t::setup_id_columns(flex_table_t *table)
         } else if (!lua_isnil(lua_state(), -1)) {
             throw std::runtime_error{"type_column must be a string or nil."};
         }
-        lua_pop(lua_state(), 1); // type_column
+        lua_pop(lua_state(), 1); // "type_column"
     } else {
         throw fmt_error("Unknown ids type: {}.", type);
     }
 
     std::string const name =
-        luaX_get_table_string(lua_state(), "id_column", -2, "The ids field");
+        luaX_get_table_string(lua_state(), "id_column", -1, "The ids field");
+    lua_pop(lua_state(), 1); // "id_column"
     check_identifier(name, "column names");
+
+    std::string const create_index = luaX_get_table_string(
+        lua_state(), "create_index", -1, "The ids field", "auto");
+    lua_pop(lua_state(), 1); // "create_index"
+    if (create_index == "always") {
+        table->set_always_build_id_index();
+    } else if (create_index != "auto") {
+        throw fmt_error("Unknown value '{}' for 'create_index' field of ids",
+                        create_index);
+    }
 
     auto &column = table->add_column(name, "id_num", "");
     column.set_not_null();
-    lua_pop(lua_state(), 3); // id_column, type, ids
+    lua_pop(lua_state(), 1); // "ids"
 }
 
 void output_flex_t::setup_flex_table_columns(flex_table_t *table)
