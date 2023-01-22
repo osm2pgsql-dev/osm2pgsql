@@ -23,6 +23,7 @@
 #include <libpq-fe.h>
 
 #include <array>
+#include <atomic>
 #include <cassert>
 #include <map>
 #include <memory>
@@ -205,7 +206,7 @@ public:
     char const *error_msg() const noexcept;
 
     /// Close database connection.
-    void close() noexcept { m_conn.reset(); }
+    void close();
 
 private:
     pg_result_t exec_prepared_internal(char const *stmt, int num_params,
@@ -289,6 +290,12 @@ private:
     };
 
     std::unique_ptr<PGconn, pg_conn_deleter_t> m_conn;
+
+    // Used to generate unique ids for each database connection.
+    static std::atomic<std::uint32_t> connection_id;
+
+    // The unique id of this database connection.
+    std::uint32_t m_connection_id;
 };
 
 /**
