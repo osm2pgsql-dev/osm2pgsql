@@ -17,9 +17,9 @@ function osm2pgsql.process_way(object)
         return
     end
 
-    dtable:add_row({
+    dtable:insert({
         tags = object.tags,
-        geom = { create = 'line' }
+        geom = object:as_linestring()
     })
 end
 
