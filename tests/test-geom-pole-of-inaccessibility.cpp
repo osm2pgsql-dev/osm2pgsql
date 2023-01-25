@@ -54,7 +54,7 @@ TEST_CASE("geom::polygon_t", "[NoDB]")
     polygon.inners().emplace_back(
         geom::ring_t{{1, 1}, {2, 1}, {2, 2}, {1, 2}, {1, 1}});
 
-    geom::geometry_t geom{std::move(polygon)};
+    geom::geometry_t const geom{std::move(polygon)};
     auto const middle =
         pole_of_inaccessibility(geom, 0.00001).get<geom::point_t>();
     REQUIRE(middle.x() == Approx(3.0).epsilon(0.001));
