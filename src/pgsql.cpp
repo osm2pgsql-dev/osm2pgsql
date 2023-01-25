@@ -18,8 +18,11 @@
 #include <string>
 #include <utility>
 
+std::atomic<std::uint32_t> pg_conn_t::connection_id{0};
+
 pg_conn_t::pg_conn_t(std::string const &conninfo)
-: m_conn(PQconnectdb(conninfo.c_str()))
+: m_conn(PQconnectdb(conninfo.c_str())),
+  m_connection_id(connection_id.fetch_add(1))
 {
     if (!m_conn) {
         throw std::runtime_error{"Connecting to database failed."};
@@ -27,6 +30,18 @@ pg_conn_t::pg_conn_t(std::string const &conninfo)
     if (PQstatus(m_conn.get()) != CONNECTION_OK) {
         throw fmt_error("Connecting to database failed: {}.", error_msg());
     }
+
+    if (get_logger().log_sql()) {
+        auto const results = exec("SELECT pg_backend_pid()");
+        log_sql("(C{}) New database connection (backend_pid={})",
+                m_connection_id, results.get(0, 0));
+    }
+}
+
+void pg_conn_t::close()
+{
+    log_sql("(C{}) Closing database connection", m_connection_id);
+    m_conn.reset();
 }
 
 char const *pg_conn_t::error_msg() const noexcept
@@ -49,7 +64,7 @@ pg_result_t pg_conn_t::exec(char const *sql) const
 {
     assert(m_conn);
 
-    log_sql("{}", sql);
+    log_sql("(C{}) {}", m_connection_id, sql);
     pg_result_t res{PQexec(m_conn.get(), sql)};
     if (res.status() != PGRES_COMMAND_OK && res.status() != PGRES_TUPLES_OK) {
         throw fmt_error("Database error: {}", error_msg());
@@ -66,7 +81,7 @@ void pg_conn_t::copy_start(char const *sql) const
 {
     assert(m_conn);
 
-    log_sql("{}", sql);
+    log_sql("(C{}) {}", m_connection_id, sql);
     pg_result_t const res{PQexec(m_conn.get(), sql)};
     if (res.status() != PGRES_COPY_IN) {
         throw fmt_error("Database error on COPY: {}", error_msg());
@@ -78,7 +93,8 @@ void pg_conn_t::copy_send(std::string const &data,
 {
     assert(m_conn);
 
-    log_sql_data("Copy data to '{}':\n{}", context, data);
+    log_sql_data("(C{}) Copy data to '{}':\n{}", m_connection_id, context,
+                 data);
     int const r = PQputCopyData(m_conn.get(), data.c_str(), (int)data.size());
 
     switch (r) {
@@ -141,7 +157,7 @@ pg_result_t pg_conn_t::exec_prepared_internal(char const *stmt, int num_params,
     assert(m_conn);
 
     if (get_logger().log_sql()) {
-        log_sql("EXECUTE {}({})", stmt,
+        log_sql("(C{}) EXECUTE {}({})", m_connection_id, stmt,
                 concat_params(num_params, param_values));
     }
 
