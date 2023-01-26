@@ -166,23 +166,38 @@ point_t pole_of_inaccessibility(const polygon_t &polygon, double precision,
                                    envelope.max_x(),
                                    envelope.max_y() * stretch};
 
-    double const cell_size =
-        std::min(stretched_envelope.width(), stretched_envelope.height());
-    if (cell_size == 0) {
+    if (stretched_envelope.width() == 0 || stretched_envelope.height() == 0) {
         return envelope.min();
     }
 
     std::priority_queue<Cell, std::vector<Cell>> cell_queue;
 
     // cover polygon with initial cells
-    {
+    if (stretched_envelope.width() == stretched_envelope.height()) {
+        double const cell_size = stretched_envelope.width();
         double const h = cell_size / 2.0;
-        for (double x = stretched_envelope.min_x();
-             x < stretched_envelope.max_x(); x += cell_size) {
-            for (double y = stretched_envelope.min_y();
-                 y < stretched_envelope.max_y(); y += cell_size) {
-                cell_queue.emplace(point_t{x + h, y + h}, h, polygon, stretch);
-            }
+        cell_queue.emplace(stretched_envelope.center(), h, polygon, stretch);
+    } else if (stretched_envelope.width() < stretched_envelope.height()) {
+        double const cell_size = stretched_envelope.width();
+        double const h = cell_size / 2.0;
+        int const count = static_cast<int>(std::ceil(
+            stretched_envelope.height() / stretched_envelope.width()));
+        for (int n = 0; n < count; ++n) {
+            cell_queue.emplace(
+                point_t{stretched_envelope.center().x(),
+                        stretched_envelope.min().y() + n * cell_size + h},
+                h, polygon, stretch);
+        }
+    } else {
+        double const cell_size = stretched_envelope.height();
+        double const h = cell_size / 2.0;
+        int const count = static_cast<int>(std::ceil(
+            stretched_envelope.width() / stretched_envelope.height()));
+        for (int n = 0; n < count; ++n) {
+            cell_queue.emplace(
+                point_t{stretched_envelope.min().x() + n * cell_size + h,
+                        stretched_envelope.center().y()},
+                h, polygon, stretch);
         }
     }
 
@@ -219,8 +234,8 @@ point_t pole_of_inaccessibility(const polygon_t &polygon, double precision,
 
         for (auto dy : {-h, h}) {
             for (auto dx : {-h, h}) {
-                Cell c{point_t{center.x() + dx, center.y() + dy}, h, polygon,
-                       stretch};
+                Cell const c{point_t{center.x() + dx, center.y() + dy}, h,
+                             polygon, stretch};
                 if (c.max > best_cell.dist) {
                     cell_queue.push(c);
                 }
