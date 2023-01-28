@@ -1,4 +1,4 @@
-.TH "OSM2PGSQL" "1" "1.7.2" "" ""
+.TH "OSM2PGSQL" "1" "1.8.0" "" ""
 .SH NAME
 .PP
 osm2pgsql - Openstreetmap data to PostgreSQL converter
@@ -31,7 +31,7 @@ more information.
 .SH OPTIONS
 .PP
 This program follows the usual GNU command line syntax, with long
-options starting with two dashes (\f[C]--\f[R]).
+options starting with two dashes (\f[V]--\f[R]).
 Mandatory arguments to long options are mandatory for short options too.
 .SH MAIN OPTIONS
 .TP
@@ -58,8 +58,8 @@ Print osm2pgsql version.
 Set log level (`debug', `info' (default), `warn', or `error').
 .TP
 --log-progress=VALUE
-Enable (\f[C]true\f[R]) or disable (\f[C]false\f[R]) progress logging.
-Setting this to \f[C]auto\f[R] will enable progress logging on the
+Enable (\f[V]true\f[R]) or disable (\f[V]false\f[R]) progress logging.
+Setting this to \f[V]auto\f[R] will enable progress logging on the
 console and disable it if the output is redirected to a file.
 Default: true.
 .TP
@@ -68,16 +68,17 @@ Enable logging of SQL commands for debugging.
 .TP
 --log-sql-data
 Enable logging of all data added to the database.
-This will write out a huge amount of data! For debugging.
+This will write out a huge amount of data!
+For debugging.
 .TP
 -v, --verbose
-Same as \f[C]--log-level=debug\f[R].
+Same as \f[V]--log-level=debug\f[R].
 .SH DATABASE OPTIONS
 .TP
 -d, --database=NAME
 The name of the PostgreSQL database to connect to.
-If this parameter contains an \f[C]=\f[R] sign or starts with a valid
-URI prefix (\f[C]postgresql://\f[R] or \f[C]postgres://\f[R]), it is
+If this parameter contains an \f[V]=\f[R] sign or starts with a valid
+URI prefix (\f[V]postgresql://\f[R] or \f[V]postgres://\f[R]), it is
 treated as a conninfo string.
 See the PostgreSQL manual for details.
 .TP
@@ -106,7 +107,7 @@ Example: \f[B]--bbox\f[R] \f[B]-0.5,51.25,0.5,51.75\f[R]
 .SH MIDDLE OPTIONS
 .TP
 -i, --tablespace-index=TABLESPC
-Store all indexes in the PostgreSQL tablespace \f[C]TABLESPC\f[R].
+Store all indexes in the PostgreSQL tablespace \f[V]TABLESPC\f[R].
 This option also affects the tables created by the pgsql output.
 .TP
 --tablespace-slim-data=TABLESPC
@@ -116,7 +117,7 @@ Store the slim mode tables in the given tablespace.
 Store the indexes of the slim mode tables in the given tablespace.
 .TP
 -p, --prefix=PREFIX
-Prefix for table names (default: \f[C]planet_osm\f[R]).
+Prefix for table names (default: \f[V]planet_osm\f[R]).
 .TP
 -s, --slim
 Store temporary data in the database.
@@ -151,7 +152,7 @@ As a rule of thumb, give a bit more than the size of the import file in
 PBF format.
 If the RAM is not big enough, use about 75% of memory.
 Make sure to leave enough RAM for PostgreSQL.
-It needs at least the amount of \f[C]shared_buffers\f[R] given in its
+It needs at least the amount of \f[V]shared_buffers\f[R] given in its
 configuration.
 Defaults to 800.
 .TP
@@ -185,7 +186,7 @@ The default is disabled.
 .TP
 --middle-schema=SCHEMA
 Use PostgreSQL schema SCHEMA for all tables, indexes, and functions in
-the middle (default is no schema, i.e.\ the \f[C]public\f[R] schema is
+the middle (default is no schema, i.e.\ the \f[V]public\f[R] schema is
 used).
 .TP
 --middle-way-node-index-id-shift=SHIFT
@@ -212,19 +213,19 @@ The style file.
 This specifies how the data is imported into the database, its format
 depends on the output.
 (For the \f[B]pgsql\f[R] output, the default is
-\f[C]/usr/share/osm2pgsql/default.style\f[R], for other outputs there is
+\f[V]/usr/share/osm2pgsql/default.style\f[R], for other outputs there is
 no default.)
 .SH PGSQL OUTPUT OPTIONS
 .TP
 -i, --tablespace-index=TABLESPC
-Store all indexes in the PostgreSQL tablespace \f[C]TABLESPC\f[R].
+Store all indexes in the PostgreSQL tablespace \f[V]TABLESPC\f[R].
 This option also affects the middle tables.
 .TP
 --tablespace-main-data=TABLESPC
-Store the data tables in the PostgreSQL tablespace \f[C]TABLESPC\f[R].
+Store the data tables in the PostgreSQL tablespace \f[V]TABLESPC\f[R].
 .TP
 --tablespace-main-index=TABLESPC
-Store the indexes in the PostgreSQL tablespace \f[C]TABLESPC\f[R].
+Store the indexes in the PostgreSQL tablespace \f[V]TABLESPC\f[R].
 .TP
 --latlong
 Store coordinates in degrees of latitude & longitude.
@@ -237,7 +238,7 @@ default).
 Use projection EPSG:SRID.
 .TP
 -p, --prefix=PREFIX
-Prefix for table names (default: \f[C]planet_osm\f[R]).
+Prefix for table names (default: \f[V]planet_osm\f[R]).
 This option affects the middle as well as the pgsql output table names.
 .TP
 --tag-transform-script=SCRIPT
@@ -260,10 +261,10 @@ Add all tags to an additional hstore (key/value) column in the database
 tables.
 .TP
 -z, --hstore-column=PREFIX
-Add an additional hstore (key/value) column named \f[C]PREFIX\f[R]
-containing all tags that have a key starting with \f[C]PREFIX\f[R], eg
-\f[C]\[rs]--hstore-column \[dq]name:\[dq]\f[R] will produce an extra
-hstore column that contains all \f[C]name:xx\f[R] tags.
+Add an additional hstore (key/value) column named \f[V]PREFIX\f[R]
+containing all tags that have a key starting with \f[V]PREFIX\f[R], eg
+\f[V]\[rs]--hstore-column \[dq]name:\[dq]\f[R] will produce an extra
+hstore column that contains all \f[V]name:xx\f[R] tags.
 .TP
 --hstore-match-only
 Only keep objects that have a value in at least one of the non-hstore
@@ -281,7 +282,7 @@ the PostgreSQL tables.
 .TP
 -K, --keep-coastlines
 Keep coastline data rather than filtering it out.
-By default objects tagged \f[C]natural=coastline\f[R] will be discarded
+By default objects tagged \f[V]natural=coastline\f[R] will be discarded
 based on the assumption that Shapefiles generated by OSMCoastline
 (https://osmdata.openstreetmap.de/) will be used for the coastline data.
 .TP
@@ -291,7 +292,7 @@ different projection is used for the geometries.
 .TP
 --output-pgsql-schema=SCHEMA
 Use PostgreSQL schema SCHEMA for all tables, indexes, and functions in
-the pgsql output (default is no schema, i.e.\ the \f[C]public\f[R]
+the pgsql output (default is no schema, i.e.\ the \f[V]public\f[R]
 schema is used).
 .SH EXPIRE OPTIONS
 .TP
@@ -315,7 +316,7 @@ Specifies the number of parallel threads used for certain operations.
 .TP
 --with-forward-dependencies=BOOL
 Propagate changes from nodes to ways and node/way members to relations
-(Default: \f[C]true\f[R]).
+(Default: \f[V]true\f[R]).
 .SH SEE ALSO
 .IP \[bu] 2
 osm2pgsql website (https://osm2pgsql.org)
