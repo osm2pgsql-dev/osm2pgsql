@@ -383,6 +383,8 @@ def update(conn, args):
 
     osm2pgsql = [args.osm2pgsql_cmd, '--append', '--slim', '--prefix', args.prefix]
     osm2pgsql.extend(args.extra_params)
+    if args.middle_schema != 'public':
+        osm2pgsql.extend(('--middle-schema', args.middle_schema))
     if args.database:
         osm2pgsql.extend(('-d', args.database))
     if args.username:
