@@ -6,6 +6,17 @@ jobs:
   ubuntu-test-install:
     runs-on: ubuntu-20.04
 
+    strategy:
+      matrix:
+        flavour: [public, middle_schema]
+        include:
+          - flavour: public
+            options: ""
+            schema: ""
+          - flavour: middle_schema
+            options: "--middle-schema=myschema"
+            schema: "myschema"
+
     env:
       LUA_VERSION: 5.3
       POSTGRESQL_VERSION: 12
@@ -75,8 +86,16 @@ jobs:
           sudo systemctl start postgresql
           sudo -u postgres createuser runner
           sudo -u postgres createdb -O runner o2ptest
-          sudo -u postgres psql o2ptest -c "CREATE EXTENSION postgis;"
-          sudo -u postgres psql o2ptest -c "CREATE EXTENSION hstore;"
+          sudo -u postgres psql o2ptest -c "CREATE EXTENSION postgis"
+          sudo -u postgres psql o2ptest -c "CREATE EXTENSION hstore"
+
+      - name: Set up schema
+        run: |
+          sudo -u postgres psql o2ptest -c "CREATE SCHEMA $SCHEMANAME"
+          sudo -u postgres psql o2ptest -c "GRANT ALL ON SCHEMA $SCHEMANAME TO runner"
+        if: ${{ matrix.schema }}
+        env:
+          SCHEMANAME: ${{ matrix.schema }}
 
       - name: Remove repository
         # Remove contents of workspace to be sure the install runs independently
@@ -92,15 +111,18 @@ jobs:
         run: wget --quiet $OSMURL
         working-directory: /tmp
 
-      - name: Test run of osm2pgsql
-        run: $PREFIX/bin/osm2pgsql -d o2ptest --slim $OSMFILE
+      - name: Test run of osm2pgsql (no schema)
+        run: $PREFIX/bin/osm2pgsql $EXTRAOPTS -d o2ptest --slim $OSMFILE
         working-directory: /tmp
+        env:
+          EXTRAOPTS: ${{ matrix.options }}
 
-      - name: Test run osm2pgsql-replication
+      - name: Test run osm2pgsql-replication (no schema)
         run: |
-          $PREFIX/bin/osm2pgsql-replication init -v -d o2ptest
-          $PREFIX/bin/osm2pgsql-replication status -v -d o2ptest
-          $PREFIX/bin/osm2pgsql-replication update -v -d o2ptest --once --max-diff-size=1
-          $PREFIX/bin/osm2pgsql-replication status -v -d o2ptest --json
+          $PREFIX/bin/osm2pgsql-replication init $EXTRAOPTS -v -d o2ptest
+          $PREFIX/bin/osm2pgsql-replication status $EXTRAOPTS -v -d o2ptest
+          $PREFIX/bin/osm2pgsql-replication update $EXTRAOPTS -v -d o2ptest --once --max-diff-size=1
+          $PREFIX/bin/osm2pgsql-replication status $EXTRAOPTS -v -d o2ptest --json
         working-directory: /tmp
-
+        env:
+          EXTRAOPTS: ${{ matrix.options }}

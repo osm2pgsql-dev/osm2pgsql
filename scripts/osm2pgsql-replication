@@ -95,14 +95,14 @@ def table_exists(conn, table_name, schema_name=None):
         return cur.rowcount > 0
 
 
-def compute_database_date(conn, prefix):
+def compute_database_date(conn, schema, prefix):
     """ Determine the date of the database from the newest object in the
         database.
     """
     # First, find the way with the highest ID in the database
     # Using nodes would be more reliable but those are not cached by osm2pgsql.
     with conn.cursor() as cur:
-        table = sql.Identifier(f'{prefix}_ways')
+        table = sql.Identifier(schema, f'{prefix}_ways')
         cur.execute(sql.SQL("SELECT max(id) FROM {}").format(table))
         osmid = cur.fetchone()[0] if cur.rowcount == 1 else None
 
@@ -290,7 +290,7 @@ def init(conn, args):
     this with the `--server` parameter.
     """
     if args.osm_file is None:
-        date = compute_database_date(conn, args.prefix)
+        date = compute_database_date(conn, args.middle_schema, args.prefix)
         if date is None:
             return 1
 
@@ -383,6 +383,8 @@ def update(conn, args):
 
     osm2pgsql = [args.osm2pgsql_cmd, '--append', '--slim', '--prefix', args.prefix]
     osm2pgsql.extend(args.extra_params)
+    if args.middle_schema != 'public':
+        osm2pgsql.extend(('--middle-schema', args.middle_schema))
     if args.database:
         osm2pgsql.extend(('-d', args.database))
     if args.username:
