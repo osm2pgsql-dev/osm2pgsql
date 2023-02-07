@@ -693,6 +693,7 @@ int output_flex_t::table_insert()
                 flex_write_column(lua_state(), copy_mgr, column, &m_expire);
             }
         }
+        table_connection.increment_insert_counter();
     } catch (not_null_exception const &e) {
         copy_mgr->rollback_line();
         lua_pushboolean(lua_state(), false);
@@ -700,6 +701,7 @@ int output_flex_t::table_insert()
         lua_pushstring(lua_state(), e.column().name().c_str());
         push_osm_object_to_lua_stack(lua_state(), object,
                                      get_options()->extra_attributes);
+        table_connection.increment_not_null_error_counter();
         return 4;
     }
 

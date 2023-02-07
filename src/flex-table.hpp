@@ -273,6 +273,13 @@ public:
 
     void task_wait();
 
+    void increment_insert_counter() noexcept { ++m_count_insert; }
+
+    void increment_not_null_error_counter() noexcept
+    {
+        ++m_count_not_null_error;
+    }
+
 private:
     std::shared_ptr<reprojection> m_proj;
 
@@ -290,6 +297,9 @@ private:
     std::unique_ptr<pg_conn_t> m_db_connection;
 
     task_result_t m_task_result;
+
+    std::size_t m_count_insert = 0;
+    std::size_t m_count_not_null_error = 0;
 
     /// Has the Id index already been created?
     bool m_id_index_created = false;
