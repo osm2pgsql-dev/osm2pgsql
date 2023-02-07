@@ -210,7 +210,6 @@ point_t pole_of_inaccessibility(const polygon_t &polygon, double precision,
         best_cell = bbox_cell;
     }
 
-    auto num_probes = cell_queue.size();
     while (!cell_queue.empty()) {
         // pick the most promising cell from the queue
         auto cell = cell_queue.top();
@@ -219,8 +218,6 @@ point_t pole_of_inaccessibility(const polygon_t &polygon, double precision,
         // update the best cell if we found a better one
         if (cell.dist > best_cell.dist) {
             best_cell = cell;
-            log_debug("polyline: found best {} after {} probes",
-                      ::round(1e4 * cell.dist) / 1e4, num_probes);
         }
 
         // do not drill down further if there's no chance of a better solution
@@ -241,12 +238,7 @@ point_t pole_of_inaccessibility(const polygon_t &polygon, double precision,
                 }
             }
         }
-
-        num_probes += 4;
     }
-
-    log_debug("polyline: num probes: {}", num_probes);
-    log_debug("polyline: best distance: {}", best_cell.dist);
 
     return {best_cell.center.x(), best_cell.center.y() / stretch};
 }
