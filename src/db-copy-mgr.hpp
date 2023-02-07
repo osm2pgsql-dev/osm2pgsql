@@ -271,6 +271,14 @@ public:
         m_current->add_deletable(std::forward<ARGS>(args)...);
     }
 
+    void flush()
+    {
+        // finish any ongoing copy operations
+        if (m_current) {
+            m_processor->add_buffer(std::move(m_current));
+        }
+    }
+
     /**
      * Synchronize with worker.
      *
@@ -278,11 +286,7 @@ public:
      */
     void sync()
     {
-        // finish any ongoing copy operations
-        if (m_current) {
-            m_processor->add_buffer(std::move(m_current));
-        }
-
+        flush();
         m_processor->sync_and_wait();
     }
 

@@ -1263,6 +1263,20 @@ void output_flex_t::sync()
     }
 }
 
+void output_flex_t::after_nodes()
+{
+    for (auto &table : m_table_connections) {
+        table.flush();
+    }
+}
+
+void output_flex_t::after_ways()
+{
+    for (auto &table : m_table_connections) {
+        table.flush();
+    }
+}
+
 void output_flex_t::stop()
 {
     for (auto &table : m_table_connections) {

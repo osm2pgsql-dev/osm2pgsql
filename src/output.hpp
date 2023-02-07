@@ -62,6 +62,9 @@ public:
     virtual void stop() = 0;
     virtual void sync() = 0;
 
+    virtual void after_nodes() {}
+    virtual void after_ways() {}
+
     virtual void wait() {}
 
     virtual osmium::index::IdSetSmall<osmid_t> const &get_marked_way_ids()
