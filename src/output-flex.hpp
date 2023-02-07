@@ -185,11 +185,6 @@ private:
 
     void init_lua(std::string const &filename);
 
-    flex_table_t &create_flex_table();
-    void setup_id_columns(flex_table_t *table);
-    void setup_flex_table_columns(flex_table_t *table);
-    void setup_indexes(flex_table_t *table);
-
     // Get the flex table that is as first parameter on the Lua stack.
     flex_table_t const &get_table_from_param();
 
