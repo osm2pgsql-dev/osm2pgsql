@@ -124,6 +124,9 @@ public:
     void stop() override;
     void sync() override;
 
+    void after_nodes() override;
+    void after_ways() override;
+
     void wait() override;
 
     idset_t const &get_marked_way_ids() override;

@@ -247,6 +247,8 @@ public:
 
     pg_result_t get_geom_by_id(osmium::item_type type, osmid_t id) const;
 
+    void flush() { m_copy_mgr.flush(); }
+
     void sync() { m_copy_mgr.sync(); }
 
     void new_line() { m_copy_mgr.new_line(m_target); }

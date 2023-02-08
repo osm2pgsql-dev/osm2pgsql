@@ -67,7 +67,11 @@ void osmdata_t::node(osmium::Node const &node)
     }
 }
 
-void osmdata_t::after_nodes() { m_mid->after_nodes(); }
+void osmdata_t::after_nodes()
+{
+    m_mid->after_nodes();
+    m_output->after_nodes();
+}
 
 void osmdata_t::way(osmium::Way &way)
 {
@@ -84,7 +88,11 @@ void osmdata_t::way(osmium::Way &way)
     }
 }
 
-void osmdata_t::after_ways() { m_mid->after_ways(); }
+void osmdata_t::after_ways()
+{
+    m_mid->after_ways();
+    m_output->after_ways();
+}
 
 void osmdata_t::relation(osmium::Relation const &rel)
 {
