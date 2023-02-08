@@ -11,6 +11,7 @@
  */
 
 #include <memory>
+#include <string_view>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -116,23 +117,23 @@ int expire_from_result(expire_tiles *expire, pg_result_t const &result);
  *
  * \tparam OUTPUT Class with operator() taking a tile_t argument
  *
- * \param tiles The list of tiles at maximum zoom level
+ * \param tiles_at_maxzoom The list of tiles at maximum zoom level
  * \param minzoom Minimum zoom level
  * \param maxzoom Maximum zoom level
  * \param output Output function
  */
 template <class OUTPUT>
-std::size_t for_each_tile(quadkey_list_t const &tiles, uint32_t minzoom,
-                          uint32_t maxzoom, OUTPUT &&output)
+std::size_t for_each_tile(quadkey_list_t const &tiles_at_maxzoom,
+                          uint32_t minzoom, uint32_t maxzoom, OUTPUT &&output)
 {
     assert(minzoom <= maxzoom);
 
     if (minzoom == maxzoom) {
-        for (auto const quadkey : tiles) {
+        for (auto const quadkey : tiles_at_maxzoom) {
             std::forward<OUTPUT>(output)(
                 tile_t::from_quadkey(quadkey, maxzoom));
         }
-        return tiles.size();
+        return tiles_at_maxzoom.size();
     }
 
     /**
@@ -141,7 +142,7 @@ std::size_t for_each_tile(quadkey_list_t const &tiles, uint32_t minzoom,
      */
     quadkey_t last_quadkey{};
     std::size_t count = 0;
-    for (auto const quadkey : tiles) {
+    for (auto const quadkey : tiles_at_maxzoom) {
         for (uint32_t dz = 0; dz <= maxzoom - minzoom; ++dz) {
             auto const qt_current = quadkey.down(dz);
             /**
@@ -164,13 +165,13 @@ std::size_t for_each_tile(quadkey_list_t const &tiles, uint32_t minzoom,
 /**
  * Write the list of tiles to a file.
  *
- * \param tiles The list of tiles at maximum zoom level
- * \param filename Name of the file
+ * \param tiles_at_maxzoom The list of tiles at maximum zoom level
  * \param minzoom Minimum zoom level
  * \param maxzoom Maximum zoom level
+ * \param filename Name of the file
  */
-std::size_t output_tiles_to_file(quadkey_list_t const &tiles,
-                                 char const *filename, uint32_t minzoom,
-                                 uint32_t maxzoom);
+std::size_t output_tiles_to_file(quadkey_list_t const &tiles_at_maxzoom,
+                                 uint32_t minzoom, uint32_t maxzoom,
+                                 std::string_view filename);
 
 #endif // OSM2PGSQL_EXPIRE_TILES_HPP
