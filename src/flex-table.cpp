@@ -421,4 +421,7 @@ void table_connection_t::task_wait()
     auto const run_time = m_task_result.wait();
     log_info("All postprocessing on table '{}' done in {}.", table().name(),
              util::human_readable_duration(run_time));
+    log_debug("Inserted {} rows into table '{}' ({} not inserted due to"
+              " NOT NULL constraints).",
+              m_count_insert, table().name(), m_count_not_null_error);
 }
