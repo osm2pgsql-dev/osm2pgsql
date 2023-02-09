@@ -16,6 +16,7 @@
 #include <utility>
 #include <vector>
 
+#include "expire-config.hpp"
 #include "geom.hpp"
 #include "geom-box.hpp"
 #include "logging.hpp"
@@ -28,32 +29,48 @@ class reprojection;
 class expire_tiles
 {
 public:
-    expire_tiles(uint32_t max_zoom, double max_bbox,
-                 std::shared_ptr<reprojection> projection);
+    expire_tiles(uint32_t max_zoom, std::shared_ptr<reprojection> projection);
 
     bool enabled() const noexcept { return m_maxzoom != 0; }
 
-    void from_polygon_boundary(geom::polygon_t const &geom);
+    void from_polygon_boundary(geom::polygon_t const &geom,
+                               expire_config_t const &expire_config);
 
-    void from_geometry(geom::nullgeom_t const & /*geom*/) {}
-    void from_geometry(geom::point_t const &geom);
-    void from_geometry(geom::linestring_t const &geom);
-    void from_geometry(geom::polygon_t const &geom);
-    void from_geometry(geom::multipolygon_t const &geom);
+    void from_polygon_boundary(geom::multipolygon_t const &geom,
+                               expire_config_t const &expire_config);
+
+    void from_geometry(geom::nullgeom_t const & /*geom*/,
+                       expire_config_t const & /*expire_config*/)
+    {}
+
+    void from_geometry(geom::point_t const &geom,
+                       expire_config_t const &expire_config);
+
+    void from_geometry(geom::linestring_t const &geom,
+                       expire_config_t const &expire_config);
+
+    void from_geometry(geom::polygon_t const &geom,
+                       expire_config_t const &expire_config);
+
+    void from_geometry(geom::multipolygon_t const &geom,
+                       expire_config_t const &expire_config);
 
     template <typename T>
-    void from_geometry(geom::multigeometry_t<T> const &geom)
+    void from_geometry(geom::multigeometry_t<T> const &geom,
+                       expire_config_t const &expire_config)
     {
         for (auto const &sgeom : geom) {
-            from_geometry(sgeom);
+            from_geometry(sgeom, expire_config);
         }
     }
 
-    void from_geometry(geom::geometry_t const &geom);
+    void from_geometry(geom::geometry_t const &geom,
+                       expire_config_t const &expire_config);
 
-    void from_geometry_if_3857(geom::geometry_t const &geom);
+    void from_geometry_if_3857(geom::geometry_t const &geom,
+                               expire_config_t const &expire_config);
 
-    int from_bbox(geom::box_t const &box);
+    int from_bbox(geom::box_t const &box, expire_config_t const &expire_config);
 
     /**
      * Get tiles as a vector of quadkeys and remove them from the expire_tiles
@@ -81,10 +98,14 @@ private:
      * \param y y index of the tile to be expired.
      */
     void expire_tile(uint32_t x, uint32_t y);
-    uint32_t normalise_tile_x_coord(int x) const;
-    void from_line(geom::point_t const &a, geom::point_t const &b);
 
-    void from_point_list(geom::point_list_t const &list);
+    uint32_t normalise_tile_x_coord(int x) const;
+
+    void from_line_segment(geom::point_t const &a, geom::point_t const &b,
+                           expire_config_t const &expire_config);
+
+    void from_point_list(geom::point_list_t const &list,
+                         expire_config_t const &expire_config);
 
     /// This is where we collect all the expired tiles.
     std::unordered_set<quadkey_t> m_dirty_tiles;
@@ -94,7 +115,6 @@ private:
 
     std::shared_ptr<reprojection> m_projection;
 
-    double m_max_bbox;
     uint32_t m_maxzoom;
     int m_map_width;
 
@@ -107,9 +127,11 @@ private:
  * \param result Result of a database query into some table returning the
  *               geometries. (This is usually done using the "get_wkb"
  *               prepared statement.)
+ * \param expire_config Configuration for expiry.
  * \return The number of tuples in the result or -1 if expire is disabled.
  */
-int expire_from_result(expire_tiles *expire, pg_result_t const &result);
+int expire_from_result(expire_tiles *expire, pg_result_t const &result,
+                       expire_config_t const &expire_config);
 
 /**
  * Iterate over tiles and call output function for each tile on all requested

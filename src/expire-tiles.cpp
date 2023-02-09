@@ -34,13 +34,10 @@
 #include "tile.hpp"
 #include "wkb.hpp"
 
-// How many tiles worth of space to leave either side of a changed feature
-static constexpr double const tile_expiry_leeway = 0.1;
-
-expire_tiles::expire_tiles(uint32_t max_zoom, double max_bbox,
+expire_tiles::expire_tiles(uint32_t max_zoom,
                            std::shared_ptr<reprojection> projection)
-: m_projection(std::move(projection)), m_max_bbox(max_bbox),
-  m_maxzoom(max_zoom), m_map_width(1U << m_maxzoom)
+: m_projection(std::move(projection)), m_maxzoom(max_zoom),
+  m_map_width(1U << m_maxzoom)
 {}
 
 void expire_tiles::expire_tile(uint32_t x, uint32_t y)
@@ -71,68 +68,94 @@ geom::point_t expire_tiles::coords_to_tile(geom::point_t const &point)
             m_map_width * (0.5 - c.y() / tile_t::earth_circumference)};
 }
 
-void expire_tiles::from_point_list(geom::point_list_t const &list)
+void expire_tiles::from_point_list(geom::point_list_t const &list,
+                                   expire_config_t const &expire_config)
 {
     for_each_segment(list, [&](geom::point_t const &a, geom::point_t const &b) {
-        from_line(a, b);
+        from_line_segment(a, b, expire_config);
     });
 }
 
-void expire_tiles::from_geometry(geom::point_t const &geom)
+void expire_tiles::from_geometry(geom::point_t const &geom,
+                                 expire_config_t const &expire_config)
 {
     geom::box_t const box = geom::envelope(geom);
-    from_bbox(box);
+    from_bbox(box, expire_config);
 }
 
-void expire_tiles::from_geometry(geom::linestring_t const &geom)
+void expire_tiles::from_geometry(geom::linestring_t const &geom,
+                                 expire_config_t const &expire_config)
 {
-    from_point_list(geom);
+    from_point_list(geom, expire_config);
 }
 
-void expire_tiles::from_polygon_boundary(geom::polygon_t const &geom)
+void expire_tiles::from_polygon_boundary(geom::polygon_t const &geom,
+                                         expire_config_t const &expire_config)
 {
-    from_point_list(geom.outer());
+    from_point_list(geom.outer(), expire_config);
     for (auto const &inner : geom.inners()) {
-        from_point_list(inner);
+        from_point_list(inner, expire_config);
     }
 }
 
-void expire_tiles::from_geometry(geom::polygon_t const &geom)
+void expire_tiles::from_geometry(geom::polygon_t const &geom,
+                                 expire_config_t const &expire_config)
 {
+    if (expire_config.mode == expire_mode::boundary_only) {
+        from_polygon_boundary(geom, expire_config);
+        return;
+    }
+
     geom::box_t const box = geom::envelope(geom);
-    if (from_bbox(box)) {
+    if (from_bbox(box, expire_config)) {
         /* Bounding box too big - just expire tiles on the boundary */
-        from_polygon_boundary(geom);
+        from_polygon_boundary(geom, expire_config);
     }
 }
 
-void expire_tiles::from_geometry(geom::multipolygon_t const &geom)
+void expire_tiles::from_polygon_boundary(geom::multipolygon_t const &geom,
+                                         expire_config_t const &expire_config)
 {
+    for (auto const &sgeom : geom) {
+        from_polygon_boundary(sgeom, expire_config);
+    }
+}
+
+void expire_tiles::from_geometry(geom::multipolygon_t const &geom,
+                                 expire_config_t const &expire_config)
+{
+    if (expire_config.mode == expire_mode::boundary_only) {
+        from_polygon_boundary(geom, expire_config);
+        return;
+    }
+
     geom::box_t const box = geom::envelope(geom);
-    if (from_bbox(box)) {
+    if (from_bbox(box, expire_config)) {
         /* Bounding box too big - just expire tiles on the boundary */
-        for (auto const &sgeom : geom) {
-            from_polygon_boundary(sgeom);
-        }
+        from_polygon_boundary(geom, expire_config);
     }
 }
 
-void expire_tiles::from_geometry(geom::geometry_t const &geom)
+void expire_tiles::from_geometry(geom::geometry_t const &geom,
+                                 expire_config_t const &expire_config)
 {
-    geom.visit([&](auto const &g) { from_geometry(g); });
+    geom.visit([&](auto const &g) { from_geometry(g, expire_config); });
 }
 
-void expire_tiles::from_geometry_if_3857(geom::geometry_t const &geom)
+void expire_tiles::from_geometry_if_3857(geom::geometry_t const &geom,
+                                         expire_config_t const &expire_config)
 {
     if (geom.srid() == 3857) {
-        from_geometry(geom);
+        from_geometry(geom, expire_config);
     }
 }
 
 /*
  * Expire tiles that a line crosses
  */
-void expire_tiles::from_line(geom::point_t const &a, geom::point_t const &b)
+void expire_tiles::from_line_segment(geom::point_t const &a,
+                                     geom::point_t const &b,
+                                     expire_config_t const &expire_config)
 {
     auto tilec_a = coords_to_tile(a);
     auto tilec_b = coords_to_tile(b);
@@ -175,11 +198,11 @@ void expire_tiles::from_line(geom::point_t const &a, geom::point_t const &b)
         if (y1 > y2) {
             std::swap(y1, y2);
         }
-        for (int x = x1 - tile_expiry_leeway; x <= x2 + tile_expiry_leeway;
+        for (int x = x1 - expire_config.buffer; x <= x2 + expire_config.buffer;
              ++x) {
             uint32_t const norm_x = normalise_tile_x_coord(x);
-            for (int y = y1 - tile_expiry_leeway; y <= y2 + tile_expiry_leeway;
-                 ++y) {
+            for (int y = y1 - expire_config.buffer;
+                 y <= y2 + expire_config.buffer; ++y) {
                 if (y >= 0) {
                     expire_tile(norm_x, static_cast<uint32_t>(y));
                 }
@@ -191,7 +214,8 @@ void expire_tiles::from_line(geom::point_t const &a, geom::point_t const &b)
 /*
  * Expire tiles within a bounding box
  */
-int expire_tiles::from_bbox(geom::box_t const &box)
+int expire_tiles::from_bbox(geom::box_t const &box,
+                            expire_config_t const &expire_config)
 {
     if (!enabled()) {
         return 0;
@@ -203,28 +227,32 @@ int expire_tiles::from_bbox(geom::box_t const &box)
         /* Over half the planet's width within the bounding box - assume the
            box crosses the international date line and split it into two boxes */
         int ret = from_bbox({-tile_t::half_earth_circumference, box.min_y(),
-                             box.min_x(), box.max_y()});
+                             box.min_x(), box.max_y()},
+                            expire_config);
         ret += from_bbox({box.max_x(), box.min_y(),
-                          tile_t::half_earth_circumference, box.max_y()});
+                          tile_t::half_earth_circumference, box.max_y()},
+                         expire_config);
         return ret;
     }
 
-    if (width > m_max_bbox || height > m_max_bbox) {
+    if (expire_config.mode == expire_mode::hybrid &&
+        (width > expire_config.full_area_limit ||
+         height > expire_config.full_area_limit)) {
         return -1;
     }
 
     /* Convert the box's Mercator coordinates into tile coordinates */
     auto const tmp_min = coords_to_tile({box.min_x(), box.max_y()});
     int const min_tile_x =
-        std::clamp(int(tmp_min.x() - tile_expiry_leeway), 0, m_map_width);
+        std::clamp(int(tmp_min.x() - expire_config.buffer), 0, m_map_width);
     int const min_tile_y =
-        std::clamp(int(tmp_min.y() - tile_expiry_leeway), 0, m_map_width);
+        std::clamp(int(tmp_min.y() - expire_config.buffer), 0, m_map_width);
 
     auto const tmp_max = coords_to_tile({box.max_x(), box.min_y()});
     int const max_tile_x =
-        std::clamp(int(tmp_max.x() + tile_expiry_leeway), 0, m_map_width);
+        std::clamp(int(tmp_max.x() + expire_config.buffer), 0, m_map_width);
     int const max_tile_y =
-        std::clamp(int(tmp_max.y() + tile_expiry_leeway), 0, m_map_width);
+        std::clamp(int(tmp_max.y() + expire_config.buffer), 0, m_map_width);
 
     for (int iterator_x = min_tile_x; iterator_x <= max_tile_x; ++iterator_x) {
         uint32_t const norm_x = normalise_tile_x_coord(iterator_x);
@@ -286,12 +314,13 @@ std::size_t output_tiles_to_file(quadkey_list_t const &tiles_at_maxzoom,
     return count;
 }
 
-int expire_from_result(expire_tiles *expire, pg_result_t const &result)
+int expire_from_result(expire_tiles *expire, pg_result_t const &result,
+                       expire_config_t const &expire_config)
 {
     auto const num_tuples = result.num_tuples();
 
     for (int i = 0; i < num_tuples; ++i) {
-        expire->from_geometry(ewkb_to_geom(result.get(i, 0)));
+        expire->from_geometry(ewkb_to_geom(result.get(i, 0)), expire_config);
     }
 
     return num_tuples;
