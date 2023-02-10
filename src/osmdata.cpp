@@ -145,19 +145,31 @@ void osmdata_t::relation_add(osmium::Relation const &rel) const
 
 void osmdata_t::node_modify(osmium::Node const &node) const
 {
-    m_output->node_modify(node);
+    if (m_with_extra_attrs || !node.tags().empty()) {
+        m_output->node_modify(node);
+    } else {
+        m_output->node_delete(node.id());
+    }
     m_dependency_manager->node_changed(node.id());
 }
 
 void osmdata_t::way_modify(osmium::Way *way) const
 {
-    m_output->way_modify(way);
+    if (m_with_extra_attrs || !way->tags().empty()) {
+        m_output->way_modify(way);
+    } else {
+        m_output->way_delete(way->id());
+    }
     m_dependency_manager->way_changed(way->id());
 }
 
 void osmdata_t::relation_modify(osmium::Relation const &rel) const
 {
-    m_output->relation_modify(rel);
+    if (m_with_extra_attrs || !rel.tags().empty()) {
+        m_output->relation_modify(rel);
+    } else {
+        m_output->relation_delete(rel.id());
+    }
 }
 
 void osmdata_t::node_delete(osmid_t id) const
