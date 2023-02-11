@@ -31,6 +31,7 @@ def osm_define_node_grid(context, step, origin_x, origin_y):
 
 @given("the (?P<formatted>python-formatted )?OSM data")
 def osm_define_data(context, formatted):
+    context.import_file = None
     data = context.text
     if formatted:
         data = eval('f"""' + data + '"""')
