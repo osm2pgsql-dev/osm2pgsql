@@ -57,7 +57,7 @@ void osmdata_t::node(osmium::Node const &node)
     m_mid->node(node);
 
     if (node.deleted()) {
-        node_delete(node.id());
+        m_output->node_delete(node.id());
     } else {
         if (m_append) {
             node_modify(node);
@@ -78,7 +78,7 @@ void osmdata_t::way(osmium::Way &way)
     m_mid->way(way);
 
     if (way.deleted()) {
-        way_delete(way.id());
+        m_output->way_delete(way.id());
     } else {
         if (m_append) {
             way_modify(&way);
@@ -110,7 +110,7 @@ void osmdata_t::relation(osmium::Relation const &rel)
     m_mid->relation(rel);
 
     if (rel.deleted()) {
-        relation_delete(rel.id());
+        m_output->relation_delete(rel.id());
     } else {
         if (m_append) {
             relation_modify(rel);
@@ -170,21 +170,6 @@ void osmdata_t::relation_modify(osmium::Relation const &rel) const
     } else {
         m_output->relation_delete(rel.id());
     }
-}
-
-void osmdata_t::node_delete(osmid_t id) const
-{
-    m_output->node_delete(id);
-}
-
-void osmdata_t::way_delete(osmid_t id) const
-{
-    m_output->way_delete(id);
-}
-
-void osmdata_t::relation_delete(osmid_t id) const
-{
-    m_output->relation_delete(id);
 }
 
 void osmdata_t::start() const
