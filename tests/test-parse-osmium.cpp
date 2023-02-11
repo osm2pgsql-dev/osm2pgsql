@@ -205,8 +205,8 @@ TEST_CASE("parse diff file")
                         output, "008-ch.osc.gz", false);
 
     REQUIRE(output->node.added == 0);
-    REQUIRE(output->node.modified == 1176);
-    REQUIRE(output->node.deleted == 16773);
+    REQUIRE(output->node.modified == 153);
+    REQUIRE(output->node.deleted == 17796);
     REQUIRE(output->way.added == 0);
     REQUIRE(output->way.modified == 161);
     REQUIRE(output->way.deleted == 4);

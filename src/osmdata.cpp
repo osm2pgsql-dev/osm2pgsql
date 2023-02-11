@@ -57,13 +57,20 @@ void osmdata_t::node(osmium::Node const &node)
     m_mid->node(node);
 
     if (node.deleted()) {
-        node_delete(node.id());
-    } else {
-        if (m_append) {
-            node_modify(node);
+        m_output->node_delete(node.id());
+        return;
+    }
+
+    bool const has_tags_or_attrs = m_with_extra_attrs || !node.tags().empty();
+    if (m_append) {
+        if (has_tags_or_attrs) {
+            m_output->node_modify(node);
         } else {
-            node_add(node);
+            m_output->node_delete(node.id());
         }
+        m_dependency_manager->node_changed(node.id());
+    } else if (has_tags_or_attrs) {
+        m_output->node_add(node);
     }
 }
 
@@ -78,13 +85,20 @@ void osmdata_t::way(osmium::Way &way)
     m_mid->way(way);
 
     if (way.deleted()) {
-        way_delete(way.id());
-    } else {
-        if (m_append) {
-            way_modify(&way);
+        m_output->way_delete(way.id());
+        return;
+    }
+
+    bool const has_tags_or_attrs = m_with_extra_attrs || !way.tags().empty();
+    if (m_append) {
+        if (has_tags_or_attrs) {
+            m_output->way_modify(&way);
         } else {
-            way_add(&way);
+            m_output->way_delete(way.id());
         }
+        m_dependency_manager->way_changed(way.id());
+    } else if (has_tags_or_attrs) {
+        m_output->way_add(&way);
     }
 }
 
@@ -110,70 +124,23 @@ void osmdata_t::relation(osmium::Relation const &rel)
     m_mid->relation(rel);
 
     if (rel.deleted()) {
-        relation_delete(rel.id());
-    } else {
-        if (m_append) {
-            relation_modify(rel);
+        m_output->relation_delete(rel.id());
+        return;
+    }
+
+    bool const has_tags_or_attrs = m_with_extra_attrs || !rel.tags().empty();
+    if (m_append) {
+        if (has_tags_or_attrs) {
+            m_output->relation_modify(rel);
         } else {
-            relation_add(rel);
+            m_output->relation_delete(rel.id());
         }
-    }
-}
-
-void osmdata_t::after_relations() { m_mid->after_relations(); }
-
-void osmdata_t::node_add(osmium::Node const &node) const
-{
-    if (m_with_extra_attrs || !node.tags().empty()) {
-        m_output->node_add(node);
-    }
-}
-
-void osmdata_t::way_add(osmium::Way *way) const
-{
-    if (m_with_extra_attrs || !way->tags().empty()) {
-        m_output->way_add(way);
-    }
-}
-
-void osmdata_t::relation_add(osmium::Relation const &rel) const
-{
-    if (m_with_extra_attrs || !rel.tags().empty()) {
+    } else if (has_tags_or_attrs) {
         m_output->relation_add(rel);
     }
 }
 
-void osmdata_t::node_modify(osmium::Node const &node) const
-{
-    m_output->node_modify(node);
-    m_dependency_manager->node_changed(node.id());
-}
-
-void osmdata_t::way_modify(osmium::Way *way) const
-{
-    m_output->way_modify(way);
-    m_dependency_manager->way_changed(way->id());
-}
-
-void osmdata_t::relation_modify(osmium::Relation const &rel) const
-{
-    m_output->relation_modify(rel);
-}
-
-void osmdata_t::node_delete(osmid_t id) const
-{
-    m_output->node_delete(id);
-}
-
-void osmdata_t::way_delete(osmid_t id) const
-{
-    m_output->way_delete(id);
-}
-
-void osmdata_t::relation_delete(osmid_t id) const
-{
-    m_output->relation_delete(id);
-}
+void osmdata_t::after_relations() { m_mid->after_relations(); }
 
 void osmdata_t::start() const
 {
