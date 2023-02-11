@@ -61,10 +61,6 @@ public:
     void stop() const;
 
 private:
-    void node_add(osmium::Node const &node) const;
-    void way_add(osmium::Way *way) const;
-    void relation_add(osmium::Relation const &rel) const;
-
     void node_modify(osmium::Node const &node) const;
     void way_modify(osmium::Way *way) const;
     void relation_modify(osmium::Relation const &rel) const;
