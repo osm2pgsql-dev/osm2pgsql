@@ -61,10 +61,6 @@ public:
     void stop() const;
 
 private:
-    void node_modify(osmium::Node const &node) const;
-    void way_modify(osmium::Way *way) const;
-    void relation_modify(osmium::Relation const &rel) const;
-
     /**
      * Run stage 1b and stage 1c processing: Process dependent objects in
      * append mode.
