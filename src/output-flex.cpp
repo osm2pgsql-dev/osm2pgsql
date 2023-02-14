@@ -1341,7 +1341,13 @@ output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
 
         for (auto &table : *m_tables) {
             if (table.has_geom_column() && table.geom_column().srid() == 3857) {
-                table.geom_column().add_expire({m_tilesets->size() - 1});
+                expire_config_t config{};
+                config.tileset = m_tilesets->size() - 1;
+                if (options.expire_tiles_max_bbox > 0.0) {
+                    config.mode = expire_mode::hybrid;
+                    config.full_area_limit = options.expire_tiles_max_bbox;
+                }
+                table.geom_column().add_expire(config);
             }
         }
     }
