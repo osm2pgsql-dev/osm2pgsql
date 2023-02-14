@@ -184,11 +184,23 @@ static void parse_and_set_expire_options(lua_State *lua_state,
                                          std::vector<flex_tileset_t> *tilesets,
                                          bool append_mode)
 {
-    if (lua_isnil(lua_state, -1)) {
+    auto const type = lua_type(lua_state, -1);
+
+    if (type == LUA_TNIL) {
         return;
     }
 
-    if (!lua_istable(lua_state, -1)) {
+    if (type == LUA_TSTRING) {
+        auto ts = find_tileset(*tilesets, lua_tostring(lua_state, -1));
+        expire_config_t config{ts};
+        // Actually add the expire only if we are in append mode.
+        if (append_mode) {
+            column->add_expire(config);
+        }
+        return;
+    }
+
+    if (type != LUA_TTABLE) {
         throw std::runtime_error{"Expire field must be a Lua array table"};
     }
 

@@ -63,6 +63,28 @@ Feature: Expire configuration in Lua file
         When running osm2pgsql flex
         Then table bar has 1562 rows
 
+    Scenario: Directly specifying tileset name is okay
+        Given the input file 'liechtenstein-2013-08-03.osm.pbf'
+        And the lua style
+            """
+            osm2pgsql.define_tileset({
+                name = 'foo',
+                filename = 'bar',
+                maxzoom = 12
+            })
+            local t = osm2pgsql.define_node_table('bar', {
+                { column = 'some',
+                  type = 'geometry',
+                  expire = 'foo' }
+            })
+
+            function osm2pgsql.process_node(object)
+                t:insert({})
+            end
+            """
+        When running osm2pgsql flex
+        Then table bar has 1562 rows
+
     Scenario: Expire with buffer option that's not a number fails
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style

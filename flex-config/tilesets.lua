@@ -57,7 +57,9 @@ tables.pois = osm2pgsql.define_node_table('pois', {
 
 tables.lines = osm2pgsql.define_way_table('lines', {
     { column = 'tags', type = 'jsonb' },
-    { column = 'geom', type = 'linestring', not_null = true, expire = { { tileset = 'lines' } } },
+    -- If you only have a single tileset you want to expire into and with
+    -- the defalt parameters, you can specify it directly.
+    { column = 'geom', type = 'linestring', not_null = true, expire = 'lines' },
 })
 
 tables.polygons = osm2pgsql.define_area_table('polygons', {
