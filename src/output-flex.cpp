@@ -1275,7 +1275,8 @@ static void create_tileset_tables(std::vector<flex_tileset_t> const &tilesets,
             connection.exec("CREATE TABLE IF NOT EXISTS {} ("
                             " zoom int4 NOT NULL,"
                             " x int4 NOT NULL,"
-                            " y int4 NOT NULL)",
+                            " y int4 NOT NULL,"
+                            " PRIMARY KEY (zoom, x, y))",
                             qn);
         }
     }

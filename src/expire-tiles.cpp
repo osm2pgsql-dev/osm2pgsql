@@ -325,7 +325,8 @@ std::size_t output_tiles_to_table(quadkey_list_t const &tiles_at_maxzoom,
     pg_conn_t connection{conninfo};
 
     connection.exec("PREPARE insert_tiles(int4, int4, int4) AS"
-                    " INSERT INTO {} (zoom, x, y) VALUES ($1, $2, $3)",
+                    " INSERT INTO {} (zoom, x, y) VALUES ($1, $2, $3)"
+                    " ON CONFLICT DO NOTHING",
                     qn);
 
     auto const count = for_each_tile(
