@@ -1268,6 +1268,7 @@ static void create_tileset_tables(std::vector<flex_tileset_t> const &tilesets,
     }
 
     pg_conn_t connection{conninfo};
+    connection.exec("SET client_min_messages = WARNING");
     for (auto &tileset : tilesets) {
         if (!tileset.table().empty()) {
             auto const qn = qualified_name(tileset.schema(), tileset.table());
