@@ -68,11 +68,11 @@ create_flex_tileset(lua_State *lua_state, std::vector<flex_tileset_t> *tilesets)
     // optional "minzoom" field
     value = luaX_get_table_optional_uint32(lua_state, "minzoom", -1,
                                            "The 'minzoom' field in a tileset");
-    if (value >= 1 && value <= 20) {
+    if (value >= 1 && value <= new_tileset.maxzoom()) {
         new_tileset.set_minzoom(value);
     } else if (value != 0) {
         throw std::runtime_error{
-            "Value of 'minzoom' field must be between 1 and 20."};
+            "Value of 'minzoom' field must be between 1 and 'maxzoom'."};
     }
     lua_pop(lua_state, 1); // "minzoom"
 

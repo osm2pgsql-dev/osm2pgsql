@@ -148,7 +148,24 @@ Feature: Tileset definitions in Lua file
         Then running osm2pgsql flex fails
         And the error output contains
             """
-            Value of 'minzoom' field must be between 1 and 20.
+            Value of 'minzoom' field must be between 1 and 'maxzoom'.
+            """
+
+    Scenario: Minzoom value in tileset definition has to be smaller than maxzoom
+        Given the input file 'liechtenstein-2013-08-03.osm.pbf'
+        And the lua style
+            """
+            osm2pgsql.define_tileset({
+                name = 'foo',
+                maxzoom = 12,
+                minzoom = 14,
+                filename = 'somewhere'
+            })
+            """
+        Then running osm2pgsql flex fails
+        And the error output contains
+            """
+            Value of 'minzoom' field must be between 1 and 'maxzoom'.
             """
 
     Scenario: Can not create two tilesets with the same name
