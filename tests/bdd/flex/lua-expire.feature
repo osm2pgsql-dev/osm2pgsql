@@ -10,7 +10,7 @@ Feature: Expire configuration in Lua file
                 maxzoom = 12
             })
             osm2pgsql.define_node_table('bar', {
-                { column = 'some', expire = {{ tilset = 'foo' }} }
+                { column = 'some', expire = {{ tileset = 'foo' }} }
             })
             """
         Then running osm2pgsql flex fails
