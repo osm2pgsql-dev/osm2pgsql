@@ -8,7 +8,9 @@
  */
 
 #include "geom-functions.hpp"
+
 #include "geom-boost-adaptor.hpp"
+#include "overloaded.hpp"
 
 #include <algorithm>
 #include <cmath>

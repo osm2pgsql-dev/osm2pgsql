@@ -10,6 +10,7 @@
 #include "wkb.hpp"
 
 #include "format.hpp"
+#include "overloaded.hpp"
 
 #include <array>
 #include <cassert>
