@@ -207,9 +207,9 @@ static void parse_and_set_expire_options(lua_State *lua_state,
 
     if (type == LUA_TUSERDATA) {
         auto const eo = idx_from_userdata(lua_state, -1, expire_outputs_size);
-        expire_config_t config{eo};
         // Actually add the expire only if we are in append mode.
         if (append_mode) {
+            expire_config_t const config{eo};
             column->add_expire(config);
         }
         return;

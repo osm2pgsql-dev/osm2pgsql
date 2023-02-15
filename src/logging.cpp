@@ -43,7 +43,7 @@ std::string logger::generate_common_prefix(fmt::text_style const &ts,
     return str;
 }
 
-void logger::init_thread(unsigned int num) const
+void logger::init_thread(unsigned int num)
 {
     // Store thread number in thread local variable
     this_thread_num = num;
