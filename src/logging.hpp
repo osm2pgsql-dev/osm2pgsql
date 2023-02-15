@@ -66,6 +66,11 @@ public:
 
     void set_level(log_level level) noexcept { m_current_level = level; }
 
+    bool debug_enabled() const noexcept
+    {
+        return m_current_level == log_level::debug;
+    }
+
     void enable_sql() noexcept { m_log_sql = true; }
 
     void enable_sql_data() noexcept { m_log_sql_data = true; }
