@@ -66,6 +66,9 @@ public:
         return PQgetisnull(m_result.get(), row, col) != 0;
     }
 
+    /// Return the number of INSERTed, UPDATEd, or DELETEed rows.
+    std::size_t affected_rows() const noexcept;
+
     /**
      * The length of the field at (row, col) in bytes.
      *

@@ -14,9 +14,16 @@
 #include "util.hpp"
 
 #include <cassert>
+#include <cstdlib>
 #include <stdexcept>
 #include <string>
 #include <utility>
+
+std::size_t pg_result_t::affected_rows() const noexcept
+{
+    char const *const s = PQcmdTuples(m_result.get());
+    return std::strtoull(s, nullptr, 10);
+}
 
 std::atomic<std::uint32_t> pg_conn_t::connection_id{0};
 
