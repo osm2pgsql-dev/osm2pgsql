@@ -14,6 +14,7 @@
 #include "expire-tiles.hpp"
 #include "flex-table-column.hpp"
 #include "flex-table.hpp"
+#include "flex-tileset.hpp"
 #include "geom.hpp"
 #include "output.hpp"
 
@@ -162,6 +163,7 @@ public:
     int app_as_geometrycollection();
 
     int app_define_table();
+    int app_define_tileset();
     int app_get_bbox();
     int app_mark_way();
 
@@ -172,6 +174,14 @@ public:
     int table_schema();
     int table_cluster();
     int table_columns();
+
+    int tileset_tostring();
+    int tileset_name();
+    int tileset_minzoom();
+    int tileset_maxzoom();
+    int tileset_filename();
+    int tileset_schema();
+    int tileset_table();
 
 private:
     void select_relation_members();
@@ -191,6 +201,9 @@ private:
 
     // Get the flex table that is as first parameter on the Lua stack.
     flex_table_t const &get_table_from_param();
+
+    // Get the flex tileset that is as first parameter on the Lua stack.
+    flex_tileset_t const &get_tileset_from_param();
 
     void check_context_and_state(char const *name, char const *context,
                                  bool condition);
@@ -273,6 +286,9 @@ private:
     std::shared_ptr<std::vector<flex_table_t>> m_tables =
         std::make_shared<std::vector<flex_table_t>>();
 
+    std::shared_ptr<std::vector<flex_tileset_t>> m_tilesets =
+        std::make_shared<std::vector<flex_tileset_t>>();
+
     std::vector<table_connection_t> m_table_connections;
 
     // This is shared between all clones of the output and must only be
@@ -285,8 +301,7 @@ private:
     // accessed while protected using the lua_mutex.
     std::shared_ptr<lua_State> m_lua_state;
 
-    expire_config_t m_expire_config;
-    expire_tiles m_expire;
+    std::vector<expire_tiles> m_expire_tiles;
 
     way_cache_t m_way_cache;
     relation_cache_t m_relation_cache;

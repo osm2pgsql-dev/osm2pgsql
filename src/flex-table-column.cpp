@@ -191,3 +191,20 @@ std::string flex_table_column_t::sql_create() const
     return fmt::format(R"("{}" {} {})", m_name, sql_type_name(),
                        sql_modifiers());
 }
+
+void flex_table_column_t::add_expire(expire_config_t const &config)
+{
+    assert(is_geometry_column());
+    assert(srid() == 3857);
+    m_expires.push_back(config);
+}
+
+void flex_table_column_t::do_expire(geom::geometry_t const &geom,
+                                    std::vector<expire_tiles> *expire) const
+{
+    assert(expire);
+    for (auto const &expire_config : m_expires) {
+        assert(expire_config.tileset < expire->size());
+        (*expire)[expire_config.tileset].from_geometry(geom, expire_config);
+    }
+}

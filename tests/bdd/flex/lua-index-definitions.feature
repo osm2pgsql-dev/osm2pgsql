@@ -362,7 +362,7 @@ Feature: Index definitions in Lua file
         Then running osm2pgsql flex fails
         And the error output contains
             """
-            Index definition field 'tablespace' must be a string field.
+            Index definition field must contain a 'tablespace' string field (or nil for default: '').
             """
 
     Scenario: Empty tablespace is okay
@@ -452,7 +452,7 @@ Feature: Index definitions in Lua file
         Then running osm2pgsql flex fails
         And the error output contains
             """
-            Index definition field 'where' must be a string field.
+            Index definition field must contain a 'where' string field (or nil for default: '').
             """
 
     Scenario: Where condition works

@@ -12,7 +12,8 @@
 
 #include "expire-tiles.hpp"
 #include "flex-table.hpp"
-#include "lua.hpp"
+
+#include <lua.hpp>
 
 #include <stdexcept>
 
@@ -32,12 +33,12 @@ private:
 
 void flex_write_column(lua_State *lua_state,
                        db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
-                       flex_table_column_t const &column, expire_tiles *expire,
-                       expire_config_t const &expire_config);
+                       flex_table_column_t const &column,
+                       std::vector<expire_tiles> *expire);
 
 void flex_write_row(lua_State *lua_state, table_connection_t *table_connection,
                     osmium::item_type id_type, osmid_t id,
                     geom::geometry_t const &geom, int srid,
-                    expire_tiles *expire, expire_config_t const &expire_config);
+                    std::vector<expire_tiles> *expire);
 
 #endif // OSM2PGSQL_FLEX_WRITE_HPP

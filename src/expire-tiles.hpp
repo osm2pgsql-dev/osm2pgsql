@@ -31,6 +31,8 @@ class expire_tiles
 public:
     expire_tiles(uint32_t max_zoom, std::shared_ptr<reprojection> projection);
 
+    bool empty() const noexcept { return m_dirty_tiles.empty(); }
+
     bool enabled() const noexcept { return m_maxzoom != 0; }
 
     void from_polygon_boundary(geom::polygon_t const &geom,
@@ -85,7 +87,6 @@ public:
     void merge_and_destroy(expire_tiles *other);
 
 private:
-
     /**
      * Converts from target coordinates to tile coordinates.
      */
@@ -195,5 +196,22 @@ std::size_t for_each_tile(quadkey_list_t const &tiles_at_maxzoom,
 std::size_t output_tiles_to_file(quadkey_list_t const &tiles_at_maxzoom,
                                  uint32_t minzoom, uint32_t maxzoom,
                                  std::string_view filename);
+
+/**
+ * Write the list of tiles to a database table. The table will be created
+ * if it doesn't exist already.
+ *
+ * \param tiles_at_maxzoom The list of tiles at maximum zoom level
+ * \param minzoom Minimum zoom level
+ * \param maxzoom Maximum zoom level
+ * \param conninfo database connection info
+ * \param schema The schema the table is in (empty for public schema)
+ * \param table The table name
+ */
+std::size_t output_tiles_to_table(quadkey_list_t const &tiles_at_maxzoom,
+                                  uint32_t minzoom, uint32_t maxzoom,
+                                  std::string const &conninfo,
+                                  std::string const &schema,
+                                  std::string const &table);
 
 #endif // OSM2PGSQL_EXPIRE_TILES_HPP

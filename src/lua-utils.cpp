@@ -136,8 +136,9 @@ char const *luaX_get_table_string(lua_State *lua_state, char const *key,
         return default_value;
     }
     if (ltype != LUA_TSTRING) {
-        throw fmt_error("{} field '{}' must be a string field.", error_msg,
-                        key);
+        throw fmt_error("{} field must contain a '{}' string field "
+                        "(or nil for default: '{}').",
+                        error_msg, key, default_value);
     }
     return lua_tostring(lua_state, -1);
 }
@@ -162,6 +163,21 @@ bool luaX_get_table_bool(lua_State *lua_state, char const *key, int table_index,
     throw fmt_error("{} field '{}' must be a boolean field.", error_msg, key);
 }
 
+uint32_t luaX_get_table_optional_uint32(lua_State *lua_state, char const *key,
+                                        int table_index, char const *error_msg)
+{
+    assert(lua_state);
+    assert(key);
+    assert(error_msg);
+    lua_getfield(lua_state, table_index, key);
+    if (lua_isnil(lua_state, -1)) {
+        return 0;
+    }
+    if (!lua_isnumber(lua_state, -1)) {
+        throw fmt_error("{} must contain an integer.", error_msg);
+    }
+    return lua_tonumber(lua_state, -1);
+}
 
 // Lua 5.1 doesn't support luaL_traceback, unless LuaJIT is used
 #if LUA_VERSION_NUM < 502 && !defined(HAVE_LUAJIT)
