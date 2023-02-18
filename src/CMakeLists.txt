@@ -50,7 +50,6 @@ if (WITH_LUA)
         flex-index.cpp
         flex-table.cpp
         flex-table-column.cpp
-        flex-tileset.cpp
         flex-lua-geom.cpp
         flex-lua-index.cpp
         flex-lua-table.cpp

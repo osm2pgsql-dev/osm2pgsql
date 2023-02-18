@@ -10,7 +10,6 @@
 #include "flex-lua-index.hpp"
 #include "flex-lua-table.hpp"
 #include "flex-table.hpp"
-#include "flex-tileset.hpp"
 #include "lua-utils.hpp"
 #include "pgsql-capabilities.hpp"
 
@@ -165,7 +164,7 @@ static void setup_flex_table_id_columns(lua_State *lua_state,
     lua_pop(lua_state, 1); // "ids"
 }
 
-static std::size_t find_tileset(std::vector<flex_tileset_t> const &tilesets,
+static std::size_t find_tileset(std::vector<expire_tiles> const &tilesets,
                                 std::string_view name)
 {
     std::size_t n = 0;
@@ -181,7 +180,7 @@ static std::size_t find_tileset(std::vector<flex_tileset_t> const &tilesets,
 
 static void parse_and_set_expire_options(lua_State *lua_state,
                                          flex_table_column_t *column,
-                                         std::vector<flex_tileset_t> *tilesets,
+                                         std::vector<expire_tiles> *tilesets,
                                          bool append_mode)
 {
     auto const type = lua_type(lua_state, -1);
@@ -279,7 +278,7 @@ static void parse_and_set_expire_options(lua_State *lua_state,
 }
 
 static void setup_flex_table_columns(lua_State *lua_state, flex_table_t *table,
-                                     std::vector<flex_tileset_t> *tilesets,
+                                     std::vector<expire_tiles> *tilesets,
                                      bool append_mode)
 {
     assert(lua_state);
@@ -391,7 +390,7 @@ static void setup_flex_table_indexes(lua_State *lua_state, flex_table_t *table,
 }
 
 int setup_flex_table(lua_State *lua_state, std::vector<flex_table_t> *tables,
-                     std::vector<flex_tileset_t> *tilesets, bool updatable,
+                     std::vector<expire_tiles> *tilesets, bool updatable,
                      bool append_mode)
 {
     if (lua_type(lua_state, 1) != LUA_TTABLE) {

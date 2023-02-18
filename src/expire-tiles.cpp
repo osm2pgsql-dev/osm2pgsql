@@ -292,14 +292,29 @@ void expire_tiles::merge_and_destroy(expire_tiles *other)
     }
 }
 
+std::size_t expire_tiles::output(std::string const &conninfo)
+{
+    auto tile_list = get_tiles();
+
+    std::size_t num = 0;
+    if (!m_filename.empty()) {
+        num = output_tiles_to_file(tile_list, m_minzoom, m_maxzoom, m_filename);
+    }
+    if (!m_table.empty()) {
+        num = output_tiles_to_table(tile_list, m_minzoom, m_maxzoom, conninfo,
+                                    m_schema, m_table);
+    }
+    return num;
+}
+
 std::size_t output_tiles_to_file(quadkey_list_t const &tiles_at_maxzoom,
                                  uint32_t minzoom, uint32_t maxzoom,
                                  std::string_view filename)
 {
     FILE *outfile = std::fopen(filename.data(), "a");
     if (outfile == nullptr) {
-        log_warn("Failed to open expired tiles file ({}).  Tile expiry "
-                 "list will not be written!",
+        log_warn("Failed to open expired tiles file ({}). Tile expiry"
+                 " list will not be written!",
                  std::strerror(errno));
         return 0;
     }

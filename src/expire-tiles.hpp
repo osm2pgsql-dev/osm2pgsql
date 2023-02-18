@@ -11,6 +11,7 @@
  */
 
 #include <memory>
+#include <string>
 #include <string_view>
 #include <unordered_set>
 #include <utility>
@@ -22,6 +23,7 @@
 #include "logging.hpp"
 #include "osmtypes.hpp"
 #include "pgsql.hpp"
+#include "reprojection.hpp"
 #include "tile.hpp"
 
 class reprojection;
@@ -30,6 +32,43 @@ class expire_tiles
 {
 public:
     expire_tiles(uint32_t max_zoom, std::shared_ptr<reprojection> projection);
+
+    explicit expire_tiles(std::string name)
+    : m_projection(reprojection::create_projection(3857)),
+      m_name(std::move(name))
+    {}
+
+    std::string const &name() const noexcept { return m_name; }
+
+    std::string filename() const noexcept { return m_filename; }
+
+    void set_filename(std::string filename)
+    {
+        m_filename = std::move(filename);
+    }
+
+    std::string schema() const noexcept { return m_schema; }
+
+    std::string table() const noexcept { return m_table; }
+
+    void set_schema_and_table(std::string schema, std::string table)
+    {
+        m_schema = std::move(schema);
+        m_table = std::move(table);
+    }
+
+    uint32_t minzoom() const noexcept { return m_minzoom; }
+    void set_minzoom(uint32_t minzoom) noexcept { m_minzoom = minzoom; }
+
+    uint32_t maxzoom() const noexcept { return m_maxzoom; }
+
+    void set_maxzoom(uint32_t maxzoom) noexcept
+    {
+        m_maxzoom = maxzoom;
+        m_map_width = 1U << m_maxzoom;
+    }
+
+    std::size_t output(std::string const &conninfo);
 
     bool empty() const noexcept { return m_dirty_tiles.empty(); }
 
@@ -116,8 +155,25 @@ private:
 
     std::shared_ptr<reprojection> m_projection;
 
-    uint32_t m_maxzoom;
-    int m_map_width;
+    /// The name of the tileset
+    std::string m_name;
+
+    /// The filename (if any) for output
+    std::string m_filename;
+
+    /// The schema (if any) for output
+    std::string m_schema;
+
+    /// The table (if any) for output
+    std::string m_table;
+
+    /// Minimum zoom level for output
+    uint32_t m_minzoom = 0;
+
+    /// Zoom level we capture tiles on
+    uint32_t m_maxzoom = 0;
+
+    int m_map_width = 0;
 
 }; // class expire_tiles
 

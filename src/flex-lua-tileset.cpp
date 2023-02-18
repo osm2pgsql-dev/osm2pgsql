@@ -8,7 +8,6 @@
  */
 
 #include "flex-lua-tileset.hpp"
-#include "flex-tileset.hpp"
 #include "format.hpp"
 #include "lua-utils.hpp"
 #include "pgsql.hpp"
@@ -16,8 +15,8 @@
 
 #include <lua.hpp>
 
-static flex_tileset_t &
-create_flex_tileset(lua_State *lua_state, std::vector<flex_tileset_t> *tilesets)
+static expire_tiles &
+create_flex_tileset(lua_State *lua_state, std::vector<expire_tiles> *tilesets)
 {
     std::string const tileset_name =
         luaX_get_table_string(lua_state, "name", -1, "The tileset");
@@ -80,7 +79,7 @@ create_flex_tileset(lua_State *lua_state, std::vector<flex_tileset_t> *tilesets)
 }
 
 int setup_flex_tileset(lua_State *lua_state,
-                       std::vector<flex_tileset_t> *tilesets)
+                       std::vector<expire_tiles> *tilesets)
 {
     if (lua_type(lua_state, 1) != LUA_TTABLE) {
         throw std::runtime_error{

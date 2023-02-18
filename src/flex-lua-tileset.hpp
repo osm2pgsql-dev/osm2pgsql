@@ -10,13 +10,13 @@
  * For a full list of authors see the git log.
  */
 
-#include "flex-tileset.hpp"
+#include "expire-tiles.hpp"
 
 struct lua_State;
 
 static char const *const osm2pgsql_tileset_name = "osm2pgsql.Tileset";
 
 int setup_flex_tileset(lua_State *lua_state,
-                       std::vector<flex_tileset_t> *tilesets);
+                       std::vector<expire_tiles> *tilesets);
 
 #endif // OSM2PGSQL_FLEX_LUA_TILESET_HPP

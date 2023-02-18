@@ -14,7 +14,6 @@
 #include "flex-lua-index.hpp"
 #include "flex-lua-table.hpp"
 #include "flex-lua-tileset.hpp"
-#include "flex-tileset.hpp"
 #include "flex-write.hpp"
 #include "format.hpp"
 #include "geom-from-osm.hpp"
@@ -455,7 +454,7 @@ int output_flex_t::app_define_table()
             " main Lua code, not in any of the callbacks."};
     }
 
-    return setup_flex_table(lua_state(), m_tables.get(), m_tilesets.get(),
+    return setup_flex_table(lua_state(), m_tables.get(), &m_expire_tiles,
                             get_options()->slim && !get_options()->droptemp,
                             get_options()->append);
 }
@@ -468,7 +467,7 @@ int output_flex_t::app_define_tileset()
             " main Lua code, not in any of the callbacks."};
     }
 
-    return setup_flex_tileset(lua_state(), m_tilesets.get());
+    return setup_flex_tileset(lua_state(), &m_expire_tiles);
 }
 
 // Check that the first element on the Lua stack is a "type_name"
@@ -512,9 +511,9 @@ flex_table_t const &output_flex_t::get_table_from_param()
                               osm2pgsql_table_name);
 }
 
-flex_tileset_t const &output_flex_t::get_tileset_from_param()
+expire_tiles const &output_flex_t::get_tileset_from_param()
 {
-    return get_from_idx_param(lua_state(), m_tilesets.get(),
+    return get_from_idx_param(lua_state(), &m_expire_tiles,
                               osm2pgsql_tileset_name);
 }
 
@@ -1123,14 +1122,9 @@ void output_flex_t::stop()
         }));
     }
 
-    assert(m_tilesets->size() == m_expire_tiles.size());
-    for (std::size_t i = 0; i < m_tilesets->size(); ++i) {
-        if (!m_expire_tiles[i].empty()) {
-            auto const &ts = (*m_tilesets)[i];
-
-            std::size_t const count = ts.output(m_expire_tiles[i].get_tiles(),
-                                                get_options()->conninfo);
-
+    for (auto &ts : m_expire_tiles) {
+        if (!ts.empty()) {
+            std::size_t const count = ts.output(get_options()->conninfo);
             log_info("Wrote {} entries to expired tiles list '{}'.", count,
                      ts.name());
         }
@@ -1258,7 +1252,7 @@ void output_flex_t::start()
     }
 }
 
-static void create_tileset_tables(std::vector<flex_tileset_t> const &tilesets,
+static void create_tileset_tables(std::vector<expire_tiles> const &tilesets,
                                   std::string const &conninfo)
 {
     if (std::all_of(tilesets.begin(), tilesets.end(), [](auto const &tileset) {
@@ -1286,7 +1280,8 @@ output_flex_t::output_flex_t(output_flex_t const *other,
                              std::shared_ptr<middle_query_t> mid,
                              std::shared_ptr<db_copy_thread_t> copy_thread)
 : output_t(other, std::move(mid)), m_tables(other->m_tables),
-  m_tilesets(other->m_tilesets), m_stage2_way_ids(other->m_stage2_way_ids),
+  m_expire_tiles(other->m_expire_tiles),
+  m_stage2_way_ids(other->m_stage2_way_ids),
   m_copy_thread(std::move(copy_thread)), m_lua_state(other->m_lua_state),
   m_process_node(other->m_process_node), m_process_way(other->m_process_way),
   m_process_relation(other->m_process_relation),
@@ -1296,11 +1291,6 @@ output_flex_t::output_flex_t(output_flex_t const *other,
         auto &tc = m_table_connections.emplace_back(&table, m_copy_thread);
         tc.connect(get_options()->conninfo);
         tc.prepare();
-    }
-
-    for (auto &tileset : *m_tilesets) {
-        m_expire_tiles.emplace_back(tileset.maxzoom(),
-                                    reprojection::create_projection(3857));
     }
 }
 
@@ -1334,7 +1324,7 @@ output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
     // For backwards compatibility we add a "default" expire (with empty
     // name) when the relevant command line options are used.
     if (options.append && options.expire_tiles_zoom) {
-        auto &ts = m_tilesets->emplace_back("");
+        auto &ts = m_expire_tiles.emplace_back("");
         ts.set_filename(options.expire_tiles_filename);
         ts.set_minzoom(options.expire_tiles_zoom_min);
         ts.set_maxzoom(options.expire_tiles_zoom);
@@ -1342,7 +1332,7 @@ output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
         for (auto &table : *m_tables) {
             if (table.has_geom_column() && table.geom_column().srid() == 3857) {
                 expire_config_t config{};
-                config.tileset = m_tilesets->size() - 1;
+                config.tileset = m_expire_tiles.size() - 1;
                 if (options.expire_tiles_max_bbox > 0.0) {
                     config.mode = expire_mode::hybrid;
                     config.full_area_limit = options.expire_tiles_max_bbox;
@@ -1353,7 +1343,7 @@ output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
     }
 
     log_debug("Tilesets:");
-    for (auto const &tileset : *m_tilesets) {
+    for (auto const &tileset : m_expire_tiles) {
         log_debug("- TILESET {}", tileset.name());
         if (tileset.minzoom() == tileset.maxzoom()) {
             log_debug("  - zoom: {}", tileset.maxzoom());
@@ -1378,7 +1368,7 @@ output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
                       column.name(), column.type_name(), column.sql_type_name(),
                       column.not_null(), column.create_only());
             for (auto const &ec : column.expire_configs()) {
-                auto const &config = (*m_tilesets)[ec.tileset];
+                auto const &config = m_expire_tiles[ec.tileset];
                 log_debug("      - expire: tileset={}", config.name());
             }
         }
@@ -1400,12 +1390,7 @@ output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
         m_table_connections.emplace_back(&table, m_copy_thread);
     }
 
-    for (auto &tileset : *m_tilesets) {
-        m_expire_tiles.emplace_back(tileset.maxzoom(),
-                                    reprojection::create_projection(3857));
-    }
-
-    create_tileset_tables(*m_tilesets, get_options()->conninfo);
+    create_tileset_tables(m_expire_tiles, get_options()->conninfo);
 }
 
 /**
