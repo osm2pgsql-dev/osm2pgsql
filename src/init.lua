@@ -79,46 +79,55 @@ function osm2pgsql.make_check_values_func(list, default)
     end
 end
 
-function osm2pgsql.make_clean_tags_func(keys)
-    local keys_to_delete = {}
-    local prefixes_to_delete = {}
-    local suffixes_to_delete = {}
+function osm2pgsql.make_clean_tags_func(keys, whitelist)
+    whitelist = whitelist or false;
+
+    local keys_to_consider = {}
+    local prefixes_to_consider = {}
+    local suffixes_to_consider = {}
 
     for _, k in ipairs(keys) do
         if k:sub(-1) == '*' then
-            prefixes_to_delete[#prefixes_to_delete + 1] = k:sub(1, -2)
+            prefixes_to_consider[#prefixes_to_consider + 1] = k:sub(1, -2)
         elseif k:sub(1, 1) == '*' then
-            suffixes_to_delete[#suffixes_to_delete + 1] = k:sub(2)
+            suffixes_to_consider[#suffixes_to_consider + 1] = k:sub(2)
         else
-            keys_to_delete[#keys_to_delete + 1] = k
+            keys_to_consider[k] = true
         end
     end
 
     return function(tags)
-        for _, k in ipairs(keys_to_delete) do
-            tags[k] = nil
-        end
+        local delete_tags = {}
+        local tag_matched
 
-        if next(tags) == nil then
-            return true
-        end
-
-        for tag, _ in pairs(tags) do
-            for _, k in ipairs(prefixes_to_delete) do
-                if osm2pgsql.has_prefix(tag, k) then
-                    tags[tag] = nil
-                    break
+        for key, _ in pairs(tags) do
+            tag_matched = keys_to_consider[key] or false
+            
+            if not tag_matched then
+                for _, k in ipairs(prefixes_to_consider) do
+                    if osm2pgsql.has_prefix(key, k) then
+                        tag_matched = true
+                        break
+                    end
                 end
+            end
+            
+            if not tag_matched then
+                for _, k in ipairs(suffixes_to_consider) do
+                    if osm2pgsql.has_suffix(key, k) then
+                        tag_matched = true
+                        break
+                    end
+                end
+            end
+
+            if tag_matched ~= whitelist then
+                delete_tags[#delete_tags + 1] = key
             end
         end
 
-        for tag, _ in pairs(tags) do
-            for _, k in ipairs(suffixes_to_delete) do
-                if osm2pgsql.has_suffix(tag, k) then
-                    tags[tag] = nil
-                    break
-                end
-            end
+        for _, key in ipairs(delete_tags) do
+            tags[key] = nil
         end
 
         return next(tags) == nil
