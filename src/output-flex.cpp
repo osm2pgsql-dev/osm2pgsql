@@ -1275,14 +1275,7 @@ create_expire_tables(std::vector<expire_output_t> const &expire_outputs,
     connection.exec("SET client_min_messages = WARNING");
     for (auto &expire_output : expire_outputs) {
         if (!expire_output.table().empty()) {
-            auto const qn =
-                qualified_name(expire_output.schema(), expire_output.table());
-            connection.exec("CREATE TABLE IF NOT EXISTS {} ("
-                            " zoom int4 NOT NULL,"
-                            " x int4 NOT NULL,"
-                            " y int4 NOT NULL,"
-                            " PRIMARY KEY (zoom, x, y))",
-                            qn);
+            expire_output.create_output_table(connection);
         }
     }
 }
