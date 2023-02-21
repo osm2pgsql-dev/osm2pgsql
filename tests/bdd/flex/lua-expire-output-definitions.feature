@@ -1,34 +1,34 @@
-Feature: Tileset definitions in Lua file
+Feature: Expire output definitions in Lua file
 
-    Scenario: Tileset definition needs a Lua table parameter
+    Scenario: Expire output definition needs a Lua table parameter
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_tileset()
+            osm2pgsql.define_expire_output()
             """
         Then running osm2pgsql flex fails
         And the error output contains
             """
-            Argument #1 to 'define_tileset' must be a Lua table.
+            Argument #1 to 'define_expire_output' must be a Lua table.
             """
 
-    Scenario: Tileset definition needs a name
+    Scenario: Expire output definition needs a name
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_tileset({})
+            osm2pgsql.define_expire_output({})
             """
         Then running osm2pgsql flex fails
         And the error output contains
             """
-            The tileset must contain a 'name' string field.
+            The expire output must contain a 'name' string field.
             """
 
-    Scenario: Name in tileset definition has to be a string
+    Scenario: Name in expire output definition has to be a string
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_tileset({
+            osm2pgsql.define_expire_output({
                 name = false,
                 filename = 'foo'
             })
@@ -36,14 +36,14 @@ Feature: Tileset definitions in Lua file
         Then running osm2pgsql flex fails
         And the error output contains
             """
-            The tileset must contain a 'name' string field.
+            The expire output must contain a 'name' string field.
             """
 
-    Scenario: Filename in tileset definition has to be a string
+    Scenario: Filename in expire output definition has to be a string
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_tileset({
+            osm2pgsql.define_expire_output({
                 name = 'foo',
                 filename = false
             })
@@ -51,14 +51,14 @@ Feature: Tileset definitions in Lua file
         Then running osm2pgsql flex fails
         And the error output contains
             """
-            The tileset field must contain a 'filename' string field (or nil for default: '').
+            The expire output field must contain a 'filename' string field (or nil for default: '').
             """
 
-    Scenario: Schema in tileset definition has to be a string
+    Scenario: Schema in expire output definition has to be a string
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_tileset({
+            osm2pgsql.define_expire_output({
                 name = 'foo',
                 table = 'bar',
                 schema = false
@@ -67,14 +67,14 @@ Feature: Tileset definitions in Lua file
         Then running osm2pgsql flex fails
         And the error output contains
             """
-            The tileset field must contain a 'schema' string field (or nil for default: '').
+            The expire output field must contain a 'schema' string field (or nil for default: '').
             """
 
-    Scenario: Table in tileset definition has to be a string
+    Scenario: Table in expire output definition has to be a string
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_tileset({
+            osm2pgsql.define_expire_output({
                 name = 'foo',
                 table = false
             })
@@ -82,14 +82,14 @@ Feature: Tileset definitions in Lua file
         Then running osm2pgsql flex fails
         And the error output contains
             """
-            The tileset field must contain a 'table' string field (or nil for default: '').
+            The expire output field must contain a 'table' string field (or nil for default: '').
             """
 
-    Scenario: Maxzoom value in tileset definition has to be an integer
+    Scenario: Maxzoom value in expire output definition has to be an integer
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_tileset({
+            osm2pgsql.define_expire_output({
                 name = 'foo',
                 maxzoom = 'bar',
                 filename = 'somewhere'
@@ -98,14 +98,14 @@ Feature: Tileset definitions in Lua file
         Then running osm2pgsql flex fails
         And the error output contains
             """
-            The 'maxzoom' field in a tileset must contain an integer.
+            The 'maxzoom' field in a expire output must contain an integer.
             """
 
-    Scenario: Minzoom value in tileset definition has to be an integer
+    Scenario: Minzoom value in expire output definition has to be an integer
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_tileset({
+            osm2pgsql.define_expire_output({
                 name = 'foo',
                 maxzoom = 12,
                 minzoom = 'bar',
@@ -115,14 +115,14 @@ Feature: Tileset definitions in Lua file
         Then running osm2pgsql flex fails
         And the error output contains
             """
-            The 'minzoom' field in a tileset must contain an integer.
+            The 'minzoom' field in a expire output must contain an integer.
             """
 
-    Scenario: Maxzoom value in tileset definition has to be in range
+    Scenario: Maxzoom value in expire output definition has to be in range
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_tileset({
+            osm2pgsql.define_expire_output({
                 name = 'foo',
                 maxzoom = 123,
                 filename = 'somewhere'
@@ -134,11 +134,11 @@ Feature: Tileset definitions in Lua file
             Value of 'maxzoom' field must be between 1 and 20.
             """
 
-    Scenario: Minzoom value in tileset definition has to be in range
+    Scenario: Minzoom value in expire output definition has to be in range
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_tileset({
+            osm2pgsql.define_expire_output({
                 name = 'foo',
                 maxzoom = 12,
                 minzoom = -3,
@@ -151,11 +151,11 @@ Feature: Tileset definitions in Lua file
             Value of 'minzoom' field must be between 1 and 'maxzoom'.
             """
 
-    Scenario: Minzoom value in tileset definition has to be smaller than maxzoom
+    Scenario: Minzoom value in expire output definition has to be smaller than maxzoom
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_tileset({
+            osm2pgsql.define_expire_output({
                 name = 'foo',
                 maxzoom = 12,
                 minzoom = 14,
@@ -168,16 +168,16 @@ Feature: Tileset definitions in Lua file
             Value of 'minzoom' field must be between 1 and 'maxzoom'.
             """
 
-    Scenario: Can not create two tilesets with the same name
+    Scenario: Can not define two expire outputs with the same name
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_tileset({
+            osm2pgsql.define_expire_output({
                 name = 'foo',
                 maxzoom = 12,
                 filename = 'somewhere'
             })
-            osm2pgsql.define_tileset({
+            osm2pgsql.define_expire_output({
                 name = 'foo',
                 maxzoom = 13,
                 filename = 'somewhereelse'
@@ -186,6 +186,6 @@ Feature: Tileset definitions in Lua file
         Then running osm2pgsql flex fails
         And the error output contains
             """
-            Tileset with name 'foo' already exists.
+            Expire output with name 'foo' already exists.
             """
 

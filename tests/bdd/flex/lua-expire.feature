@@ -4,13 +4,13 @@ Feature: Expire configuration in Lua file
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_tileset({
+            osm2pgsql.define_expire_output({
                 name = 'foo',
                 filename = 'bar',
                 maxzoom = 12
             })
             osm2pgsql.define_node_table('bar', {
-                { column = 'some', expire = {{ tileset = 'foo' }} }
+                { column = 'some', expire = {{ output = 'foo' }} }
             })
             """
         Then running osm2pgsql flex fails
@@ -23,7 +23,7 @@ Feature: Expire configuration in Lua file
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_tileset({
+            osm2pgsql.define_expire_output({
                 name = 'foo',
                 filename = 'bar',
                 maxzoom = 12
@@ -32,7 +32,7 @@ Feature: Expire configuration in Lua file
                 { column = 'some',
                   type = 'geometry',
                   projection = 4326,
-                  expire = {{ tileset = 'foo' }} }
+                  expire = {{ output = 'foo' }} }
             })
             """
         Then running osm2pgsql flex fails
@@ -45,7 +45,7 @@ Feature: Expire configuration in Lua file
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_tileset({
+            osm2pgsql.define_expire_output({
                 name = 'foo',
                 filename = 'bar',
                 maxzoom = 12
@@ -53,7 +53,7 @@ Feature: Expire configuration in Lua file
             local t = osm2pgsql.define_node_table('bar', {
                 { column = 'some',
                   type = 'geometry',
-                  expire = {{ tileset = 'foo' }} }
+                  expire = {{ output = 'foo' }} }
             })
 
             function osm2pgsql.process_node(object)
@@ -63,11 +63,11 @@ Feature: Expire configuration in Lua file
         When running osm2pgsql flex
         Then table bar has 1562 rows
 
-    Scenario: Directly specifying tileset name is okay
+    Scenario: Directly specifying the expire output name is okay
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_tileset({
+            osm2pgsql.define_expire_output({
                 name = 'foo',
                 filename = 'bar',
                 maxzoom = 12
@@ -89,7 +89,7 @@ Feature: Expire configuration in Lua file
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_tileset({
+            osm2pgsql.define_expire_output({
                 name = 'foo',
                 filename = 'bar',
                 maxzoom = 12
@@ -98,7 +98,7 @@ Feature: Expire configuration in Lua file
                 { column = 'some',
                   type = 'geometry',
                   expire = {
-                    { tileset = 'foo', buffer = 'notvalid' }
+                    { output = 'foo', buffer = 'notvalid' }
                 }}
             })
             """
@@ -112,7 +112,7 @@ Feature: Expire configuration in Lua file
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_tileset({
+            osm2pgsql.define_expire_output({
                 name = 'foo',
                 filename = 'bar',
                 maxzoom = 12
@@ -120,7 +120,7 @@ Feature: Expire configuration in Lua file
             local t = osm2pgsql.define_node_table('bar', {
                 { column = 'some',
                   type = 'geometry',
-                  expire = {{ tileset = 'foo', mode = 'foo' }} }
+                  expire = {{ output = 'foo', mode = 'foo' }} }
             })
 
             function osm2pgsql.process_node(object)
@@ -137,7 +137,7 @@ Feature: Expire configuration in Lua file
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_tileset({
+            osm2pgsql.define_expire_output({
                 name = 'foo',
                 filename = 'bar',
                 maxzoom = 12
@@ -146,7 +146,7 @@ Feature: Expire configuration in Lua file
                 { column = 'some',
                   type = 'geometry',
                   expire = {
-                    { tileset = 'foo', full_area_limit = true }
+                    { output = 'foo', full_area_limit = true }
                 }}
             })
             """
@@ -160,7 +160,7 @@ Feature: Expire configuration in Lua file
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_tileset({
+            osm2pgsql.define_expire_output({
                 name = 'foo',
                 filename = 'bar',
                 maxzoom = 12
@@ -169,7 +169,7 @@ Feature: Expire configuration in Lua file
                 { column = 'some',
                   type = 'geometry',
                   expire = {
-                    { tileset = 'foo', buffer = 0.2, mode = 'boundary-only' }
+                    { output = 'foo', buffer = 0.2, mode = 'boundary-only' }
                 }}
             })
 
@@ -184,7 +184,7 @@ Feature: Expire configuration in Lua file
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_tileset({
+            osm2pgsql.define_expire_output({
                 name = 'foo',
                 filename = 'bar',
                 maxzoom = 12
@@ -193,7 +193,7 @@ Feature: Expire configuration in Lua file
                 { column = 'some',
                   type = 'geometry',
                   expire = {
-                    { tileset = 'foo', buffer = 0.2,
+                    { output = 'foo', buffer = 0.2,
                       mode = 'hybrid', full_area_limit = 10000 }
                 }}
             })
@@ -205,11 +205,11 @@ Feature: Expire configuration in Lua file
         When running osm2pgsql flex
         Then table bar has 1562 rows
 
-    Scenario: Expire into table
+    Scenario: Expire into table is okay
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_tileset({
+            osm2pgsql.define_expire_output({
                 name = 'tiles',
                 table = 'tiles',
                 maxzoom = 12
@@ -218,7 +218,7 @@ Feature: Expire configuration in Lua file
                 { column = 'geom',
                   type = 'point',
                   expire = {
-                    { tileset = 'tiles' }
+                    { output = 'tiles' }
                 }}
             })
 

@@ -47,14 +47,14 @@ if (WITH_LUA)
     file(READ "${CMAKE_CURRENT_SOURCE_DIR}/init.lua" LUA_INIT_CODE)
     configure_file(lua-init.cpp.in lua-init.cpp @ONLY)
     target_sources(osm2pgsql_lib PRIVATE
+        expire-output.cpp
         flex-index.cpp
         flex-table.cpp
         flex-table-column.cpp
-        flex-tileset.cpp
+        flex-lua-expire-output.cpp
         flex-lua-geom.cpp
         flex-lua-index.cpp
         flex-lua-table.cpp
-        flex-lua-tileset.cpp
         flex-write.cpp
         geom-transform.cpp
         lua-utils.cpp

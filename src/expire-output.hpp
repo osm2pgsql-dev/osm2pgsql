@@ -1,5 +1,5 @@
-#ifndef OSM2PGSQL_FLEX_TILESET_HPP
-#define OSM2PGSQL_FLEX_TILESET_HPP
+#ifndef OSM2PGSQL_EXPIRE_OUTPUT_HPP
+#define OSM2PGSQL_EXPIRE_OUTPUT_HPP
 
 /**
  * SPDX-License-Identifier: GPL-2.0-or-later
@@ -14,15 +14,14 @@
 
 #include <string>
 #include <utility>
-#include <vector>
 
 /**
- * A tileset for the flex output. Used for expire.
+ * Output for tile expiry.
  */
-class flex_tileset_t
+class expire_output_t
 {
 public:
-    explicit flex_tileset_t(std::string name) : m_name(std::move(name)) {}
+    explicit expire_output_t(std::string name) : m_name(std::move(name)) {}
 
     std::string const &name() const noexcept { return m_name; }
 
@@ -53,7 +52,7 @@ public:
                        std::string const &conninfo) const;
 
 private:
-    /// The name of the tileset
+    /// The internal (unique) name of the output
     std::string m_name;
 
     /// The filename (if any) for output
@@ -71,6 +70,6 @@ private:
     /// Zoom level we capture tiles on
     uint32_t m_maxzoom = 0;
 
-}; // class flex_tileset_t
+}; // class expire_output_t
 
-#endif // OSM2PGSQL_FLEX_TILESET_HPP
+#endif // OSM2PGSQL_EXPIRE_OUTPUT_HPP

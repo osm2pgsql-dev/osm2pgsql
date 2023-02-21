@@ -7,10 +7,11 @@
  * For a full list of authors see the git log.
  */
 
-#include "flex-lua-index.hpp"
 #include "flex-lua-table.hpp"
+
+#include "expire-output.hpp"
+#include "flex-lua-index.hpp"
 #include "flex-table.hpp"
-#include "flex-tileset.hpp"
 #include "lua-utils.hpp"
 #include "pgsql-capabilities.hpp"
 
@@ -165,24 +166,25 @@ static void setup_flex_table_id_columns(lua_State *lua_state,
     lua_pop(lua_state, 1); // "ids"
 }
 
-static std::size_t find_tileset(std::vector<flex_tileset_t> const &tilesets,
-                                std::string_view name)
+static std::size_t
+find_expire_output(std::vector<expire_output_t> const &expire_outputs,
+                   std::string_view name)
 {
     std::size_t n = 0;
-    for (auto const &ts : tilesets) {
-        if (ts.name() == name) {
+    for (auto const &eo : expire_outputs) {
+        if (eo.name() == name) {
             return n;
         }
         ++n;
     }
 
-    throw fmt_error("Unknown Tileset '{}'.", name);
+    throw fmt_error("Unknown ExpireOutput '{}'.", name);
 }
 
-static void parse_and_set_expire_options(lua_State *lua_state,
-                                         flex_table_column_t *column,
-                                         std::vector<flex_tileset_t> *tilesets,
-                                         bool append_mode)
+static void
+parse_and_set_expire_options(lua_State *lua_state, flex_table_column_t *column,
+                             std::vector<expire_output_t> *expire_outputs,
+                             bool append_mode)
 {
     auto const type = lua_type(lua_state, -1);
 
@@ -191,8 +193,9 @@ static void parse_and_set_expire_options(lua_State *lua_state,
     }
 
     if (type == LUA_TSTRING) {
-        auto ts = find_tileset(*tilesets, lua_tostring(lua_state, -1));
-        expire_config_t config{ts};
+        auto eo =
+            find_expire_output(*expire_outputs, lua_tostring(lua_state, -1));
+        expire_config_t config{eo};
         // Actually add the expire only if we are in append mode.
         if (append_mode) {
             column->add_expire(config);
@@ -223,11 +226,11 @@ static void parse_and_set_expire_options(lua_State *lua_state,
         }
 
         auto const *name =
-            luaX_get_table_string(lua_state, "tileset", -1, "Entry 'tileset'");
-        auto ts = find_tileset(*tilesets, name);
-        lua_pop(lua_state, 1); // "tileset"
+            luaX_get_table_string(lua_state, "output", -1, "Entry 'output'");
+        auto eo = find_expire_output(*expire_outputs, name);
+        lua_pop(lua_state, 1); // "output"
 
-        expire_config_t config{ts};
+        expire_config_t config{eo};
 
         std::string mode;
         lua_getfield(lua_state, -1, "mode");
@@ -278,9 +281,10 @@ static void parse_and_set_expire_options(lua_State *lua_state,
     });
 }
 
-static void setup_flex_table_columns(lua_State *lua_state, flex_table_t *table,
-                                     std::vector<flex_tileset_t> *tilesets,
-                                     bool append_mode)
+static void
+setup_flex_table_columns(lua_State *lua_state, flex_table_t *table,
+                         std::vector<expire_output_t> *expire_outputs,
+                         bool append_mode)
 {
     assert(lua_state);
     assert(table);
@@ -333,7 +337,8 @@ static void setup_flex_table_columns(lua_State *lua_state, flex_table_t *table,
         lua_pop(lua_state, 1); // "projection"
 
         lua_getfield(lua_state, -1, "expire");
-        parse_and_set_expire_options(lua_state, &column, tilesets, append_mode);
+        parse_and_set_expire_options(lua_state, &column, expire_outputs,
+                                     append_mode);
         lua_pop(lua_state, 1); // "expire"
 
         ++num_columns;
@@ -391,8 +396,8 @@ static void setup_flex_table_indexes(lua_State *lua_state, flex_table_t *table,
 }
 
 int setup_flex_table(lua_State *lua_state, std::vector<flex_table_t> *tables,
-                     std::vector<flex_tileset_t> *tilesets, bool updatable,
-                     bool append_mode)
+                     std::vector<expire_output_t> *expire_outputs,
+                     bool updatable, bool append_mode)
 {
     if (lua_type(lua_state, 1) != LUA_TTABLE) {
         throw std::runtime_error{
@@ -401,7 +406,8 @@ int setup_flex_table(lua_State *lua_state, std::vector<flex_table_t> *tables,
 
     auto &new_table = create_flex_table(lua_state, tables);
     setup_flex_table_id_columns(lua_state, &new_table);
-    setup_flex_table_columns(lua_state, &new_table, tilesets, append_mode);
+    setup_flex_table_columns(lua_state, &new_table, expire_outputs,
+                             append_mode);
     setup_flex_table_indexes(lua_state, &new_table, updatable);
 
     void *ptr = lua_newuserdata(lua_state, sizeof(std::size_t));
