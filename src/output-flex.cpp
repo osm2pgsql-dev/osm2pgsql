@@ -8,13 +8,13 @@
  */
 
 #include "db-copy.hpp"
+#include "expire-output.hpp"
 #include "expire-tiles.hpp"
 #include "flex-index.hpp"
 #include "flex-lua-geom.hpp"
 #include "flex-lua-index.hpp"
 #include "flex-lua-table.hpp"
-#include "flex-lua-tileset.hpp"
-#include "flex-tileset.hpp"
+#include "flex-lua-expire-output.hpp"
 #include "flex-write.hpp"
 #include "format.hpp"
 #include "geom-from-osm.hpp"
@@ -78,7 +78,7 @@ static std::mutex lua_mutex;
     }
 
 TRAMPOLINE(app_define_table, define_table)
-TRAMPOLINE(app_define_tileset, define_tileset)
+TRAMPOLINE(app_define_expire_output, define_expire_output)
 TRAMPOLINE(app_get_bbox, get_bbox)
 
 TRAMPOLINE(app_as_point, as_point)
@@ -97,13 +97,13 @@ TRAMPOLINE(table_insert, insert)
 TRAMPOLINE(table_columns, columns)
 TRAMPOLINE(table_tostring, __tostring)
 
-TRAMPOLINE(tileset_name, name)
-TRAMPOLINE(tileset_minzoom, minzoom)
-TRAMPOLINE(tileset_maxzoom, maxzoom)
-TRAMPOLINE(tileset_filename, filename)
-TRAMPOLINE(tileset_schema, schema)
-TRAMPOLINE(tileset_table, table)
-TRAMPOLINE(tileset_tostring, __tostring)
+TRAMPOLINE(expire_output_name, name)
+TRAMPOLINE(expire_output_minzoom, minzoom)
+TRAMPOLINE(expire_output_maxzoom, maxzoom)
+TRAMPOLINE(expire_output_filename, filename)
+TRAMPOLINE(expire_output_schema, schema)
+TRAMPOLINE(expire_output_table, table)
+TRAMPOLINE(expire_output_tostring, __tostring)
 
 static char const *const osm2pgsql_object_metatable =
     "osm2pgsql.object_metatable";
@@ -455,20 +455,20 @@ int output_flex_t::app_define_table()
             " main Lua code, not in any of the callbacks."};
     }
 
-    return setup_flex_table(lua_state(), m_tables.get(), m_tilesets.get(),
+    return setup_flex_table(lua_state(), m_tables.get(), m_expire_outputs.get(),
                             get_options()->slim && !get_options()->droptemp,
                             get_options()->append);
 }
 
-int output_flex_t::app_define_tileset()
+int output_flex_t::app_define_expire_output()
 {
     if (m_calling_context != calling_context::main) {
         throw std::runtime_error{
-            "Tilesets have to be defined in the"
+            "Expire outputs have to be defined in the"
             " main Lua code, not in any of the callbacks."};
     }
 
-    return setup_flex_tileset(lua_state(), m_tilesets.get());
+    return setup_flex_expire_output(lua_state(), m_expire_outputs.get());
 }
 
 // Check that the first element on the Lua stack is a "type_name"
@@ -512,10 +512,10 @@ flex_table_t const &output_flex_t::get_table_from_param()
                               osm2pgsql_table_name);
 }
 
-flex_tileset_t const &output_flex_t::get_tileset_from_param()
+expire_output_t const &output_flex_t::get_expire_output_from_param()
 {
-    return get_from_idx_param(lua_state(), m_tilesets.get(),
-                              osm2pgsql_tileset_name);
+    return get_from_idx_param(lua_state(), m_expire_outputs.get(),
+                              osm2pgsql_expire_output_name);
 }
 
 int output_flex_t::table_tostring()
@@ -888,61 +888,62 @@ void output_flex_t::add_row(table_connection_t *table_connection,
     }
 }
 
-int output_flex_t::tileset_tostring()
+int output_flex_t::expire_output_tostring()
 {
-    auto const &tileset = get_tileset_from_param();
+    auto const &expire_output = get_expire_output_from_param();
 
-    std::string const str{fmt::format("osm2pgsql.Tileset[{}]", tileset.name())};
+    std::string const str{
+        fmt::format("osm2pgsql.ExpireOutput[{}]", expire_output.name())};
     lua_pushstring(lua_state(), str.c_str());
 
     return 1;
 }
 
-int output_flex_t::tileset_name()
+int output_flex_t::expire_output_name()
 {
-    auto const &tileset = get_tileset_from_param();
+    auto const &expire_output = get_expire_output_from_param();
 
-    lua_pushstring(lua_state(), tileset.name().c_str());
+    lua_pushstring(lua_state(), expire_output.name().c_str());
     return 1;
 }
 
-int output_flex_t::tileset_minzoom()
+int output_flex_t::expire_output_minzoom()
 {
-    auto const &tileset = get_tileset_from_param();
+    auto const &expire_output = get_expire_output_from_param();
 
-    lua_pushinteger(lua_state(), tileset.minzoom());
+    lua_pushinteger(lua_state(), expire_output.minzoom());
     return 1;
 }
 
-int output_flex_t::tileset_maxzoom()
+int output_flex_t::expire_output_maxzoom()
 {
-    auto const &tileset = get_tileset_from_param();
+    auto const &expire_output = get_expire_output_from_param();
 
-    lua_pushinteger(lua_state(), tileset.maxzoom());
+    lua_pushinteger(lua_state(), expire_output.maxzoom());
     return 1;
 }
 
-int output_flex_t::tileset_filename()
+int output_flex_t::expire_output_filename()
 {
-    auto const &tileset = get_tileset_from_param();
+    auto const &expire_output = get_expire_output_from_param();
 
-    lua_pushstring(lua_state(), tileset.filename().c_str());
+    lua_pushstring(lua_state(), expire_output.filename().c_str());
     return 1;
 }
 
-int output_flex_t::tileset_schema()
+int output_flex_t::expire_output_schema()
 {
-    auto const &tileset = get_tileset_from_param();
+    auto const &expire_output = get_expire_output_from_param();
 
-    lua_pushstring(lua_state(), tileset.schema().c_str());
+    lua_pushstring(lua_state(), expire_output.schema().c_str());
     return 1;
 }
 
-int output_flex_t::tileset_table()
+int output_flex_t::expire_output_table()
 {
-    auto const &tileset = get_tileset_from_param();
+    auto const &expire_output = get_expire_output_from_param();
 
-    lua_pushstring(lua_state(), tileset.table().c_str());
+    lua_pushstring(lua_state(), expire_output.table().c_str());
     return 1;
 }
 
@@ -1123,16 +1124,16 @@ void output_flex_t::stop()
         }));
     }
 
-    assert(m_tilesets->size() == m_expire_tiles.size());
-    for (std::size_t i = 0; i < m_tilesets->size(); ++i) {
+    assert(m_expire_outputs->size() == m_expire_tiles.size());
+    for (std::size_t i = 0; i < m_expire_outputs->size(); ++i) {
         if (!m_expire_tiles[i].empty()) {
-            auto const &ts = (*m_tilesets)[i];
+            auto const &eo = (*m_expire_outputs)[i];
 
-            std::size_t const count = ts.output(m_expire_tiles[i].get_tiles(),
+            std::size_t const count = eo.output(m_expire_tiles[i].get_tiles(),
                                                 get_options()->conninfo);
 
-            log_info("Wrote {} entries to expired tiles list '{}'.", count,
-                     ts.name());
+            log_info("Wrote {} entries to expired output '{}'.", count,
+                     eo.name());
         }
     }
 }
@@ -1258,20 +1259,23 @@ void output_flex_t::start()
     }
 }
 
-static void create_tileset_tables(std::vector<flex_tileset_t> const &tilesets,
-                                  std::string const &conninfo)
+static void
+create_expire_tables(std::vector<expire_output_t> const &expire_outputs,
+                     std::string const &conninfo)
 {
-    if (std::all_of(tilesets.begin(), tilesets.end(), [](auto const &tileset) {
-            return tileset.table().empty();
-        })) {
+    if (std::all_of(expire_outputs.begin(), expire_outputs.end(),
+                    [](auto const &expire_output) {
+                        return expire_output.table().empty();
+                    })) {
         return;
     }
 
     pg_conn_t connection{conninfo};
     connection.exec("SET client_min_messages = WARNING");
-    for (auto &tileset : tilesets) {
-        if (!tileset.table().empty()) {
-            auto const qn = qualified_name(tileset.schema(), tileset.table());
+    for (auto &expire_output : expire_outputs) {
+        if (!expire_output.table().empty()) {
+            auto const qn =
+                qualified_name(expire_output.schema(), expire_output.table());
             connection.exec("CREATE TABLE IF NOT EXISTS {} ("
                             " zoom int4 NOT NULL,"
                             " x int4 NOT NULL,"
@@ -1286,7 +1290,8 @@ output_flex_t::output_flex_t(output_flex_t const *other,
                              std::shared_ptr<middle_query_t> mid,
                              std::shared_ptr<db_copy_thread_t> copy_thread)
 : output_t(other, std::move(mid)), m_tables(other->m_tables),
-  m_tilesets(other->m_tilesets), m_stage2_way_ids(other->m_stage2_way_ids),
+  m_expire_outputs(other->m_expire_outputs),
+  m_stage2_way_ids(other->m_stage2_way_ids),
   m_copy_thread(std::move(copy_thread)), m_lua_state(other->m_lua_state),
   m_process_node(other->m_process_node), m_process_way(other->m_process_way),
   m_process_relation(other->m_process_relation),
@@ -1298,8 +1303,8 @@ output_flex_t::output_flex_t(output_flex_t const *other,
         tc.prepare();
     }
 
-    for (auto &tileset : *m_tilesets) {
-        m_expire_tiles.emplace_back(tileset.maxzoom(),
+    for (auto &expire_output : *m_expire_outputs) {
+        m_expire_tiles.emplace_back(expire_output.maxzoom(),
                                     reprojection::create_projection(3857));
     }
 }
@@ -1331,18 +1336,18 @@ output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
             "No tables defined in Lua config. Nothing to do!"};
     }
 
-    // For backwards compatibility we add a "default" expire (with empty
-    // name) when the relevant command line options are used.
+    // For backwards compatibility we add a "default" expire output (with
+    // empty name) when the relevant command line options are used.
     if (options.append && options.expire_tiles_zoom) {
-        auto &ts = m_tilesets->emplace_back("");
-        ts.set_filename(options.expire_tiles_filename);
-        ts.set_minzoom(options.expire_tiles_zoom_min);
-        ts.set_maxzoom(options.expire_tiles_zoom);
+        auto &eo = m_expire_outputs->emplace_back("");
+        eo.set_filename(options.expire_tiles_filename);
+        eo.set_minzoom(options.expire_tiles_zoom_min);
+        eo.set_maxzoom(options.expire_tiles_zoom);
 
         for (auto &table : *m_tables) {
             if (table.has_geom_column() && table.geom_column().srid() == 3857) {
                 expire_config_t config{};
-                config.tileset = m_tilesets->size() - 1;
+                config.expire_output = m_expire_outputs->size() - 1;
                 if (options.expire_tiles_max_bbox > 0.0) {
                     config.mode = expire_mode::hybrid;
                     config.full_area_limit = options.expire_tiles_max_bbox;
@@ -1352,20 +1357,21 @@ output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
         }
     }
 
-    log_debug("Tilesets:");
-    for (auto const &tileset : *m_tilesets) {
-        log_debug("- TILESET {}", tileset.name());
-        if (tileset.minzoom() == tileset.maxzoom()) {
-            log_debug("  - zoom: {}", tileset.maxzoom());
+    log_debug("ExpireOutputs:");
+    for (auto const &expire_output : *m_expire_outputs) {
+        log_debug("- ExpireOutput {}", expire_output.name());
+        if (expire_output.minzoom() == expire_output.maxzoom()) {
+            log_debug("  - zoom: {}", expire_output.maxzoom());
         } else {
-            log_debug("  - zoom: {}-{}", tileset.minzoom(), tileset.maxzoom());
+            log_debug("  - zoom: {}-{}", expire_output.minzoom(),
+                      expire_output.maxzoom());
         }
-        if (!tileset.filename().empty()) {
-            log_debug("  - filename: {}", tileset.filename());
+        if (!expire_output.filename().empty()) {
+            log_debug("  - filename: {}", expire_output.filename());
         }
-        if (!tileset.table().empty()) {
-            log_debug("  - table: {}",
-                      qualified_name(tileset.schema(), tileset.name()));
+        if (!expire_output.table().empty()) {
+            log_debug("  - table: {}", qualified_name(expire_output.schema(),
+                                                      expire_output.name()));
         }
     }
 
@@ -1378,8 +1384,8 @@ output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
                       column.name(), column.type_name(), column.sql_type_name(),
                       column.not_null(), column.create_only());
             for (auto const &ec : column.expire_configs()) {
-                auto const &config = (*m_tilesets)[ec.tileset];
-                log_debug("      - expire: tileset={}", config.name());
+                auto const &config = (*m_expire_outputs)[ec.expire_output];
+                log_debug("      - expire: output={}", config.name());
             }
         }
         log_debug("  - data_tablespace={}", table.data_tablespace());
@@ -1400,12 +1406,12 @@ output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
         m_table_connections.emplace_back(&table, m_copy_thread);
     }
 
-    for (auto &tileset : *m_tilesets) {
-        m_expire_tiles.emplace_back(tileset.maxzoom(),
+    for (auto &expire_output : *m_expire_outputs) {
+        m_expire_tiles.emplace_back(expire_output.maxzoom(),
                                     reprojection::create_projection(3857));
     }
 
-    create_tileset_tables(*m_tilesets, get_options()->conninfo);
+    create_expire_tables(*m_expire_outputs, get_options()->conninfo);
 }
 
 /**
@@ -1437,30 +1443,34 @@ static void init_table_class(lua_State *lua_state)
 }
 
 /**
- * Define the osm2pgsql.Tileset class/metatable.
+ * Define the osm2pgsql.ExpireOutput class/metatable.
  */
-static void init_tileset_class(lua_State *lua_state)
+static void init_expire_output_class(lua_State *lua_state)
 {
     lua_getglobal(lua_state, "osm2pgsql");
-    if (luaL_newmetatable(lua_state, osm2pgsql_tileset_name) != 1) {
+    if (luaL_newmetatable(lua_state, osm2pgsql_expire_output_name) != 1) {
         throw std::runtime_error{"Internal error: Lua newmetatable failed."};
     }
     lua_pushvalue(lua_state, -1); // Copy of new metatable
 
-    // Add metatable as osm2pgsql.Tileset so we can access it from Lua
-    lua_setfield(lua_state, -3, "Tileset");
+    // Add metatable as osm2pgsql.ExpireOutput so we can access it from Lua
+    lua_setfield(lua_state, -3, "ExpireOutput");
 
     // Now add functions to metatable
     lua_pushvalue(lua_state, -1);
     lua_setfield(lua_state, -2, "__index");
     luaX_add_table_func(lua_state, "__tostring",
-                        lua_trampoline_tileset_tostring);
-    luaX_add_table_func(lua_state, "name", lua_trampoline_tileset_name);
-    luaX_add_table_func(lua_state, "minzoom", lua_trampoline_tileset_minzoom);
-    luaX_add_table_func(lua_state, "maxzoom", lua_trampoline_tileset_maxzoom);
-    luaX_add_table_func(lua_state, "filename", lua_trampoline_tileset_filename);
-    luaX_add_table_func(lua_state, "schema", lua_trampoline_tileset_schema);
-    luaX_add_table_func(lua_state, "table", lua_trampoline_tileset_table);
+                        lua_trampoline_expire_output_tostring);
+    luaX_add_table_func(lua_state, "name", lua_trampoline_expire_output_name);
+    luaX_add_table_func(lua_state, "minzoom",
+                        lua_trampoline_expire_output_minzoom);
+    luaX_add_table_func(lua_state, "maxzoom",
+                        lua_trampoline_expire_output_maxzoom);
+    luaX_add_table_func(lua_state, "filename",
+                        lua_trampoline_expire_output_filename);
+    luaX_add_table_func(lua_state, "schema",
+                        lua_trampoline_expire_output_schema);
+    luaX_add_table_func(lua_state, "table", lua_trampoline_expire_output_table);
 
     lua_pop(lua_state, 2);
 }
@@ -1491,13 +1501,13 @@ void output_flex_t::init_lua(std::string const &filename)
     luaX_add_table_func(lua_state(), "define_table",
                         lua_trampoline_app_define_table);
 
-    luaX_add_table_func(lua_state(), "define_tileset",
-                        lua_trampoline_app_define_tileset);
+    luaX_add_table_func(lua_state(), "define_expire_output",
+                        lua_trampoline_app_define_expire_output);
 
     lua_setglobal(lua_state(), "osm2pgsql");
 
     init_table_class(lua_state());
-    init_tileset_class(lua_state());
+    init_expire_output_class(lua_state());
 
     // Clean up stack
     lua_settop(lua_state(), 0);

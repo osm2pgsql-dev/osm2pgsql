@@ -25,10 +25,10 @@ enum class expire_mode
 struct expire_config_t
 {
     /**
-     * The id of the tile set where expired tiles are collected.
+     * The id of the expire output to which expired tiles are written.
      * Only used in the flex output.
      */
-    std::size_t tileset = 0;
+    std::size_t expire_output = 0;
 
     /// Buffer around expired feature as fraction of the tile size.
     double buffer = 0.1;

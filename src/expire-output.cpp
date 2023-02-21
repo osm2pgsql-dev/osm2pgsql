@@ -7,11 +7,13 @@
  * For a full list of authors see the git log.
  */
 
-#include "expire-tiles.hpp"
-#include "flex-tileset.hpp"
+#include "expire-output.hpp"
 
-std::size_t flex_tileset_t::output(quadkey_list_t const &tile_list,
-                                   std::string const &conninfo) const
+#include "expire-tiles.hpp"
+#include "tile.hpp"
+
+std::size_t expire_output_t::output(quadkey_list_t const &tile_list,
+                                    std::string const &conninfo) const
 {
     std::size_t num = 0;
     if (!m_filename.empty()) {

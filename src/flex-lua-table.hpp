@@ -12,14 +12,14 @@
 
 #include <vector>
 
+class expire_output_t;
 class flex_table_t;
-class flex_tileset_t;
 struct lua_State;
 
 static char const *const osm2pgsql_table_name = "osm2pgsql.Table";
 
 int setup_flex_table(lua_State *lua_state, std::vector<flex_table_t> *tables,
-                     std::vector<flex_tileset_t> *tilesets, bool updatable,
-                     bool append_mode);
+                     std::vector<expire_output_t> *expire_outputs,
+                     bool updatable, bool append_mode);
 
 #endif // OSM2PGSQL_FLEX_LUA_TABLE_HPP

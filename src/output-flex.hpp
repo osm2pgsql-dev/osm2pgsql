@@ -11,10 +11,10 @@
  */
 
 #include "expire-config.hpp"
+#include "expire-output.hpp"
 #include "expire-tiles.hpp"
 #include "flex-table-column.hpp"
 #include "flex-table.hpp"
-#include "flex-tileset.hpp"
 #include "geom.hpp"
 #include "output.hpp"
 
@@ -163,7 +163,7 @@ public:
     int app_as_geometrycollection();
 
     int app_define_table();
-    int app_define_tileset();
+    int app_define_expire_output();
     int app_get_bbox();
     int app_mark_way();
 
@@ -175,13 +175,13 @@ public:
     int table_cluster();
     int table_columns();
 
-    int tileset_tostring();
-    int tileset_name();
-    int tileset_minzoom();
-    int tileset_maxzoom();
-    int tileset_filename();
-    int tileset_schema();
-    int tileset_table();
+    int expire_output_tostring();
+    int expire_output_name();
+    int expire_output_minzoom();
+    int expire_output_maxzoom();
+    int expire_output_filename();
+    int expire_output_schema();
+    int expire_output_table();
 
 private:
     void select_relation_members();
@@ -202,8 +202,8 @@ private:
     // Get the flex table that is as first parameter on the Lua stack.
     flex_table_t const &get_table_from_param();
 
-    // Get the flex tileset that is as first parameter on the Lua stack.
-    flex_tileset_t const &get_tileset_from_param();
+    // Get the expire output that is as first parameter on the Lua stack.
+    expire_output_t const &get_expire_output_from_param();
 
     void check_context_and_state(char const *name, char const *context,
                                  bool condition);
@@ -286,8 +286,8 @@ private:
     std::shared_ptr<std::vector<flex_table_t>> m_tables =
         std::make_shared<std::vector<flex_table_t>>();
 
-    std::shared_ptr<std::vector<flex_tileset_t>> m_tilesets =
-        std::make_shared<std::vector<flex_tileset_t>>();
+    std::shared_ptr<std::vector<expire_output_t>> m_expire_outputs =
+        std::make_shared<std::vector<expire_output_t>>();
 
     std::vector<table_connection_t> m_table_connections;
 

@@ -204,7 +204,8 @@ void flex_table_column_t::do_expire(geom::geometry_t const &geom,
 {
     assert(expire);
     for (auto const &expire_config : m_expires) {
-        assert(expire_config.tileset < expire->size());
-        (*expire)[expire_config.tileset].from_geometry(geom, expire_config);
+        assert(expire_config.expire_output < expire->size());
+        (*expire)[expire_config.expire_output].from_geometry(geom,
+                                                             expire_config);
     }
 }
