@@ -39,16 +39,16 @@ jobs:
         env:
           PGHOST: /tmp
 
-  ubuntu18-pg96-gcc7-jit:
-    runs-on: ubuntu-18.04
+  ubuntu20-pg96-gcc10-jit:
+    runs-on: ubuntu-20.04
 
     env:
-      CC: gcc-7
-      CXX: g++-7
+      CC: gcc-10
+      CXX: g++-10
       LUA_VERSION: 5.3
       LUAJIT_OPTION: ON
       POSTGRESQL_VERSION: 9.6
-      POSTGIS_VERSION: 2.4
+      POSTGIS_VERSION: 2.5
       BUILD_TYPE: Release
 
     steps:
@@ -56,16 +56,16 @@ jobs:
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
-  ubuntu18-pg96-clang8-jit:
-    runs-on: ubuntu-18.04
+  ubuntu20-pg96-clang10-jit:
+    runs-on: ubuntu-20.04
 
     env:
-      CC: clang-8
-      CXX: clang++-8
+      CC: clang-10
+      CXX: clang++-10
       LUA_VERSION: 5.3
       LUAJIT_OPTION: ON
       POSTGRESQL_VERSION: 9.6
-      POSTGIS_VERSION: 2.4
+      POSTGIS_VERSION: 2.5
       BUILD_TYPE: Release
 
     steps:
@@ -73,12 +73,12 @@ jobs:
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
-  ubuntu18-pg10-gcc9:
-    runs-on: ubuntu-18.04
+  ubuntu20-pg10-gcc10:
+    runs-on: ubuntu-20.04
 
     env:
-      CC: gcc-9
-      CXX: g++-9
+      CC: gcc-10
+      CXX: g++-10
       LUA_VERSION: 5.3
       LUAJIT_OPTION: OFF
       POSTGRESQL_VERSION: 10
@@ -92,12 +92,12 @@ jobs:
       - uses: ./.github/actions/build-and-test
 
 
-  ubuntu18-pg11-clang9:
-    runs-on: ubuntu-18.04
+  ubuntu20-pg11-clang10:
+    runs-on: ubuntu-20.04
 
     env:
-      CC: clang-9
-      CXX: clang++-9
+      CC: clang-10
+      CXX: clang++-10
       LUA_VERSION: 5.3
       LUAJIT_OPTION: OFF
       POSTGRESQL_VERSION: 11
