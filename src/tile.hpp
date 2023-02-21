@@ -215,4 +215,55 @@ private:
     uint32_t m_zoom = invalid_zoom;
 }; // class tile_t
 
+/**
+ * Iterate over tiles and call output function for each tile on all requested
+ * zoom levels.
+ *
+ * \tparam OUTPUT Class with operator() taking a tile_t argument
+ *
+ * \param tiles_at_maxzoom The list of tiles at maximum zoom level
+ * \param minzoom Minimum zoom level
+ * \param maxzoom Maximum zoom level
+ * \param output Output function
+ */
+template <class OUTPUT>
+std::size_t for_each_tile(quadkey_list_t const &tiles_at_maxzoom,
+                          uint32_t minzoom, uint32_t maxzoom, OUTPUT &&output)
+{
+    assert(minzoom <= maxzoom);
+
+    if (minzoom == maxzoom) {
+        for (auto const quadkey : tiles_at_maxzoom) {
+            std::forward<OUTPUT>(output)(
+                tile_t::from_quadkey(quadkey, maxzoom));
+        }
+        return tiles_at_maxzoom.size();
+    }
+
+    /**
+     * Loop over all requested zoom levels (from maximum down to the minimum
+     * zoom level).
+     */
+    quadkey_t last_quadkey{};
+    std::size_t count = 0;
+    for (auto const quadkey : tiles_at_maxzoom) {
+        for (uint32_t dz = 0; dz <= maxzoom - minzoom; ++dz) {
+            auto const qt_current = quadkey.down(dz);
+            /**
+             * If dz > 0, there are probably multiple elements whose quadkey
+             * is equal because they are all sub-tiles of the same tile at the
+             * current zoom level. We skip all of them after we have written
+             * the first sibling.
+             */
+            if (qt_current != last_quadkey.down(dz)) {
+                std::forward<OUTPUT>(output)(
+                    tile_t::from_quadkey(qt_current, maxzoom - dz));
+                ++count;
+            }
+        }
+        last_quadkey = quadkey;
+    }
+    return count;
+}
+
 #endif // OSM2PGSQL_TILE_HPP
