@@ -69,3 +69,14 @@ expire_output_t::output_tiles_to_table(quadkey_list_t const &tiles_at_maxzoom,
 
     return count;
 }
+
+void expire_output_t::create_output_table(pg_conn_t const &connection) const
+{
+    auto const qn = qualified_name(m_schema, m_table);
+    connection.exec("CREATE TABLE IF NOT EXISTS {} ("
+                    " zoom int4 NOT NULL,"
+                    " x int4 NOT NULL,"
+                    " y int4 NOT NULL,"
+                    " PRIMARY KEY (zoom, x, y))",
+                    qn);
+}

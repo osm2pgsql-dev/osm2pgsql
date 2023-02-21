@@ -15,6 +15,8 @@
 #include <string>
 #include <utility>
 
+class pg_conn_t;
+
 /**
  * Output for tile expiry.
  */
@@ -69,6 +71,11 @@ public:
      */
     std::size_t output_tiles_to_table(quadkey_list_t const &tiles_at_maxzoom,
                                       std::string const &conninfo) const;
+
+    /**
+     * Create table for tiles.
+     */
+    void create_output_table(pg_conn_t const &connection) const;
 
 private:
     /// The internal (unique) name of the output
