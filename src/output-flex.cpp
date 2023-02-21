@@ -1339,7 +1339,7 @@ output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
     // For backwards compatibility we add a "default" expire output (with
     // empty name) when the relevant command line options are used.
     if (options.append && options.expire_tiles_zoom) {
-        auto &eo = m_expire_outputs->emplace_back("");
+        auto &eo = m_expire_outputs->emplace_back();
         eo.set_filename(options.expire_tiles_filename);
         eo.set_minzoom(options.expire_tiles_zoom_min);
         eo.set_maxzoom(options.expire_tiles_zoom);
