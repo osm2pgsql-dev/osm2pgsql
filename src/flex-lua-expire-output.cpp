@@ -24,6 +24,10 @@ create_expire_output(lua_State *lua_state,
     std::string const expire_output_name =
         luaX_get_table_string(lua_state, "name", -1, "The expire output");
 
+    if (expire_output_name.empty()) {
+        throw std::runtime_error{"The expire output name can not be empty."};
+    }
+
     check_identifier(expire_output_name, "expire output names");
 
     if (util::find_by_name(*expire_outputs, expire_output_name)) {

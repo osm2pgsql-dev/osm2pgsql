@@ -39,6 +39,22 @@ Feature: Expire output definitions in Lua file
             The expire output must contain a 'name' string field.
             """
 
+    Scenario: Name in expire output definition can not be empty
+        Given the input file 'liechtenstein-2013-08-03.osm.pbf'
+        And the lua style
+            """
+            osm2pgsql.define_expire_output({
+                name = '',
+                filename = 'foo',
+                maxzoom = 14
+            })
+            """
+        Then running osm2pgsql flex fails
+        And the error output contains
+            """
+            The expire output name can not be empty.
+            """
+
     Scenario: Filename in expire output definition has to be a string
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
