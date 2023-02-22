@@ -21,6 +21,8 @@
 class expire_output_t
 {
 public:
+    expire_output_t() = default;
+
     explicit expire_output_t(std::string name) : m_name(std::move(name)) {}
 
     std::string const &name() const noexcept { return m_name; }
@@ -50,6 +52,23 @@ public:
 
     std::size_t output(quadkey_list_t const &tile_list,
                        std::string const &conninfo) const;
+
+    /**
+     * Write the list of tiles to a file.
+     *
+     * \param tiles_at_maxzoom The list of tiles at maximum zoom level
+     */
+    std::size_t
+    output_tiles_to_file(quadkey_list_t const &tiles_at_maxzoom) const;
+
+    /**
+     * Write the list of tiles to a database table.
+     *
+     * \param tiles_at_maxzoom The list of tiles at maximum zoom level
+     * \param conninfo database connection info
+     */
+    std::size_t output_tiles_to_table(quadkey_list_t const &tiles_at_maxzoom,
+                                      std::string const &conninfo) const;
 
 private:
     /// The internal (unique) name of the output
