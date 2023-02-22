@@ -3,6 +3,7 @@ add_library(osm2pgsql_lib STATIC)
 
 target_sources(osm2pgsql_lib PRIVATE
   db-copy.cpp
+  debug-output.cpp
   dependency-manager.cpp
   expire-tiles.cpp
   expire-output.cpp

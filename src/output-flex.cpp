@@ -8,6 +8,7 @@
  */
 
 #include "db-copy.hpp"
+#include "debug-output.hpp"
 #include "expire-output.hpp"
 #include "expire-tiles.hpp"
 #include "flex-index.hpp"
@@ -1357,50 +1358,8 @@ output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
         }
     }
 
-    log_debug("ExpireOutputs:");
-    for (auto const &expire_output : *m_expire_outputs) {
-        log_debug("- ExpireOutput {}", expire_output.name());
-        if (expire_output.minzoom() == expire_output.maxzoom()) {
-            log_debug("  - zoom: {}", expire_output.maxzoom());
-        } else {
-            log_debug("  - zoom: {}-{}", expire_output.minzoom(),
-                      expire_output.maxzoom());
-        }
-        if (!expire_output.filename().empty()) {
-            log_debug("  - filename: {}", expire_output.filename());
-        }
-        if (!expire_output.table().empty()) {
-            log_debug("  - table: {}", qualified_name(expire_output.schema(),
-                                                      expire_output.name()));
-        }
-    }
-
-    log_debug("Tables:");
-    for (auto const &table : *m_tables) {
-        log_debug("- TABLE {}", qualified_name(table.schema(), table.name()));
-        log_debug("  - columns:");
-        for (auto const &column : table) {
-            log_debug(R"(    - "{}" {} ({}) not_null={} create_only={})",
-                      column.name(), column.type_name(), column.sql_type_name(),
-                      column.not_null(), column.create_only());
-            for (auto const &ec : column.expire_configs()) {
-                auto const &config = (*m_expire_outputs)[ec.expire_output];
-                log_debug("      - expire: output={}", config.name());
-            }
-        }
-        log_debug("  - data_tablespace={}", table.data_tablespace());
-        log_debug("  - index_tablespace={}", table.index_tablespace());
-        log_debug("  - cluster={}", table.cluster_by_geom());
-        for (auto const &index : table.indexes()) {
-            log_debug("  - INDEX USING {}", index.method());
-            log_debug("    - column={}", index.columns());
-            log_debug("    - expression={}", index.expression());
-            log_debug("    - include={}", index.include_columns());
-            log_debug("    - tablespace={}", index.tablespace());
-            log_debug("    - unique={}", index.is_unique());
-            log_debug("    - where={}", index.where_condition());
-        }
-    }
+    write_expire_output_list_to_debug_log(*m_expire_outputs);
+    write_table_list_to_debug_log(*m_tables, *m_expire_outputs);
 
     for (auto &table : *m_tables) {
         m_table_connections.emplace_back(&table, m_copy_thread);
