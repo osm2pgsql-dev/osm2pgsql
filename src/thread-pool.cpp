@@ -9,8 +9,6 @@
 
 #include "thread-pool.hpp"
 
-#include <osmium/thread/util.hpp>
-
 #include <cassert>
 #include <string>
 
@@ -52,10 +50,7 @@ void thread_pool_t::shutdown_all_workers()
 
 void thread_pool_t::worker_thread(unsigned int thread_num)
 {
-    std::string name{"_osm2pgsql_worker_"};
-    name.append(std::to_string(thread_num));
-    osmium::thread::set_thread_name(name.c_str());
-    this_thread_num = thread_num + 1;
+    get_logger().init_thread(thread_num + 1);
 
     while (true) {
         osmium::thread::function_wrapper task;

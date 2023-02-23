@@ -9,6 +9,8 @@
 
 #include "logging.hpp"
 
+#include <osmium/thread/util.hpp>
+
 thread_local unsigned int this_thread_num = 0;
 
 /// Global logger singleton
@@ -39,4 +41,16 @@ std::string logger::generate_common_prefix(fmt::text_style const &ts,
     }
 
     return str;
+}
+
+void logger::init_thread(unsigned int num) const
+{
+    // Store thread number in thread local variable
+    this_thread_num = num;
+
+    // Set thread name in operating system.
+    // On Linux thread names have a maximum length of 16 characters.
+    std::string name{"_osm2pgsql_"};
+    name.append(std::to_string(num));
+    osmium::thread::set_thread_name(name.c_str());
 }

@@ -20,8 +20,6 @@
 #include <cstdio>
 #include <utility>
 
-extern thread_local unsigned int this_thread_num;
-
 enum class log_level
 {
     debug = 1,
@@ -83,6 +81,8 @@ public:
 
     void needs_leading_return() noexcept { m_needs_leading_return = true; }
     void no_leading_return() noexcept { m_needs_leading_return = false; }
+
+    void init_thread(unsigned int num) const;
 
 private:
     log_level m_current_level = log_level::info;
