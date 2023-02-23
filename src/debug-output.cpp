@@ -19,8 +19,9 @@ void write_expire_output_list_to_debug_log(
     }
 
     log_debug("ExpireOutputs:");
+    std::size_t n = 0;
     for (auto const &expire_output : expire_outputs) {
-        log_debug("- ExpireOutput {}", expire_output.name());
+        log_debug("- ExpireOutput [{}]", n++);
         if (expire_output.minzoom() == expire_output.maxzoom()) {
             log_debug("  - zoom: {}", expire_output.maxzoom());
         } else {
@@ -32,14 +33,12 @@ void write_expire_output_list_to_debug_log(
         }
         if (!expire_output.table().empty()) {
             log_debug("  - table: {}", qualified_name(expire_output.schema(),
-                                                      expire_output.name()));
+                                                      expire_output.table()));
         }
     }
 }
 
-void write_table_list_to_debug_log(
-    std::vector<flex_table_t> const &tables,
-    std::vector<expire_output_t> const &expire_outputs)
+void write_table_list_to_debug_log(std::vector<flex_table_t> const &tables)
 {
     if (!get_logger().debug_enabled()) {
         return;
@@ -54,8 +53,7 @@ void write_table_list_to_debug_log(
                       column.name(), column.type_name(), column.sql_type_name(),
                       column.not_null(), column.create_only());
             for (auto const &ec : column.expire_configs()) {
-                auto const &config = expire_outputs[ec.expire_output];
-                log_debug("      - expire: output={}", config.name());
+                log_debug("      - expire: [{}]", ec.expire_output);
             }
         }
         log_debug("  - data_tablespace={}", table.data_tablespace());

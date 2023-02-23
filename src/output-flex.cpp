@@ -98,7 +98,6 @@ TRAMPOLINE(table_insert, insert)
 TRAMPOLINE(table_columns, columns)
 TRAMPOLINE(table_tostring, __tostring)
 
-TRAMPOLINE(expire_output_name, name)
 TRAMPOLINE(expire_output_minzoom, minzoom)
 TRAMPOLINE(expire_output_maxzoom, maxzoom)
 TRAMPOLINE(expire_output_filename, filename)
@@ -893,18 +892,14 @@ int output_flex_t::expire_output_tostring()
 {
     auto const &expire_output = get_expire_output_from_param();
 
-    std::string const str{
-        fmt::format("osm2pgsql.ExpireOutput[{}]", expire_output.name())};
+    std::string const str =
+        fmt::format("osm2pgsql.ExpireOutput[minzoom={},maxzoom={},filename={},"
+                    "schema={},table={}]",
+                    expire_output.minzoom(), expire_output.maxzoom(),
+                    expire_output.filename(), expire_output.schema(),
+                    expire_output.table());
     lua_pushstring(lua_state(), str.c_str());
 
-    return 1;
-}
-
-int output_flex_t::expire_output_name()
-{
-    auto const &expire_output = get_expire_output_from_param();
-
-    lua_pushstring(lua_state(), expire_output.name().c_str());
     return 1;
 }
 
@@ -1133,8 +1128,7 @@ void output_flex_t::stop()
             std::size_t const count = eo.output(m_expire_tiles[i].get_tiles(),
                                                 get_options()->conninfo);
 
-            log_info("Wrote {} entries to expired output '{}'.", count,
-                     eo.name());
+            log_info("Wrote {} entries to expire output [{}].", count, i);
         }
     }
 }
@@ -1337,8 +1331,8 @@ output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
             "No tables defined in Lua config. Nothing to do!"};
     }
 
-    // For backwards compatibility we add a "default" expire output (with
-    // empty name) when the relevant command line options are used.
+    // For backwards compatibility we add a "default" expire output to all
+    // tables when the relevant command line options are used.
     if (options.append && options.expire_tiles_zoom) {
         auto &eo = m_expire_outputs->emplace_back();
         eo.set_filename(options.expire_tiles_filename);
@@ -1359,7 +1353,7 @@ output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
     }
 
     write_expire_output_list_to_debug_log(*m_expire_outputs);
-    write_table_list_to_debug_log(*m_tables, *m_expire_outputs);
+    write_table_list_to_debug_log(*m_tables);
 
     for (auto &table : *m_tables) {
         m_table_connections.emplace_back(&table, m_copy_thread);
@@ -1420,7 +1414,6 @@ static void init_expire_output_class(lua_State *lua_state)
     lua_setfield(lua_state, -2, "__index");
     luaX_add_table_func(lua_state, "__tostring",
                         lua_trampoline_expire_output_tostring);
-    luaX_add_table_func(lua_state, "name", lua_trampoline_expire_output_name);
     luaX_add_table_func(lua_state, "minzoom",
                         lua_trampoline_expire_output_minzoom);
     luaX_add_table_func(lua_state, "maxzoom",

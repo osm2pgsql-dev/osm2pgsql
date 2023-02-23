@@ -3,13 +3,13 @@ Feature: Expire into table
     Background:
         Given the lua style
             """
-            osm2pgsql.define_expire_output({
+            local eo = osm2pgsql.define_expire_output({
                 name = 'tiles',
                 table = 'tiles',
                 maxzoom = 12
             })
             local t = osm2pgsql.define_node_table('nodes', {
-                { column = 'geom', type = 'point', expire = 'tiles' },
+                { column = 'geom', type = 'point', expire = eo },
                 { column = 'tags', type = 'jsonb' }
             })
 

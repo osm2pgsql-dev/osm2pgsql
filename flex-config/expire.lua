@@ -5,10 +5,6 @@
 local expire_outputs = {}
 
 expire_outputs.pois = osm2pgsql.define_expire_output({
-    -- Every expire output must have a name. The name is independent of the
-    -- data table names although this example file uses the same name for
-    -- simplicity.
-    name = 'pois',
     -- The zoom level at which we calculate the tiles. This must always be set.
     maxzoom = 14,
     -- The filename where tile list should be written to.
@@ -16,7 +12,6 @@ expire_outputs.pois = osm2pgsql.define_expire_output({
 })
 
 expire_outputs.lines = osm2pgsql.define_expire_output({
-    name = 'lines',
     maxzoom = 14,
     -- Instead of writing the tile list to a file, it can be written to a table.
     -- The table will be created if it isn't there already.
@@ -25,7 +20,6 @@ expire_outputs.lines = osm2pgsql.define_expire_output({
 })
 
 expire_outputs.polygons = osm2pgsql.define_expire_output({
-    name = 'polygons',
     -- You can also set a minimum zoom level in addition to the maximum zoom
     -- level. Tiles in all zoom levels between those two will be written out.
     minzoom = 10,
@@ -36,13 +30,11 @@ expire_outputs.polygons = osm2pgsql.define_expire_output({
 print("Expire outputs:(")
 for name, eo in pairs(expire_outputs) do
     print("  " .. name
-          .. ": name=".. eo:name()
-          .. " minzoom=" .. eo:minzoom()
+          .. ": minzoom=" .. eo:minzoom()
           .. " maxzoom=" .. eo:maxzoom()
           .. " filename=" .. eo:filename()
           .. " schema=" .. eo:schema()
-          .. " table=" .. eo:table()
-          .. " (" .. tostring(eo) .. ")")
+          .. " table=" .. eo:table())
 end
 print(")")
 
@@ -53,14 +45,14 @@ tables.pois = osm2pgsql.define_node_table('pois', {
     -- Zero, one or more expire outputs are referenced in an `expire` field in
     -- the definition of any geometry column using the Web Mercator (3857)
     -- projection.
-    { column = 'geom', type = 'point', not_null = true, expire = { { output = 'pois' } } },
+    { column = 'geom', type = 'point', not_null = true, expire = { { output = expire_outputs.pois } } },
 })
 
 tables.lines = osm2pgsql.define_way_table('lines', {
     { column = 'tags', type = 'jsonb' },
     -- If you only have a single expire output and with the default
     -- parameters, you can specify it directly.
-    { column = 'geom', type = 'linestring', not_null = true, expire = 'lines' },
+    { column = 'geom', type = 'linestring', not_null = true, expire = expire_outputs.lines },
 })
 
 tables.polygons = osm2pgsql.define_area_table('polygons', {
@@ -72,7 +64,7 @@ tables.polygons = osm2pgsql.define_area_table('polygons', {
     -- limit the full area is expired, for larger polygons only the boundary.
     -- This setting doesn't have any effect on point or linestring geometries.
     { column = 'geom', type = 'geometry', not_null = true, expire = {
-        { output = 'polygons', mode = 'boundary-only' }
+        { output = expire_outputs.polygons, mode = 'boundary-only' }
     }}
 })
 

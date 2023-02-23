@@ -4,13 +4,12 @@ Feature: Expire configuration in Lua file
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_expire_output({
-                name = 'foo',
+            local eo = osm2pgsql.define_expire_output({
                 filename = 'bar',
                 maxzoom = 12
             })
             osm2pgsql.define_node_table('bar', {
-                { column = 'some', expire = {{ output = 'foo' }} }
+                { column = 'some', expire = {{ output = eo }} }
             })
             """
         Then running osm2pgsql flex fails
@@ -23,8 +22,7 @@ Feature: Expire configuration in Lua file
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_expire_output({
-                name = 'foo',
+            local eo = osm2pgsql.define_expire_output({
                 filename = 'bar',
                 maxzoom = 12
             })
@@ -32,7 +30,7 @@ Feature: Expire configuration in Lua file
                 { column = 'some',
                   type = 'geometry',
                   projection = 4326,
-                  expire = {{ output = 'foo' }} }
+                  expire = {{ output = eo }} }
             })
             """
         Then running osm2pgsql flex fails
@@ -41,19 +39,36 @@ Feature: Expire configuration in Lua file
             Expire only allowed for geometry columns in Web Mercator projection.
             """
 
+    Scenario: Expire reference must be a userdata ExpireOutput object
+        Given the input file 'liechtenstein-2013-08-03.osm.pbf'
+        And the lua style
+            """
+            local eo = osm2pgsql.define_expire_output({
+                filename = 'bar',
+                maxzoom = 12
+            })
+            osm2pgsql.define_node_table('bar', {
+                { column = 'some', type = 'geometry', expire = {{ output = 'abc' }} }
+            })
+            """
+        Then running osm2pgsql flex fails
+        And the error output contains
+            """
+            Expire output must be of type ExpireOutput.
+            """
+
     Scenario: Expire on a table with 3857 geometry is okay
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_expire_output({
-                name = 'foo',
+            local eo = osm2pgsql.define_expire_output({
                 filename = 'bar',
                 maxzoom = 12
             })
             local t = osm2pgsql.define_node_table('bar', {
                 { column = 'some',
                   type = 'geometry',
-                  expire = {{ output = 'foo' }} }
+                  expire = {{ output = eo }} }
             })
 
             function osm2pgsql.process_node(object)
@@ -63,19 +78,18 @@ Feature: Expire configuration in Lua file
         When running osm2pgsql flex
         Then table bar has 1562 rows
 
-    Scenario: Directly specifying the expire output name is okay
+    Scenario: Directly specifying the expire output is okay
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_expire_output({
-                name = 'foo',
+            local eo = osm2pgsql.define_expire_output({
                 filename = 'bar',
                 maxzoom = 12
             })
             local t = osm2pgsql.define_node_table('bar', {
                 { column = 'some',
                   type = 'geometry',
-                  expire = 'foo' }
+                  expire = eo }
             })
 
             function osm2pgsql.process_node(object)
@@ -89,8 +103,7 @@ Feature: Expire configuration in Lua file
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_expire_output({
-                name = 'foo',
+            local eo = osm2pgsql.define_expire_output({
                 filename = 'bar',
                 maxzoom = 12
             })
@@ -98,7 +111,7 @@ Feature: Expire configuration in Lua file
                 { column = 'some',
                   type = 'geometry',
                   expire = {
-                    { output = 'foo', buffer = 'notvalid' }
+                    { output = eo, buffer = 'notvalid' }
                 }}
             })
             """
@@ -108,19 +121,18 @@ Feature: Expire configuration in Lua file
             Optional expire field 'buffer' must contain a number.
             """
 
-    Scenario: Expire with invalid mode setting
+    Scenario: Expire with invalid mode setting fails
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_expire_output({
-                name = 'foo',
+            local eo = osm2pgsql.define_expire_output({
                 filename = 'bar',
                 maxzoom = 12
             })
             local t = osm2pgsql.define_node_table('bar', {
                 { column = 'some',
                   type = 'geometry',
-                  expire = {{ output = 'foo', mode = 'foo' }} }
+                  expire = {{ output = eo, mode = 'foo' }} }
             })
 
             function osm2pgsql.process_node(object)
@@ -137,8 +149,7 @@ Feature: Expire configuration in Lua file
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_expire_output({
-                name = 'foo',
+            local eo = osm2pgsql.define_expire_output({
                 filename = 'bar',
                 maxzoom = 12
             })
@@ -146,7 +157,7 @@ Feature: Expire configuration in Lua file
                 { column = 'some',
                   type = 'geometry',
                   expire = {
-                    { output = 'foo', full_area_limit = true }
+                    { output = eo, full_area_limit = true }
                 }}
             })
             """
@@ -160,8 +171,7 @@ Feature: Expire configuration in Lua file
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_expire_output({
-                name = 'foo',
+            local eo = osm2pgsql.define_expire_output({
                 filename = 'bar',
                 maxzoom = 12
             })
@@ -169,7 +179,7 @@ Feature: Expire configuration in Lua file
                 { column = 'some',
                   type = 'geometry',
                   expire = {
-                    { output = 'foo', buffer = 0.2, mode = 'boundary-only' }
+                    { output = eo, buffer = 0.2, mode = 'boundary-only' }
                 }}
             })
 
@@ -184,8 +194,7 @@ Feature: Expire configuration in Lua file
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_expire_output({
-                name = 'foo',
+            local eo = osm2pgsql.define_expire_output({
                 filename = 'bar',
                 maxzoom = 12
             })
@@ -193,7 +202,7 @@ Feature: Expire configuration in Lua file
                 { column = 'some',
                   type = 'geometry',
                   expire = {
-                    { output = 'foo', buffer = 0.2,
+                    { output = eo, buffer = 0.2,
                       mode = 'hybrid', full_area_limit = 10000 }
                 }}
             })
@@ -209,8 +218,7 @@ Feature: Expire configuration in Lua file
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
-            osm2pgsql.define_expire_output({
-                name = 'tiles',
+            local eo = osm2pgsql.define_expire_output({
                 table = 'tiles',
                 maxzoom = 12
             })
@@ -218,7 +226,7 @@ Feature: Expire configuration in Lua file
                 { column = 'geom',
                   type = 'point',
                   expire = {
-                    { output = 'tiles' }
+                    { output = eo }
                 }}
             })
 
