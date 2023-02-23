@@ -84,6 +84,23 @@ public:
         return !(a == b);
     }
 
+    /// Give points an (arbitrary) order.
+    [[nodiscard]] constexpr friend bool operator<(point_t a, point_t b) noexcept
+    {
+        if (a.x() == b.x()) {
+            return a.y() < b.y();
+        }
+        return a.x() < b.x();
+    }
+
+    [[nodiscard]] constexpr friend bool operator>(point_t a, point_t b) noexcept
+    {
+        if (a.x() == b.x()) {
+            return a.y() > b.y();
+        }
+        return a.x() > b.x();
+    }
+
 private:
     double m_x = 0.0;
     double m_y = 0.0;

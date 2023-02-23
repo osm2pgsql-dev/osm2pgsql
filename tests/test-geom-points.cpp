@@ -61,6 +61,24 @@ TEST_CASE("create_point from OSM data", "[NoDB]")
     REQUIRE(geom.get<geom::point_t>() == geom::point_t{1.1, 2.2});
 }
 
+TEST_CASE("point order", "[NoDB]")
+{
+    geom::point_t const p{10, 10};
+    REQUIRE_FALSE(p < p);
+    REQUIRE_FALSE(p > p);
+
+    std::vector<geom::point_t> points = {
+        {10, 10}, {20, 10}, {13, 14}, {13, 10}
+    };
+
+    std::sort(points.begin(), points.end());
+
+    REQUIRE(points[0] == geom::point_t(10, 10));
+    REQUIRE(points[1] == geom::point_t(13, 10));
+    REQUIRE(points[2] == geom::point_t(13, 14));
+    REQUIRE(points[3] == geom::point_t(20, 10));
+}
+
 TEST_CASE("geom::distance", "[NoDB]")
 {
     geom::point_t const p1{10, 10};
