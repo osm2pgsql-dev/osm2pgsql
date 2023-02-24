@@ -52,7 +52,11 @@ private:
 class timer_t
 {
 public:
-    timer_t() noexcept : m_start(clock::now()) {}
+    explicit timer_t(char const *name = "")
+    : m_name(name), m_start(clock::now())
+    {}
+
+    std::string const &name() const noexcept { return m_name; }
 
     void start() noexcept { m_start = clock::now(); }
 
@@ -84,6 +88,8 @@ public:
 
 private:
     using clock = std::chrono::steady_clock;
+
+    std::string m_name;
     std::chrono::time_point<clock> m_start;
     std::chrono::microseconds m_duration{};
 
