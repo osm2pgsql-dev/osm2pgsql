@@ -21,23 +21,7 @@ static expire_output_t &
 create_expire_output(lua_State *lua_state,
                      std::vector<expire_output_t> *expire_outputs)
 {
-    std::string const expire_output_name =
-        luaX_get_table_string(lua_state, "name", -1, "The expire output");
-
-    if (expire_output_name.empty()) {
-        throw std::runtime_error{"The expire output name can not be empty."};
-    }
-
-    check_identifier(expire_output_name, "expire output names");
-
-    if (util::find_by_name(*expire_outputs, expire_output_name)) {
-        throw fmt_error("Expire output with name '{}' already exists.",
-                        expire_output_name);
-    }
-
-    auto &new_expire_output = expire_outputs->emplace_back(expire_output_name);
-
-    lua_pop(lua_state, 1); // "name"
+    auto &new_expire_output = expire_outputs->emplace_back();
 
     // optional "filename" field
     auto const *filename = luaX_get_table_string(lua_state, "filename", -1,
@@ -57,9 +41,8 @@ create_expire_output(lua_State *lua_state,
 
     if (new_expire_output.filename().empty() &&
         new_expire_output.table().empty()) {
-        throw fmt_error(
-            "Must set 'filename' and/or 'table' on expire output '{}'.",
-            new_expire_output.name());
+        throw std::runtime_error{
+            "Must set 'filename' and/or 'table' on expire output."};
     }
 
     // required "maxzoom" field

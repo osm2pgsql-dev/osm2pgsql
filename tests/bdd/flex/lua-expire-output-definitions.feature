@@ -12,49 +12,6 @@ Feature: Expire output definitions in Lua file
             Argument #1 to 'define_expire_output' must be a Lua table.
             """
 
-    Scenario: Expire output definition needs a name
-        Given the input file 'liechtenstein-2013-08-03.osm.pbf'
-        And the lua style
-            """
-            osm2pgsql.define_expire_output({})
-            """
-        Then running osm2pgsql flex fails
-        And the error output contains
-            """
-            The expire output must contain a 'name' string field.
-            """
-
-    Scenario: Name in expire output definition has to be a string
-        Given the input file 'liechtenstein-2013-08-03.osm.pbf'
-        And the lua style
-            """
-            osm2pgsql.define_expire_output({
-                name = false,
-                filename = 'foo'
-            })
-            """
-        Then running osm2pgsql flex fails
-        And the error output contains
-            """
-            The expire output must contain a 'name' string field.
-            """
-
-    Scenario: Name in expire output definition can not be empty
-        Given the input file 'liechtenstein-2013-08-03.osm.pbf'
-        And the lua style
-            """
-            osm2pgsql.define_expire_output({
-                name = '',
-                filename = 'foo',
-                maxzoom = 14
-            })
-            """
-        Then running osm2pgsql flex fails
-        And the error output contains
-            """
-            The expire output name can not be empty.
-            """
-
     Scenario: Filename in expire output definition has to be a string
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
@@ -182,26 +139,5 @@ Feature: Expire output definitions in Lua file
         And the error output contains
             """
             Value of 'minzoom' field must be between 1 and 'maxzoom'.
-            """
-
-    Scenario: Can not define two expire outputs with the same name
-        Given the input file 'liechtenstein-2013-08-03.osm.pbf'
-        And the lua style
-            """
-            osm2pgsql.define_expire_output({
-                name = 'foo',
-                maxzoom = 12,
-                filename = 'somewhere'
-            })
-            osm2pgsql.define_expire_output({
-                name = 'foo',
-                maxzoom = 13,
-                filename = 'somewhereelse'
-            })
-            """
-        Then running osm2pgsql flex fails
-        And the error output contains
-            """
-            Expire output with name 'foo' already exists.
             """
 

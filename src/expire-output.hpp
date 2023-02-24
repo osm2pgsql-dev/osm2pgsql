@@ -25,10 +25,6 @@ class expire_output_t
 public:
     expire_output_t() = default;
 
-    explicit expire_output_t(std::string name) : m_name(std::move(name)) {}
-
-    std::string const &name() const noexcept { return m_name; }
-
     std::string filename() const noexcept { return m_filename; }
 
     void set_filename(std::string filename)
@@ -78,9 +74,6 @@ public:
     void create_output_table(pg_conn_t const &connection) const;
 
 private:
-    /// The internal (unique) name of the output
-    std::string m_name;
-
     /// The filename (if any) for output
     std::string m_filename;
 

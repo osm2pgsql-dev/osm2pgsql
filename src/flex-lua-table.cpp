@@ -10,6 +10,7 @@
 #include "flex-lua-table.hpp"
 
 #include "expire-output.hpp"
+#include "flex-lua-expire-output.hpp"
 #include "flex-lua-index.hpp"
 #include "flex-table.hpp"
 #include "lua-utils.hpp"
@@ -166,25 +167,32 @@ static void setup_flex_table_id_columns(lua_State *lua_state,
     lua_pop(lua_state, 1); // "ids"
 }
 
-static std::size_t
-find_expire_output(std::vector<expire_output_t> const &expire_outputs,
-                   std::string_view name)
+static std::size_t idx_from_userdata(lua_State *lua_state, int idx,
+                                     std::size_t expire_outputs_size)
 {
-    std::size_t n = 0;
-    for (auto const &eo : expire_outputs) {
-        if (eo.name() == name) {
-            return n;
-        }
-        ++n;
+    void const *const user_data = lua_touserdata(lua_state, idx);
+
+    if (user_data == nullptr || !lua_getmetatable(lua_state, idx)) {
+        throw std::runtime_error{"Expire output must be of type ExpireOutput."};
     }
 
-    throw fmt_error("Unknown ExpireOutput '{}'.", name);
+    luaL_getmetatable(lua_state, osm2pgsql_expire_output_name);
+    if (!lua_rawequal(lua_state, -1, -2)) {
+        throw std::runtime_error{"Expire output must be of type ExpireOutput."};
+    }
+    lua_pop(lua_state, 2); // remove the two metatables
+
+    auto const eo = *static_cast<std::size_t const *>(user_data);
+    if (eo >= expire_outputs_size) {
+        throw std::runtime_error{"Internal error in expire output code."};
+    }
+    return eo;
 }
 
-static void
-parse_and_set_expire_options(lua_State *lua_state, flex_table_column_t *column,
-                             std::vector<expire_output_t> *expire_outputs,
-                             bool append_mode)
+static void parse_and_set_expire_options(lua_State *lua_state,
+                                         flex_table_column_t *column,
+                                         std::size_t expire_outputs_size,
+                                         bool append_mode)
 {
     auto const type = lua_type(lua_state, -1);
 
@@ -192,9 +200,13 @@ parse_and_set_expire_options(lua_State *lua_state, flex_table_column_t *column,
         return;
     }
 
-    if (type == LUA_TSTRING) {
-        auto eo =
-            find_expire_output(*expire_outputs, lua_tostring(lua_state, -1));
+    if (!column->is_geometry_column() || column->srid() != 3857) {
+        throw std::runtime_error{"Expire only allowed for geometry"
+                                 " columns in Web Mercator projection."};
+    }
+
+    if (type == LUA_TUSERDATA) {
+        auto const eo = idx_from_userdata(lua_state, -1, expire_outputs_size);
         expire_config_t config{eo};
         // Actually add the expire only if we are in append mode.
         if (append_mode) {
@@ -215,19 +227,13 @@ parse_and_set_expire_options(lua_State *lua_state, flex_table_column_t *column,
         throw std::runtime_error{"Expire field must be a Lua array table"};
     }
 
-    if (!column->is_geometry_column() || column->srid() != 3857) {
-        throw std::runtime_error{"Expire only allowed for geometry"
-                                 " columns in Web Mercator projection."};
-    }
-
     luaX_for_each(lua_state, [&]() {
         if (!lua_istable(lua_state, -1) || luaX_is_array(lua_state)) {
             throw std::runtime_error{"Expire config must be a Lua table"};
         }
 
-        auto const *name =
-            luaX_get_table_string(lua_state, "output", -1, "Entry 'output'");
-        auto eo = find_expire_output(*expire_outputs, name);
+        lua_getfield(lua_state, -1, "output");
+        auto const eo = idx_from_userdata(lua_state, -1, expire_outputs_size);
         lua_pop(lua_state, 1); // "output"
 
         expire_config_t config{eo};
@@ -337,7 +343,7 @@ setup_flex_table_columns(lua_State *lua_state, flex_table_t *table,
         lua_pop(lua_state, 1); // "projection"
 
         lua_getfield(lua_state, -1, "expire");
-        parse_and_set_expire_options(lua_state, &column, expire_outputs,
+        parse_and_set_expire_options(lua_state, &column, expire_outputs->size(),
                                      append_mode);
         lua_pop(lua_state, 1); // "expire"
 
