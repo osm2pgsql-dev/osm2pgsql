@@ -23,6 +23,7 @@
 #include "geom-transform.hpp"
 #include "logging.hpp"
 #include "lua-init.hpp"
+#include "lua-setup.hpp"
 #include "lua-utils.hpp"
 #include "middle.hpp"
 #include "options.hpp"
@@ -43,8 +44,6 @@ extern "C"
 #include <lauxlib.h>
 #include <lualib.h>
 }
-
-#include <boost/filesystem.hpp>
 
 #include <cassert>
 #include <cstdlib>
@@ -1432,31 +1431,15 @@ void output_flex_t::init_lua(std::string const &filename)
     m_lua_state.reset(luaL_newstate(),
                       [](lua_State *state) { lua_close(state); });
 
-    // Set up global lua libs
-    luaL_openlibs(lua_state());
+    setup_lua_environment(lua_state(), filename, get_options()->append);
 
-    // Set up global "osm2pgsql" object
-    lua_newtable(lua_state());
-
-    luaX_add_table_str(lua_state(), "version", get_osm2pgsql_short_version());
-    luaX_add_table_str(lua_state(), "mode",
-                       get_options()->append ? "append" : "create");
     luaX_add_table_int(lua_state(), "stage", 1);
-
-    std::string dir_path =
-        boost::filesystem::path{filename}.parent_path().string();
-    if (!dir_path.empty()) {
-        dir_path += boost::filesystem::path::preferred_separator;
-    }
-    luaX_add_table_str(lua_state(), "config_dir", dir_path.c_str());
 
     luaX_add_table_func(lua_state(), "define_table",
                         lua_trampoline_app_define_table);
 
     luaX_add_table_func(lua_state(), "define_expire_output",
                         lua_trampoline_app_define_expire_output);
-
-    lua_setglobal(lua_state(), "osm2pgsql");
 
     init_table_class(lua_state());
     init_expire_output_class(lua_state());
