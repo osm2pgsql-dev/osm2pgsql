@@ -86,6 +86,15 @@ public:
         return static_cast<double>(value) / static_cast<double>(seconds);
     }
 
+    /**
+     * Add the elapsed time from the other timer to this one. This can be
+     * used, for instance, to aggregate timers used in different threads.
+     */
+    void operator+=(timer_t const &other) noexcept
+    {
+        m_duration += other.m_duration;
+    }
+
 private:
     using clock = std::chrono::steady_clock;
 
