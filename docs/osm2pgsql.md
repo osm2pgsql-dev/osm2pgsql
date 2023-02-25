@@ -1,6 +1,6 @@
 # NAME
 
-osm2pgsql - Openstreetmap data to PostgreSQL converter
+osm2pgsql - OpenStreetMap data to PostgreSQL converter
 
 # SYNOPSIS
 
@@ -18,7 +18,7 @@ other applications processing OSM data.
 In "create" mode osm2pgsql will create the database tables required by the
 configuration and import the OSM file(s) specified on the command line into
 those tables. Note that you also have to use the **-s, \--slim** option if you
-want your database to be updateable.
+want your database to be updatable.
 
 In "append" mode osm2pgsql will update the database tables with the data from
 OSM change files specified on the command line.
