@@ -1,4 +1,4 @@
-name: Build and test osm2pgsq
+name: Build and test osm2pgsql
 
 inputs:
   test-wrapper:
