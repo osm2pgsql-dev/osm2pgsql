@@ -79,6 +79,10 @@ actively tested on Debian, Ubuntu and FreeBSD by the maintainers.
 
 ## Testing
 
+osm2pgsql is tested with two types of tests: Classic tests written in C++ and BDD (Behavior Driven Development) tests written in Python.
+
+### Classic Tests
+
 The code comes with a suite of tests. They are only compiled and run when
 `BUILD_TESTS=ON` is set in the CMake config.
 
@@ -120,12 +124,7 @@ This will often be used together with the `-s` option of `pg_virtualenv` which
 drops you into a shell after a failed test where you can still access the
 database created by `pg_virtualenv`.
 
-### Performance testing
-
-If performance testing with a full planet import is required, indicate what
-needs testing in a pull request.
-
-### BDD testing
+### BDD Tests
 
 Tests in the `tests/bdd` directory use [behave](https://github.com/behave/behave),
 a Python implementation of a behaviour-driven test framework. To run the
@@ -145,7 +144,7 @@ behave -DBINARY=<your build directory>/osm2pgsql
 ```
 
 Per default, behave assumes that the build directory is under `osm2pgsql/build`.
-If your setup works like that, you can leave out the -D parameter.
+If your setup works like that, you can leave out the `-D` parameter.
 
 To make this a bit easier a shell script `run-behave` is provided in your
 build directory which sets those correct paths and calls `behave`. If run
@@ -177,6 +176,21 @@ with `pg_virtualenv bash` and run behave from there.
 The BDDs automatically detect if osm2pgsql was compiled with Lua and
 proj support and skip tests accordingly. They also check for the test
 tablespace `tablespacetest` for tests that need tablespaces.
+
+BDD tests hide print statements by default. For development purposes they
+can be shown by adding these lines to `tests/bdd/.behaverc`:
+
+```
+color=False
+stdout_capture=False
+stderr_capture=False
+log_capture=False
+```
+
+### Performance testing
+
+If performance testing with a full planet import is required, indicate what
+needs testing in a pull request.
 
 ## Coverage reports
 
