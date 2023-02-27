@@ -307,7 +307,7 @@ private:
 class ewkb_parser_t
 {
 public:
-    ewkb_parser_t(std::string_view input)
+    explicit ewkb_parser_t(std::string_view input)
     : m_data(input),
       m_max_length(static_cast<uint32_t>(input.size()) / (sizeof(double) * 2))
     {}

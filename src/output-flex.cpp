@@ -1264,7 +1264,7 @@ create_expire_tables(std::vector<expire_output_t> const &expire_outputs,
         return;
     }
 
-    pg_conn_t connection{conninfo};
+    pg_conn_t const connection{conninfo};
     connection.exec("SET client_min_messages = WARNING");
     for (auto &expire_output : expire_outputs) {
         if (!expire_output.table().empty()) {

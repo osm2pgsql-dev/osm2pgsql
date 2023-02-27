@@ -79,7 +79,7 @@ public:
     void needs_leading_return() noexcept { m_needs_leading_return = true; }
     void no_leading_return() noexcept { m_needs_leading_return = false; }
 
-    void init_thread(unsigned int num) const;
+    static void init_thread(unsigned int num);
 
 private:
     std::string generate_common_prefix(fmt::text_style const &ts,
