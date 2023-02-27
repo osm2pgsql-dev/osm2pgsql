@@ -300,7 +300,7 @@ def init(conn, args):
     else:
         base_url, seq, date = get_replication_header(args.osm_file)
         if base_url is None or (seq is None and date is None):
-            LOG.fatal("File '%s' has no usable replication headers. Use '--server' instead.")
+            LOG.fatal("File '%s' has no usable replication headers. Use '--server' instead.", args.osm_file )
             return 1
 
     repl = ReplicationServer(base_url)
@@ -464,7 +464,7 @@ def get_parser():
                        help='Database server port')
     group.add_argument('-p', '--prefix', metavar='PREFIX', default='planet_osm',
                        help="Prefix for table names (default 'planet_osm')")
-    group.add_argument('--middle-schema', metavar='MIDDLE_SCHEMA', default='public', 
+    group.add_argument('--middle-schema', metavar='MIDDLE_SCHEMA', default='public',
                     help='Name of the schema to store the table for the replication state in')
 
     # Arguments for init
