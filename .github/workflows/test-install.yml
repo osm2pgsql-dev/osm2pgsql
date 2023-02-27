@@ -4,7 +4,7 @@ on: [ push, pull_request ]
 
 jobs:
   ubuntu-test-install:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     strategy:
       matrix:
@@ -19,10 +19,10 @@ jobs:
 
     env:
       LUA_VERSION: 5.3
-      POSTGRESQL_VERSION: 12
+      POSTGRESQL_VERSION: 14
       POSTGIS_VERSION: 3
       BUILD_TYPE: Release
-      CXXFLAGS: -pedantic -Wextra -Werror
+      CXXFLAGS: -pedantic -Wextra -Wno-stringop-overread -Werror
       PREFIX: /usr/local
       OSMURL: https://download.geofabrik.de/europe/monaco-latest.osm.pbf
       OSMFILE: monaco-latest.osm.pbf
