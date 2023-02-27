@@ -59,6 +59,21 @@ TEST_CASE("tile_t coordinates zoom=0", "[NoDB]")
     REQUIRE(tile.ymin() == Approx(-tile_t::half_earth_circumference));
     REQUIRE(tile.xmax() == Approx(tile_t::half_earth_circumference));
     REQUIRE(tile.ymax() == Approx(tile_t::half_earth_circumference));
+    REQUIRE(tile.box().min_x() == Approx(-tile_t::half_earth_circumference));
+    REQUIRE(tile.box().min_y() == Approx(-tile_t::half_earth_circumference));
+    REQUIRE(tile.box().max_x() == Approx(tile_t::half_earth_circumference));
+    REQUIRE(tile.box().max_y() == Approx(tile_t::half_earth_circumference));
+
+    // Bounding box with margin will not get larger, because it is always
+    // clamped to the full extent of the map.
+    REQUIRE(tile.xmin(0.1) == Approx(-tile_t::half_earth_circumference));
+    REQUIRE(tile.ymin(0.1) == Approx(-tile_t::half_earth_circumference));
+    REQUIRE(tile.xmax(0.1) == Approx(tile_t::half_earth_circumference));
+    REQUIRE(tile.ymax(0.1) == Approx(tile_t::half_earth_circumference));
+    REQUIRE(tile.box(0.1).min_x() == Approx(-tile_t::half_earth_circumference));
+    REQUIRE(tile.box(0.1).min_y() == Approx(-tile_t::half_earth_circumference));
+    REQUIRE(tile.box(0.1).max_x() == Approx(tile_t::half_earth_circumference));
+    REQUIRE(tile.box(0.1).max_y() == Approx(tile_t::half_earth_circumference));
 
     REQUIRE(tile.center().x() == Approx(0.0));
     REQUIRE(tile.center().y() == Approx(0.0));
@@ -79,10 +94,28 @@ TEST_CASE("tile_t coordinates zoom=2", "[NoDB]")
 {
     tile_t const tile{2, 1, 2};
 
-    REQUIRE(tile.xmin() == Approx(-tile_t::half_earth_circumference / 2));
-    REQUIRE(tile.ymin() == Approx(-tile_t::half_earth_circumference / 2));
-    REQUIRE(tile.xmax() == Approx(0.0));
-    REQUIRE(tile.ymax() == Approx(0.0));
+    double min = -tile_t::half_earth_circumference / 2;
+    double max = 0.0;
+    REQUIRE(tile.xmin() == Approx(min));
+    REQUIRE(tile.ymin() == Approx(min));
+    REQUIRE(tile.xmax() == Approx(max));
+    REQUIRE(tile.ymax() == Approx(max));
+    CHECK(tile.box().min_x() == tile.xmin());
+    CHECK(tile.box().min_y() == tile.ymin());
+    CHECK(tile.box().max_x() == tile.xmax());
+    CHECK(tile.box().max_y() == tile.ymax());
+
+    // Bounding box of tile with 50% margin on all sides.
+    min -= tile_t::half_earth_circumference / 4;
+    max += tile_t::half_earth_circumference / 4;
+    CHECK(tile.xmin(0.5) == Approx(min));
+    CHECK(tile.ymin(0.5) == Approx(min));
+    CHECK(tile.xmax(0.5) == Approx(max));
+    CHECK(tile.ymax(0.5) == Approx(max));
+    CHECK(tile.box(0.5).min_x() == tile.xmin(0.5));
+    CHECK(tile.box(0.5).min_y() == tile.ymin(0.5));
+    CHECK(tile.box(0.5).max_x() == tile.xmax(0.5));
+    CHECK(tile.box(0.5).max_y() == tile.ymax(0.5));
 
     REQUIRE(tile.center().x() == Approx(-tile_t::half_earth_circumference / 4));
     REQUIRE(tile.center().y() == Approx(-tile_t::half_earth_circumference / 4));

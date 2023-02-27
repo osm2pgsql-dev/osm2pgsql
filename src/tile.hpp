@@ -10,8 +10,10 @@
  * For a full list of authors see the git log.
  */
 
+#include "geom-box.hpp"
 #include "geom.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <limits>
 
@@ -141,6 +143,56 @@ public:
     double ymax() const noexcept
     {
         return half_earth_circumference - m_y * extent();
+    }
+
+    /// Same as box(margin).min_x().
+    double xmin(double margin) const noexcept
+    {
+        return std::clamp(xmin() - margin * extent(), -half_earth_circumference,
+                          half_earth_circumference);
+    }
+
+    /// Same as box(margin).max_x().
+    double xmax(double margin) const noexcept
+    {
+        return std::clamp(xmax() + margin * extent(), -half_earth_circumference,
+                          half_earth_circumference);
+    }
+
+    /// Same as box(margin).min_y().
+    double ymin(double margin) const noexcept
+    {
+        return std::clamp(ymin() - margin * extent(), -half_earth_circumference,
+                          half_earth_circumference);
+    }
+
+    /// Same as box(margin).max_y().
+    double ymax(double margin) const noexcept
+    {
+        return std::clamp(ymax() + margin * extent(), -half_earth_circumference,
+                          half_earth_circumference);
+    }
+
+    /**
+     * Get bounding box from tile.
+     */
+    geom::box_t box() const noexcept
+    {
+        return {xmin(), ymin(), xmax(), ymax()};
+    }
+
+    /**
+     * Get bounding box from tile with margin on all sides. The margin is
+     * specified as a fraction of the tile extent. So margin==0.5 (50%) makes
+     * the bounding box twice as wide and twice as heigh.
+     *
+     * The bounding box is clamped to the extent of the earth, so there will
+     * be no coordinates smaller than -half_earth_circumference or larger than
+     * half_earth_circumference.
+     */
+    geom::box_t box(double margin) const noexcept
+    {
+        return {xmin(margin), ymin(margin), xmax(margin), ymax(margin)};
     }
 
     /**
