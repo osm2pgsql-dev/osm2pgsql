@@ -127,6 +127,20 @@ private:
 };
 
 /**
+ * Wrapper class for query parameters that should be sent to the database
+ * as binary parameter.
+ */
+class binary_param : public std::string_view
+{
+public:
+    using std::string_view::string_view;
+
+    binary_param(std::string const &str)
+    : std::string_view(str.data(), str.size())
+    {}
+};
+
+/**
  * PostgreSQL connection.
  *
  * Wraps the PGconn object of the libpq library.
@@ -229,6 +243,8 @@ private:
             return 0;
         } else if constexpr (std::is_same_v<T, std::string>) {
             return 0;
+        } else if constexpr (std::is_same_v<T, binary_param>) {
+            return 0;
         }
         return 1;
     }
@@ -240,12 +256,18 @@ private:
      * strings.
      */
     template <typename T>
-    static char const *to_str(std::vector<std::string> *data, T const &param)
+    static char const *to_str(std::vector<std::string> *data, int *length,
+                              int *bin, T const &param)
     {
         if constexpr (std::is_same_v<T, char const *>) {
             return param;
         } else if constexpr (std::is_same_v<T, std::string>) {
+            *length = param.size();
             return param.c_str();
+        } else if constexpr (std::is_same_v<T, binary_param>) {
+            *length = param.size();
+            *bin = 1;
+            return param.data();
         }
         return data->emplace_back(fmt::to_string(param)).c_str();
     }
@@ -275,16 +297,21 @@ private:
         std::vector<std::string> exec_params;
         exec_params.reserve(total_buffers_needed);
 
+        std::array<int, sizeof...(params)> lengths = {0};
+        std::array<int, sizeof...(params)> bins = {0};
+
         // This array holds the pointers to all parameter strings, either
         // to the original string parameters or to the recently converted
         // in the exec_params vector.
+        std::size_t n = 0;
+        std::size_t m = 0;
         std::array<char const *, sizeof...(params)> param_ptrs = {
-            to_str<std::decay_t<TArgs>>(&exec_params,
+            to_str<std::decay_t<TArgs>>(&exec_params, &lengths[n++], &bins[m++],
                                         std::forward<TArgs>(params))...};
 
         return exec_prepared_internal(stmt, sizeof...(params),
-                                      param_ptrs.data(), nullptr, nullptr,
-                                      result_as_binary ? 1 : 0);
+                                      param_ptrs.data(), lengths.data(),
+                                      bins.data(), result_as_binary ? 1 : 0);
     }
 
     struct pg_conn_deleter_t
