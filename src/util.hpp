@@ -52,7 +52,11 @@ private:
 class timer_t
 {
 public:
-    timer_t() noexcept : m_start(clock::now()) {}
+    explicit timer_t(char const *name = "")
+    : m_name(name), m_start(clock::now())
+    {}
+
+    std::string const &name() const noexcept { return m_name; }
 
     void start() noexcept { m_start = clock::now(); }
 
@@ -82,8 +86,19 @@ public:
         return static_cast<double>(value) / static_cast<double>(seconds);
     }
 
+    /**
+     * Add the elapsed time from the other timer to this one. This can be
+     * used, for instance, to aggregate timers used in different threads.
+     */
+    void operator+=(timer_t const &other) noexcept
+    {
+        m_duration += other.m_duration;
+    }
+
 private:
     using clock = std::chrono::steady_clock;
+
+    std::string m_name;
     std::chrono::time_point<clock> m_start;
     std::chrono::microseconds m_duration{};
 
