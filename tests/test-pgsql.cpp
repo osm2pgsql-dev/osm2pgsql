@@ -56,18 +56,6 @@ TEST_CASE("exec with invalid SQL should fail")
     REQUIRE_THROWS(conn.exec("XYZ"));
 }
 
-TEST_CASE("exec_prepared without parameters should work")
-{
-    auto const conn = db.db().connect();
-    conn.exec("PREPARE test AS SELECT 42");
-
-    auto const result = conn.exec_prepared("test");
-    REQUIRE(result.status() == PGRES_TUPLES_OK);
-    REQUIRE(result.num_fields() == 1);
-    REQUIRE(result.num_tuples() == 1);
-    REQUIRE(result.get(0, 0) == "42");
-}
-
 TEST_CASE("exec_prepared with single string parameters should work")
 {
     auto const conn = db.db().connect();
@@ -106,6 +94,35 @@ TEST_CASE("exec_prepared with non-string parameters should work")
     REQUIRE(result.num_fields() == 1);
     REQUIRE(result.num_tuples() == 1);
     REQUIRE(result.get(0, 0) == "6");
+}
+
+TEST_CASE("exec_prepared with binary parameter should work")
+{
+    auto const conn = db.db().connect();
+    conn.exec("PREPARE test(bytea) AS SELECT length($1)");
+
+    binary_param const p{"foo \x01 bar"};
+    auto const result = conn.exec_prepared("test", p);
+    REQUIRE(result.status() == PGRES_TUPLES_OK);
+    REQUIRE(result.num_fields() == 1);
+    REQUIRE(result.num_tuples() == 1);
+    REQUIRE(result.get(0, 0) == "9");
+}
+
+TEST_CASE("exec_prepared with mixed parameter types should work")
+{
+    auto const conn = db.db().connect();
+    conn.exec("PREPARE test(text, bytea, int) AS"
+              " SELECT length($1) + length($2) + $3");
+
+    std::string const p1{"foo bar"};
+    binary_param const p2{"foo \x01 bar"};
+    int const p3 = 17;
+    auto const result = conn.exec_prepared("test", p1, p2, p3);
+    REQUIRE(result.status() == PGRES_TUPLES_OK);
+    REQUIRE(result.num_fields() == 1);
+    REQUIRE(result.num_tuples() == 1);
+    REQUIRE(result.get(0, 0) == "33"); // 7 + 9 + 17
 }
 
 TEST_CASE("create table and insert something")
