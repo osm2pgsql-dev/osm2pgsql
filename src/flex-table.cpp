@@ -272,8 +272,6 @@ void table_connection_t::start(bool append)
 {
     assert(m_db_connection);
 
-    m_db_connection->exec("SET client_min_messages = WARNING");
-
     if (!append) {
         m_db_connection->exec("DROP TABLE IF EXISTS {} CASCADE",
                               table().full_name());
@@ -281,7 +279,6 @@ void table_connection_t::start(bool append)
 
     // These _tmp tables can be left behind if we run out of disk space.
     m_db_connection->exec("DROP TABLE IF EXISTS {}", table().full_tmp_name());
-    m_db_connection->exec("RESET client_min_messages");
 
     if (!append) {
         m_db_connection->exec(table().build_sql_create_table(
@@ -313,10 +310,6 @@ void table_connection_t::stop(bool updateable, bool append)
         }
 
         log_info("Clustering table '{}' by geometry...", table().name());
-
-        // Notices about invalid geometries are expected and can be ignored
-        // because they say nothing about the validity of the geometry in OSM.
-        m_db_connection->exec("SET client_min_messages = WARNING");
 
         m_db_connection->exec(table().build_sql_create_table(
             flex_table_t::table_type::permanent, table().full_tmp_name()));

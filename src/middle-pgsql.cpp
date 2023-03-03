@@ -663,7 +663,6 @@ void middle_pgsql_t::start()
             }
         }
     } else {
-        m_db_connection.exec("SET client_min_messages = WARNING");
         for (auto const &table : m_tables) {
             log_debug("Setting up table '{}'", table.name());
             auto const qual_name = qualified_name(table.schema(), table.name());
