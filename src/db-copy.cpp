@@ -131,10 +131,6 @@ void db_copy_thread_t::thread_t::operator()()
         // Let commits happen faster by delaying when they actually occur.
         m_conn->exec("SET synchronous_commit = off");
 
-        // Do not show messages about invalid geometries (they are removed
-        // by the trigger).
-        m_conn->exec("SET client_min_messages = WARNING");
-
         bool done = false;
         while (!done) {
             std::unique_ptr<db_cmd_t> item;

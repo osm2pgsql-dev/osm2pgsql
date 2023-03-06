@@ -84,7 +84,6 @@ void table_t::start(std::string const &conninfo, std::string const &table_space)
 
     connect();
     log_info("Setting up table '{}'", m_target->name);
-    m_sql_conn->exec("SET client_min_messages = WARNING");
     auto const qual_name = qualified_name(m_target->schema, m_target->name);
     auto const qual_tmp_name = qualified_name(
         m_target->schema, m_target->name + "_tmp");
@@ -96,7 +95,6 @@ void table_t::start(std::string const &conninfo, std::string const &table_space)
 
     // These _tmp tables can be left behind if we run out of disk space.
     m_sql_conn->exec("DROP TABLE IF EXISTS {}", qual_tmp_name);
-    m_sql_conn->exec("RESET client_min_messages");
 
     //making a new table
     if (!m_append) {
@@ -196,10 +194,6 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
         }
 
         log_info("Clustering table '{}' by geometry...", m_target->name);
-
-        // Notices about invalid geometries are expected and can be ignored
-        // because they say nothing about the validity of the geometry in OSM.
-        m_sql_conn->exec("SET client_min_messages = WARNING");
 
         std::string sql = fmt::format("CREATE TABLE {} {} AS SELECT * FROM {}",
                                       qual_tmp_name, m_table_space, qual_name);

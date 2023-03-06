@@ -43,6 +43,12 @@ pg_conn_t::pg_conn_t(std::string const &conninfo)
         log_sql("(C{}) New database connection (backend_pid={})",
                 m_connection_id, results.get(0, 0));
     }
+
+    // PostgreSQL sends notices in many different contexts which aren't that
+    // useful for the user. So we disable them for all connections.
+    if (!get_logger().debug_enabled()) {
+        exec("SET client_min_messages = WARNING");
+    }
 }
 
 void pg_conn_t::close()
