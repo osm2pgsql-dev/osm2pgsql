@@ -36,6 +36,7 @@ jobs:
       - name: Install prerequisites
         run: |
           sudo apt-get purge -yq postgresql*
+          sudo apt-get update -qq
           sudo apt-get install -yq --no-install-suggests --no-install-recommends \
             cimg-dev \
             libboost-filesystem-dev \
