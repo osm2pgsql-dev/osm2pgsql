@@ -36,13 +36,16 @@ jobs:
       - name: Install prerequisites
         run: |
           sudo apt-get purge -yq postgresql*
+          sudo apt-get update -qq
           sudo apt-get install -yq --no-install-suggests --no-install-recommends \
+            cimg-dev \
             libboost-filesystem-dev \
             libboost-system-dev \
             libbz2-dev \
             libexpat1-dev \
             liblua${LUA_VERSION}-dev \
             libluajit-5.1-dev \
+            libpotrace-dev \
             libpq-dev \
             libproj-dev \
             lua${LUA_VERSION} \

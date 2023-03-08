@@ -1,0 +1,87 @@
+.TH "OSM2PGSQL" "1" "1.8.1" "" ""
+.SH NAME
+.PP
+osm2pgsql-gen - Generalize OpenStreetMap data - EXPERIMENTAL!
+.SH SYNOPSIS
+.PP
+\f[B]osm2pgsql-gen\f[R] [\f[I]OPTIONS\f[R]]\&...
+.SH DESCRIPTION
+.PP
+THIS PROGRAM IS EXPERIMENTAL AND MIGHT CHANGE WITHOUT NOTICE!
+.PP
+\f[B]osm2pgsql-gen\f[R] reads data imported by \f[B]osm2pgsql\f[R] from
+the database, performs various generalization steps specified by a Lua
+config file and writes the data back to the database.
+It is used in conjunction with and after \f[B]osm2pgsql\f[R] and reads
+the same config file.
+.PP
+This man page can only cover some of the basics and describe the command
+line options.
+See the Generalization chapter in the osm2pgsql
+Manual (https://osm2pgsql.org/doc/manual.html#generalization) for more
+information.
+.SH OPTIONS
+.PP
+This program follows the usual GNU command line syntax, with long
+options starting with two dashes (\f[C]--\f[R]).
+Mandatory arguments to long options are mandatory for short options too.
+.SH MAIN OPTIONS
+.TP
+-a, --append
+Run in append mode.
+.TP
+-c, --create
+Run in create mode.
+This is the default if \f[B]-a, --append\f[R] is not specified.
+.TP
+-S, --style=FILE
+The Lua config file.
+Same as for \f[B]osm2pgsql\f[R].
+.TP
+-j, -jobs=NUM
+Specifies the number of parallel threads used for certain operations.
+Setting this to the number of available CPU cores is a reasonable
+starting point.
+.SH HELP/VERSION OPTIONS
+.TP
+-h, --help
+Print help.
+.TP
+-V, --version
+Print osm2pgsql version.
+.SH LOGGING OPTIONS
+.TP
+--log-level=LEVEL
+Set log level (`debug', `info' (default), `warn', or `error').
+.TP
+--log-sql
+Enable logging of SQL commands for debugging.
+.SH DATABASE OPTIONS
+.TP
+-d, --database=NAME
+The name of the PostgreSQL database to connect to.
+If this parameter contains an \f[C]=\f[R] sign or starts with a valid
+URI prefix (\f[C]postgresql://\f[R] or \f[C]postgres://\f[R]), it is
+treated as a conninfo string.
+See the PostgreSQL manual for details.
+.TP
+-U, --username=NAME
+Postgresql user name.
+.TP
+-W, --password
+Force password prompt.
+.TP
+-H, --host=HOSTNAME
+Database server hostname or unix domain socket location.
+.TP
+-P, --port=PORT
+Database server port.
+.SH SEE ALSO
+.IP \[bu] 2
+osm2pgsql website (https://osm2pgsql.org)
+.IP \[bu] 2
+osm2pgsql manual (https://osm2pgsql.org/doc/manual.html)
+.IP \[bu] 2
+\f[B]postgres\f[R](1)
+.IP \[bu] 2
+\f[B]osm2pgsql\f[R](1)
