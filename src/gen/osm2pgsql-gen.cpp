@@ -511,6 +511,18 @@ genproc_t::genproc_t(std::string const &filename, std::string conninfo,
     luaX_add_table_func(lua_state(), "run_gen", lua_trampoline_app_run_gen);
     luaX_add_table_func(lua_state(), "run_sql", lua_trampoline_app_run_sql);
 
+    lua_getglobal(lua_state(), "osm2pgsql");
+    if (luaL_newmetatable(lua_state(), osm2pgsql_expire_output_name) != 1) {
+        throw std::runtime_error{"Internal error: Lua newmetatable failed."};
+    }
+    lua_pushvalue(lua_state(), -1); // Copy of new metatable
+
+    // Add metatable as osm2pgsql.ExpireOutput so we can access it from Lua
+    lua_setfield(lua_state(), -3, "ExpireOutput");
+
+    // Clean up stack
+    lua_settop(lua_state(), 0);
+
     init_geometry_class(lua_state());
 
     // Load compiled in init.lua
