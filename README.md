@@ -49,8 +49,8 @@ Required libraries are
 * [zlib](https://www.zlib.net/)
 * [Boost libraries](https://www.boost.org/), including geometry, system and
   filesystem
-* [CImg](https://cimg.eu/) (Optional, see README-gen.md)
-* [potrace](https://potrace.sourceforge.net/) (Optional, see README-gen.md)
+* [CImg](https://cimg.eu/) (Optional, for generalization only)
+* [potrace](https://potrace.sourceforge.net/) (Optional, for generalization only)
 * [PostgreSQL](https://www.postgresql.org/) client libraries
 * [Lua](https://www.lua.org/) (Optional, used for Lua tag transforms
   and the flex output)
@@ -201,6 +201,11 @@ The output should show something like
 ```
 Lua 5.1.4 (LuaJIT 2.1.0-beta3)
 ```
+
+## Generalization
+
+There is some experimental support for data generalization. See
+https://osm2pgsql.org/generalization/ for details.
 
 ## Help/Support
 
