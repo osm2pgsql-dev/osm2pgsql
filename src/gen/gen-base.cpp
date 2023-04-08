@@ -42,7 +42,47 @@ gen_base_t::gen_base_t(pg_conn_t *connection, params_t *params)
     m_debug = get_params().get_bool("debug", false);
 }
 
+void gen_base_t::check_src_dest_table_params_exist()
+{
+    if (!m_params->has("src_table")) {
+        throw fmt_error("Missing 'src_table' parameter in generalizer{}.",
+                        context());
+    }
+
+    if (!m_params->has("dest_table")) {
+        throw fmt_error("Missing 'dest_table' parameter in generalizer{}.",
+                        context());
+    }
+
+    if (m_params->get("src_table") == m_params->get("dest_table")) {
+        throw fmt_error("The 'src_table' and 'dest_table' parameters "
+                        "must be different in generalizer{}.",
+                        context());
+    }
+}
+
+void gen_base_t::check_src_dest_table_params_same()
+{
+    if (!m_params->has("src_table")) {
+        throw fmt_error("Missing 'src_table' parameter in generalizer{}.",
+                        context());
+    }
+
+    if (m_params->has("dest_table") &&
+        m_params->get("dest_table") != m_params->get("src_table")) {
+        throw fmt_error("The 'dest_table' parameter must be the same "
+                        "as 'src_table' if it exists in generalizer{}.",
+                        context());
+    }
+}
+
 std::string gen_base_t::name() { return get_params().get_string("name", ""); }
+
+std::string gen_base_t::context()
+{
+    auto const gen_name = name();
+    return gen_name.empty() ? "" : fmt::format(" '{}'", gen_name);
+}
 
 static pg_result_t dbexec_internal(
     pg_conn_t const &connection, std::string const &templ,

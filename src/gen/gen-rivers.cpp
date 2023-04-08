@@ -30,6 +30,8 @@ gen_rivers_t::gen_rivers_t(pg_conn_t *connection, params_t *params)
   m_timer_write(add_timer("write")),
   m_delete_existing(params->has("delete_existing"))
 {
+    check_src_dest_table_params_exist();
+
     params->check_identifier_with_default("src_areas", "waterway_areas");
     params->check_identifier_with_default("id_column", "way_id");
     params->check_identifier_with_default("width_column", "width");

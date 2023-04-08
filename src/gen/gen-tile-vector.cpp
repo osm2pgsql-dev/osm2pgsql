@@ -18,6 +18,8 @@ gen_tile_vector_union_t::gen_tile_vector_union_t(pg_conn_t *connection,
                                                  params_t *params)
 : gen_tile_t(connection, params), m_timer_simplify(add_timer("simplify"))
 {
+    check_src_dest_table_params_exist();
+
     if (!get_params().has("margin")) {
         params->set("margin", 0.0);
     } else {

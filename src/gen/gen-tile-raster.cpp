@@ -31,6 +31,8 @@ gen_tile_raster_union_t::gen_tile_raster_union_t(pg_conn_t *connection,
   m_timer_simplify(add_timer("simplify")),
   m_timer_vectorize(add_timer("vectorize")), m_timer_write(add_timer("write"))
 {
+    check_src_dest_table_params_exist();
+
     m_margin = get_params().get_double("margin");
     m_image_extent = uint_in_range(*params, "image_extent", 1024, 65536, 2048);
     m_image_buffer =

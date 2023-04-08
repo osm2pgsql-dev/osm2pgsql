@@ -31,6 +31,8 @@ gen_tile_builtup_t::gen_tile_builtup_t(pg_conn_t *connection, params_t *params)
   m_timer_simplify(add_timer("simplify")),
   m_timer_vectorize(add_timer("vectorize")), m_timer_write(add_timer("write"))
 {
+    check_src_dest_table_params_exist();
+
     m_schema = get_params().get_identifier("schema");
     m_source_tables =
         osmium::split_string(get_params().get_string("src_tables"), ',');

@@ -54,6 +54,8 @@ public:
 
     std::string name();
 
+    std::string context();
+
     template <typename... ARGS>
     void log_gen(ARGS... args)
     {
@@ -64,6 +66,18 @@ public:
 
 protected:
     gen_base_t(pg_conn_t *connection, params_t *params);
+
+    /**
+     * Check that the 'src_table' and 'dest_table' parameters exist and that
+     * they are different.
+     */
+    void check_src_dest_table_params_exist();
+
+    /**
+     * Check that the 'src_table' parameter exists. If the 'dest_table'
+     * parameter exists it must be the same as 'src_table'.
+     */
+    void check_src_dest_table_params_same();
 
     pg_conn_t &connection() noexcept { return *m_connection; }
 
