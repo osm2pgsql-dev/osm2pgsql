@@ -91,12 +91,10 @@ CREATE TABLE IF NOT EXISTS "{}" (
         params->set("geom_sql", "$1");
     }
 
-    if (m_image_extent < 1024U) {
-        throw std::runtime_error{"width must be at least 1024"};
-    }
-
     if ((m_image_extent & (m_image_extent - 1)) != 0) {
-        throw std::runtime_error{"width must be power of 2"};
+        throw fmt_error(
+            "The 'image_extent' parameter on generalizer{} must be power of 2.",
+            context());
     }
 
     m_image_buffer =

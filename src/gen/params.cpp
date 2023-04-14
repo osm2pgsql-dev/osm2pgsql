@@ -104,11 +104,11 @@ unsigned int uint_in_range(params_t const &params, std::string const &key,
 {
     int64_t const value = params.get_int64(key, default_value);
     if (value < 0 || value > std::numeric_limits<unsigned int>::max()) {
-        throw fmt_error("Invalid value '{}' for {}.", value, key);
+        throw fmt_error("Invalid value '{}' for parameter '{}'.", value, key);
     }
     auto uvalue = static_cast<unsigned int>(value);
     if (uvalue < min || uvalue > max) {
-        throw fmt_error("Invalid value '{}' for {}.", value, key);
+        throw fmt_error("Invalid value '{}' for parameter '{}'.", value, key);
     }
     return uvalue;
 }
