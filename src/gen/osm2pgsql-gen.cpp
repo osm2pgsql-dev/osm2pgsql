@@ -404,8 +404,15 @@ private:
                                         lua_tonumber(lua_state(), -1)));
                 }
 #else
-                params.set(key,
-                           static_cast<double>(lua_tonumber(lua_state(), -1)));
+            {
+                auto const value =
+                    static_cast<double>(lua_tonumber(lua_state(), -1));
+                if (std::floor(value) == value) {
+                    params.set(key, static_cast<int64_t>(value));
+                } else {
+                    params.set(key, value);
+                }
+            }
 #endif
                 break;
             case LUA_TBOOLEAN:
