@@ -43,6 +43,8 @@ public:
 
     virtual bool on_tiles() const noexcept { return false; }
 
+    virtual uint32_t get_zoom() const noexcept { return 0; }
+
     void merge_timers(gen_base_t const &other);
 
     std::vector<util::timer_t> const &timers() const noexcept
