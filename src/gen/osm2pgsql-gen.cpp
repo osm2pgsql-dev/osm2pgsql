@@ -83,14 +83,19 @@ Generalization of OSM data.
 
 This program is EXPERIMENTAL and might change without notice.
 
-Options:
-    -h|--help               Print this help text and stop
-    -a|--append             Run in append mode
-    -c|--create             Run in create mode (default)
-    -j|--jobs               Number of parallel jobs (default 1)
-    -l|--log-level=LEVEL    Log level (debug, info (default), warn, error)
-    --log-sql               Log SQL commands
-    --cimg-info             Call info() function of CImg library
+Main Options:
+    -a|--append           Run in append mode
+    -c|--create           Run in create mode (default)
+    -S|--style=FILE       The Lua config file (required, same as for osm2pgsql)
+    -j|--jobs=NUM         Number of parallel jobs (default 1)
+
+Help/Version Options:
+    -h|--help             Print this help text and stop
+    -V|--version          Show version
+
+Logging options:
+    -l|--log-level=LEVEL  Log level (debug, info (default), warn, error)
+       --log-sql          Log SQL commands
 
 Database options:
     -d|--database=DB    The name of the PostgreSQL database to connect to or
@@ -102,10 +107,11 @@ Database options:
 )");
 }
 
-static char const *const short_options = "acd:hH:j:l:P:S:U:W";
+static char const *const short_options = "acd:hH:j:l:P:S:U:VW";
 
 static std::array<option, 20> const long_options = {
     {{"help", no_argument, nullptr, 'h'},
+     {"version", no_argument, nullptr, 'V'},
      {"append", no_argument, nullptr, 'a'},
      {"create", no_argument, nullptr, 'c'},
      {"jobs", required_argument, nullptr, 'j'},
@@ -116,7 +122,6 @@ static std::array<option, 20> const long_options = {
      {"password", no_argument, nullptr, 'W'},
      {"log-level", required_argument, nullptr, 'l'},
      {"style", required_argument, nullptr, 'S'},
-     {"cimg-info", no_argument, nullptr, 200},
      {"log-sql", no_argument, nullptr, 201},
      {nullptr, 0, nullptr, 0}}};
 
@@ -603,7 +608,8 @@ int main(int argc, char *argv[])
             case 'S':
                 style = optarg;
                 break;
-            case 200:
+            case 'V':
+                log_info("osm2pgsql-gen version {}", get_osm2pgsql_version());
                 canvas_t::info();
                 return 0;
             case 201:
