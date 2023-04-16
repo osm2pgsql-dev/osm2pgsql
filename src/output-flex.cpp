@@ -884,6 +884,7 @@ void output_flex_t::add_row(table_connection_t *table_connection,
         table.geom_column().do_expire(sgeom, &m_expire_tiles);
         flex_write_row(lua_state(), table_connection, object.type(), id, sgeom,
                        table.geom_column().srid(), &m_expire_tiles);
+        table_connection->increment_insert_counter();
     }
 }
 
