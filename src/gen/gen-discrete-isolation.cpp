@@ -22,6 +22,8 @@ gen_di_t::gen_di_t(pg_conn_t *connection, params_t *params)
   m_timer_sort(add_timer("sort")), m_timer_di(add_timer("di")),
   m_timer_reorder(add_timer("reorder")), m_timer_write(add_timer("write"))
 {
+    check_src_dest_table_params_same();
+
     params->check_identifier_with_default("id_column", "id");
     params->check_identifier_with_default("importance_column", "importance");
 }

@@ -31,6 +31,8 @@ gen_tile_builtup_t::gen_tile_builtup_t(pg_conn_t *connection, params_t *params)
   m_timer_simplify(add_timer("simplify")),
   m_timer_vectorize(add_timer("vectorize")), m_timer_write(add_timer("write"))
 {
+    check_src_dest_table_params_exist();
+
     m_schema = get_params().get_identifier("schema");
     m_source_tables =
         osmium::split_string(get_params().get_string("src_tables"), ',');
@@ -89,12 +91,10 @@ CREATE TABLE IF NOT EXISTS "{}" (
         params->set("geom_sql", "$1");
     }
 
-    if (m_image_extent < 1024U) {
-        throw std::runtime_error{"width must be at least 1024"};
-    }
-
     if ((m_image_extent & (m_image_extent - 1)) != 0) {
-        throw std::runtime_error{"width must be power of 2"};
+        throw fmt_error(
+            "The 'image_extent' parameter on generalizer{} must be power of 2.",
+            context());
     }
 
     m_image_buffer =

@@ -205,18 +205,6 @@ get_tiles_from_table(pg_conn_t const &connection, std::string const &table)
     return tiles;
 }
 
-static uint32_t parse_uint32(param_value_t const &val, char const *context,
-                             uint32_t default_value)
-{
-    if (std::holds_alternative<null_param_t>(val)) {
-        return default_value;
-    }
-    if (!std::holds_alternative<int64_t>(val)) {
-        throw fmt_error("Invalid value for {}.", context);
-    }
-    return static_cast<uint32_t>(std::get<int64_t>(val));
-}
-
 class tile_processor_t
 {
 public:
@@ -404,8 +392,15 @@ private:
                                         lua_tonumber(lua_state(), -1)));
                 }
 #else
-                params.set(key,
-                           static_cast<double>(lua_tonumber(lua_state(), -1)));
+            {
+                auto const value =
+                    static_cast<double>(lua_tonumber(lua_state(), -1));
+                if (std::floor(value) == value) {
+                    params.set(key, static_cast<int64_t>(value));
+                } else {
+                    params.set(key, value);
+                }
+            }
 #endif
                 break;
             case LUA_TBOOLEAN:
@@ -426,7 +421,7 @@ private:
     void process_tiles(pg_conn_t const &db_connection, params_t const &params,
                        gen_base_t *generalizer)
     {
-        uint32_t const zoom = parse_uint32(params.get("zoom"), "zoom", 0);
+        uint32_t const zoom = generalizer->get_zoom();
         std::vector<std::pair<uint32_t, uint32_t>> tile_list;
         if (m_append) {
             auto const table = params.get_string("expire_list");
