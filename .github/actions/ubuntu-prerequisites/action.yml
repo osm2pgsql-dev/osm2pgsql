@@ -24,6 +24,7 @@ runs:
           libpotrace-dev \
           libpq-dev \
           libproj-dev \
+          nlohmann-json3-dev \
           pandoc \
           postgresql-${POSTGRESQL_VERSION} \
           postgresql-${POSTGRESQL_VERSION}-postgis-${POSTGIS_VERSION} \

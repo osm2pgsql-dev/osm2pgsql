@@ -112,6 +112,7 @@ static void store_properties(properties_t *properties, options_t const &options)
     properties->set_string("prefix", options.prefix);
     properties->set_bool("updatable", options.slim && !options.droptemp);
     properties->set_string("version", get_osm2pgsql_short_version());
+    properties->set_int("db_format", options.middle_database_format);
 
     properties->store();
 }
@@ -219,6 +220,27 @@ static void check_prefix(properties_t const &properties, options_t *options)
     }
 }
 
+static void check_db_format(properties_t const &properties, options_t *options)
+{
+    auto const format = properties.get_int("db_format", -1);
+
+    if (format == -1) {
+        // db_format not set, so this is a legacy import
+        return;
+    }
+
+    if (format == 0) {
+        throw std::runtime_error{
+            "This database is not updatable (db_format=0)."};
+    }
+
+    if (format < -1 || format > 2) {
+        throw fmt_error("Unknown db_format '{}' in properties.", format);
+    }
+
+    options->middle_database_format = format;
+}
+
 // This is called in "append" mode to check that the command line options are
 // compatible with the properties stored in the database.
 static void check_and_update_properties(properties_t *properties,
@@ -228,6 +250,7 @@ static void check_and_update_properties(properties_t *properties,
     check_attributes(*properties, options);
     check_and_update_flat_node_file(properties, options);
     check_prefix(*properties, options);
+    check_db_format(*properties, options);
 }
 
 // If we are in append mode and the middle nodes table isn't there, it probably

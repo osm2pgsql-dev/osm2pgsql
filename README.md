@@ -49,6 +49,7 @@ Required libraries are
 * [zlib](https://www.zlib.net/)
 * [Boost libraries](https://www.boost.org/), including geometry, system and
   filesystem
+* [nlohmann/json](https://json.nlohmann.me/)
 * [CImg](https://cimg.eu/) (Optional, for generalization only)
 * [potrace](https://potrace.sourceforge.net/) (Optional, for generalization only)
 * [PostgreSQL](https://www.postgresql.org/) client libraries

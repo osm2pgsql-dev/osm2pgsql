@@ -146,6 +146,16 @@ struct options_t
      */
     uint8_t way_node_index_id_shift = 5;
 
+    /// Database format (0=unknown/no database middle, 1=legacy, 2=new)
+    uint8_t middle_database_format = 1;
+
+    /**
+     * Should nodes (with tags) be stored in the middle? If no flat node file
+     * is used, nodes will always be stored. (Only works with the new middle
+     * database format.)
+     */
+    bool middle_with_nodes = false;
+
     /// add an additional hstore column with objects key/value pairs, and what type of hstore column
     hstore_column hstore_mode = hstore_column::none;
 

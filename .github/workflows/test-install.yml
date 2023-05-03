@@ -48,6 +48,7 @@ jobs:
             libpotrace-dev \
             libpq-dev \
             libproj-dev \
+            nlohmann-json3-dev \
             lua${LUA_VERSION} \
             pandoc \
             postgresql-${POSTGRESQL_VERSION} \
