@@ -150,6 +150,17 @@ bool has_index_method(std::string const &value)
     return capabilities().index_methods.count(value);
 }
 
+void check_schema(std::string const &schema)
+{
+    if (has_schema(schema)) {
+        return;
+    }
+
+    throw fmt_error("Schema '{0}' not available."
+                    " Use 'CREATE SCHEMA \"{0}\";' to create it.",
+                    schema);
+}
+
 uint32_t get_database_version() noexcept
 {
     return capabilities().database_version;
