@@ -10,6 +10,7 @@
  * For a full list of authors see the git log.
  */
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <tuple>

@@ -12,6 +12,7 @@
 
 #include "tile.hpp"
 
+#include <cstdint>
 #include <string>
 #include <utility>
 

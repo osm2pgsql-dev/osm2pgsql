@@ -12,6 +12,7 @@
 
 #include "logging.hpp"
 
+#include <cstdint>
 #include <map>
 #include <string>
 #include <variant>

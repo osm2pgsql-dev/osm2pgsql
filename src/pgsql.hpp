@@ -25,6 +25,7 @@
 #include <array>
 #include <atomic>
 #include <cassert>
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <string>

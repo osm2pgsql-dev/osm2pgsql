@@ -14,6 +14,7 @@
 #include "pgsql.hpp"
 #include "util.hpp"
 
+#include <cstdint>
 #include <cstdlib>
 #include <string>
 #include <vector>
