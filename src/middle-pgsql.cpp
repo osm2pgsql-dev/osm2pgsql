@@ -580,8 +580,6 @@ bool middle_query_pgsql_t::relation_get(osmid_t id,
     assert(buffer);
 
     auto const res = m_sql_conn.exec_prepared("get_rel", id);
-    // Fields are: members, tags, member_count */
-    //
     if (res.num_tuples() != 1) {
         return false;
     }
