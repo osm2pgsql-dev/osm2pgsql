@@ -19,6 +19,7 @@
  */
 
 #include <cstddef>
+#include <cstdint>
 #include <ctime>
 
 #include <osmium/handler.hpp>

@@ -16,6 +16,7 @@
 */
 
 #include <cassert>
+#include <cstdint>
 #include <cstdlib>
 #include <memory>
 #include <stdexcept>
