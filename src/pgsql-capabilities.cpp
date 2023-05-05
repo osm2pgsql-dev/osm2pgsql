@@ -32,6 +32,8 @@ static void init_set_from_query(std::set<std::string> *set,
                                 char const *table, char const *column,
                                 char const *condition = "true")
 {
+    set->clear(); // Clear existing in case this is called multiple times
+
     auto const res = db_connection.exec("SELECT {} FROM {} WHERE {}", column,
                                         table, condition);
     for (int i = 0; i < res.num_tuples(); ++i) {
@@ -42,6 +44,8 @@ static void init_set_from_query(std::set<std::string> *set,
 /// Get all config settings from the database.
 static void init_settings(pg_conn_t const &db_connection)
 {
+    capabilities().settings.clear(); // In case this is called multiple times
+
     auto const res =
         db_connection.exec("SELECT name, setting FROM pg_settings");
 
