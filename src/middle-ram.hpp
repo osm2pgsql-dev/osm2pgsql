@@ -89,7 +89,7 @@ private:
         // Store ways (with tags, attributes, and way nodes) in object store.
         bool ways = false;
 
-        // Store relations (with tags, attribtes, and members) in object store.
+        // Store relations (with tags, attributes, and members) in object store.
         bool relations = false;
     };
 
