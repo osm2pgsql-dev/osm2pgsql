@@ -13,8 +13,6 @@
 /**
  * \file
  *
- * This file is part of osm2pgsql (https://github.com/openstreetmap/osm2pgsql).
- *
  * Helper classes and functions for PostgreSQL access.
  */
 

@@ -13,8 +13,6 @@
 /**
  * \file
  *
- * This file is part of osm2pgsql (https://github.com/openstreetmap/osm2pgsql).
- *
  * It contains the functions reading and checking the input data.
  */
 
