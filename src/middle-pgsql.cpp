@@ -868,8 +868,8 @@ middle_pgsql_t::middle_pgsql_t(std::shared_ptr<thread_pool_t> thread_pool,
 std::shared_ptr<middle_query_t>
 middle_pgsql_t::get_query_instance()
 {
-    // NOTE: this is thread safe for use in pending async processing only because
-    // during that process they are only read from
+    // NOTE: this is thread safe for use in pending async processing only
+    // because during that process they are only read from
     auto mid = std::make_unique<middle_query_pgsql_t>(
         m_options->conninfo, m_cache, m_persistent_cache);
 
