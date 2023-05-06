@@ -22,6 +22,8 @@ bool has_schema(std::string const &value);
 bool has_tablespace(std::string const &value);
 bool has_index_method(std::string const &value);
 
+void check_schema(std::string const &schema);
+
 /// Get PostgreSQL version in the format (major * 10000 + minor).
 uint32_t get_database_version() noexcept;
 

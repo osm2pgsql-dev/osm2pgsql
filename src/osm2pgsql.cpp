@@ -84,6 +84,9 @@ void check_db(options_t const &options)
 
     init_database_capabilities(db_connection);
 
+    check_schema(options.middle_dbschema);
+    check_schema(options.output_dbschema);
+
     // If we are in append mode and the middle nodes table isn't there,
     // it probably means we used a flat node store when we created this
     // database. Check for that and stop if it looks like we are missing
