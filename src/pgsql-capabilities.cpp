@@ -122,6 +122,10 @@ void init_database_capabilities(pg_conn_t const &db_connection)
                         "spcname != 'pg_global'");
     init_set_from_query(&capabilities().index_methods, db_connection,
                         "pg_catalog.pg_am", "amname", "amtype = 'i'");
+    init_set_from_query(
+        &capabilities().tables, db_connection, "pg_catalog.pg_tables",
+        "schemaname || '.' || tablename",
+        "schemaname NOT IN ('pg_catalog', 'information_schema')");
 }
 
 bool has_extension(std::string const &value)
@@ -148,6 +152,17 @@ bool has_tablespace(std::string const &value)
 bool has_index_method(std::string const &value)
 {
     return capabilities().index_methods.count(value);
+}
+
+bool has_table(std::string schema, std::string const &name)
+{
+    if (schema.empty()) {
+        schema = "public";
+    }
+    schema += '.';
+    schema += name;
+
+    return capabilities().tables.count(schema);
 }
 
 void check_schema(std::string const &schema)

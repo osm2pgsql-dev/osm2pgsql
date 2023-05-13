@@ -45,6 +45,16 @@ TEST_CASE("has_index_method() should work")
     REQUIRE_FALSE(has_index_method("xzxzxzxz"));
 }
 
+TEST_CASE("has_table() should work")
+{
+    init_database_capabilities(db.db().connect());
+    REQUIRE_FALSE(has_table("", "foo"));
+    REQUIRE_FALSE(has_table("public", "foo"));
+    REQUIRE_FALSE(has_table("someschema", "foo"));
+    REQUIRE(has_table("", "spatial_ref_sys"));
+    REQUIRE(has_table("public", "spatial_ref_sys"));
+}
+
 TEST_CASE("PostgreSQL version")
 {
     init_database_capabilities(db.db().connect());

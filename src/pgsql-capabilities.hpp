@@ -21,6 +21,7 @@ bool has_extension(std::string const &value);
 bool has_schema(std::string const &value);
 bool has_tablespace(std::string const &value);
 bool has_index_method(std::string const &value);
+bool has_table(std::string schema, std::string const &name);
 
 void check_schema(std::string const &schema);
 

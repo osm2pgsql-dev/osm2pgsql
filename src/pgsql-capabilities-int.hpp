@@ -24,6 +24,7 @@ struct database_capabilities_t
     std::set<std::string> schemas;
     std::set<std::string> tablespaces;
     std::set<std::string> index_methods;
+    std::set<std::string> tables;
 
     std::string database_name;
 
