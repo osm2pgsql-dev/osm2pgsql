@@ -83,4 +83,8 @@ CheckOptions:
       value: true
     - key: cppcoreguidelines-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
       value: true
+    - key: readability-function-cognitive-complexity.Threshold
+      value: 100
+    - key: readability-function-cognitive-complexity.IgnoreMacros
+      value: true
 ...
