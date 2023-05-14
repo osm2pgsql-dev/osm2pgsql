@@ -236,7 +236,7 @@ void run_tile_gen(std::string const &conninfo, gen_base_t *master_generalizer,
                   std::vector<std::pair<uint32_t, uint32_t>> *queue,
                   std::mutex *mut, unsigned int n)
 {
-    get_logger().init_thread(n);
+    logger::init_thread(n);
 
     log_debug("Started generalizer thread for '{}'.",
               master_generalizer->strategy());

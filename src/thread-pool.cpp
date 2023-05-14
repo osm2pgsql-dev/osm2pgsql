@@ -50,7 +50,7 @@ void thread_pool_t::shutdown_all_workers()
 
 void thread_pool_t::worker_thread(unsigned int thread_num)
 {
-    get_logger().init_thread(thread_num + 1);
+    logger::init_thread(thread_num + 1);
 
     while (true) {
         osmium::thread::function_wrapper task;
