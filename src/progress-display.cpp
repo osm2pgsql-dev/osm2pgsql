@@ -22,7 +22,7 @@ static double count_per_second(std::size_t count, uint64_t elapsed) noexcept
         return static_cast<double>(count);
     }
 
-    return static_cast<double>(count) / elapsed;
+    return static_cast<double>(count) / static_cast<double>(elapsed);
 }
 
 static std::string cps_display(std::size_t count, uint64_t elapsed)
