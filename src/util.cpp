@@ -23,11 +23,11 @@ namespace util {
 
 std::string human_readable_duration(uint64_t seconds)
 {
-    if (seconds < 60) {
+    if (seconds < 60UL) {
         return fmt::format("{}s", seconds);
     }
 
-    if (seconds < (60 * 60)) {
+    if (seconds < (60UL * 60UL)) {
         return fmt::format("{}s ({}m {}s)", seconds, seconds / 60,
                            seconds % 60);
     }

@@ -64,7 +64,7 @@ public:
      *                           double their size until max_block_size is
      *                           reached.
      */
-    explicit ordered_index_t(std::size_t initial_block_size = 1024 * 1024)
+    explicit ordered_index_t(std::size_t initial_block_size = 1024UL * 1024UL)
     : m_block_size(initial_block_size)
     {}
 
@@ -185,7 +185,7 @@ private:
 
     std::pair<osmid_t, std::size_t> get_internal(osmid_t id) const noexcept;
 
-    static constexpr std::size_t const max_block_size = 16 * 1024 * 1024;
+    static constexpr std::size_t const max_block_size = 16UL * 1024UL * 1024UL;
 
     std::vector<range_entry> m_ranges;
     std::size_t m_block_size;
