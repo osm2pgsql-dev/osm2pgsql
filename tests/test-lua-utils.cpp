@@ -46,7 +46,7 @@ TEST_CASE("check luaX_is_empty_table", "[NoDB]")
     });
 }
 
-TEST_CASE("check luaX_is_array", "[NoDB]")
+TEST_CASE("check luaX_is_array with arrays", "[NoDB]")
 {
     std::shared_ptr<lua_State> lua_state{
         luaL_newstate(), [](lua_State *state) { lua_close(state); }};
@@ -66,6 +66,12 @@ TEST_CASE("check luaX_is_array", "[NoDB]")
     test_lua(lua_state.get(), "return { [1] = 1, [2] = 2 }", [&](){
         REQUIRE(luaX_is_array(lua_state.get()));
     });
+}
+
+TEST_CASE("check luaX_is_array with non-arrays", "[NoDB]")
+{
+    std::shared_ptr<lua_State> lua_state{
+        luaL_newstate(), [](lua_State *state) { lua_close(state); }};
 
     test_lua(lua_state.get(), "return { 1, nil, 3 }", [&](){
         REQUIRE_FALSE(luaX_is_array(lua_state.get()));

@@ -88,153 +88,165 @@ static void check_row(std::vector<std::string> const &row)
     }
 }
 
-TEST_CASE("copy_mgr_t")
+TEST_CASE("copy_mgr_t: Insert null")
 {
     copy_mgr_t mgr{std::make_shared<db_copy_thread_t>(db.conninfo())};
 
-    SECTION("Insert null")
+    auto const t = setup_table("big int8, t text");
+
+    mgr.new_line(t);
+    mgr.add_column(0);
+    mgr.add_null_column();
+    mgr.add_null_column();
+    mgr.finish_line();
+    mgr.sync();
+
+    auto const conn = db.connect();
+    auto const res = conn.require_row("SELECT * FROM test_copy_mgr");
+
+    CHECK(res.is_null(0, 1));
+    CHECK(res.is_null(0, 2));
+}
+
+TEST_CASE("copy_mgr_t: Insert numbers")
+{
+    copy_mgr_t mgr{std::make_shared<db_copy_thread_t>(db.conninfo())};
+
+    auto const t = setup_table("big int8, small smallint");
+
+    add_row(&mgr, t, 34, 0xfff12345678ULL, -4457);
+    check_row({"34", "17588196497016", "-4457"});
+}
+
+TEST_CASE("copy_mgr_t: Insert strings")
+{
+    copy_mgr_t mgr{std::make_shared<db_copy_thread_t>(db.conninfo())};
+
+    auto const t = setup_table("s0 text, s1 varchar");
+
+    SECTION("Simple strings")
     {
-        auto const t = setup_table("big int8, t text");
-
-        mgr.new_line(t);
-        mgr.add_column(0);
-        mgr.add_null_column();
-        mgr.add_null_column();
-        mgr.finish_line();
-        mgr.sync();
-
-        auto const conn = db.connect();
-        auto const res = conn.require_row("SELECT * FROM test_copy_mgr");
-
-        CHECK(res.is_null(0, 1));
-        CHECK(res.is_null(0, 2));
+        add_row(&mgr, t, -2, "foo", "l");
+        check_row({"-2", "foo", "l"});
     }
 
-    SECTION("Insert numbers")
+    SECTION("Strings with special characters")
     {
-        auto const t = setup_table("big int8, small smallint");
-
-        add_row(&mgr, t, 34, 0xfff12345678ULL, -4457);
-        check_row({"34", "17588196497016", "-4457"});
+        add_row(&mgr, t, -2, "va\tr", "meme\n");
+        check_row({"-2", "va\tr", "meme\n"});
     }
 
-    SECTION("Insert strings")
+    SECTION("Strings with more special characters")
     {
-        auto const t = setup_table("s0 text, s1 varchar");
-
-        SECTION("Simple strings")
-        {
-            add_row(&mgr, t, -2, "foo", "l");
-            check_row({"-2", "foo", "l"});
-        }
-
-        SECTION("Strings with special characters")
-        {
-            add_row(&mgr, t, -2, "va\tr", "meme\n");
-            check_row({"-2", "va\tr", "meme\n"});
-        }
-
-        SECTION("Strings with more special characters")
-        {
-            add_row(&mgr, t, -2, "\rrun", "K\\P");
-            check_row({"-2", "\rrun", "K\\P"});
-        }
-
-        SECTION("Strings with space and quote")
-        {
-            add_row(&mgr, t, 1, "with space", "name \"quoted\"");
-            check_row({"1", "with space", "name \"quoted\""});
-        }
+        add_row(&mgr, t, -2, "\rrun", "K\\P");
+        check_row({"-2", "\rrun", "K\\P"});
     }
 
-    SECTION("Insert int arrays")
+    SECTION("Strings with space and quote")
     {
-        auto const t = setup_table("a int[]");
-
-        add_array<int>(&mgr, t, -9000, {45, -2, 0, 56});
-        check_row({"-9000", "{45,-2,0,56}"});
+        add_row(&mgr, t, 1, "with space", "name \"quoted\"");
+        check_row({"1", "with space", "name \"quoted\""});
     }
+}
 
-    SECTION("Insert string arrays")
-    {
-        auto const t = setup_table("a text[]");
+TEST_CASE("copy_mgr_t: Insert int arrays")
+{
+    copy_mgr_t mgr{std::make_shared<db_copy_thread_t>(db.conninfo())};
 
-        add_array<std::string>(&mgr, t, 3,
-                               {"foo", "", "with space", "with \"quote\"",
-                                "the\t", "line\nbreak", "rr\rrr", "s\\l"});
-        check_row({"3", "{foo,\"\",\"with space\",\"with "
-                        "\\\"quote\\\"\",\"the\t\",\"line\nbreak\","
-                        "\"rr\rrr\",\"s\\\\l\"}"});
+    auto const t = setup_table("a int[]");
 
-        auto const c = db.connect();
-        CHECK(c.result_as_string("SELECT a[4] FROM test_copy_mgr") ==
-              "with \"quote\"");
-        CHECK(c.result_as_string("SELECT a[5] FROM test_copy_mgr") == "the\t");
-        CHECK(c.result_as_string("SELECT a[6] FROM test_copy_mgr") ==
-              "line\nbreak");
-        CHECK(c.result_as_string("SELECT a[7] FROM test_copy_mgr") == "rr\rrr");
-        CHECK(c.result_as_string("SELECT a[8] FROM test_copy_mgr") == "s\\l");
+    add_array<int>(&mgr, t, -9000, {45, -2, 0, 56});
+    check_row({"-9000", "{45,-2,0,56}"});
+}
+
+TEST_CASE("copy_mgr_t: Insert string arrays")
+{
+    copy_mgr_t mgr{std::make_shared<db_copy_thread_t>(db.conninfo())};
+
+    auto const t = setup_table("a text[]");
+
+    add_array<std::string>(&mgr, t, 3,
+                           {"foo", "", "with space", "with \"quote\"", "the\t",
+                            "line\nbreak", "rr\rrr", "s\\l"});
+    check_row({"3", "{foo,\"\",\"with space\",\"with "
+                    "\\\"quote\\\"\",\"the\t\",\"line\nbreak\","
+                    "\"rr\rrr\",\"s\\\\l\"}"});
+
+    auto const c = db.connect();
+    CHECK(c.result_as_string("SELECT a[4] FROM test_copy_mgr") ==
+          "with \"quote\"");
+    CHECK(c.result_as_string("SELECT a[5] FROM test_copy_mgr") == "the\t");
+    CHECK(c.result_as_string("SELECT a[6] FROM test_copy_mgr") ==
+          "line\nbreak");
+    CHECK(c.result_as_string("SELECT a[7] FROM test_copy_mgr") == "rr\rrr");
+    CHECK(c.result_as_string("SELECT a[8] FROM test_copy_mgr") == "s\\l");
+}
+
+TEST_CASE("copy_mgr_t: Insert hashes")
+{
+    copy_mgr_t mgr{std::make_shared<db_copy_thread_t>(db.conninfo())};
+
+    auto const t = setup_table("h hstore");
+
+    std::vector<std::pair<std::string, std::string>> const values = {
+        {"one", "two"},           {"key 1", "value 1"},
+        {"\"key\"", "\"value\""}, {"key\t2", "value\t2"},
+        {"key\n3", "value\n3"},   {"key\r4", "value\r4"},
+        {"key\\5", "value\\5"}};
+
+    add_hash(&mgr, t, 42, values);
+
+    auto const c = db.connect();
+
+    for (auto const &[k, v] : values) {
+        auto const res = c.result_as_string(
+            fmt::format("SELECT h->'{}' FROM test_copy_mgr", k));
+        CHECK(res == v);
     }
+}
 
-    SECTION("Insert hashes")
-    {
-        auto const t = setup_table("h hstore");
+TEST_CASE("copy_mgr_t: Insert something and roll back")
+{
+    copy_mgr_t mgr{std::make_shared<db_copy_thread_t>(db.conninfo())};
 
-        std::vector<std::pair<std::string, std::string>> const values = {
-            {"one", "two"},           {"key 1", "value 1"},
-            {"\"key\"", "\"value\""}, {"key\t2", "value\t2"},
-            {"key\n3", "value\n3"},   {"key\r4", "value\r4"},
-            {"key\\5", "value\\5"}};
+    auto const t = setup_table("t text");
 
-        add_hash(&mgr, t, 42, values);
+    mgr.new_line(t);
+    mgr.add_column(0);
+    mgr.add_column("foo");
+    mgr.rollback_line();
+    mgr.sync();
 
-        auto const c = db.connect();
+    auto const conn = db.connect();
+    CHECK(conn.get_count("test_copy_mgr") == 0);
+}
 
-        for (auto const &[k, v] : values) {
-            auto const res = c.result_as_string(
-                fmt::format("SELECT h->'{}' FROM test_copy_mgr", k));
-            CHECK(res == v);
-        }
-    }
+TEST_CASE("copy_mgr_t: Insert something, insert more, roll back, insert "
+          "something else")
+{
+    copy_mgr_t mgr{std::make_shared<db_copy_thread_t>(db.conninfo())};
 
-    SECTION("Insert something and roll back")
-    {
-        auto const t = setup_table("t text");
+    auto const t = setup_table("t text");
 
-        mgr.new_line(t);
-        mgr.add_column(0);
-        mgr.add_column("foo");
-        mgr.rollback_line();
-        mgr.sync();
+    mgr.new_line(t);
+    mgr.add_column(0);
+    mgr.add_column("good");
+    mgr.finish_line();
 
-        auto const conn = db.connect();
-        CHECK(conn.get_count("test_copy_mgr") == 0);
-    }
+    mgr.new_line(t);
+    mgr.add_column(1);
+    mgr.add_column("bad");
+    mgr.rollback_line();
 
-    SECTION("Insert something, insert more, roll back, insert something else")
-    {
-        auto const t = setup_table("t text");
+    mgr.new_line(t);
+    mgr.add_column(2);
+    mgr.add_column("better");
+    mgr.finish_line();
+    mgr.sync();
 
-        mgr.new_line(t);
-        mgr.add_column(0);
-        mgr.add_column("good");
-        mgr.finish_line();
-
-        mgr.new_line(t);
-        mgr.add_column(1);
-        mgr.add_column("bad");
-        mgr.rollback_line();
-
-        mgr.new_line(t);
-        mgr.add_column(2);
-        mgr.add_column("better");
-        mgr.finish_line();
-        mgr.sync();
-
-        auto const conn = db.connect();
-        auto const res = conn.exec("SELECT t FROM test_copy_mgr ORDER BY id");
-        CHECK(res.num_tuples() == 2);
-        CHECK(res.get(0, 0) == "good");
-        CHECK(res.get(1, 0) == "better");
-    }
+    auto const conn = db.connect();
+    auto const res = conn.exec("SELECT t FROM test_copy_mgr ORDER BY id");
+    CHECK(res.num_tuples() == 2);
+    CHECK(res.get(0, 0) == "good");
+    CHECK(res.get(1, 0) == "better");
 }
