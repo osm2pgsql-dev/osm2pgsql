@@ -134,7 +134,7 @@ class binary_param : public std::string_view
 public:
     using std::string_view::string_view;
 
-    binary_param(std::string const &str)
+    explicit binary_param(std::string const &str)
     : std::string_view(str.data(), str.size())
     {}
 };

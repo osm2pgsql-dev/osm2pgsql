@@ -232,13 +232,13 @@ public:
 
         if (m_ensure_multi) {
             // Two 13 bytes headers plus n sets of coordinates
-            data.reserve(2 * 13 + geom.size() * (2 * 8));
+            data.reserve(2UL * 13UL + geom.size() * (2UL * 8UL));
             write_header(&data, wkb_multi_line, m_srid);
             write_length(&data, 1);
             write_linestring(&data, geom);
         } else {
             // 13 byte header plus n sets of coordinates
-            data.reserve(13 + geom.size() * (2 * 8));
+            data.reserve(13UL + geom.size() * (2UL * 8UL));
             write_linestring(&data, geom, m_srid);
         }
 

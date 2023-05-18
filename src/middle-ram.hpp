@@ -109,7 +109,7 @@ private:
 
     /// Buffer for all OSM objects we store.
     osmium::memory::Buffer m_object_buffer{
-        1024 * 1024, osmium::memory::Buffer::auto_grow::yes};
+        1024UL * 1024UL, osmium::memory::Buffer::auto_grow::yes};
 
     /// Indexes into object buffer.
     osmium::nwr_array<ordered_index_t> m_object_index;

@@ -33,7 +33,7 @@ protected:
 
 private:
     std::size_t m_timer_delete;
-    int32_t m_zoom;
+    uint32_t m_zoom;
     bool m_delete_existing = false;
     bool m_with_group_by = false;
 };
