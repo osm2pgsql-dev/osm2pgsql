@@ -42,11 +42,4 @@ void drop_geom_check_trigger(pg_conn_t *db_connection,
 void analyze_table(pg_conn_t const &db_connection, std::string const &schema,
                    std::string const &name);
 
-/**
- * Check whether the table with the specified name exists in the specified
- * schema in the database. Leave schema empty to check in the 'public' schema.
- */
-bool has_table(pg_conn_t const &db_connection, std::string const &schema,
-               std::string const &table);
-
 #endif // OSM2PGSQL_PGSQL_HELPER_HPP

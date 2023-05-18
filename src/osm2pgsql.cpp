@@ -92,8 +92,7 @@ void check_db(options_t const &options)
     // database. Check for that and stop if it looks like we are missing
     // the node location store option.
     if (options.append && options.flat_node_file.empty()) {
-        if (!has_table(db_connection, options.middle_dbschema,
-                        options.prefix + "_nodes")) {
+        if (!has_table(options.middle_dbschema, options.prefix + "_nodes")) {
             throw std::runtime_error{
                 "You seem to not have a nodes table. Did "
                 "you forget the --flat-nodes option?"};
