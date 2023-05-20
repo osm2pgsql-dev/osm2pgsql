@@ -24,7 +24,6 @@
 #include <string>
 #include <utility>
 
-class options_t;
 class thread_pool_t;
 
 /**

@@ -7,6 +7,8 @@
  * For a full list of authors see the git log.
  */
 
+#include "command-line-parser.hpp"
+
 #include "format.hpp"
 #include "logging.hpp"
 #include "options.hpp"
@@ -15,11 +17,13 @@
 #include "util.hpp"
 #include "version.hpp"
 
+#include <osmium/version.hpp>
+
+#include <getopt.h>
+
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
-#include <getopt.h>
-#include <osmium/version.hpp>
 #include <stdexcept>
 #include <thread> // for number of threads
 
@@ -101,6 +105,8 @@ struct option const long_options[] = {
     {"with-forward-dependencies", required_argument, nullptr, 217},
     {nullptr, 0, nullptr, 0}};
 
+} // anonymous namespace
+
 void long_usage(char const *arg0, bool verbose)
 {
     char const *const name = program_name(arg0);
@@ -125,12 +131,12 @@ Common options:\n\
     -S|--style=FILE  Location of the style file. Defaults to\n\
                     '" DEFAULT_STYLE "'.\n\
     -k|--hstore     Add tags without column to an additional hstore column.\n",
-               stdout);
+                     stdout);
 #ifdef HAVE_LUA
     (void)std::fputs("\
        --tag-transform-script=SCRIPT  Specify a Lua script to handle tag\n\
                     filtering and normalisation (pgsql output only).\n",
-               stdout);
+                     stdout);
 #endif
     (void)std::fputs("\
     -s|--slim       Store temporary data in the database. This switch is\n\
@@ -150,7 +156,7 @@ Database options:\n\
     -W|--password   Force password prompt.\n\
     -H|--host=HOST  Database server host name or socket location.\n\
     -P|--port=PORT  Database server port.\n",
-               stdout);
+                     stdout);
 
     if (verbose) {
         (void)std::fputs("\n\
@@ -195,9 +201,9 @@ Pgsql output options:\n\
     -l|--latlong    Store data in degrees of latitude & longitude (WGS84).\n\
     -m|--merc       Store data in web mercator (default).\n"
 #ifdef HAVE_GENERIC_PROJ
-                   "    -E|--proj=SRID  Use projection EPSG:SRID.\n"
+                         "    -E|--proj=SRID  Use projection EPSG:SRID.\n"
 #endif
-                   "\
+                         "\
     -p|--prefix=PREFIX  Prefix for table names (default 'planet_osm').\n\
     -x|--extra-attributes  Include attributes (user name, user id, changeset\n\
                     id, timestamp and version) for each object in the database.\n\
@@ -230,7 +236,7 @@ Advanced options:\n\
        --with-forward-dependencies=BOOL  Propagate changes from nodes to ways\n\
                    and node/way members to relations (Default: true).\n\
 ",
-                   stdout);
+                         stdout);
     } else {
         fmt::print(
             stdout,
@@ -238,8 +244,6 @@ Advanced options:\n\
             name);
     }
 }
-
-} // anonymous namespace
 
 static bool compare_prefix(std::string const &str,
                            std::string const &prefix) noexcept
@@ -281,16 +285,6 @@ std::string build_conninfo(database_options_t const &opt)
     }
 
     return joiner();
-}
-
-options_t::options_t()
-: num_procs(std::min(4U, std::thread::hardware_concurrency()))
-{
-    if (num_procs < 1) {
-        log_warn("Unable to detect number of hardware threads supported!"
-                 " Using single thread.");
-        num_procs = 1;
-    }
 }
 
 static osmium::Box parse_bbox_param(char const *arg)
@@ -434,7 +428,7 @@ static bool parse_with_forward_dependencies_param(char const *arg)
                     arg);
 }
 
-static void print_version()
+void print_version()
 {
     fmt::print(stderr, "Build: {}\n", get_build_type());
     fmt::print(stderr, "Compiled using the following library versions:\n");
@@ -451,16 +445,112 @@ static void print_version()
 #endif
 }
 
-options_t::options_t(int argc, char *argv[]) : options_t()
+static void check_options(options_t *options)
 {
+    if (options->append && options->create) {
+        throw std::runtime_error{"--append and --create options can not be "
+                                 "used at the same time!"};
+    }
+
+    if (options->append && !options->slim) {
+        throw std::runtime_error{"--append can only be used with slim mode!"};
+    }
+
+    if (options->droptemp && !options->slim) {
+        throw std::runtime_error{"--drop only makes sense with --slim."};
+    }
+
+    if (options->hstore_mode == hstore_column::none &&
+        options->hstore_columns.empty() && options->hstore_match_only) {
+        log_warn("--hstore-match-only only makes sense with --hstore, "
+                 "--hstore-all, or --hstore-column; ignored.");
+        options->hstore_match_only = false;
+    }
+
+    if (options->enable_hstore_index &&
+        options->hstore_mode == hstore_column::none &&
+        options->hstore_columns.empty()) {
+        log_warn("--hstore-add-index only makes sense with hstore enabled; "
+                 "ignored.");
+        options->enable_hstore_index = false;
+    }
+
+    if (options->cache < 0) {
+        options->cache = 0;
+        log_warn("RAM cache cannot be negative. Using 0 instead.");
+    }
+
+    if (options->cache == 0) {
+        if (!options->slim) {
+            throw std::runtime_error{
+                "RAM node cache can only be disabled in slim mode."};
+        }
+        if (options->flat_node_file.empty()) {
+            log_warn("RAM cache is disabled. This will likely slow down "
+                     "processing a lot.");
+        }
+    }
+
+    if (!options->slim && !options->flat_node_file.empty()) {
+        log_warn("Ignoring --flat-nodes/-F setting in non-slim mode");
+    }
+
+    // zoom level 31 is the technical limit because we use 32-bit integers for the x and y index of a tile ID
+    if (options->expire_tiles_zoom_min > 31) {
+        options->expire_tiles_zoom_min = 31;
+        log_warn("Minimum zoom level for tile expiry is too "
+                 "large and has been set to 31.");
+    }
+
+    if (options->expire_tiles_zoom > 31) {
+        options->expire_tiles_zoom = 31;
+        log_warn("Maximum zoom level for tile expiry is too "
+                 "large and has been set to 31.");
+    }
+
+    if (options->expire_tiles_zoom != 0 &&
+        options->projection->target_srs() != 3857) {
+        log_warn("Expire has been enabled (with -e or --expire-tiles) but "
+                 "target SRS is not Mercator (EPSG:3857). Expire disabled!");
+        options->expire_tiles_zoom = 0;
+    }
+
+    if (options->output_backend == "flex" ||
+        options->output_backend == "gazetteer") {
+        if (options->style == DEFAULT_STYLE) {
+            throw std::runtime_error{
+                "You have to set the config file with the -S|--style option."};
+        }
+    }
+
+    if (options->output_backend == "gazetteer") {
+        log_warn(
+            "The 'gazetteer' output is deprecated and will soon be removed.");
+    }
+}
+
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
+options_t parse_command_line(int argc, char *argv[])
+{
+    options_t options;
+
+    options.num_procs = std::min(4U, std::thread::hardware_concurrency());
+    if (options.num_procs < 1) {
+        log_warn("Unable to detect number of hardware threads supported!"
+                 " Using single thread.");
+        options.num_procs = 1;
+    }
+
     // If there are no command line arguments at all, show help.
     if (argc == 1) {
-        m_print_help = true;
+        options.command = command_t::help;
         long_usage(argv[0], false);
-        return;
+        return options;
     }
 
     database_options_t database_options;
+
+    bool print_help = false;
     bool help_verbose = false; // Will be set when -v/--verbose is set
 
     int c = 0;
@@ -477,53 +567,54 @@ options_t::options_t(int argc, char *argv[]) : options_t()
         //handle the current arg
         switch (c) {
         case 'a': // --append
-            append = true;
+            options.append = true;
             break;
         case 'b': // --bbox
-            bbox = parse_bbox_param(optarg);
+            options.bbox = parse_bbox_param(optarg);
             break;
         case 'c': // --create
-            create = true;
+            options.create = true;
             break;
         case 'v': // --verbose
             help_verbose = true;
             get_logger().set_level(log_level::debug);
             break;
         case 's': // --slim
-            slim = true;
+            options.slim = true;
             break;
         case 'K': // --keep-coastlines
-            keep_coastlines = true;
+            options.keep_coastlines = true;
             break;
         case 'l': // --latlong
-            projection = reprojection::create_projection(PROJ_LATLONG);
+            options.projection = reprojection::create_projection(PROJ_LATLONG);
             break;
         case 'm': // --merc
-            projection = reprojection::create_projection(PROJ_SPHERE_MERC);
+            options.projection =
+                reprojection::create_projection(PROJ_SPHERE_MERC);
             break;
         case 'E': // --proj
 #ifdef HAVE_GENERIC_PROJ
-            projection = reprojection::create_projection(atoi(optarg));
+            options.projection = reprojection::create_projection(atoi(optarg));
 #else
             throw std::runtime_error{"Generic projections not available."};
 #endif
             break;
         case 'p': // --prefix
-            prefix = optarg;
-            prefix_is_set = true;
-            check_identifier(prefix, "--prefix parameter");
+            options.prefix = optarg;
+            options.prefix_is_set = true;
+            check_identifier(options.prefix, "--prefix parameter");
             break;
         case 'd': // --database
             database_options.db = optarg;
             break;
         case 'C': // --cache
-            cache = atoi(optarg);
+            options.cache = atoi(optarg);
             break;
         case 'U': // --username
             database_options.username = optarg;
             break;
         case 'W': // --password
-            pass_prompt = true;
+            options.pass_prompt = true;
             break;
         case 'H': // --host
             database_options.host = optarg;
@@ -532,113 +623,114 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             database_options.port = optarg;
             break;
         case 'S': // --style
-            style = optarg;
+            options.style = optarg;
             break;
         case 'i': // --tablespace-index
-            tblsmain_index = optarg;
-            tblsslim_index = tblsmain_index;
+            options.tblsmain_index = optarg;
+            options.tblsslim_index = options.tblsmain_index;
             break;
         case 200: // --tablespace-slim-data
-            tblsslim_data = optarg;
+            options.tblsslim_data = optarg;
             break;
         case 201: // --tablespace-slim-index
-            tblsslim_index = optarg;
+            options.tblsslim_index = optarg;
             break;
         case 202: // --tablespace-main-data
-            tblsmain_data = optarg;
+            options.tblsmain_data = optarg;
             break;
         case 203: // --tablespace-main-index
-            tblsmain_index = optarg;
+            options.tblsmain_index = optarg;
             break;
         case 'e': // --expire-tiles
-            parse_expire_tiles_param(optarg, &expire_tiles_zoom_min,
-                                     &expire_tiles_zoom);
+            parse_expire_tiles_param(optarg, &options.expire_tiles_zoom_min,
+                                     &options.expire_tiles_zoom);
             break;
         case 'o': // --expire-output
-            expire_tiles_filename = optarg;
+            options.expire_tiles_filename = optarg;
             break;
         case 214: // --expire-bbox-size
-            expire_tiles_max_bbox = atof(optarg);
+            options.expire_tiles_max_bbox = atof(optarg);
             break;
         case 'O': // --output
-            output_backend = optarg;
+            options.output_backend = optarg;
             break;
         case 'x': // --extra-attributes
-            extra_attributes = true;
+            options.extra_attributes = true;
             break;
         case 'k': // --hstore
-            if (hstore_mode != hstore_column::none) {
+            if (options.hstore_mode != hstore_column::none) {
                 throw std::runtime_error{"You can not specify both --hstore "
                                          "(-k) and --hstore-all (-j)."};
             }
-            hstore_mode = hstore_column::norm;
+            options.hstore_mode = hstore_column::norm;
             break;
         case 208: // --hstore-match-only
-            hstore_match_only = true;
+            options.hstore_match_only = true;
             break;
         case 'j': // --hstore-all
-            if (hstore_mode != hstore_column::none) {
+            if (options.hstore_mode != hstore_column::none) {
                 throw std::runtime_error{"You can not specify both --hstore "
                                          "(-k) and --hstore-all (-j)."};
             }
-            hstore_mode = hstore_column::all;
+            options.hstore_mode = hstore_column::all;
             break;
         case 'z': // --hstore-column
-            hstore_columns.emplace_back(optarg);
+            options.hstore_columns.emplace_back(optarg);
             break;
         case 'G': // --multi-geometry
-            enable_multi = true;
+            options.enable_multi = true;
             break;
         case 'r': // --input-reader
             if (std::strcmp(optarg, "auto") != 0) {
-                input_format = optarg;
+                options.input_format = optarg;
             }
             break;
         case 'h': // --help
-            m_print_help = true;
+            print_help = true;
             break;
         case 'I': // --disable-parallel-indexing
-            parallel_indexing = false;
+            options.parallel_indexing = false;
             break;
         case 204: // -cache-strategy
             log_warn("Deprecated option --cache-strategy ignored");
             break;
         case 205: // --number-processes
-            num_procs = parse_number_processes_param(optarg);
+            options.num_procs = parse_number_processes_param(optarg);
             break;
         case 206: // --drop
-            droptemp = true;
+            options.droptemp = true;
             break;
         case 'F': // --flat-nodes
-            flat_node_file = optarg;
+            options.flat_node_file = optarg;
             break;
         case 211: // --hstore-add-index
-            enable_hstore_index = true;
+            options.enable_hstore_index = true;
             break;
         case 212: // --tag-transform-script
-            tag_transform_script = optarg;
+            options.tag_transform_script = optarg;
             break;
         case 213: // --reproject-area
-            reproject_area = true;
+            options.reproject_area = true;
             break;
         case 'V': // --version
-            print_version();
-            std::exit(EXIT_SUCCESS); // NOLINT(concurrency-mt-unsafe)
-            break;
+            options.command = command_t::version;
+            return options;
         case 215: // --middle-schema
-            middle_dbschema = optarg;
-            check_identifier(middle_dbschema, "--middle-schema parameter");
+            options.middle_dbschema = optarg;
+            check_identifier(options.middle_dbschema,
+                             "--middle-schema parameter");
             break;
         case 216: // --output-pgsql-schema
-            output_dbschema = optarg;
-            check_identifier(output_dbschema, "--output-pgsql-schema parameter");
+            options.output_dbschema = optarg;
+            check_identifier(options.output_dbschema,
+                             "--output-pgsql-schema parameter");
             break;
         case 217: // --with-forward-dependencies=BOOL
-            with_forward_dependencies =
+            options.with_forward_dependencies =
                 parse_with_forward_dependencies_param(optarg);
             break;
         case 300: // --middle-way-node-index-id-shift
-            way_node_index_id_shift = atoi(optarg);
+            options.way_node_index_id_shift = atoi(optarg);
             break;
         case 400: // --log-level=LEVEL
             parse_log_level_param(optarg);
@@ -659,9 +751,10 @@ options_t::options_t(int argc, char *argv[]) : options_t()
     } //end while
 
     //they were looking for usage info
-    if (m_print_help) {
+    if (print_help) {
+        options.command = command_t::help;
         long_usage(argv[0], help_verbose);
-        return;
+        return options;
     }
 
     //we require some input files!
@@ -672,100 +765,21 @@ options_t::options_t(int argc, char *argv[]) : options_t()
 
     //get the input files
     while (optind < argc) {
-        input_files.emplace_back(argv[optind]);
+        options.input_files.emplace_back(argv[optind]);
         ++optind;
     }
 
-    if (!projection) {
-        projection = reprojection::create_projection(PROJ_SPHERE_MERC);
+    if (!options.projection) {
+        options.projection = reprojection::create_projection(PROJ_SPHERE_MERC);
     }
 
-    check_options();
+    check_options(&options);
 
-    if (pass_prompt) {
+    if (options.pass_prompt) {
         database_options.password = util::get_password();
     }
 
-    conninfo = build_conninfo(database_options);
-}
+    options.conninfo = build_conninfo(database_options);
 
-void options_t::check_options()
-{
-    if (append && create) {
-        throw std::runtime_error{"--append and --create options can not be "
-                                 "used at the same time!"};
-    }
-
-    if (append && !slim) {
-        throw std::runtime_error{"--append can only be used with slim mode!"};
-    }
-
-    if (droptemp && !slim) {
-        throw std::runtime_error{"--drop only makes sense with --slim."};
-    }
-
-    if (hstore_mode == hstore_column::none && hstore_columns.empty() &&
-        hstore_match_only) {
-        log_warn("--hstore-match-only only makes sense with --hstore, "
-                 "--hstore-all, or --hstore-column; ignored.");
-        hstore_match_only = false;
-    }
-
-    if (enable_hstore_index && hstore_mode == hstore_column::none &&
-        hstore_columns.empty()) {
-        log_warn("--hstore-add-index only makes sense with hstore enabled; "
-                 "ignored.");
-        enable_hstore_index = false;
-    }
-
-    if (cache < 0) {
-        cache = 0;
-        log_warn("RAM cache cannot be negative. Using 0 instead.");
-    }
-
-    if (cache == 0) {
-        if (!slim) {
-            throw std::runtime_error{
-                "RAM node cache can only be disabled in slim mode."};
-        }
-        if (flat_node_file.empty()) {
-            log_warn("RAM cache is disabled. This will likely slow down "
-                     "processing a lot.");
-        }
-    }
-
-    if (!slim && !flat_node_file.empty()) {
-        log_warn("Ignoring --flat-nodes/-F setting in non-slim mode");
-    }
-
-    // zoom level 31 is the technical limit because we use 32-bit integers for the x and y index of a tile ID
-    if (expire_tiles_zoom_min > 31) {
-        expire_tiles_zoom_min = 31;
-        log_warn("Minimum zoom level for tile expiry is too "
-                 "large and has been set to 31.");
-    }
-
-    if (expire_tiles_zoom > 31) {
-        expire_tiles_zoom = 31;
-        log_warn("Maximum zoom level for tile expiry is too "
-                 "large and has been set to 31.");
-    }
-
-    if (expire_tiles_zoom != 0 && projection->target_srs() != 3857) {
-        log_warn("Expire has been enabled (with -e or --expire-tiles) but "
-                 "target SRS is not Mercator (EPSG:3857). Expire disabled!");
-        expire_tiles_zoom = 0;
-    }
-
-    if (output_backend == "flex" || output_backend == "gazetteer") {
-        if (style == DEFAULT_STYLE) {
-            throw std::runtime_error{
-                "You have to set the config file with the -S|--style option."};
-        }
-    }
-
-    if (output_backend == "gazetteer") {
-        log_warn(
-            "The 'gazetteer' output is deprecated and will soon be removed.");
-    }
+    return options;
 }

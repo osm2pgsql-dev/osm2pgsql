@@ -18,7 +18,7 @@
 #include "osmtypes.hpp"
 #include "thread-pool.hpp"
 
-class options_t;
+struct options_t;
 struct output_requirements;
 
 /**

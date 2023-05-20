@@ -19,6 +19,13 @@
 
 class reprojection;
 
+enum class command_t
+{
+    help,
+    version,
+    process
+};
+
 /// Variants for generation of hstore column
 enum class hstore_column : char
 {
@@ -70,27 +77,9 @@ struct output_requirements
 /**
  * Structure for storing command-line and other options
  */
-class options_t
+struct options_t
 {
-public:
-    /**
-     * Constructor setting default values for all options. Used for testing.
-     */
-    options_t();
-
-    /**
-     * Constructor parsing the options from the command line.
-     */
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
-    options_t(int argc, char *argv[]);
-
-    /**
-     * Return true if the main program should end directly after the option
-     * parsing. This is true when a help text was printed.
-     */
-    bool early_return() const noexcept {
-        return m_print_help;
-    }
+    command_t command = command_t::process;
 
     std::string conninfo; ///< connection info for database
 
@@ -185,15 +174,6 @@ public:
     bool parallel_indexing = true;
     bool create = false;
     bool pass_prompt = false;
-
-private:
-
-    bool m_print_help = false;
-
-    /**
-     * Check input options for sanity
-     */
-    void check_options();
-};
+}; // struct options_t
 
 #endif // OSM2PGSQL_OPTIONS_HPP

@@ -2,6 +2,7 @@
 add_library(osm2pgsql_lib STATIC)
 
 target_sources(osm2pgsql_lib PRIVATE
+  command-line-parser.cpp
   db-copy.cpp
   debug-output.cpp
   dependency-manager.cpp
@@ -20,7 +21,6 @@ target_sources(osm2pgsql_lib PRIVATE
   middle-ram.cpp
   node-locations.cpp
   node-persistent-cache.cpp
-  options.cpp
   ordered-index.cpp
   osmdata.cpp
   output-gazetteer.cpp

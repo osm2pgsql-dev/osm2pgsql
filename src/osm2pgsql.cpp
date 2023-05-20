@@ -7,6 +7,7 @@
  * For a full list of authors see the git log.
  */
 
+#include "command-line-parser.hpp"
 #include "dependency-manager.hpp"
 #include "input.hpp"
 #include "logging.hpp"
@@ -253,8 +254,15 @@ int main(int argc, char *argv[])
     try {
         log_info("osm2pgsql version {}", get_osm2pgsql_version());
 
-        options_t options{argc, argv};
-        if (options.early_return()) {
+        auto options = parse_command_line(argc, argv);
+
+        if (options.command == command_t::help) {
+            // Already handled inside parse_command_line()
+            return 0;
+        }
+
+        if (options.command == command_t::version) {
+            print_version();
             return 0;
         }
 
