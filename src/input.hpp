@@ -21,6 +21,7 @@
 
 #include <osmium/fwd.hpp>
 #include <osmium/io/file.hpp>
+#include <osmium/io/header.hpp>
 
 #include "osmtypes.hpp"
 
@@ -30,6 +31,12 @@ struct type_id
 {
     osmium::item_type type;
     osmid_t id;
+};
+
+struct file_info
+{
+    osmium::io::Header header{};
+    osmium::Timestamp last_timestamp{};
 };
 
 /**
@@ -51,7 +58,7 @@ prepare_input_files(std::vector<std::string> const &input_files,
 /**
  * Process the specified OSM files (stage 1a).
  */
-void process_files(std::vector<osmium::io::File> const &files,
-                   osmdata_t *osmdata, bool append, bool show_progress);
+file_info process_files(std::vector<osmium::io::File> const &files,
+                        osmdata_t *osmdata, bool append, bool show_progress);
 
 #endif // OSM2PGSQL_INPUT_HPP

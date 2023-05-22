@@ -82,7 +82,7 @@ void properties_t::set_string(std::string property, std::string value,
     auto const r =
         m_properties.insert_or_assign(std::move(property), std::move(value));
 
-    if (!update_database) {
+    if (!update_database || !m_has_properties_table) {
         return;
     }
 

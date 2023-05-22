@@ -261,11 +261,14 @@ private:
     bool m_append;
 }; // class input_context_t
 
-static void process_single_file(osmium::io::File const &file,
-                                osmdata_t *osmdata,
-                                progress_display_t *progress, bool append)
+static file_info process_single_file(osmium::io::File const &file,
+                                     osmdata_t *osmdata,
+                                     progress_display_t *progress, bool append)
 {
+    file_info finfo;
+
     osmium::io::Reader reader{file};
+    finfo.header = reader.header();
     type_id last{osmium::item_type::node, 0};
 
     input_context_t ctx{osmdata, progress, append};
@@ -273,17 +276,25 @@ static void process_single_file(osmium::io::File const &file,
         for (auto &object : buffer.select<osmium::OSMObject>()) {
             last = check_input(last, object);
             ctx.apply(&object);
+            if (object.timestamp() > finfo.last_timestamp) {
+                finfo.last_timestamp = object.timestamp();
+            }
         }
     }
     ctx.eof();
 
     reader.close();
+
+    return finfo;
 }
 
-static void process_multiple_files(std::vector<osmium::io::File> const &files,
-                                   osmdata_t *osmdata,
-                                   progress_display_t *progress, bool append)
+static file_info
+process_multiple_files(std::vector<osmium::io::File> const &files,
+                       osmdata_t *osmdata, progress_display_t *progress,
+                       bool append)
 {
+    file_info finfo;
+
     std::vector<data_source_t> data_sources;
     data_sources.reserve(files.size());
 
@@ -303,6 +314,9 @@ static void process_multiple_files(std::vector<osmium::io::File> const &files,
         queue.pop();
         if (queue.empty() || element != queue.top()) {
             ctx.apply(&element.object());
+            if (element.object().timestamp() > finfo.last_timestamp) {
+                finfo.last_timestamp = element.object().timestamp();
+            }
         }
 
         auto *source = element.data_source();
@@ -315,18 +329,20 @@ static void process_multiple_files(std::vector<osmium::io::File> const &files,
     for (auto &data_source : data_sources) {
         data_source.close();
     }
+
+    return finfo;
 }
 
-void process_files(std::vector<osmium::io::File> const &files,
-                   osmdata_t *osmdata, bool append, bool show_progress)
+file_info process_files(std::vector<osmium::io::File> const &files,
+                        osmdata_t *osmdata, bool append, bool show_progress)
 {
     assert(osmdata);
 
     progress_display_t progress{show_progress};
 
     if (files.size() == 1) {
-        process_single_file(files.front(), osmdata, &progress, append);
-    } else {
-        process_multiple_files(files, osmdata, &progress, append);
+        return process_single_file(files.front(), osmdata, &progress, append);
     }
+
+    return process_multiple_files(files, osmdata, &progress, append);
 }
