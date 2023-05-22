@@ -22,6 +22,7 @@ Feature: Updates to the test database
         And table planet_osm_line has 3274 rows
         And table planet_osm_roads has 380 rows
         And table planet_osm_polygon has 4277 rows
+        And table osm2pgsql_properties has 5 rows
 
         Examples:
             | param1             | param2 | param3 |

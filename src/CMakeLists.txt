@@ -31,6 +31,7 @@ target_sources(osm2pgsql_lib PRIVATE
   pgsql-capabilities.cpp
   pgsql-helper.cpp
   progress-display.cpp
+  properties.cpp
   reprojection.cpp
   table.cpp
   taginfo.cpp
