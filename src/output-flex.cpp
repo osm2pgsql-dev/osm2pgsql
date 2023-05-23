@@ -238,7 +238,14 @@ static void push_osm_object_to_lua_stack(lua_State *lua_state,
     lua_pushliteral(lua_state, "tags");
     lua_createtable(lua_state, 0, (int)object.tags().size());
     for (auto const &tag : object.tags()) {
-        luaX_add_table_str(lua_state, tag.key(), tag.value());
+        if (!with_attributes ||
+            ((std::strcmp(tag.key(), "osm_version") != 0) &&
+             (std::strcmp(tag.key(), "osm_timestamp") != 0) &&
+             (std::strcmp(tag.key(), "osm_changeset") != 0) &&
+             (std::strcmp(tag.key(), "osm_uid") != 0) &&
+             (std::strcmp(tag.key(), "osm_user") != 0))) {
+            luaX_add_table_str(lua_state, tag.key(), tag.value());
+        }
     }
     lua_rawset(lua_state, -3);
 
