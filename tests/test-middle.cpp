@@ -492,6 +492,25 @@ static void check_way(std::shared_ptr<middle_pgsql_t> const &mid,
     REQUIRE(mid_q->way_get(orig_way.id(), &outbuf));
     auto const &way = outbuf.get<osmium::Way>(0);
 
+    CHECK(orig_way.id() == way.id());
+    CHECK(orig_way.timestamp() == way.timestamp());
+    CHECK(orig_way.version() == way.version());
+    CHECK(orig_way.changeset() == way.changeset());
+    CHECK(orig_way.uid() == way.uid());
+    CHECK(std::strcmp(orig_way.user(), way.user()) == 0);
+
+    REQUIRE(orig_way.tags().size() == way.tags().size());
+    for (auto it1 = orig_way.tags().begin(), it2 = way.tags().begin();
+         it1 != orig_way.tags().end(); ++it1, ++it2) {
+        CHECK(*it1 == *it2);
+    }
+
+    REQUIRE(orig_way.nodes().size() == way.nodes().size());
+    for (auto it1 = orig_way.nodes().begin(), it2 = way.nodes().begin();
+         it1 != orig_way.nodes().end(); ++it1, ++it2) {
+        CHECK(*it1 == *it2);
+    }
+
     osmium::CRC<osmium::CRC_zlib> orig_crc;
     orig_crc.update(orig_way);
 
@@ -705,13 +724,6 @@ TEMPLATE_TEST_CASE("middle: add way with attributes", "", options_slim_default,
     auto &way20_no_attr =
         buffer.add_way("w20 Nn10,n11 Thighway=residential,name=High_Street");
 
-    // The same way but with attributes in tags.
-    // The order of the tags is important here!
-    auto &way20_attr_tags = buffer.add_way(
-        "w20 Nn10,n11 "
-        "Thighway=residential,name=High_Street,osm_user=,osm_uid=789,"
-        "osm_version=123,osm_timestamp=2009-02-13T23:31:30Z,osm_changeset=456");
-
     {
         auto mid = std::make_shared<middle_pgsql_t>(thread_pool, &options);
         mid->start();
@@ -720,8 +732,7 @@ TEMPLATE_TEST_CASE("middle: add way with attributes", "", options_slim_default,
         mid->after_ways();
         mid->after_relations();
 
-        check_way(mid,
-                  options.extra_attributes ? way20_attr_tags : way20_no_attr);
+        check_way(mid, options.extra_attributes ? way20 : way20_no_attr);
     }
 
     // From now on use append mode to not destroy the data we just added.
@@ -731,8 +742,7 @@ TEMPLATE_TEST_CASE("middle: add way with attributes", "", options_slim_default,
         auto mid = std::make_shared<middle_pgsql_t>(thread_pool, &options);
         mid->start();
 
-        check_way(mid,
-                  options.extra_attributes ? way20_attr_tags : way20_no_attr);
+        check_way(mid, options.extra_attributes ? way20 : way20_no_attr);
     }
 }
 
@@ -748,6 +758,28 @@ static void check_relation(std::shared_ptr<middle_pgsql_t> const &mid,
     osmium::memory::Buffer outbuf{4096, osmium::memory::Buffer::auto_grow::yes};
     REQUIRE(mid_q->relation_get(orig_relation.id(), &outbuf));
     auto const &relation = outbuf.get<osmium::Relation>(0);
+
+    CHECK(orig_relation.id() == relation.id());
+    CHECK(orig_relation.timestamp() == relation.timestamp());
+    CHECK(orig_relation.version() == relation.version());
+    CHECK(orig_relation.changeset() == relation.changeset());
+    CHECK(orig_relation.uid() == relation.uid());
+    CHECK(std::strcmp(orig_relation.user(), relation.user()) == 0);
+
+    REQUIRE(orig_relation.tags().size() == relation.tags().size());
+    for (auto it1 = orig_relation.tags().begin(), it2 = relation.tags().begin();
+         it1 != orig_relation.tags().end(); ++it1, ++it2) {
+        CHECK(*it1 == *it2);
+    }
+
+    REQUIRE(orig_relation.members().size() == relation.members().size());
+    for (auto it1 = orig_relation.members().begin(),
+              it2 = relation.members().begin();
+         it1 != orig_relation.members().end(); ++it1, ++it2) {
+        CHECK(it1->type() == it2->type());
+        CHECK(it1->ref() == it2->ref());
+        CHECK(std::strcmp(it1->role(), it2->role()) == 0);
+    }
 
     osmium::CRC<osmium::CRC_zlib> orig_crc;
     orig_crc.update(orig_relation);
@@ -931,13 +963,6 @@ TEMPLATE_TEST_CASE("middle: add relation with attributes", "",
     auto const &relation30_no_attr = buffer.add_relation(
         "r30 Mw10@outer,w11@inner Ttype=multipolygon,name=Penguin_Park");
 
-    // The same relation but with attributes in tags.
-    // The order of the tags is important here!
-    auto const &relation30_attr_tags = buffer.add_relation(
-        "r30 Mw10@outer,w11@inner "
-        "Ttype=multipolygon,name=Penguin_Park,osm_user=,osm_uid=789,"
-        "osm_version=123,osm_timestamp=2009-02-13T23:31:30Z,osm_changeset=456");
-
     {
         auto mid = std::make_shared<middle_pgsql_t>(thread_pool, &options);
         mid->start();
@@ -945,7 +970,7 @@ TEMPLATE_TEST_CASE("middle: add relation with attributes", "",
         mid->relation(relation30);
         mid->after_relations();
 
-        check_relation(mid, options.extra_attributes ? relation30_attr_tags
+        check_relation(mid, options.extra_attributes ? relation30
                                                      : relation30_no_attr);
     }
 
@@ -956,7 +981,7 @@ TEMPLATE_TEST_CASE("middle: add relation with attributes", "",
         auto mid = std::make_shared<middle_pgsql_t>(thread_pool, &options);
         mid->start();
 
-        check_relation(mid, options.extra_attributes ? relation30_attr_tags
+        check_relation(mid, options.extra_attributes ? relation30
                                                      : relation30_no_attr);
     }
 }
