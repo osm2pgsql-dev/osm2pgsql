@@ -53,7 +53,7 @@ static void add_z_order(taglist_t *tags, bool *roads)
 
     int z_order = 0;
 
-    int const l = layer ? (int)strtol(layer->c_str(), nullptr, 10) : 0;
+    int const l = layer ? (int)std::strtol(layer->c_str(), nullptr, 10) : 0;
     z_order = 100 * l;
     *roads = false;
 
