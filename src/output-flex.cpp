@@ -153,63 +153,19 @@ static void push_osm_object_to_lua_stack(lua_State *lua_state,
     if (with_attributes) {
         if (object.version() != 0U) {
             luaX_add_table_int(lua_state, "version", object.version());
-        } else {
-            // This is a workaround, because the middle will give us the
-            // attributes as pseudo-tags.
-            char const *const val = object.tags()["osm_version"];
-            if (val) {
-                luaX_add_table_int(lua_state, "version",
-                                   osmium::string_to_object_version(val));
-            }
         }
-
         if (object.timestamp().valid()) {
             luaX_add_table_int(lua_state, "timestamp",
                                object.timestamp().seconds_since_epoch());
-        } else {
-            // This is a workaround, because the middle will give us the
-            // attributes as pseudo-tags.
-            char const *const val = object.tags()["osm_timestamp"];
-            if (val) {
-                auto const timestamp = osmium::Timestamp{val};
-                luaX_add_table_int(lua_state, "timestamp",
-                                   timestamp.seconds_since_epoch());
-            }
         }
-
         if (object.changeset() != 0U) {
             luaX_add_table_int(lua_state, "changeset", object.changeset());
-        } else {
-            char const *const val = object.tags()["osm_changeset"];
-            // This is a workaround, because the middle will give us the
-            // attributes as pseudo-tags.
-            if (val) {
-                luaX_add_table_int(lua_state, "changeset",
-                                   osmium::string_to_changeset_id(val));
-            }
         }
-
         if (object.uid() != 0U) {
             luaX_add_table_int(lua_state, "uid", object.uid());
-        } else {
-            // This is a workaround, because the middle will give us the
-            // attributes as pseudo-tags.
-            char const *const val = object.tags()["osm_uid"];
-            if (val) {
-                luaX_add_table_int(lua_state, "uid",
-                                   osmium::string_to_uid(val));
-            }
         }
-
         if (object.user()[0] != '\0') {
             luaX_add_table_str(lua_state, "user", object.user());
-        } else {
-            // This is a workaround, because the middle will give us the
-            // attributes as pseudo-tags.
-            char const *const val = object.tags()["osm_user"];
-            if (val) {
-                luaX_add_table_str(lua_state, "user", val);
-            }
         }
     }
 

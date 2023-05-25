@@ -156,6 +156,54 @@ static char const *decode_to_delimiter(char const *src, std::string *dst)
 }
 
 namespace {
+
+/**
+ * Go through tags returned from a middle table, get the attributes from the
+ * "osm_*" tags and add them to the builder.
+ */
+template <typename T>
+void pgsql_get_attr_from_tags(char const *string, T *builder)
+{
+    if (*string++ != '{') {
+        return;
+    }
+
+    std::string key;
+    std::string val;
+    std::string user;
+    while (*string != '}') {
+        string = decode_to_delimiter(string, &key);
+        // String points to the comma */
+        ++string;
+        string = decode_to_delimiter(string, &val);
+
+        if (key == "osm_version") {
+            builder->set_version(val.c_str());
+        } else if (key == "osm_timestamp") {
+            builder->set_timestamp(osmium::Timestamp{val});
+        } else if (key == "osm_changeset") {
+            builder->set_changeset(val.c_str());
+        } else if (key == "osm_uid") {
+            builder->set_uid(val.c_str());
+        } else if (key == "osm_user") {
+            user = val;
+        }
+
+        // String points to the comma or closing '}' */
+        if (*string == ',') {
+            ++string;
+        }
+    }
+
+    // Must be done at the end, because after that call the builder might
+    // become invalid due to buffer resizing.
+    builder->set_user(user);
+}
+
+/**
+ * Go through tags returned from a middle table, get all tags except the
+ * pseudo-tags containing attributes and add them to the builder.
+ */
 template <typename T>
 void pgsql_parse_tags(char const *string, osmium::memory::Buffer *buffer,
                       T *obuilder)
@@ -173,7 +221,12 @@ void pgsql_parse_tags(char const *string, osmium::memory::Buffer *buffer,
         // String points to the comma */
         ++string;
         string = decode_to_delimiter(string, &val);
-        builder.add_tag(key, val);
+
+        if (key != "osm_version" && key != "osm_timestamp" &&
+            key != "osm_changeset" && key != "osm_uid" && key != "osm_user") {
+            builder.add_tag(key, val);
+        }
+
         // String points to the comma or closing '}' */
         if (*string == ',') {
             ++string;
@@ -443,6 +496,20 @@ void middle_pgsql_t::way_set(osmium::Way const &way)
     m_db_copy.finish_line();
 }
 
+/**
+ * Build way in buffer from database results.
+ */
+static void build_way(osmid_t id, pg_result_t const &res, int res_num,
+                      int offset, osmium::memory::Buffer *buffer)
+{
+    osmium::builder::WayBuilder builder{*buffer};
+    builder.set_id(id);
+
+    pgsql_get_attr_from_tags(res.get_value(res_num, offset + 1), &builder);
+    pgsql_parse_nodes(res.get_value(res_num, offset + 0), buffer, &builder);
+    pgsql_parse_tags(res.get_value(res_num, offset + 1), buffer, &builder);
+}
+
 bool middle_query_pgsql_t::way_get(osmid_t id,
                                    osmium::memory::Buffer *buffer) const
 {
@@ -454,13 +521,7 @@ bool middle_query_pgsql_t::way_get(osmid_t id,
         return false;
     }
 
-    {
-        osmium::builder::WayBuilder builder{*buffer};
-        builder.set_id(id);
-
-        pgsql_parse_nodes(res.get_value(0, 0), buffer, &builder);
-        pgsql_parse_tags(res.get_value(0, 1), buffer, &builder);
-    }
+    build_way(id, res, 0, 0, buffer);
 
     buffer->commit();
 
@@ -506,12 +567,7 @@ middle_query_pgsql_t::rel_members_get(osmium::Relation const &rel,
             // back to the list of ways given by the caller
             for (int j = 0; j < res.num_tuples(); ++j) {
                 if (member.ref() == wayidspg[static_cast<std::size_t>(j)]) {
-                    osmium::builder::WayBuilder builder{*buffer};
-                    builder.set_id(member.ref());
-
-                    pgsql_parse_nodes(res.get_value(j, 1), buffer, &builder);
-                    pgsql_parse_tags(res.get_value(j, 2), buffer, &builder);
-
+                    build_way(member.ref(), res, j, 1, buffer);
                     ++members_found;
                     break;
                 }
@@ -588,6 +644,7 @@ bool middle_query_pgsql_t::relation_get(osmid_t id,
         osmium::builder::RelationBuilder builder{*buffer};
         builder.set_id(id);
 
+        pgsql_get_attr_from_tags(res.get_value(0, 1), &builder);
         pgsql_parse_members(res.get_value(0, 0), buffer, &builder);
         pgsql_parse_tags(res.get_value(0, 1), buffer, &builder);
     }
