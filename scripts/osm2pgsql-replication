@@ -370,6 +370,11 @@ def update(conn, args):
 
     repl = ReplicationServer(base_url)
     current = repl.get_state_info()
+    if current is None:
+        LOG.fatal("Cannot reach the configured replication service '%s'.\n"
+                  "Does the URL point to a directory containing OSM update data?",
+                  base_url)
+        return 1
 
     if seq >= current.sequence:
         LOG.info("Database already up-to-date.")
