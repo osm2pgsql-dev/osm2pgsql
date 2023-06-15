@@ -95,6 +95,7 @@ public:
     std::string conninfo; ///< connection info for database
 
     std::string prefix{"planet_osm"};         ///< prefix for table names
+    bool prefix_is_set = false;
 
     /// Pg Tablespace to store indexes on main tables (no default TABLESPACE)
     std::string tblsmain_index{};

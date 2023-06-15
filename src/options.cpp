@@ -510,6 +510,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             break;
         case 'p': // --prefix
             prefix = optarg;
+            prefix_is_set = true;
             check_identifier(prefix, "--prefix parameter");
             break;
         case 'd': // --database
