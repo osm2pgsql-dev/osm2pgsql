@@ -323,7 +323,8 @@ def init(conn, args):
     setup_replication_state(conn, args.table, base_url, seq, date)
 
     LOG.info("Initialised updates for service '%s'.", base_url)
-    LOG.info("Starting at sequence %d (%s).", seq, date)
+    LOG.info("Starting at sequence %d (%s).", seq,
+            date.astimezone(dt.timezone.utc).strftime('%Y-%m-%dT%H:%MZ'))
 
     return 0
 
@@ -365,8 +366,9 @@ def update(conn, args):
             return 1
 
         base_url, seq, ts = cur.fetchone()
-        LOG.info("Using replication service '%s'. Current sequence %d (%s).",
-                 base_url, seq, ts)
+        initial_local_timestamp = ts
+        LOG.info("Using replication service '%s'.", base_url)
+        local_db_age_sec = int((dt.datetime.now(dt.timezone.utc) - ts).total_seconds())
 
     repl = ReplicationServer(base_url)
     current = repl.get_state_info()
@@ -379,6 +381,16 @@ def update(conn, args):
     if seq >= current.sequence:
         LOG.info("Database already up-to-date.")
         return 0
+
+    remote_server_age_sec = int((dt.datetime.now(dt.timezone.utc) - current.timestamp).total_seconds())
+    LOG.debug("Applying %d sequence(s) (%d → %d), covering %s (%s sec) of changes (%s → %s)",
+        current.sequence - seq, current.sequence, seq,
+        pretty_format_timedelta(int((current.timestamp - ts).total_seconds())),
+        int((current.timestamp - ts).total_seconds()),
+        ts.astimezone(dt.timezone.utc).strftime('%Y-%m-%dT%H:%MZ'), current.timestamp.astimezone(dt.timezone.utc).strftime('%Y-%m-%dT%H:%MZ')
+    )
+
+    update_started = dt.datetime.now(dt.timezone.utc)
 
     if args.diff_file is not None:
         outfile = Path(args.diff_file)
@@ -430,11 +442,30 @@ def update(conn, args):
 
         if nextstate is not None:
             LOG.info("Data imported until %s. Backlog remaining: %s",
-                     nextstate.timestamp,
-                     dt.datetime.now(dt.timezone.utc) - nextstate.timestamp)
+                nextstate.timestamp.astimezone(dt.timezone.utc).strftime('%Y-%m-%dT%H:%MZ'),
+                pretty_format_timedelta((dt.datetime.now(dt.timezone.utc) - nextstate.timestamp).total_seconds()),
+            )
+
 
         if args.once:
             break
+
+
+    update_duration_sec = (dt.datetime.now(dt.timezone.utc) - update_started).total_seconds()
+    with conn.cursor() as cur:
+        cur.execute(sql.SQL('SELECT * FROM {}').format(args.table))
+        if cur.rowcount != 1:
+            LOG.fatal("Updates not set up correctly. Run 'osm2pgsql-updates init' first.")
+            return 1
+
+        _base_url, _seq, current_local_timestamp = cur.fetchone()
+
+    total_applied_changes_duration_sec = (current_local_timestamp - initial_local_timestamp).total_seconds()
+    LOG.debug("It took %s (%d sec) to apply %s (%d sec) of changes. This is a speed of ×%.1f.",
+            pretty_format_timedelta(update_duration_sec), int(update_duration_sec),
+            pretty_format_timedelta(total_applied_changes_duration_sec), int(total_applied_changes_duration_sec),
+            total_applied_changes_duration_sec / update_duration_sec
+        )
 
     return 0
 
