@@ -79,42 +79,36 @@ bool properties_t::get_bool(std::string const &property,
 void properties_t::set_string(std::string property, std::string value,
                               bool update_database)
 {
-    m_properties.insert_or_assign(std::move(property), std::move(value));
-    if (update_database) {
-        update(property);
+    auto const r =
+        m_properties.insert_or_assign(std::move(property), std::move(value));
+
+    if (!update_database) {
+        return;
     }
+
+    auto const &inserted = *(r.first);
+    log_debug("  Storing {}='{}'", inserted.first, inserted.second);
+
+    pg_conn_t const db_connection{m_conninfo};
+    db_connection.exec(
+        "PREPARE set_property(text, text) AS"
+        " INSERT INTO {} (property, value) VALUES ($1, $2)"
+        " ON CONFLICT (property) DO UPDATE SET value = EXCLUDED.value",
+        table_name());
+    db_connection.exec_prepared("set_property", inserted.first,
+                                inserted.second);
 }
 
 void properties_t::set_int(std::string property, int64_t value,
                            bool update_database)
 {
-    m_properties.insert_or_assign(std::move(property), std::to_string(value));
-    if (update_database) {
-        update(property);
-    }
+    set_string(std::move(property), std::to_string(value), update_database);
 }
 
 void properties_t::set_bool(std::string property, bool value,
                             bool update_database)
 {
-    m_properties.insert_or_assign(std::move(property),
-                                  value ? "true" : "false");
-    if (update_database) {
-        update(property);
-    }
-}
-
-void properties_t::update(std::string const &property) const
-{
-    pg_conn_t const db_connection{m_conninfo};
-
-    db_connection.exec("PREPARE set_property(text, text) AS"
-                       " UPDATE {} SET value = $2 WHERE property = $1",
-                       table_name());
-
-    auto const value = m_properties.at(property);
-    log_debug("  Storing {}='{}'", property, value);
-    db_connection.exec_prepared("set_property", property, value);
+    set_string(std::move(property), value ? "true" : "false", update_database);
 }
 
 void properties_t::store()
