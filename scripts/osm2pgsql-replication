@@ -54,25 +54,25 @@ LOG = logging.getLogger()
 OSM2PGSQL_PATH = Path(__file__).parent.resolve() / 'osm2pgsql'
 
 def pretty_format_timedelta(seconds):
-    minutes = int(seconds/60)
+    (minutes, seconds) = divmod(seconds, 60)
     (hours, minutes) = divmod(minutes, 60)
     (days, hours) = divmod(hours, 24)
     (weeks, days) = divmod(days, 7)
 
-    if 0 < seconds < 60:
-        output = "<1 minute"
-    else:
-        output = []
-        # If weeks > 1 but hours == 0, we still want to show "0 hours"
-        if weeks > 0:
-            output.append("{} week(s)".format(weeks))
-        if days > 0 or weeks > 0:
-            output.append("{} day(s)".format(days))
-        if hours > 0 or days > 0 or weeks > 0:
-            output.append("{} hour(s)".format(hours))
-
+    output = []
+    # If weeks > 1 but hours == 0, we still want to show "0 hours"
+    if weeks > 0:
+        output.append("{} week(s)".format(weeks))
+    if days > 0 or weeks > 0:
+        output.append("{} day(s)".format(days))
+    if hours > 0 or days > 0 or weeks > 0:
+        output.append("{} hour(s)".format(hours))
+    if minutes > 0 or hours > 0 or days > 0 or weeks > 0:
         output.append("{} minute(s)".format(minutes))
-        output = " ".join(output)
+
+    output.append("{} second(s)".format(seconds))
+
+    output = " ".join(output)
     return output
 
 def connect(args):
