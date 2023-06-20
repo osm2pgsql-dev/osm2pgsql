@@ -32,7 +32,7 @@ runs:
           python3-psycopg2 \
           python3-setuptools \
           zlib1g-dev
-        pip3 install behave
+        pip3 install behave osmium
         if [ "$CC" = clang-8 ]; then sudo apt-get install -yq --no-install-suggests --no-install-recommends clang-8; fi
       shell: bash
 

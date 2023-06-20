@@ -23,6 +23,7 @@ TEST_BASE_DIR = (Path(__file__) / '..' / '..').resolve()
 #    behave -DBINARY=/tmp/my-builddir/osm2pgsql -DKEEP_TEST_DB
 USER_CONFIG = {
     'BINARY': (TEST_BASE_DIR / '..' / 'build' / 'osm2pgsql').resolve(),
+    'REPLICATION_SCRIPT': (TEST_BASE_DIR / '..' / 'scripts' / 'osm2pgsql-replication').resolve(),
     'TEST_DATA_DIR': TEST_BASE_DIR / 'data',
     'SRC_DIR': (TEST_BASE_DIR / '..').resolve(),
     'KEEP_TEST_DB': False,
