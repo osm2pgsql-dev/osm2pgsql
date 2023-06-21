@@ -94,8 +94,6 @@ public:
 private:
     std::string table_name() const;
 
-    void update(std::string const &property) const;
-
     std::map<std::string, std::string> m_properties;
     std::string m_conninfo;
     std::string m_schema;
