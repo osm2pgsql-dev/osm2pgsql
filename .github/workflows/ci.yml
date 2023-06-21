@@ -15,7 +15,7 @@ jobs:
       - name: Install prerequisites
         run: |
           brew install lua boost postgis pandoc cimg potrace
-          pip3 install psycopg2 behave
+          pip3 install psycopg2 behave osmium
           pg_ctl -D /usr/local/var/postgres init
           pg_ctl -D /usr/local/var/postgres start
           # Work around homebrew postgresql installation screw-up, see

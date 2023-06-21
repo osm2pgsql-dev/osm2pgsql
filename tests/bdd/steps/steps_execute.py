@@ -9,6 +9,7 @@ Steps for executing osm2pgsql.
 """
 from io import StringIO
 from pathlib import Path
+import os
 import subprocess
 
 def get_import_file(context):
@@ -38,8 +39,9 @@ def run_osm2pgsql(context, output):
     cmdline.extend(('-O', output))
     cmdline.extend(context.osm2pgsql_params)
 
+    # convert table items to CLI arguments and inject constants to placeholders
     if context.table:
-        cmdline.extend(f for f in context.table.headings if f)
+        cmdline.extend(f.format(**context.config.userdata) for f in context.table.headings if f)
         for row in context.table:
             cmdline.extend(f.format(**context.config.userdata) for f in row if f)
 
@@ -71,6 +73,31 @@ def run_osm2pgsql(context, output):
     context.osm2pgsql_outdata = [d.decode('utf-8').replace('\\n', '\n') for d in outdata]
 
     return proc.returncode
+
+
+def run_osm2pgsql_replication(context):
+    cmdline = [str(Path(context.config.userdata['REPLICATION_SCRIPT']).resolve())]
+    # convert table items to CLI arguments and inject constants to placeholders
+    if context.table:
+        cmdline.extend(f.format(**context.config.userdata) for f in context.table.headings if f)
+        for row in context.table:
+            cmdline.extend(f.format(**context.config.userdata) for f in row if f)
+
+    if '-d' not in cmdline and '--database' not in cmdline:
+        cmdline.extend(('-d', context.config.userdata['TEST_DB']))
+    
+    # on Windows execute script directly with python, because shebang is not recognised
+    if os.name == 'nt':
+        cmdline.insert(0, "python")  
+
+    proc = subprocess.Popen(cmdline, cwd=str(context.workdir),
+                            stdin=subprocess.PIPE,
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    _, errs = proc.communicate()
+
+    return proc.returncode, errs.decode('utf-8')
+
 
 @given("no lua tagtransform")
 def do_not_setup_tagtransform(context):
@@ -106,7 +133,7 @@ def setup_style_file(context, style):
 
 
 @when("running osm2pgsql (?P<output>\w+)(?: with parameters)?")
-def execute_osm2pgsql_sucessfully(context, output):
+def execute_osm2pgsql_successfully(context, output):
     returncode = run_osm2pgsql(context, output)
 
     if context.scenario.status == "skipped":
@@ -125,6 +152,15 @@ def execute_osm2pgsql_with_failure(context, output):
         return
 
     assert returncode != 0, "osm2pgsql unexpectedly succeeded"
+
+
+@when("running osm2pgsql-replication")
+def execute_osm2pgsql_replication_successfully(context):
+    returncode, errs = run_osm2pgsql_replication(context)
+
+    assert returncode == 0,\
+           f"osm2pgsql-replication failed with error code {returncode}.\n"\
+           f"Errors:\n{errs}"
 
 
 @then("the (?P<kind>\w+) output contains")
