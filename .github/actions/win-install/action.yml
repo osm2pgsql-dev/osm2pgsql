@@ -14,7 +14,8 @@ runs:
           bzip2:x64-windows \
           cimg:x64-windows \
           expat:x64-windows \
-          lua:x64-windows libpq:x64-windows \
+          libpq:x64-windows \
+          lua:x64-windows \
           proj4:x64-windows \
           zlib:x64-windows
       shell: bash

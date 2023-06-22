@@ -38,7 +38,7 @@
 #include "pgsql-helper.hpp"
 #include "util.hpp"
 
-static std::string build_sql(options_t const &options, char const *templ)
+static std::string build_sql(options_t const &options, std::string const &templ)
 {
     std::string const using_tablespace{options.tblsslim_index.empty()
                                            ? ""
@@ -761,7 +761,7 @@ void middle_pgsql_t::wait()
     }
 }
 
-static table_sql sql_for_nodes(bool create_table) noexcept
+static table_sql sql_for_nodes(bool create_table)
 {
     table_sql sql{};
 
@@ -788,7 +788,7 @@ static table_sql sql_for_nodes(bool create_table) noexcept
 }
 
 static table_sql sql_for_ways(bool has_bucket_index,
-                              uint8_t way_node_index_id_shift) noexcept
+                              uint8_t way_node_index_id_shift)
 {
     table_sql sql{};
 
@@ -843,7 +843,7 @@ static table_sql sql_for_ways(bool has_bucket_index,
     return sql;
 }
 
-static table_sql sql_for_relations() noexcept
+static table_sql sql_for_relations()
 {
     table_sql sql{};
 

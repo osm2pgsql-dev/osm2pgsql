@@ -63,12 +63,13 @@ private:
     std::shared_ptr<node_persistent_cache> m_persistent_cache;
 };
 
-struct table_sql {
-    char const *name = "";
-    char const *create_table = "";
-    char const *prepare_query = "";
-    char const *prepare_fw_dep_lookups = "";
-    char const *create_fw_dep_indexes = "";
+struct table_sql
+{
+    std::string name;
+    std::string create_table;
+    std::string prepare_query;
+    std::string prepare_fw_dep_lookups;
+    std::string create_fw_dep_indexes;
 };
 
 struct middle_pgsql_t : public middle_t
