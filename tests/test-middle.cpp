@@ -810,14 +810,14 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
     // Create some relations we'll use for the tests.
     test_buffer_t buffer;
     auto const &relation30 = buffer.add_relation(
-        "r30 Mw10@outer,w11@innder Ttype=multipolygon,name=Penguin_Park");
+        "r30 Mw10@outer,w11@innder Tname=Penguin_Park,type=multipolygon");
 
     auto const &relation31 = buffer.add_relation("r31 Mn10@");
 
     auto const &relation32 = buffer.add_relation("r32 Mr39@ Ttype=site");
 
     auto const &relation30a = buffer.add_relation(
-        "r30 Mw10@outer,w11@outer Ttype=multipolygon,name=Pigeon_Park");
+        "r30 Mw10@outer,w11@outer Tname=Pigeon_Park,type=multipolygon");
 
     auto const &relation5d = buffer.add_relation("r5 dD");
     auto const &relation30d = buffer.add_relation("r30 dD");
@@ -957,11 +957,11 @@ TEMPLATE_TEST_CASE("middle: add relation with attributes", "",
     test_buffer_t buffer;
     auto const &relation30 = buffer.add_relation(
         "r30 v123 c456 i789 t2009-02-13T23:31:30Z Mw10@outer,w11@inner "
-        "Ttype=multipolygon,name=Penguin_Park");
+        "Tname=Penguin_Park,type=multipolygon");
 
     // The same relation but with default attributes.
     auto const &relation30_no_attr = buffer.add_relation(
-        "r30 Mw10@outer,w11@inner Ttype=multipolygon,name=Penguin_Park");
+        "r30 Mw10@outer,w11@inner Tname=Penguin_Park,type=multipolygon");
 
     {
         auto mid = std::make_shared<middle_pgsql_t>(thread_pool, &options);
