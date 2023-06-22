@@ -43,7 +43,7 @@ static void show_memory_usage()
     }
 }
 
-static void run(options_t const &options)
+static file_info run(options_t const &options)
 {
     auto const files = prepare_input_files(
         options.input_files, options.input_format, options.append);
@@ -71,14 +71,16 @@ static void run(options_t const &options)
 
     // Processing: In this phase the input file(s) are read and parsed,
     // populating some of the tables.
-    process_files(files, &osmdata, options.append,
-                  get_logger().show_progress());
+    auto const finfo = process_files(files, &osmdata, options.append,
+                                     get_logger().show_progress());
 
     show_memory_usage();
 
     // Process pending ways and relations. Cluster database tables and
     // create indexes.
     osmdata.stop();
+
+    return finfo;
 }
 
 static void check_db(options_t const &options)
@@ -109,6 +111,25 @@ static void store_properties(properties_t *properties, options_t const &options)
     properties->set_string("prefix", options.prefix);
     properties->set_bool("updatable", options.slim && !options.droptemp);
     properties->set_string("version", get_osm2pgsql_short_version());
+
+    properties->store();
+}
+
+static void store_data_properties(properties_t *properties,
+                                  file_info const &finfo)
+{
+    if (finfo.last_timestamp.valid()) {
+        auto const timestamp = finfo.last_timestamp.to_iso();
+        properties->set_string("import_timestamp", timestamp);
+        properties->set_string("current_timestamp", timestamp);
+    }
+
+    for (std::string const s : {"base_url", "sequence_number", "timestamp"}) {
+        auto const value = finfo.header.get("osmosis_replication_" + s);
+        if (!value.empty()) {
+            properties->set_string("replication_" + s, value);
+        }
+    }
 
     properties->store();
 }
@@ -247,11 +268,25 @@ int main(int argc, char *argv[])
             } else {
                 check_for_nodes_table(options);
             }
+
+            auto const finfo = run(options);
+
+            if (finfo.last_timestamp.valid()) {
+                auto const current_timestamp =
+                    properties.get_string("current_timestamp", "");
+
+                if (current_timestamp.empty() ||
+                    (finfo.last_timestamp >
+                     osmium::Timestamp{current_timestamp})) {
+                    properties.set_string("current_timestamp",
+                                          finfo.last_timestamp.to_iso(), true);
+                }
+            }
         } else {
             store_properties(&properties, options);
+            auto const finfo = run(options);
+            store_data_properties(&properties, finfo);
         }
-
-        run(options);
 
         show_memory_usage();
         log_info("osm2pgsql took {} overall.",
