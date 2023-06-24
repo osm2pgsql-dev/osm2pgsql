@@ -584,7 +584,7 @@ int main(int argc, char *argv[])
             case 'c': // --create
                 append = false;
                 break;
-            case 'j': // --jons
+            case 'j': // --jobs
                 jobs =
                     std::clamp(std::strtoul(optarg, nullptr, 10), 1UL, 256UL);
                 break;
