@@ -17,10 +17,7 @@
 #include <osmium/fwd.hpp>
 #include <osmium/memory/buffer.hpp>
 
-extern "C"
-{
-#include <lua.h>
-}
+#include <lua.hpp>
 
 #include <memory>
 

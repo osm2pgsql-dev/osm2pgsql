@@ -21,25 +21,15 @@
 
 #include <getopt.h>
 
+#ifdef HAVE_LUA
+#include <lua.hpp>
+#endif
+
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <stdexcept>
 #include <thread> // for number of threads
-
-#ifdef HAVE_LUA
-extern "C"
-{
-#include <lua.h>
-}
-#endif
-
-#ifdef HAVE_LUAJIT
-extern "C"
-{
-#include <luajit.h>
-}
-#endif
 
 static char const *program_name(char const *name)
 {

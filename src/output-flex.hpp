@@ -21,10 +21,7 @@
 #include <osmium/index/id_set.hpp>
 #include <osmium/osm/item_type.hpp>
 
-extern "C"
-{
-#include <lua.h>
-}
+#include <lua.hpp>
 
 #include <cstdint>
 #include <memory>

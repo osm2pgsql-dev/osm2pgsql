@@ -7,12 +7,6 @@
  * For a full list of authors see the git log.
  */
 
-extern "C"
-{
-#include <lauxlib.h>
-#include <lualib.h>
-}
-
 #include "format.hpp"
 #include "lua-utils.hpp"
 #include "tagtransform-lua.hpp"

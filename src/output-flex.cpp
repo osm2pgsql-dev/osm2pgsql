@@ -39,12 +39,6 @@
 
 #include <osmium/osm/types_from_string.hpp>
 
-extern "C"
-{
-#include <lauxlib.h>
-#include <lualib.h>
-}
-
 #include <cassert>
 #include <cstdlib>
 #include <cstring>

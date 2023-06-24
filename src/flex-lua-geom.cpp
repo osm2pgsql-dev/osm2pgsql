@@ -12,11 +12,7 @@
 #include "geom-pole-of-inaccessibility.hpp"
 #include "lua-utils.hpp"
 
-extern "C"
-{
-#include <lauxlib.h>
-#include <lua.h>
-}
+#include <lua.hpp>
 
 static char const *const osm2pgsql_geometry_class = "osm2pgsql.Geometry";
 

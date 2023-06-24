@@ -11,8 +11,9 @@
 
 #include "flex-lua-index.hpp"
 #include "flex-table.hpp"
-#include "lua.hpp"
 #include "pgsql-capabilities-int.hpp"
+
+#include <lua.hpp>
 
 class test_framework
 {
