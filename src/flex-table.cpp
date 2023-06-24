@@ -77,30 +77,35 @@ bool flex_table_t::has_id_column() const noexcept
 bool flex_table_t::matches_type(osmium::item_type type) const noexcept
 {
     // This table takes any type -> okay
-    if (m_id_type == osmium::item_type::undefined) {
+    if (m_id_type == flex_table_index_type::any_object) {
         return true;
     }
 
     // Type and table type match -> okay
-    if (type == m_id_type) {
+    if ((type == osmium::item_type::node &&
+         m_id_type == flex_table_index_type::node) ||
+        (type == osmium::item_type::way &&
+         m_id_type == flex_table_index_type::way) ||
+        (type == osmium::item_type::relation &&
+         m_id_type == flex_table_index_type::relation)) {
         return true;
     }
 
     // Relations can be written as linestrings into way tables -> okay
     if (type == osmium::item_type::relation &&
-        m_id_type == osmium::item_type::way) {
+        m_id_type == flex_table_index_type::way) {
         return true;
     }
 
     // Area tables can take ways or relations, but not nodes
-    return m_id_type == osmium::item_type::area &&
+    return m_id_type == flex_table_index_type::area &&
            type != osmium::item_type::node;
 }
 
 /// Map way/node/relation ID to id value used in database table column
 osmid_t flex_table_t::map_id(osmium::item_type type, osmid_t id) const noexcept
 {
-    if (m_id_type == osmium::item_type::undefined) {
+    if (m_id_type == flex_table_index_type::any_object) {
         if (has_multicolumn_id_index()) {
             return id;
         }
@@ -117,7 +122,7 @@ osmid_t flex_table_t::map_id(osmium::item_type type, osmid_t id) const noexcept
         }
     }
 
-    if (m_id_type != osmium::item_type::relation &&
+    if (m_id_type != flex_table_index_type::relation &&
         type == osmium::item_type::relation) {
         return -id;
     }

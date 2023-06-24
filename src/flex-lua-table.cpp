@@ -99,6 +99,19 @@ static flex_table_t &create_flex_table(lua_State *lua_state,
     return new_table;
 }
 
+static void parse_create_index(lua_State *lua_state, flex_table_t *table)
+{
+    std::string const create_index = luaX_get_table_string(
+        lua_state, "create_index", -1, "The ids field", "auto");
+    lua_pop(lua_state, 1); // "create_index"
+    if (create_index == "always") {
+        table->set_always_build_id_index();
+    } else if (create_index != "auto") {
+        throw fmt_error("Unknown value '{}' for 'create_index' field of ids",
+                        create_index);
+    }
+}
+
 static void setup_flex_table_id_columns(lua_State *lua_state,
                                         flex_table_t *table)
 {
@@ -119,15 +132,15 @@ static void setup_flex_table_id_columns(lua_State *lua_state,
     lua_pop(lua_state, 1); // "type"
 
     if (type == "node") {
-        table->set_id_type(osmium::item_type::node);
+        table->set_id_type(flex_table_index_type::node);
     } else if (type == "way") {
-        table->set_id_type(osmium::item_type::way);
+        table->set_id_type(flex_table_index_type::way);
     } else if (type == "relation") {
-        table->set_id_type(osmium::item_type::relation);
+        table->set_id_type(flex_table_index_type::relation);
     } else if (type == "area") {
-        table->set_id_type(osmium::item_type::area);
+        table->set_id_type(flex_table_index_type::area);
     } else if (type == "any") {
-        table->set_id_type(osmium::item_type::undefined);
+        table->set_id_type(flex_table_index_type::any_object);
         lua_getfield(lua_state, -1, "type_column");
         if (lua_isstring(lua_state, -1)) {
             std::string const column_name =
@@ -139,6 +152,13 @@ static void setup_flex_table_id_columns(lua_State *lua_state,
             throw std::runtime_error{"type_column must be a string or nil."};
         }
         lua_pop(lua_state, 1); // "type_column"
+    } else if (type == "tile") {
+        table->set_id_type(flex_table_index_type::tile);
+        parse_create_index(lua_state, table);
+        table->add_column("x", "int", "int").set_not_null();
+        table->add_column("y", "int", "int").set_not_null();
+        lua_pop(lua_state, 1); // "ids"
+        return;
     } else {
         throw fmt_error("Unknown ids type: {}.", type);
     }
@@ -148,15 +168,7 @@ static void setup_flex_table_id_columns(lua_State *lua_state,
     lua_pop(lua_state, 1); // "id_column"
     check_identifier(name, "column names");
 
-    std::string const create_index = luaX_get_table_string(
-        lua_state, "create_index", -1, "The ids field", "auto");
-    lua_pop(lua_state, 1); // "create_index"
-    if (create_index == "always") {
-        table->set_always_build_id_index();
-    } else if (create_index != "auto") {
-        throw fmt_error("Unknown value '{}' for 'create_index' field of ids",
-                        create_index);
-    }
+    parse_create_index(lua_state, table);
 
     auto &column = table->add_column(name, "id_num", "");
     column.set_not_null();

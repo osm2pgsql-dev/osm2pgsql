@@ -28,6 +28,21 @@
 #include <vector>
 
 /**
+ * This defines the type of "primary key" for the tables generated in the flex
+ * output. This is not a real primary key, because the values are not
+ * necessarily unique.
+ */
+enum class flex_table_index_type {
+    no_index,
+    node, // index by node id
+    way, // index by way id
+    relation, // index by relation id
+    area, // index by way (positive) or relation (negative) id
+    any_object, // any OSM object, two columns for type and id
+    tile // index by tile with x and y columns (used for generalized data)
+};
+
+/**
  * An output table (in the SQL sense) for the flex backend.
  */
 class flex_table_t
@@ -85,9 +100,9 @@ public:
         m_index_tablespace = std::move(tablespace);
     }
 
-    osmium::item_type id_type() const noexcept { return m_id_type; }
+    flex_table_index_type id_type() const noexcept { return m_id_type; }
 
-    void set_id_type(osmium::item_type type) noexcept { m_id_type = type; }
+    void set_id_type(flex_table_index_type type) noexcept { m_id_type = type; }
 
     bool has_id_column() const noexcept;
 
@@ -213,10 +228,9 @@ private:
     std::size_t m_geom_column = std::numeric_limits<std::size_t>::max();
 
     /**
-     * Type of Id stored in this table (node, way, relation, area, or
-     * undefined for any type).
+     * Type of id stored in this table.
      */
-    osmium::item_type m_id_type = osmium::item_type::undefined;
+    flex_table_index_type m_id_type = flex_table_index_type::no_index;
 
     /// Cluster the table by geometry.
     bool m_cluster_by_geom = true;

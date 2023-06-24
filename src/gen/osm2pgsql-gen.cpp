@@ -33,6 +33,7 @@
 #include "params.hpp"
 #include "pgsql-capabilities.hpp"
 #include "pgsql.hpp"
+#include "properties.hpp"
 #include "tile.hpp"
 #include "util.hpp"
 #include "version.hpp"
@@ -265,7 +266,7 @@ class genproc_t
 {
 public:
     genproc_t(std::string const &filename, std::string conninfo, bool append,
-              uint32_t jobs);
+              bool updatable, uint32_t jobs);
 
     int app_define_table()
     {
@@ -491,6 +492,7 @@ private:
     std::size_t m_gen_run = 0;
     uint32_t m_jobs;
     bool m_append;
+    bool m_updatable;
 }; // class genproc_t
 
 TRAMPOLINE(app_define_table, define_table)
@@ -499,8 +501,9 @@ TRAMPOLINE(app_run_gen, run_gen)
 TRAMPOLINE(app_run_sql, run_sql)
 
 genproc_t::genproc_t(std::string const &filename, std::string conninfo,
-                     bool append, uint32_t jobs)
-: m_conninfo(std::move(conninfo)), m_jobs(jobs), m_append(append)
+                     bool append, bool updatable, uint32_t jobs)
+: m_conninfo(std::move(conninfo)), m_jobs(jobs), m_append(append),
+  m_updatable(updatable)
 {
     setup_lua_environment(lua_state(), filename, append);
 
@@ -557,6 +560,22 @@ void genproc_t::run()
         throw fmt_error(
             "Failed to execute Lua function 'osm2pgsql.process_gen': {}.",
             lua_tostring(lua_state(), -1));
+    }
+
+    if (!m_append) {
+        pg_conn_t const db_connection{m_conninfo};
+        for (auto const &table : m_tables) {
+            if (table.id_type() == flex_table_index_type::tile &&
+                (table.always_build_id_index() || m_updatable)) {
+                log_info("Creating tile (x/y) index on table '{}'...",
+                         table.name());
+                auto const sql =
+                    fmt::format("CREATE INDEX ON {} USING BTREE (x, y) {}",
+                                table.full_name(),
+                                tablespace_clause(table.index_tablespace()));
+                db_connection.exec(sql);
+            }
+        }
     }
 }
 
@@ -677,7 +696,11 @@ int main(int argc, char *argv[])
             init_database_capabilities(db_connection);
         }
 
-        genproc_t gen{style, conninfo, append, jobs};
+        properties_t properties{conninfo, ""};
+        properties.load();
+
+        bool const updatable = properties.get_bool("updatable", false);
+        genproc_t gen{style, conninfo, append, updatable, jobs};
         gen.run();
 
         osmium::MemoryUsage const mem;
