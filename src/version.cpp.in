@@ -7,6 +7,8 @@
  * For a full list of authors see the git log.
  */
 
+#include "version.hpp"
+
 char const *get_build_type() noexcept
 {
     return "@CMAKE_BUILD_TYPE@";
@@ -27,7 +29,7 @@ char const *get_minimum_postgresql_server_version() noexcept
     return "@MINIMUM_POSTGRESQL_SERVER_VERSION@";
 }
 
-unsigned long get_minimum_postgresql_server_version_num() noexcept
+uint32_t get_minimum_postgresql_server_version_num() noexcept
 {
     return @MINIMUM_POSTGRESQL_SERVER_VERSION_NUM@;
 }
