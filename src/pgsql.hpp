@@ -303,7 +303,8 @@ private:
         std::size_t n = 0;
         std::size_t m = 0;
         std::array<char const *, sizeof...(params)> param_ptrs = {
-            to_str<std::decay_t<TArgs>>(&exec_params, &lengths[n++], &bins[m++],
+            to_str<std::decay_t<TArgs>>(&exec_params, &lengths.at(n++),
+                                        &bins.at(m++),
                                         std::forward<TArgs>(params))...};
 
         return exec_prepared_internal(stmt, sizeof...(params),
