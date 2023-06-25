@@ -26,7 +26,14 @@ struct output_requirements;
  */
 struct middle_query_t : std::enable_shared_from_this<middle_query_t>
 {
+    middle_query_t() noexcept = default;
+
     virtual ~middle_query_t() = 0;
+
+    middle_query_t(middle_query_t const &) = delete;
+    middle_query_t &operator=(middle_query_t const &) = delete;
+    middle_query_t(middle_query_t &&) = delete;
+    middle_query_t &operator=(middle_query_t &&) = delete;
 
     /**
      * Retrieves node location for the given id.
@@ -94,6 +101,11 @@ public:
     {}
 
     virtual ~middle_t() = 0;
+
+    middle_t(middle_t const &) = delete;
+    middle_t &operator=(middle_t const &) = delete;
+    middle_t(middle_t &&) = delete;
+    middle_t &operator=(middle_t &&) = delete;
 
     virtual void start() = 0;
     virtual void stop() = 0;

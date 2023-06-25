@@ -25,7 +25,14 @@ public:
     static std::unique_ptr<tagtransform_t>
     make_tagtransform(options_t const *options, export_list const &exlist);
 
+    tagtransform_t() noexcept = default;
+
     virtual ~tagtransform_t() = 0;
+
+    tagtransform_t(tagtransform_t const &) = delete;
+    tagtransform_t &operator=(tagtransform_t const &) = delete;
+    tagtransform_t(tagtransform_t &&) = delete;
+    tagtransform_t &operator=(tagtransform_t &&) = delete;
 
     virtual std::unique_ptr<tagtransform_t> clone() const = 0;
 
