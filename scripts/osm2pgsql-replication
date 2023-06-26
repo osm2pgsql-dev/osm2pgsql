@@ -550,7 +550,8 @@ def main():
 
     try:
         if not table_exists(conn, f'{args.prefix}_ways'):
-            LOG.fatal(f'osm2pgsql middle table "{args.prefix}_ways" not found in database "{args.database}". '
+            dbname = conn.get_dsn_parameters()['dbname']         # args.database is None when not specified
+            LOG.fatal(f'osm2pgsql middle table "{args.prefix}_ways" not found in database "{dbname}". '
                        'Database needs to be imported in --slim mode.')
             return 1
 
