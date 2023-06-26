@@ -165,7 +165,7 @@ static void check_attributes(properties_t const &properties, options_t *options)
 }
 
 static void check_and_update_flat_node_file(properties_t *properties,
-                                        options_t *options)
+                                            options_t *options)
 {
     auto const flat_node_file_from_import =
         properties->get_string("flat_node_file", "");
@@ -187,7 +187,9 @@ static void check_and_update_flat_node_file(properties_t *properties,
             throw fmt_error("Database was imported without flat node file. Can"
                             " not use flat node file '{}' now.",
                             options->flat_node_file);
-        } else if (absolute_path == flat_node_file_from_import) {
+        }
+
+        if (absolute_path == flat_node_file_from_import) {
             log_info("Using flat node file '{}' (same as on import).",
                      flat_node_file_from_import);
         } else {
@@ -198,7 +200,6 @@ static void check_and_update_flat_node_file(properties_t *properties,
             properties->set_string("flat_node_file", absolute_path, true);
         }
     }
-
 }
 
 static void check_prefix(properties_t const &properties, options_t *options)
