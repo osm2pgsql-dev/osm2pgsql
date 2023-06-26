@@ -80,10 +80,10 @@ def connect(args):
     """
     # If dbname looks like a conninfo string use it as such
     if args.database and any(part in args.database for part in ['=', '://']):
-        return psycopg.connect(args.database)
+        return psycopg.connect(args.database, fallback_application_name="osm2pgsql-replication")
 
     return psycopg.connect(dbname=args.database, user=args.username,
-                           host=args.host, port=args.port)
+                           host=args.host, port=args.port, fallback_application_name="osm2pgsql-replication")
 
 
 def table_exists(conn, table_name, schema_name=None):
