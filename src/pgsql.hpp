@@ -238,11 +238,9 @@ private:
     template <typename T>
     static constexpr std::size_t buffers_needed() noexcept
     {
-        if constexpr (std::is_same_v<T, char const *>) {
-            return 0;
-        } else if constexpr (std::is_same_v<T, std::string>) {
-            return 0;
-        } else if constexpr (std::is_same_v<T, binary_param>) {
+        if constexpr (std::is_same_v<T, char const *> ||
+                      std::is_same_v<T, std::string> ||
+                      std::is_same_v<T, binary_param>) {
             return 0;
         }
         return 1;
@@ -305,7 +303,8 @@ private:
         std::size_t n = 0;
         std::size_t m = 0;
         std::array<char const *, sizeof...(params)> param_ptrs = {
-            to_str<std::decay_t<TArgs>>(&exec_params, &lengths[n++], &bins[m++],
+            to_str<std::decay_t<TArgs>>(&exec_params, &lengths.at(n++),
+                                        &bins.at(m++),
                                         std::forward<TArgs>(params))...};
 
         return exec_prepared_internal(stmt, sizeof...(params),

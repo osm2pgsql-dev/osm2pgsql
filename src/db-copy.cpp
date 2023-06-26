@@ -163,7 +163,7 @@ void db_copy_thread_t::thread_t::operator()()
         m_conn.reset();
     } catch (std::runtime_error const &e) {
         log_error("DB copy thread failed: {}", e.what());
-        exit(2);
+        std::exit(2); // NOLINT(concurrency-mt-unsafe)
     }
 }
 
