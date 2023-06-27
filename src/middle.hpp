@@ -122,13 +122,31 @@ public:
     virtual void relation(osmium::Relation const &relation) = 0;
 
     /// Called after all nodes from the input file(s) have been processed.
-    virtual void after_nodes() {}
+    virtual void after_nodes()
+    {
+        assert(m_middle_state == middle_state::node);
+#ifndef NDEBUG
+        m_middle_state = middle_state::way;
+#endif
+    }
 
     /// Called after all ways from the input file(s) have been processed.
-    virtual void after_ways() {}
+    virtual void after_ways()
+    {
+        assert(m_middle_state == middle_state::way);
+#ifndef NDEBUG
+        m_middle_state = middle_state::relation;
+#endif
+    }
 
     /// Called after all relations from the input file(s) have been processed.
-    virtual void after_relations() {}
+    virtual void after_relations()
+    {
+        assert(m_middle_state == middle_state::relation);
+#ifndef NDEBUG
+        m_middle_state = middle_state::done;
+#endif
+    }
 
     virtual idlist_t get_ways_by_node(osmid_t) { return {}; }
     virtual idlist_t get_rels_by_node(osmid_t) { return {}; }
@@ -144,6 +162,21 @@ protected:
         assert(m_thread_pool);
         return *m_thread_pool;
     }
+
+#ifndef NDEBUG
+    enum class middle_state
+    {
+        constructed,
+        started,
+        node,
+        way,
+        relation,
+        done
+    };
+
+    // NOLINTNEXTLINE(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
+    middle_state m_middle_state = middle_state::constructed;
+#endif
 
 private:
     std::shared_ptr<thread_pool_t> m_thread_pool;

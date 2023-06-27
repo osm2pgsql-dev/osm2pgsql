@@ -47,7 +47,14 @@ public:
 
     ~middle_ram_t() noexcept override = default;
 
-    void start() override {}
+    void start() override
+    {
+        assert(m_middle_state == middle_state::constructed);
+#ifndef NDEBUG
+        m_middle_state = middle_state::node;
+#endif
+    }
+
     void stop() override;
 
     void node(osmium::Node const &node) override;

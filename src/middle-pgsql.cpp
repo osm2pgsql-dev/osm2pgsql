@@ -347,6 +347,8 @@ std::size_t middle_query_pgsql_t::get_way_node_locations_db(
 
 void middle_pgsql_t::node(osmium::Node const &node)
 {
+    assert(m_middle_state == middle_state::node);
+
     if (node.deleted()) {
         node_delete(node.id());
     } else {
@@ -358,6 +360,8 @@ void middle_pgsql_t::node(osmium::Node const &node)
 }
 
 void middle_pgsql_t::way(osmium::Way const &way) {
+    assert(m_middle_state == middle_state::way);
+
     if (way.deleted()) {
         way_delete(way.id());
     } else {
@@ -369,6 +373,8 @@ void middle_pgsql_t::way(osmium::Way const &way) {
 }
 
 void middle_pgsql_t::relation(osmium::Relation const &relation) {
+    assert(m_middle_state == middle_state::relation);
+
     if (relation.deleted()) {
         relation_delete(relation.id());
     } else {
@@ -664,6 +670,11 @@ void middle_pgsql_t::relation_delete(osmid_t osm_id)
 
 void middle_pgsql_t::after_nodes()
 {
+    assert(m_middle_state == middle_state::node);
+#ifndef NDEBUG
+    m_middle_state = middle_state::way;
+#endif
+
     m_db_copy.sync();
     if (!m_options->append && m_options->flat_node_file.empty()) {
         auto const &table = m_tables.nodes();
@@ -673,6 +684,11 @@ void middle_pgsql_t::after_nodes()
 
 void middle_pgsql_t::after_ways()
 {
+    assert(m_middle_state == middle_state::way);
+#ifndef NDEBUG
+    m_middle_state = middle_state::relation;
+#endif
+
     m_db_copy.sync();
     if (!m_options->append) {
         auto const &table = m_tables.ways();
@@ -682,6 +698,11 @@ void middle_pgsql_t::after_ways()
 
 void middle_pgsql_t::after_relations()
 {
+    assert(m_middle_state == middle_state::relation);
+#ifndef NDEBUG
+    m_middle_state = middle_state::done;
+#endif
+
     m_db_copy.sync();
     if (!m_options->append) {
         auto const &table = m_tables.relations();
@@ -706,6 +727,11 @@ middle_query_pgsql_t::middle_query_pgsql_t(
 
 void middle_pgsql_t::start()
 {
+    assert(m_middle_state == middle_state::constructed);
+#ifndef NDEBUG
+    m_middle_state = middle_state::node;
+#endif
+
     if (m_options->append) {
         // Disable JIT and parallel workers as they are known to cause
         // problems when accessing the intarrays.
@@ -732,6 +758,8 @@ void middle_pgsql_t::start()
 
 void middle_pgsql_t::stop()
 {
+    assert(m_middle_state == middle_state::done);
+
     m_cache.reset();
     if (!m_options->flat_node_file.empty()) {
         m_persistent_cache.reset();
