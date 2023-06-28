@@ -19,28 +19,19 @@ logger the_logger{};
 /// Access the global logger singleton
 logger &get_logger() noexcept { return the_logger; }
 
-std::string logger::generate_common_prefix(fmt::text_style const &ts,
-                                           char const *prefix)
+void logger::generate_common_prefix(std::string *str, fmt::text_style const &ts,
+                                    char const *prefix) const
 {
-    std::string str;
-
-    if (m_needs_leading_return) {
-        m_needs_leading_return = false;
-        str += '\n';
-    }
-
-    str += fmt::format("{:%Y-%m-%d %H:%M:%S}  ",
+    *str += fmt::format("{:%Y-%m-%d %H:%M:%S}  ",
                        fmt::localtime(std::time(nullptr)));
 
     if (m_current_level == log_level::debug) {
-        str += fmt::format(ts, "[{:02d}] ", this_thread_num);
+        *str += fmt::format(ts, "[{:02d}] ", this_thread_num);
     }
 
     if (prefix) {
-        str += fmt::format(ts, "{}: ", prefix);
+        *str += fmt::format(ts, "{}: ", prefix);
     }
-
-    return str;
 }
 
 void logger::init_thread(unsigned int num)
