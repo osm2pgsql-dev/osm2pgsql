@@ -61,6 +61,8 @@ void middle_ram_t::set_requirements(output_requirements const &requirements)
 
 void middle_ram_t::stop()
 {
+    assert(m_middle_state == middle_state::done);
+
     auto const mbyte = 1024 * 1024;
 
     log_debug("Middle 'ram': Node locations: size={} bytes={}M",
@@ -148,6 +150,7 @@ static void add_delta_encoded_way_node_list(std::string *data,
 
 void middle_ram_t::node(osmium::Node const &node)
 {
+    assert(m_middle_state == middle_state::node);
     assert(node.visible());
 
     if (m_store_options.locations) {
@@ -162,6 +165,7 @@ void middle_ram_t::node(osmium::Node const &node)
 
 void middle_ram_t::way(osmium::Way const &way)
 {
+    assert(m_middle_state == middle_state::way);
     assert(way.visible());
 
     if (m_store_options.way_nodes) {
@@ -177,6 +181,7 @@ void middle_ram_t::way(osmium::Way const &way)
 
 void middle_ram_t::relation(osmium::Relation const &relation)
 {
+    assert(m_middle_state == middle_state::relation);
     assert(relation.visible());
 
     if (m_store_options.relations) {

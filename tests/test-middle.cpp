@@ -130,6 +130,8 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         // set the node
         mid->node(node);
         mid->after_nodes();
+        mid->after_ways();
+        mid->after_relations();
 
         // getting it back works only via a waylist
         auto &nodes = buffer.add_way("w3 Nn1234").nodes();
@@ -170,6 +172,7 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         // set the way
         mid->way(buffer.add_way(way_id, nds));
         mid->after_ways();
+        mid->after_relations();
 
         // get it back
         osmium::memory::Buffer outbuf{4096,
@@ -372,6 +375,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update node", "",
         mid->node(node10);
         mid->node(node11);
         mid->after_nodes();
+        mid->after_ways();
         mid->after_relations();
 
         check_node(mid, node10);
@@ -402,6 +406,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update node", "",
             mid->node(node10d);
             mid->node(node42d);
             mid->after_nodes();
+            mid->after_ways();
             mid->after_relations();
 
             REQUIRE(no_node(mid, 5));
@@ -432,6 +437,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update node", "",
             mid->node(node12d);
             mid->node(node12);
             mid->after_nodes();
+            mid->after_ways();
             mid->after_relations();
 
             check_node(mid, node10a);
@@ -457,6 +463,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update node", "",
 
             mid->node(node12);
             mid->after_nodes();
+            mid->after_ways();
             mid->after_relations();
 
             REQUIRE(no_node(mid, 5));
@@ -585,6 +592,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
         auto mid = std::make_shared<middle_pgsql_t>(thread_pool, &options);
         mid->start();
 
+        mid->after_nodes();
         mid->way(way20);
         mid->way(way21);
         mid->after_ways();
@@ -614,6 +622,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
             auto mid = std::make_shared<middle_pgsql_t>(thread_pool, &options);
             mid->start();
 
+            mid->after_nodes();
             mid->way(way5d);
             mid->way(way20d);
             mid->way(way42d);
@@ -643,6 +652,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
             auto mid = std::make_shared<middle_pgsql_t>(thread_pool, &options);
             mid->start();
 
+            mid->after_nodes();
             mid->way(way20d);
             mid->way(way20a);
             mid->way(way22d);
@@ -675,6 +685,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
             auto mid = std::make_shared<middle_pgsql_t>(thread_pool, &options);
             mid->start();
 
+            mid->after_nodes();
             mid->way(way22);
             mid->after_ways();
             mid->after_relations();
@@ -728,6 +739,7 @@ TEMPLATE_TEST_CASE("middle: add way with attributes", "", options_slim_default,
         auto mid = std::make_shared<middle_pgsql_t>(thread_pool, &options);
         mid->start();
 
+        mid->after_nodes();
         mid->way(way20);
         mid->after_ways();
         mid->after_relations();
@@ -831,6 +843,8 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
         auto mid = std::make_shared<middle_pgsql_t>(thread_pool, &options);
         mid->start();
 
+        mid->after_nodes();
+        mid->after_ways();
         mid->relation(relation30);
         mid->relation(relation31);
         mid->after_relations();
@@ -859,6 +873,8 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
             auto mid = std::make_shared<middle_pgsql_t>(thread_pool, &options);
             mid->start();
 
+            mid->after_nodes();
+            mid->after_ways();
             mid->relation(relation5d);
             mid->relation(relation30d);
             mid->relation(relation42d);
@@ -887,6 +903,8 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
             auto mid = std::make_shared<middle_pgsql_t>(thread_pool, &options);
             mid->start();
 
+            mid->after_nodes();
+            mid->after_ways();
             mid->relation(relation30d);
             mid->relation(relation30a);
             mid->relation(relation32d);
@@ -918,6 +936,8 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
             auto mid = std::make_shared<middle_pgsql_t>(thread_pool, &options);
             mid->start();
 
+            mid->after_nodes();
+            mid->after_ways();
             mid->relation(relation32);
             mid->after_relations();
 
@@ -967,6 +987,8 @@ TEMPLATE_TEST_CASE("middle: add relation with attributes", "",
         auto mid = std::make_shared<middle_pgsql_t>(thread_pool, &options);
         mid->start();
 
+        mid->after_nodes();
+        mid->after_ways();
         mid->relation(relation30);
         mid->after_relations();
 
@@ -1052,6 +1074,8 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
         mid->node(node10a);
         dependency_manager.node_changed(10);
         mid->after_nodes();
+        mid->after_ways();
+        mid->after_relations();
 
         REQUIRE(dependency_manager.has_pending());
         idlist_t const way_ids = dependency_manager.get_pending_way_ids();
@@ -1067,9 +1091,11 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
             auto mid = std::make_shared<middle_pgsql_t>(thread_pool, &options);
             mid->start();
 
+            mid->after_nodes();
             mid->way(way22);
             mid->after_ways();
             mid->after_relations();
+
             check_way(mid, way22);
         }
         {
@@ -1081,6 +1107,8 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
             mid->node(node10a);
             dependency_manager.node_changed(10);
             mid->after_nodes();
+            mid->after_ways();
+            mid->after_relations();
 
             REQUIRE(dependency_manager.has_pending());
             idlist_t const way_ids = dependency_manager.get_pending_way_ids();
@@ -1099,6 +1127,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
             auto mid = std::make_shared<middle_pgsql_t>(thread_pool, &options);
             mid->start();
 
+            mid->after_nodes();
             mid->way(way20d);
             mid->way(way20a);
             mid->after_ways();
@@ -1117,6 +1146,8 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
             mid->node(node10a);
             dependency_manager.node_changed(10);
             mid->after_nodes();
+            mid->after_ways();
+            mid->after_relations();
 
             REQUIRE_FALSE(dependency_manager.has_pending());
         }
@@ -1179,6 +1210,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
         mid->node(node10a);
         dependency_manager.node_changed(10);
         mid->after_nodes();
+        mid->after_ways();
         mid->after_relations();
 
         REQUIRE(dependency_manager.has_pending());
@@ -1198,6 +1230,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
         mid->node(node11a);
         dependency_manager.node_changed(11);
         mid->after_nodes();
+        mid->after_ways();
         mid->after_relations();
 
         REQUIRE(dependency_manager.has_pending());

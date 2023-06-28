@@ -28,11 +28,21 @@ struct counting_middle_t : public middle_t
     : middle_t(nullptr), m_append(append)
     {}
 
-    void start() override {}
-    void stop() override {}
+    void start() override
+    {
+        assert(m_middle_state == middle_state::constructed);
+#ifndef NDEBUG
+        m_middle_state = middle_state::node;
+#endif
+    }
+
+    void stop() override { assert(m_middle_state == middle_state::done); }
+
     void cleanup() {}
 
     void node(osmium::Node const &node) override {
+        assert(m_middle_state == middle_state::node);
+
         if (m_append) {
             ++node_count.deleted;
             if (!node.deleted()) {
@@ -44,6 +54,8 @@ struct counting_middle_t : public middle_t
     }
 
     void way(osmium::Way const &way) override {
+        assert(m_middle_state == middle_state::way);
+
         if (m_append) {
             ++way_count.deleted;
             if (!way.deleted()) {
@@ -55,6 +67,8 @@ struct counting_middle_t : public middle_t
     }
 
     void relation(osmium::Relation const &relation) override {
+        assert(m_middle_state == middle_state::relation);
+
         if (m_append) {
             ++relation_count.deleted;
             if (!relation.deleted()) {
@@ -156,6 +170,8 @@ TEST_CASE("parse xml file")
     options_t const options = testing::opt_t().slim();
 
     auto const middle = std::make_shared<counting_middle_t>(false);
+    middle->start();
+
     auto const output = std::make_shared<counting_output_t>(options);
 
     auto counts = std::make_shared<counts_t>();
@@ -195,6 +211,8 @@ TEST_CASE("parse diff file")
     options_t const options = testing::opt_t().slim().append();
 
     auto const middle = std::make_shared<counting_middle_t>(true);
+    middle->start();
+
     auto const output = std::make_shared<counting_output_t>(options);
 
     auto counts = std::make_shared<counts_t>();
@@ -232,6 +250,8 @@ TEST_CASE("parse xml file with extra args")
     options.extra_attributes = true;
 
     auto const middle = std::make_shared<counting_middle_t>(false);
+    middle->start();
+
     auto const output = std::make_shared<counting_output_t>(options);
 
     auto counts = std::make_shared<counts_t>();
@@ -271,6 +291,8 @@ TEST_CASE("invalid location")
     options_t const options = testing::opt_t();
 
     auto const middle = std::make_shared<counting_middle_t>(false);
+    middle->start();
+
     auto const output = std::make_shared<counting_output_t>(options);
 
     auto counts = std::make_shared<counts_t>();
