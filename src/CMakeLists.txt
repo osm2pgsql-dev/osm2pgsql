@@ -1,6 +1,10 @@
 
 add_library(osm2pgsql_lib STATIC)
 
+# Set the minimum required C++ version for the library and hence for all
+# binaries that use it.
+target_compile_features(osm2pgsql_lib PUBLIC cxx_std_17)
+
 target_sources(osm2pgsql_lib PRIVATE
   db-copy.cpp
   debug-output.cpp

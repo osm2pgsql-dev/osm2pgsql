@@ -36,6 +36,7 @@ add_definitions(-DTESTDATA_DIR=\"${osm2pgsql_SOURCE_DIR}/tests/data/\")
 add_definitions(-DOSM2PGSQLDATA_DIR=\"${osm2pgsql_SOURCE_DIR}/\")
 
 add_library(catch_main_lib STATIC catch-main.cpp)
+target_compile_features(catch_main_lib PUBLIC cxx_std_17)
 
 set_test(test-check-input LABELS NoDB)
 set_test(test-db-copy-thread)
