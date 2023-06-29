@@ -4,7 +4,14 @@ on: [ push, pull_request ]
 
 jobs:
   macos:
-    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - "macos-11"
+          - "macos-12" # latest
+          - "macos-13"
+    runs-on: ${{ matrix.os }}
 
     env:
       LUA_VERSION: 5.4
@@ -348,6 +355,42 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/build-and-test
+
+  ubuntu22-pg14-clang14-cpp20:
+    runs-on: ubuntu-22.04
+
+    env:
+      CC: clang-14
+      CXX: clang++-14
+      LUA_VERSION: 5.3
+      LUAJIT_OPTION: OFF
+      POSTGRESQL_VERSION: 14
+      POSTGIS_VERSION: 3
+      CPP_VERSION: 20
+      BUILD_TYPE: Debug
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/build-and-test
+
+  ubuntu22-pg14-gcc12-cpp20:
+    runs-on: ubuntu-22.04
+
+    env:
+      CC: gcc-12
+      CXX: g++-12
+      LUA_VERSION: 5.3
+      LUAJIT_OPTION: OFF
+      POSTGRESQL_VERSION: 14
+      POSTGIS_VERSION: 3
+      CPP_VERSION: 20
+      BUILD_TYPE: Debug
+
+    steps:
+      - uses: actions/checkout@v2
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
