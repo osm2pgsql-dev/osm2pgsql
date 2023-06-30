@@ -35,8 +35,8 @@ extern "C"
 class db_copy_thread_t;
 class db_deleter_by_type_and_id_t;
 class geom_transform_t;
-class options_t;
 class thread_pool_t;
+struct options_t;
 
 using idset_t = osmium::index::IdSetSmall<osmid_t>;
 

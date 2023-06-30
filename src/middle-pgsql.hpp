@@ -28,7 +28,6 @@
 
 class node_locations_t;
 class node_persistent_cache;
-class options_t;
 
 class middle_query_pgsql_t : public middle_query_t
 {

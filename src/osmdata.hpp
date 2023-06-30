@@ -27,8 +27,8 @@
 #include "osmtypes.hpp"
 
 class middle_t;
-class options_t;
 class output_t;
+struct options_t;
 
 /**
  * This class guides the processing of the OSM data through its multiple
