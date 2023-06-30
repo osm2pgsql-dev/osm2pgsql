@@ -17,6 +17,7 @@
 #include <fmt/chrono.h>
 #include <fmt/color.h>
 
+#include <atomic>
 #include <cstdio>
 #include <utility>
 
@@ -45,7 +46,14 @@ public:
 
         auto const &ts = m_use_color ? style : fmt::text_style{};
 
-        auto str = generate_common_prefix(ts, prefix);
+        std::string str;
+
+        if (m_needs_leading_return) {
+            m_needs_leading_return = false;
+            str += '\n';
+        }
+
+        generate_common_prefix(&str, ts, prefix);
 
         str += fmt::format(ts, format_str, std::forward<TArgs>(args)...);
         str += '\n';
@@ -82,14 +90,14 @@ public:
     static void init_thread(unsigned int num);
 
 private:
-    std::string generate_common_prefix(fmt::text_style const &ts,
-                                       char const *prefix);
+    void generate_common_prefix(std::string *str, fmt::text_style const &ts,
+                                char const *prefix) const;
 
     log_level m_current_level = log_level::info;
     bool m_log_sql = false;
     bool m_log_sql_data = false;
     bool m_show_progress = true;
-    bool m_needs_leading_return = false;
+    std::atomic<bool> m_needs_leading_return = false;
 
 #ifdef _WIN32
     bool m_use_color = false;
