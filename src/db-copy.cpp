@@ -131,6 +131,14 @@ void db_copy_thread_t::thread_t::operator()()
         // Let commits happen faster by delaying when they actually occur.
         m_conn->exec("SET synchronous_commit = off");
 
+        // Disable sequential scan on database tables in the copy threads.
+        // The copy threads only do COPYs (which are unaffected by this
+        // setting) and DELETEs which we know benefit from the index. For
+        // some reason PostgreSQL chooses in some cases not to use that index,
+        // possibly because the DELETEs get a large list of ids to delete of
+        // which many are not in the table which confuses the query planner.
+        m_conn->exec("SET enable_seqscan = off");
+
         bool done = false;
         while (!done) {
             std::unique_ptr<db_cmd_t> item;
