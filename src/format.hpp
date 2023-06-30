@@ -15,8 +15,9 @@
 
 #include <stdexcept>
 
-template <typename S, typename... TArgs>
-std::runtime_error fmt_error(S const &format_str, TArgs &&...args)
+template <typename... TArgs>
+std::runtime_error fmt_error(fmt::format_string<TArgs...> format_str,
+                             TArgs &&...args)
 {
     return std::runtime_error{
         fmt::format(format_str, std::forward<TArgs>(args)...)};

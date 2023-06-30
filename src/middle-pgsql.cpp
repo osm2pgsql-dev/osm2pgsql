@@ -45,7 +45,7 @@ static std::string build_sql(options_t const &options, std::string const &templ)
                                            : "USING INDEX TABLESPACE " +
                                                  options.tblsslim_index};
     return fmt::format(
-        templ, fmt::arg("prefix", options.prefix),
+        fmt::runtime(templ), fmt::arg("prefix", options.prefix),
         fmt::arg("schema", options.middle_dbschema.empty()
                                ? ""
                                : ("\"" + options.middle_dbschema + "\".")),

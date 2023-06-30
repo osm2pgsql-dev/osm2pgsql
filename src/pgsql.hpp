@@ -171,7 +171,7 @@ public:
      *         status code PGRES_COMMAND_OK or PGRES_TUPLES_OK).
      */
     template <typename... TArgs>
-    pg_result_t exec(char const *sql, TArgs... params) const
+    pg_result_t exec(fmt::format_string<TArgs...> sql, TArgs... params) const
     {
         return exec(fmt::format(sql, std::forward<TArgs>(params)...));
     }
