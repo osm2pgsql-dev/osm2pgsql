@@ -13,10 +13,7 @@
 // This file contains helper functions for talking to Lua. It is used from
 // the flex output backend. All functions start with "luaX_".
 
-extern "C"
-{
-#include <lua.h>
-}
+#include <lua.hpp>
 
 #include <cassert>
 #include <cstdint>

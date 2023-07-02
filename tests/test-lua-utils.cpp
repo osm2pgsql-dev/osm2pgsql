@@ -11,10 +11,7 @@
 
 #include "lua-utils.hpp"
 
-extern "C"
-{
-#include <lauxlib.h>
-}
+#include <lua.hpp>
 
 // Run the Lua code in "code" and then execute the function "func".
 template <typename FUNC>

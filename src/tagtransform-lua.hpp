@@ -14,10 +14,7 @@
 
 #include "tagtransform.hpp"
 
-extern "C"
-{
-#include <lua.h>
-}
+#include <lua.hpp>
 
 class lua_tagtransform_t : public tagtransform_t
 {

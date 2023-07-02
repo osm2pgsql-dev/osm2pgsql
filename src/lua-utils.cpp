@@ -8,12 +8,8 @@
  */
 
 #include "lua-utils.hpp"
-#include "format.hpp"
 
-extern "C"
-{
-#include <lauxlib.h>
-}
+#include "format.hpp"
 
 #include <cassert>
 #include <stdexcept>
