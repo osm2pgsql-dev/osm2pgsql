@@ -141,8 +141,6 @@ Feature: Import and update of multipolygon areas
         When running osm2pgsql pgsql with parameters
             | --slim | -F | flat.store |
 
-        Then there is no table planet_osm_nodes
-
         Then table planet_osm_polygon contains
             | osm_id | landuse     | name      | round(ST_Area(way)) |
             | -1     | residential | Name_rel  | 12895               |

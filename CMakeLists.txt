@@ -201,6 +201,9 @@ include_directories(SYSTEM ${PostgreSQL_INCLUDE_DIRS})
 
 find_package(Threads)
 
+find_path(NLOHMANN_INCLUDE_DIR nlohmann/json.hpp)
+include_directories(SYSTEM ${NLOHMANN_INCLUDE_DIR})
+
 find_path(POTRACE_INCLUDE_DIR potracelib.h)
 find_library(POTRACE_LIBRARY NAMES potrace)
 

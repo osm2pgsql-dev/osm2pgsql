@@ -9,10 +9,11 @@ Feature: Timestamps in properties table should reflect timestamps in input file
             """
         When running osm2pgsql pgsql
 
-        Then table osm2pgsql_properties has 7 rows
+        Then table osm2pgsql_properties has 8 rows
         And table osm2pgsql_properties contains
             | property          | value                |
             | attributes        | false                |
+            | db_format         | 0                    |
             | flat_node_file    |                      |
             | prefix            | planet_osm           |
             | updatable         | false                |
@@ -28,10 +29,11 @@ Feature: Timestamps in properties table should reflect timestamps in input file
             """
         When running osm2pgsql pgsql
 
-        Then table osm2pgsql_properties has 5 rows
+        Then table osm2pgsql_properties has 6 rows
         Then table osm2pgsql_properties contains
             | property          | value                |
             | attributes        | false                |
+            | db_format         | 0                    |
             | flat_node_file    |                      |
             | prefix            | planet_osm           |
             | updatable         | false                |
@@ -47,10 +49,11 @@ Feature: Timestamps in properties table should reflect timestamps in input file
         When running osm2pgsql pgsql with parameters
             | --create | --slim |
 
-        Then table osm2pgsql_properties has 7 rows
+        Then table osm2pgsql_properties has 8 rows
         And table osm2pgsql_properties contains
             | property          | value                |
             | attributes        | false                |
+            | db_format         | 1                    |
             | flat_node_file    |                      |
             | prefix            | planet_osm           |
             | updatable         | true                 |
@@ -66,10 +69,11 @@ Feature: Timestamps in properties table should reflect timestamps in input file
         When running osm2pgsql pgsql with parameters
             | --append | --slim |
 
-        Then table osm2pgsql_properties has 7 rows
+        Then table osm2pgsql_properties has 8 rows
         And table osm2pgsql_properties contains
             | property          | value                |
             | attributes        | false                |
+            | db_format         | 1                    |
             | flat_node_file    |                      |
             | prefix            | planet_osm           |
             | updatable         | true                 |
@@ -87,10 +91,11 @@ Feature: Timestamps in properties table should reflect timestamps in input file
         When running osm2pgsql pgsql with parameters
             | --create | --slim |
 
-        Then table osm2pgsql_properties has 7 rows
+        Then table osm2pgsql_properties has 8 rows
         And table osm2pgsql_properties contains
             | property          | value                |
             | attributes        | false                |
+            | db_format         | 1                    |
             | flat_node_file    |                      |
             | prefix            | planet_osm           |
             | updatable         | true                 |
@@ -106,10 +111,11 @@ Feature: Timestamps in properties table should reflect timestamps in input file
         When running osm2pgsql pgsql with parameters
             | --append | --slim |
 
-        Then table osm2pgsql_properties has 7 rows
+        Then table osm2pgsql_properties has 8 rows
         And table osm2pgsql_properties contains
             | property          | value                |
             | attributes        | false                |
+            | db_format         | 1                    |
             | flat_node_file    |                      |
             | prefix            | planet_osm           |
             | updatable         | true                 |
@@ -127,10 +133,11 @@ Feature: Timestamps in properties table should reflect timestamps in input file
         When running osm2pgsql pgsql with parameters
             | --create | --slim |
 
-        Then table osm2pgsql_properties has 5 rows
+        Then table osm2pgsql_properties has 6 rows
         And table osm2pgsql_properties contains
             | property          | value                |
             | attributes        | false                |
+            | db_format         | 1                    |
             | flat_node_file    |                      |
             | prefix            | planet_osm           |
             | updatable         | true                 |
@@ -144,10 +151,11 @@ Feature: Timestamps in properties table should reflect timestamps in input file
         When running osm2pgsql pgsql with parameters
             | --append | --slim |
 
-        Then table osm2pgsql_properties has 6 rows
+        Then table osm2pgsql_properties has 7 rows
         And table osm2pgsql_properties contains
             | property          | value                |
             | attributes        | false                |
+            | db_format         | 1                    |
             | flat_node_file    |                      |
             | prefix            | planet_osm           |
             | updatable         | true                 |

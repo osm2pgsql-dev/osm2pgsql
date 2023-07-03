@@ -72,6 +72,8 @@ struct option const long_options[] = {
     {"merc", no_argument, nullptr, 'm'},
     {"middle-schema", required_argument, nullptr, 215},
     {"middle-way-node-index-id-shift", required_argument, nullptr, 300},
+    {"middle-database-format", required_argument, nullptr, 301},
+    {"middle-with-nodes", no_argument, nullptr, 302},
     {"multi-geometry", no_argument, nullptr, 'G'},
     {"number-processes", required_argument, nullptr, 205},
     {"output", required_argument, nullptr, 'O'},
@@ -450,6 +452,11 @@ static void check_options(options_t *options)
         throw std::runtime_error{"--drop only makes sense with --slim."};
     }
 
+    if (options->append && options->middle_database_format != 1) {
+        throw std::runtime_error{
+            "Do not use --middle-database-format with --append."};
+    }
+
     if (options->hstore_mode == hstore_column::none &&
         options->hstore_columns.empty() && options->hstore_match_only) {
         log_warn("--hstore-match-only only makes sense with --hstore, "
@@ -722,6 +729,20 @@ options_t parse_command_line(int argc, char *argv[])
         case 300: // --middle-way-node-index-id-shift
             options.way_node_index_id_shift = atoi(optarg);
             break;
+        case 301: // --middle-database-format
+            if (optarg == std::string{"legacy"}) {
+                options.middle_database_format = 1;
+            } else if (optarg == std::string{"new"}) {
+                options.middle_database_format = 2;
+            } else {
+                throw std::runtime_error{
+                    "Unknown value for --middle-database-format (Use 'legacy' "
+                    "or 'new')."};
+            }
+            break;
+        case 302: // --middle-with-nodes
+            options.middle_with_nodes = true;
+            break;
         case 400: // --log-level=LEVEL
             parse_log_level_param(optarg);
             break;
@@ -770,6 +791,10 @@ options_t parse_command_line(int argc, char *argv[])
     }
 
     options.conninfo = build_conninfo(database_options);
+
+    if (!options.slim) {
+        options.middle_database_format = 0;
+    }
 
     return options;
 }

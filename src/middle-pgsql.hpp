@@ -18,6 +18,7 @@
  * emit the final geometry-enabled output formats
 */
 
+#include <map>
 #include <memory>
 
 #include <osmium/index/nwr_array.hpp>
@@ -29,12 +30,34 @@
 class node_locations_t;
 class node_persistent_cache;
 
+struct middle_pgsql_options
+{
+    // Store nodes in database.
+    bool nodes = false;
+
+    // Store untagged nodes also (set in addition to nodes=true).
+    bool untagged_nodes = false;
+
+    // Bit shift used in way node index
+    uint8_t way_node_index_id_shift = 5;
+
+    // Database format (legacy = 1, new = 2)
+    uint8_t db_format = 1;
+
+    // Use a flat node file
+    bool use_flat_node_file = false;
+
+    // Store attributes (timestamp, version, changeset id, user id, user name)
+    bool with_attributes = false;
+};
+
 class middle_query_pgsql_t : public middle_query_t
 {
 public:
     middle_query_pgsql_t(
         std::string const &conninfo, std::shared_ptr<node_locations_t> cache,
-        std::shared_ptr<node_persistent_cache> persistent_cache);
+        std::shared_ptr<node_persistent_cache> persistent_cache,
+        middle_pgsql_options const &options);
 
     osmium::Location get_node_location(osmid_t id) const override;
 
@@ -45,6 +68,9 @@ public:
     size_t rel_members_get(osmium::Relation const &rel,
                            osmium::memory::Buffer *buffer,
                            osmium::osm_entity_bits::type types) const override;
+
+    bool relation_get_format1(osmid_t id, osmium::memory::Buffer *buffer) const;
+    bool relation_get_format2(osmid_t id, osmium::memory::Buffer *buffer) const;
 
     bool relation_get(osmid_t id,
                       osmium::memory::Buffer *buffer) const override;
@@ -60,6 +86,8 @@ private:
     pg_conn_t m_sql_conn;
     std::shared_ptr<node_locations_t> m_cache;
     std::shared_ptr<node_persistent_cache> m_persistent_cache;
+
+    middle_pgsql_options m_store_options;
 };
 
 struct table_sql
@@ -136,6 +164,8 @@ struct middle_pgsql_t : public middle_t
 
     std::shared_ptr<middle_query_t> get_query_instance() override;
 
+    void set_requirements(output_requirements const &requirements) override;
+
 private:
     void node_set(osmium::Node const &node);
     void node_delete(osmid_t id);
@@ -143,12 +173,23 @@ private:
     void way_set(osmium::Way const &way);
     void way_delete(osmid_t id);
 
+    void relation_set_format1(osmium::Relation const &rel);
+    void relation_set_format2(osmium::Relation const &rel);
+
     void relation_set(osmium::Relation const &rel);
     void relation_delete(osmid_t id);
 
     void buffer_store_tags(osmium::OSMObject const &obj, bool attrs);
 
+    void copy_attributes(osmium::OSMObject const &obj);
+    void copy_tags(osmium::OSMObject const &obj);
+
+    void write_users_table();
+    void update_users_table();
+
+    std::map<osmium::user_id_type, std::string> m_users;
     osmium::nwr_array<table_desc> m_tables;
+    table_desc m_users_table;
 
     options_t const *m_options;
 
@@ -160,6 +201,11 @@ private:
     // middle keeps its own thread for writing to the database.
     std::shared_ptr<db_copy_thread_t> m_copy_thread;
     db_copy_mgr_t<db_deleter_by_id_t> m_db_copy;
+
+    /// Options for this middle.
+    middle_pgsql_options m_store_options;
+
+    bool m_append;
 };
 
 #endif // OSM2PGSQL_MIDDLE_PGSQL_HPP
