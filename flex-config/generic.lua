@@ -22,7 +22,6 @@ tables.lines = osm2pgsql.define_way_table('lines', {
 tables.polygons = osm2pgsql.define_area_table('polygons', {
     { column = 'tags', type = 'jsonb' },
     { column = 'geom', type = 'geometry', projection = srid, not_null = true },
-    { column = 'area', type = 'area' },
 })
 
 tables.routes = osm2pgsql.define_relation_table('routes', {
