@@ -15,14 +15,7 @@
 
 void full_dependency_manager_t::node_changed(osmid_t id)
 {
-    for (auto const way_id : m_object_store->get_ways_by_node(id)) {
-        way_changed(way_id);
-        m_ways_pending_tracker.set(way_id);
-    }
-
-    for (auto const rel_id : m_object_store->get_rels_by_node(id)) {
-        m_rels_pending_tracker.set(rel_id);
-    }
+    m_changed_nodes.set(id);
 }
 
 void full_dependency_manager_t::way_changed(osmid_t id)
@@ -33,6 +26,23 @@ void full_dependency_manager_t::way_changed(osmid_t id)
 
     for (auto const rel_id : m_object_store->get_rels_by_way(id)) {
         m_rels_pending_tracker.set(rel_id);
+    }
+}
+
+void full_dependency_manager_t::after_nodes()
+{
+    if (m_changed_nodes.empty()) {
+        return;
+    }
+
+    m_object_store->get_node_parents(m_changed_nodes, &m_ways_pending_tracker,
+                                     &m_rels_pending_tracker);
+    m_changed_nodes.clear();
+
+    for (auto const way_id : m_ways_pending_tracker) {
+        for (auto const rel_id : m_object_store->get_rels_by_way(way_id)) {
+            m_rels_pending_tracker.set(rel_id);
+        }
     }
 }
 

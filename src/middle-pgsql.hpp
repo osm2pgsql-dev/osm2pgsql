@@ -117,8 +117,11 @@ struct middle_pgsql_t : public middle_t
     void after_ways() override;
     void after_relations() override;
 
-    idlist_t get_ways_by_node(osmid_t osm_id) override;
-    idlist_t get_rels_by_node(osmid_t osm_id) override;
+    void get_node_parents(
+        osmium::index::IdSetSmall<osmid_t> const &changed_nodes,
+        osmium::index::IdSetSmall<osmid_t> *parent_ways,
+        osmium::index::IdSetSmall<osmid_t> *parent_relations) const override;
+
     idlist_t get_rels_by_way(osmid_t osm_id) override;
 
     class table_desc

@@ -78,6 +78,9 @@ void osmdata_t::after_nodes()
 {
     m_mid->after_nodes();
     m_output->after_nodes();
+    if (m_append) {
+        m_dependency_manager->after_nodes();
+    }
 }
 
 void osmdata_t::way(osmium::Way &way)
