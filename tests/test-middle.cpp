@@ -1107,6 +1107,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
         mid->after_nodes();
         dependency_manager.after_nodes();
         mid->after_ways();
+        dependency_manager.after_ways();
         mid->after_relations();
 
         REQUIRE(dependency_manager.has_pending());
@@ -1141,6 +1142,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
             mid->after_nodes();
             dependency_manager.after_nodes();
             mid->after_ways();
+            dependency_manager.after_ways();
             mid->after_relations();
 
             REQUIRE(dependency_manager.has_pending());
@@ -1181,6 +1183,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
             mid->after_nodes();
             dependency_manager.after_nodes();
             mid->after_ways();
+            dependency_manager.after_ways();
             mid->after_relations();
 
             REQUIRE_FALSE(dependency_manager.has_pending());
@@ -1247,6 +1250,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
         mid->after_nodes();
         dependency_manager.after_nodes();
         mid->after_ways();
+        dependency_manager.after_ways();
         mid->after_relations();
 
         REQUIRE(dependency_manager.has_pending());
@@ -1268,6 +1272,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
         mid->after_nodes();
         dependency_manager.after_nodes();
         mid->after_ways();
+        dependency_manager.after_ways();
         mid->after_relations();
 
         REQUIRE(dependency_manager.has_pending());

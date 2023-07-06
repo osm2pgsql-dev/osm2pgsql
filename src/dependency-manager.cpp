@@ -20,13 +20,7 @@ void full_dependency_manager_t::node_changed(osmid_t id)
 
 void full_dependency_manager_t::way_changed(osmid_t id)
 {
-    if (m_ways_pending_tracker.get(id)) {
-        return;
-    }
-
-    for (auto const rel_id : m_object_store->get_rels_by_way(id)) {
-        m_rels_pending_tracker.set(rel_id);
-    }
+    m_changed_ways.set(id);
 }
 
 void full_dependency_manager_t::after_nodes()
@@ -38,12 +32,55 @@ void full_dependency_manager_t::after_nodes()
     m_object_store->get_node_parents(m_changed_nodes, &m_ways_pending_tracker,
                                      &m_rels_pending_tracker);
     m_changed_nodes.clear();
+}
 
-    for (auto const way_id : m_ways_pending_tracker) {
-        for (auto const rel_id : m_object_store->get_rels_by_way(way_id)) {
-            m_rels_pending_tracker.set(rel_id);
+static osmium::index::IdSetSmall<osmid_t>
+set_diff(osmium::index::IdSetSmall<osmid_t> const &set,
+         osmium::index::IdSetSmall<osmid_t> const &to_be_removed)
+{
+    osmium::index::IdSetSmall<osmid_t> new_set;
+
+    for (auto const id : set) {
+        if (!to_be_removed.get_binary_search(id)) {
+            new_set.set(id);
         }
     }
+
+    return new_set;
+}
+
+void full_dependency_manager_t::after_ways()
+{
+    if (!m_changed_ways.empty()) {
+        if (!m_ways_pending_tracker.empty()) {
+            // Remove ids from changed ways in the input data from
+            // m_ways_pending_tracker, because they have already been processed.
+            m_ways_pending_tracker =
+                set_diff(m_ways_pending_tracker, m_changed_ways);
+
+            // Add the list of pending way ids to the list of changed ways,
+            // because we need the parents for them, too.
+            m_changed_ways.merge_sorted(m_ways_pending_tracker);
+        }
+
+        m_object_store->get_way_parents(m_changed_ways,
+                                        &m_rels_pending_tracker);
+
+        m_changed_ways.clear();
+        return;
+    }
+
+    if (!m_ways_pending_tracker.empty()) {
+        m_object_store->get_way_parents(m_ways_pending_tracker,
+                                        &m_rels_pending_tracker);
+    }
+}
+
+void full_dependency_manager_t::mark_parent_relations_as_pending(
+    osmium::index::IdSetSmall<osmid_t> const &way_ids)
+{
+    assert(m_rels_pending_tracker.empty());
+    m_object_store->get_way_parents(way_ids, &m_rels_pending_tracker);
 }
 
 bool full_dependency_manager_t::has_pending() const noexcept

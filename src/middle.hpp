@@ -156,7 +156,11 @@ public:
     {
     }
 
-    virtual idlist_t get_rels_by_way(osmid_t) { return {}; }
+    virtual void get_way_parents(
+        osmium::index::IdSetSmall<osmid_t> const & /*changed_ways*/,
+        osmium::index::IdSetSmall<osmid_t> * /*parent_relations*/) const
+    {
+    }
 
     virtual std::shared_ptr<middle_query_t> get_query_instance() = 0;
 

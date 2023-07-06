@@ -127,8 +127,6 @@ middle_pgsql_t::table_desc::table_desc(options_t const &options,
     m_copy_target->id = "id";
 
     if (options.with_forward_dependencies) {
-        m_prepare_fw_dep_lookups =
-            build_sql(options, ts.prepare_fw_dep_lookups);
         m_create_fw_dep_indexes = build_sql(options, ts.create_fw_dep_indexes);
     }
 }
@@ -859,9 +857,57 @@ INSERT INTO osm2pgsql_changed_relations
               parent_ways->size(), parent_relations->size());
 }
 
-idlist_t middle_pgsql_t::get_rels_by_way(osmid_t osm_id)
+void middle_pgsql_t::get_way_parents(
+    osmium::index::IdSetSmall<osmid_t> const &changed_ways,
+    osmium::index::IdSetSmall<osmid_t> *parent_relations) const
 {
-    return get_ids_from_db(&m_db_connection, "mark_rels_by_way", osm_id);
+    util::timer_t timer;
+
+    auto const num_relations_referenced_by_nodes = parent_relations->size();
+
+    m_db_connection.exec("BEGIN");
+    m_db_connection.exec("CREATE TEMP TABLE osm2pgsql_changed_ways"
+                         " (id int8 NOT NULL) ON COMMIT DROP");
+    m_db_connection.exec("CREATE TEMP TABLE osm2pgsql_changed_relations"
+                         " (id int8 NOT NULL) ON COMMIT DROP");
+
+    send_id_list(m_db_connection, "osm2pgsql_changed_ways", changed_ways);
+
+    m_db_connection.exec("ANALYZE osm2pgsql_changed_ways");
+
+    if (m_options->middle_database_format == 1) {
+        m_db_connection.exec(build_sql(*m_options, R"(
+INSERT INTO osm2pgsql_changed_relations
+  SELECT DISTINCT r.id
+    FROM {schema}"{prefix}_rels" r, osm2pgsql_changed_ways w
+    WHERE r.parts && ARRAY[w.id]
+      AND r.parts[way_off+1:rel_off] && ARRAY[w.id]
+        )"));
+    } else {
+        m_db_connection.exec(build_sql(*m_options, R"(
+INSERT INTO osm2pgsql_changed_relations
+  SELECT DISTINCT r.id
+    FROM {schema}"{prefix}_rels" r, osm2pgsql_changed_ways c
+    WHERE {schema}"{prefix}_member_ids"(r.members, 'W'::char) && ARRAY[c.id];
+        )"));
+    }
+
+    load_id_list(m_db_connection, "osm2pgsql_changed_relations",
+                 parent_relations);
+
+    m_db_connection.exec("COMMIT");
+
+    timer.stop();
+    log_debug("Found {} ways that are new/changed in input or parent of"
+              " changed node.",
+              changed_ways.size());
+    log_debug("  Found in {} their {} parent relations.",
+              std::chrono::duration_cast<std::chrono::seconds>(timer.elapsed()),
+              parent_relations->size() - num_relations_referenced_by_nodes);
+
+    // (Potentially) contains parent relations from nodes and from ways. Make
+    // sure they are merged.
+    parent_relations->sort_unique();
 }
 
 void middle_pgsql_t::way_set(osmium::Way const &way)
@@ -1223,13 +1269,6 @@ void middle_pgsql_t::start()
         // problems when accessing the intarrays.
         m_db_connection.set_config("jit_above_cost", "-1");
         m_db_connection.set_config("max_parallel_workers_per_gather", "0");
-
-        // Prepare queries for updating dependent objects
-        for (auto &table : m_tables) {
-            if (!table.m_prepare_fw_dep_lookups.empty()) {
-                m_db_connection.exec(table.m_prepare_fw_dep_lookups);
-            }
-        }
     } else {
         if (m_store_options.db_format == 2) {
             table_setup(m_db_connection, m_users_table);
@@ -1488,12 +1527,6 @@ static table_sql sql_for_relations_format1()
                         "  SELECT members, tags"
                         "    FROM {schema}\"{prefix}_rels\" WHERE id = $1;\n";
 
-    sql.prepare_fw_dep_lookups =
-        "PREPARE mark_rels_by_way(int8) AS"
-        "  SELECT id FROM {schema}\"{prefix}_rels\""
-        "    WHERE parts && ARRAY[$1]"
-        "      AND parts[way_off+1:rel_off] && ARRAY[$1];\n";
-
     sql.create_fw_dep_indexes =
         "CREATE INDEX ON {schema}\"{prefix}_rels\" USING GIN (parts)"
         "  WITH (fastupdate = off) {index_tablespace};\n";
@@ -1527,12 +1560,6 @@ static table_sql sql_for_relations_format2()
                         " FROM {schema}\"{prefix}_rels\" o"
                         " {users_table_access}"
                         " WHERE o.id = $1;\n";
-
-    sql.prepare_fw_dep_lookups =
-        "PREPARE mark_rels_by_way(int8) AS"
-        "  SELECT DISTINCT id FROM {schema}\"{prefix}_rels\""
-        "    WHERE {schema}\"{prefix}_member_ids\"(members, 'W'::char)"
-        "      @> ARRAY[$1::bigint];\n";
 
     sql.create_fw_dep_indexes =
         "CREATE INDEX \"{prefix}_rels_node_members\""

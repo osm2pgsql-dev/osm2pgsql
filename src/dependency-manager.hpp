@@ -53,6 +53,12 @@ public:
     virtual void way_changed(osmid_t) {}
 
     virtual void after_nodes() {}
+    virtual void after_ways() {}
+
+    virtual void mark_parent_relations_as_pending(
+        osmium::index::IdSetSmall<osmid_t> const & /*way_ids*/)
+    {
+    }
 
     /// Are there pending objects that need to be processed?
     virtual bool has_pending() const noexcept { return false; }
@@ -98,6 +104,10 @@ public:
     void way_changed(osmid_t id) override;
 
     void after_nodes() override;
+    void after_ways() override;
+
+    void mark_parent_relations_as_pending(
+        osmium::index::IdSetSmall<osmid_t> const &ids) override;
 
     bool has_pending() const noexcept override;
 
@@ -125,6 +135,15 @@ private:
      * are.
      */
     osmium::index::IdSetSmall<osmid_t> m_changed_nodes;
+
+    /**
+     * In append mode all new and changed ways will be added to this. After
+     * all ways are read this is used to figure out which parent relations
+     * reference these ways. Deleted ways are not stored in here, because all
+     * relations that referenced deleted ways must be in the change file, too,
+     * and so we don't have to find out which ones they are.
+     */
+    osmium::index::IdSetSmall<osmid_t> m_changed_ways;
 
     osmium::index::IdSetSmall<osmid_t> m_ways_pending_tracker;
     osmium::index::IdSetSmall<osmid_t> m_rels_pending_tracker;
