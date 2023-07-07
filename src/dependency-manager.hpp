@@ -52,8 +52,11 @@ public:
      */
     virtual void way_changed(osmid_t) {}
 
+    virtual void relation_changed(osmid_t) {}
+
     virtual void after_nodes() {}
     virtual void after_ways() {}
+    virtual void after_relations() {}
 
     virtual void mark_parent_relations_as_pending(
         osmium::index::IdSetSmall<osmid_t> const & /*way_ids*/)
@@ -102,9 +105,11 @@ public:
 
     void node_changed(osmid_t id) override;
     void way_changed(osmid_t id) override;
+    void relation_changed(osmid_t id) override;
 
     void after_nodes() override;
     void after_ways() override;
+    void after_relations() override;
 
     void mark_parent_relations_as_pending(
         osmium::index::IdSetSmall<osmid_t> const &ids) override;
@@ -144,6 +149,13 @@ private:
      * and so we don't have to find out which ones they are.
      */
     osmium::index::IdSetSmall<osmid_t> m_changed_ways;
+
+    /**
+     * In append mode all new and changed relations will be added to this.
+     * This is then used to remove already processed relations from the
+     * pending list.
+     */
+    osmium::index::IdSetSmall<osmid_t> m_changed_relations;
 
     osmium::index::IdSetSmall<osmid_t> m_ways_pending_tracker;
     osmium::index::IdSetSmall<osmid_t> m_rels_pending_tracker;

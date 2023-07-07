@@ -141,12 +141,19 @@ void osmdata_t::relation(osmium::Relation const &rel)
         } else {
             m_output->relation_delete(rel.id());
         }
+        m_dependency_manager->relation_changed(rel.id());
     } else if (has_tags_or_attrs) {
         m_output->relation_add(rel);
     }
 }
 
-void osmdata_t::after_relations() { m_mid->after_relations(); }
+void osmdata_t::after_relations()
+{
+    m_mid->after_relations();
+    if (m_append) {
+        m_dependency_manager->after_relations();
+    }
+}
 
 void osmdata_t::start() const
 {

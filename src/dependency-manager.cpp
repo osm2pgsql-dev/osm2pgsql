@@ -23,6 +23,11 @@ void full_dependency_manager_t::way_changed(osmid_t id)
     m_changed_ways.set(id);
 }
 
+void full_dependency_manager_t::relation_changed(osmid_t id)
+{
+    m_changed_relations.set(id);
+}
+
 void full_dependency_manager_t::after_nodes()
 {
     if (m_changed_nodes.empty()) {
@@ -74,6 +79,16 @@ void full_dependency_manager_t::after_ways()
         m_object_store->get_way_parents(m_ways_pending_tracker,
                                         &m_rels_pending_tracker);
     }
+}
+
+void full_dependency_manager_t::after_relations()
+{
+    // Remove ids from changed relations in the input data from
+    // m_rels_pending_tracker, because they have already been processed.
+    m_rels_pending_tracker =
+        set_diff(m_rels_pending_tracker, m_changed_relations);
+
+    m_changed_relations.clear();
 }
 
 void full_dependency_manager_t::mark_parent_relations_as_pending(
