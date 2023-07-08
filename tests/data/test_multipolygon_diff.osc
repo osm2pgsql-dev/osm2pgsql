@@ -28,10 +28,7 @@
     </way>
   </modify>
   <delete>
-    <way id="97" version="1" timestamp="2013-08-30T00:51:24Z" uid="5" user="Test123" changeset="5">
-      <nd ref="251"/>
-      <nd ref="235"/>
-    </way>
+    <way id="97" version="1" timestamp="2013-08-30T00:51:24Z" uid="5" user="Test123" changeset="5"/>
   </delete>
   <modify>
     <way id="100" version="1" timestamp="2013-08-30T00:11:07Z" uid="5" user="Test123" changeset="5">
@@ -41,13 +38,7 @@
     </way>
   </modify>
   <delete>
-    <way id="104" version="1" timestamp="2013-08-30T00:51:24Z" uid="5" user="Test123" changeset="5">
-      <nd ref="242"/>
-      <nd ref="243"/>
-      <nd ref="278"/>
-      <nd ref="269"/>
-      <nd ref="242"/>
-    </way>
+    <way id="104" version="1" timestamp="2013-08-30T00:51:24Z" uid="5" user="Test123" changeset="5"/>
   </delete>
   <modify>
     <way id="106" version="1" timestamp="2013-08-30T00:11:07Z" uid="5" user="Test123" changeset="5">
@@ -134,13 +125,7 @@
     </relation>
   </modify>
   <delete>
-    <relation id="25" version="1" timestamp="2013-08-30T00:51:24Z" uid="5" user="Test123" changeset="4">
-      <member type="way" ref="90" role="outer"/>
-      <member type="way" ref="91" role="inner"/>
-      <tag k="brand" v="my brand"/>
-      <tag k="name" v="my name"/>
-      <tag k="type" v="multipolygon"/>
-    </relation>
+    <relation id="25" version="1" timestamp="2013-08-30T00:51:24Z" uid="5" user="Test123" changeset="4"/>
   </delete>
   <modify>
     <relation id="26" version="1" timestamp="2013-08-30T00:11:08Z" uid="5" user="Test123" changeset="5">
