@@ -86,7 +86,7 @@ middle_pgsql_t::table_desc::table_desc(options_t const &options,
 {
     m_copy_target->name = build_sql(options, ts.name);
     m_copy_target->schema = options.middle_dbschema;
-    m_copy_target->id = "id"; // XXX hardcoded column name
+    m_copy_target->id = "id";
 
     if (options.with_forward_dependencies) {
         m_prepare_fw_dep_lookups =
