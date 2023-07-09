@@ -178,6 +178,18 @@ void middle_pgsql_t::table_desc::build_index(std::string const &conninfo) const
     }
 }
 
+void middle_pgsql_t::table_desc::init_max_id(pg_conn_t const &db_connection)
+{
+    auto const qual_name = qualified_name(schema(), name());
+    auto const res = db_connection.exec("SELECT max(id) FROM {}", qual_name);
+
+    if (res.is_null(0, 0)) {
+        return;
+    }
+
+    m_max_id = osmium::string_to_object_id(res.get_value(0, 0));
+}
+
 /**
  * Decode item in an array literal from PostgreSQL to the next delimiter.
  *
@@ -790,7 +802,7 @@ void middle_pgsql_t::node_delete(osmid_t osm_id)
         m_persistent_cache->set(osm_id, osmium::Location{});
     }
 
-    if (m_store_options.nodes) {
+    if (m_store_options.nodes && osm_id <= m_tables.nodes().max_id()) {
         m_db_copy.new_line(m_tables.nodes().copy_target());
         m_db_copy.delete_object(osm_id);
     }
@@ -1049,8 +1061,11 @@ middle_query_pgsql_t::rel_members_get(osmium::Relation const &rel,
 void middle_pgsql_t::way_delete(osmid_t osm_id)
 {
     assert(m_options->append);
-    m_db_copy.new_line(m_tables.ways().copy_target());
-    m_db_copy.delete_object(osm_id);
+
+    if (osm_id <= m_tables.ways().max_id()) {
+        m_db_copy.new_line(m_tables.ways().copy_target());
+        m_db_copy.delete_object(osm_id);
+    }
 }
 
 void middle_pgsql_t::relation_set_format1(osmium::Relation const &rel)
@@ -1189,8 +1204,10 @@ void middle_pgsql_t::relation_delete(osmid_t osm_id)
 {
     assert(m_options->append);
 
-    m_db_copy.new_line(m_tables.relations().copy_target());
-    m_db_copy.delete_object(osm_id);
+    if (osm_id <= m_tables.relations().max_id()) {
+        m_db_copy.new_line(m_tables.relations().copy_target());
+        m_db_copy.delete_object(osm_id);
+    }
 }
 
 void middle_pgsql_t::after_nodes()
@@ -1283,6 +1300,16 @@ void middle_pgsql_t::start()
         // problems when accessing the intarrays.
         m_db_connection.set_config("jit_above_cost", "-1");
         m_db_connection.set_config("max_parallel_workers_per_gather", "0");
+
+        // Remember the maximum OSM ids in the middle tables. This is a very
+        // fast operation due to the index on the table. Later when we need
+        // to delete entries, we don't have to bother with entries that are
+        // definitely not in the table.
+        if (m_store_options.nodes) {
+            m_tables.nodes().init_max_id(m_db_connection);
+        }
+        m_tables.ways().init_max_id(m_db_connection);
+        m_tables.relations().init_max_id(m_db_connection);
     } else {
         if (m_store_options.db_format == 2) {
             table_setup(m_db_connection, m_users_table);
