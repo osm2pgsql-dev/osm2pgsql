@@ -120,12 +120,13 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
 
     auto conn = db.connect();
     auto const num_tables =
-        conn.get_count("pg_tables", "schemaname = 'public'");
+        conn.get_count("pg_catalog.pg_tables", "schemaname = 'public'");
     auto const num_indexes =
-        conn.get_count("pg_indexes", "schemaname = 'public'");
+        conn.get_count("pg_catalog.pg_indexes", "schemaname = 'public'");
     auto const num_procs =
-        conn.get_count("pg_proc", "pronamespace = (SELECT oid FROM "
-                                  "pg_namespace WHERE nspname = 'public')");
+        conn.get_count("pg_catalog.pg_proc",
+                       "pronamespace = (SELECT oid FROM "
+                       "pg_catalog.pg_namespace WHERE nspname = 'public')");
 
     if (!options.middle_dbschema.empty()) {
         conn.exec("CREATE SCHEMA IF NOT EXISTS osm;");
@@ -329,14 +330,15 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
     }
 
     if (!options.middle_dbschema.empty()) {
-        REQUIRE(num_tables ==
-                conn.get_count("pg_tables", "schemaname = 'public'"));
-        REQUIRE(num_indexes ==
-                conn.get_count("pg_indexes", "schemaname = 'public'"));
+        REQUIRE(num_tables == conn.get_count("pg_catalog.pg_tables",
+                                             "schemaname = 'public'"));
+        REQUIRE(num_indexes == conn.get_count("pg_catalog.pg_indexes",
+                                              "schemaname = 'public'"));
         REQUIRE(num_procs ==
-                conn.get_count("pg_proc",
-                               "pronamespace = (SELECT oid FROM "
-                               "pg_namespace WHERE nspname = 'public')"));
+                conn.get_count(
+                    "pg_catalog.pg_proc",
+                    "pronamespace = (SELECT oid FROM "
+                    "pg_catalog.pg_namespace WHERE nspname = 'public')"));
     }
 }
 
