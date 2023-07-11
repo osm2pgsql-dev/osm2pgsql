@@ -181,7 +181,7 @@ Middle options:\n\
        --cache-strategy=STRATEGY  Deprecated. Not used any more.\n\
     -x|--extra-attributes  Include attributes (user name, user id, changeset\n\
                     id, timestamp and version) for each object in the database.\n\
-       --middle-schema=SCHEMA  Schema to use for middle tables (default: none).\n\
+       --middle-schema=SCHEMA  Schema to use for middle tables (default: 'public').\n\
        --middle-way-node-index-id-shift=SHIFT  Set ID shift for bucket index.\n\
        --middle-database-format=FORMAT  Set middle db format (default: legacy).\n\
        --middle-with-nodes  Store tagged nodes in db (new middle db format only).\n\
@@ -213,7 +213,7 @@ Pgsql output options:\n\
     -K|--keep-coastlines  Keep coastline data rather than filtering it out.\n\
                     Default: discard objects tagged natural=coastline.\n\
        --output-pgsql-schema=SCHEMA Schema to use for pgsql output tables\n\
-                    (default: none).\n\
+                    (default: 'public').\n\
        --reproject-area  Compute area column using web mercator coordinates.\n\
 \n\
 Expiry options:\n\
@@ -716,11 +716,17 @@ options_t parse_command_line(int argc, char *argv[])
             return options;
         case 215: // --middle-schema
             options.middle_dbschema = optarg;
+            if (options.middle_dbschema.empty()) {
+                throw std::runtime_error{"Schema can not be empty."};
+            }
             check_identifier(options.middle_dbschema,
                              "--middle-schema parameter");
             break;
         case 216: // --output-pgsql-schema
             options.output_dbschema = optarg;
+            if (options.output_dbschema.empty()) {
+                throw std::runtime_error{"Schema can not be empty."};
+            }
             check_identifier(options.output_dbschema,
                              "--output-pgsql-schema parameter");
             break;

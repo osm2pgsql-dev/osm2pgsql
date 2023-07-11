@@ -28,8 +28,8 @@
  */
 struct db_target_descr_t
 {
-    /// Schema of the target table (can be empty for default schema)
-    std::string schema;
+    /// Schema of the target table.
+    std::string schema{"public"};
     /// Name of the target table for the copy operation.
     std::string name;
     /// Name of id column used when deleting objects.

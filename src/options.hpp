@@ -98,11 +98,11 @@ struct options_t
     /// Pg Tablespace to store slim tables (no default TABLESPACE)
     std::string tblsslim_data{};
 
-    /// Pg schema to store middle tables in, default none
-    std::string middle_dbschema{};
+    /// Pg schema to store middle tables in.
+    std::string middle_dbschema{"public"};
 
-    /// Pg schema to store output tables in, default none
-    std::string output_dbschema{};
+    /// Pg schema to store output tables in.
+    std::string output_dbschema{"public"};
 
     std::string style{DEFAULT_STYLE}; ///< style file to use
 

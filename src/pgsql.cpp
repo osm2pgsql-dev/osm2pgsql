@@ -205,20 +205,8 @@ std::string tablespace_clause(std::string const &name)
 
 std::string qualified_name(std::string const &schema, std::string const &name)
 {
-    std::string result{"\""};
-
-    if (!schema.empty()) {
-        result.reserve(schema.size() + name.size() + 5);
-        result += schema;
-        result += "\".\"";
-    } else {
-        result.reserve(name.size() + 2);
-    }
-
-    result += name;
-    result += '"';
-
-    return result;
+    assert(!schema.empty());
+    return fmt::format(R"("{}"."{}")", schema, name);
 }
 
 void check_identifier(std::string const &name, char const *in)

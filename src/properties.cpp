@@ -9,19 +9,21 @@
 
 #include "properties.hpp"
 
+#include "format.hpp"
 #include "logging.hpp"
 #include "pgsql-capabilities.hpp"
 #include "pgsql.hpp"
 
+#include <cassert>
 #include <cstdlib>
 
 static constexpr char const *const properties_table = "osm2pgsql_properties";
 
 properties_t::properties_t(std::string conninfo, std::string schema)
 : m_conninfo(std::move(conninfo)), m_schema(std::move(schema)),
-  m_has_properties_table(
-      has_table(m_schema.empty() ? "public" : m_schema, properties_table))
+  m_has_properties_table(has_table(m_schema, properties_table))
 {
+    assert(!m_schema.empty());
     log_debug("Found properties table '{}': {}.", properties_table,
               m_has_properties_table);
 }
@@ -161,15 +163,5 @@ bool properties_t::load()
 
 std::string properties_t::table_name() const
 {
-    std::string table;
-
-    if (!m_schema.empty()) {
-        table += '"';
-        table += m_schema;
-        table += '"';
-        table += '.';
-    }
-    table += properties_table;
-
-    return table;
+    return qualified_name(m_schema, properties_table);
 }

@@ -264,9 +264,7 @@ static void check_for_nodes_table(options_t const &options)
         return;
     }
 
-    if (!has_table(options.middle_dbschema.empty() ? "public"
-                                                   : options.middle_dbschema,
-                   options.prefix + "_nodes")) {
+    if (!has_table(options.middle_dbschema, options.prefix + "_nodes")) {
         throw std::runtime_error{"You seem to not have a nodes table. Did "
                                  "you forget the --flat-nodes option?"};
     }

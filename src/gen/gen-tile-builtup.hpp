@@ -37,8 +37,6 @@ private:
 
     std::vector<std::string> m_source_tables;
     std::string m_image_path;
-    std::string m_schema;
-    std::string m_dest_table;
     std::string m_image_table;
     double m_margin = 0.0;
     std::size_t m_image_extent = 2048;
