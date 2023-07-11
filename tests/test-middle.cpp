@@ -1092,6 +1092,9 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
         check_way_nodes(mid, way21.id(), {&node11, &node12});
 
         REQUIRE_FALSE(dependency_manager.has_pending());
+
+        mid->stop();
+        mid->wait();
     }
 
     // From now on use append mode to not destroy the data we just added.
@@ -1235,6 +1238,9 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
         mid->relation(rel30);
         mid->relation(rel31);
         mid->after_relations();
+
+        mid->stop();
+        mid->wait();
     }
 
     // From now on use append mode to not destroy the data we just added.
