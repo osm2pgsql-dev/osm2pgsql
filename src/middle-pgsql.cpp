@@ -1470,11 +1470,11 @@ static table_sql sql_for_relations_format2()
         "      @> ARRAY[$1::bigint];\n";
 
     sql.create_fw_dep_indexes =
-        "CREATE INDEX {schema}\"{prefix}_rels_node_members\""
+        "CREATE INDEX \"{prefix}_rels_node_members\""
         "  ON {schema}\"{prefix}_rels\" USING GIN"
         "  (({schema}\"{prefix}_member_ids\"(members, 'N'::char)))"
         "  WITH (fastupdate = off) {index_tablespace};\n"
-        "CREATE INDEX {schema}\"{prefix}_rels_way_members\""
+        "CREATE INDEX \"{prefix}_rels_way_members\""
         "  ON {schema}\"{prefix}_rels\" USING GIN"
         "  (({schema}\"{prefix}_member_ids\"(members, 'W'::char)))"
         "  WITH (fastupdate = off) {index_tablespace};\n";
