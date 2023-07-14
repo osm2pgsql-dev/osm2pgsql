@@ -17,6 +17,7 @@
 #include <cstdlib>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <utility>
 
 std::size_t pg_result_t::affected_rows() const noexcept
@@ -182,7 +183,8 @@ pg_result_t pg_conn_t::exec_prepared_internal(char const *stmt, int num_params,
     if (status != PGRES_COMMAND_OK && status != PGRES_TUPLES_OK) {
         log_error("SQL command failed: EXECUTE {}({})", stmt,
                   concat_params(num_params, param_values));
-        throw fmt_error("Database error: {} ({})", error_msg(), status);
+        throw fmt_error("Database error: {} ({})", error_msg(),
+                        std::underlying_type_t<ExecStatusType>(status));
     }
 
     return res;
