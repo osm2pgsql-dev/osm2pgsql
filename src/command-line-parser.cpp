@@ -183,6 +183,8 @@ Middle options:\n\
                     id, timestamp and version) for each object in the database.\n\
        --middle-schema=SCHEMA  Schema to use for middle tables (default: none).\n\
        --middle-way-node-index-id-shift=SHIFT  Set ID shift for bucket index.\n\
+       --middle-database-format=FORMAT  Set middle db format (default: legacy).\n\
+       --middle-with-nodes  Store tagged nodes in db (new middle db format only).\n\
 \n\
 Pgsql output options:\n\
     -i|--tablespace-index=TBLSPC  The name of the PostgreSQL tablespace where\n\

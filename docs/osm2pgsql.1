@@ -1,7 +1,7 @@
 .TH "OSM2PGSQL" "1" "1.8.1" "" ""
 .SH NAME
 .PP
-osm2pgsql - Openstreetmap data to PostgreSQL converter
+osm2pgsql - OpenStreetMap data to PostgreSQL converter
 .SH SYNOPSIS
 .PP
 \f[B]osm2pgsql\f[R] [\f[I]OPTIONS\f[R]] OSM-FILE\&...
@@ -19,7 +19,7 @@ In \[lq]create\[rq] mode osm2pgsql will create the database tables
 required by the configuration and import the OSM file(s) specified on
 the command line into those tables.
 Note that you also have to use the \f[B]-s, --slim\f[R] option if you
-want your database to be updateable.
+want your database to be updatable.
 .PP
 In \[lq]append\[rq] mode osm2pgsql will update the database tables with
 the data from OSM change files specified on the command line.
@@ -193,6 +193,23 @@ used).
 Set ID shift for way node bucket index in middle.
 Experts only.
 See documentation for details.
+.TP
+--middle-database-format=FORMAT
+Set the database format for the middle tables to FORMAT.
+Allowed formats are \f[B]legacy\f[R] and \f[B]new\f[R].
+The \f[B]legacy\f[R] format is the old format that will eventually be
+deprecated and removed but is currently still the default.
+The \f[B]new\f[R] format was introduced in version 1.9.0 and is still
+experimental.
+See the manual for details on these formats.
+(Only works with \f[B]--slim\f[R].
+In append mode osm2pgsql will automatically detect the database format,
+so don\[cq]t use this with \f[B]-a, --append\f[R].)
+.TP
+--middle-with-nodes
+Used together with the \f[B]new\f[R] middle database format when a flat
+nodes file is used to force storing nodes with tags in the database,
+too.
 .SH OUTPUT OPTIONS
 .TP
 -O, --output=OUTPUT
