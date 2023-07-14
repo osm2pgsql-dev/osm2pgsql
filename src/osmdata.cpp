@@ -78,6 +78,9 @@ void osmdata_t::after_nodes()
 {
     m_mid->after_nodes();
     m_output->after_nodes();
+    if (m_append) {
+        m_dependency_manager->after_nodes();
+    }
 }
 
 void osmdata_t::way(osmium::Way &way)
@@ -106,6 +109,9 @@ void osmdata_t::after_ways()
 {
     m_mid->after_ways();
     m_output->after_ways();
+    if (m_append) {
+        m_dependency_manager->after_ways();
+    }
 }
 
 void osmdata_t::relation(osmium::Relation const &rel)
@@ -135,12 +141,19 @@ void osmdata_t::relation(osmium::Relation const &rel)
         } else {
             m_output->relation_delete(rel.id());
         }
+        m_dependency_manager->relation_changed(rel.id());
     } else if (has_tags_or_attrs) {
         m_output->relation_add(rel);
     }
 }
 
-void osmdata_t::after_relations() { m_mid->after_relations(); }
+void osmdata_t::after_relations()
+{
+    m_mid->after_relations();
+    if (m_append) {
+        m_dependency_manager->after_relations();
+    }
+}
 
 void osmdata_t::start() const
 {
@@ -348,9 +361,12 @@ void osmdata_t::process_dependents() const
     }
 
     // stage 1c processing: mark parent relations of marked objects as changed
-    for (auto const id : m_output->get_marked_way_ids()) {
-        m_dependency_manager->way_changed(id);
+    auto marked_ways = m_output->get_marked_way_ids();
+    if (marked_ways.empty()) {
+        return;
     }
+
+    m_dependency_manager->mark_parent_relations_as_pending(marked_ways);
 
     // process parent relations of marked ways
     if (m_dependency_manager->has_pending()) {

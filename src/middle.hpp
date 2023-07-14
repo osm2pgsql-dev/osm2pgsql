@@ -10,6 +10,7 @@
  * For a full list of authors see the git log.
  */
 
+#include <osmium/index/id_set.hpp>
 #include <osmium/memory/buffer.hpp>
 #include <osmium/osm/entity_bits.hpp>
 
@@ -148,9 +149,18 @@ public:
 #endif
     }
 
-    virtual idlist_t get_ways_by_node(osmid_t) { return {}; }
-    virtual idlist_t get_rels_by_node(osmid_t) { return {}; }
-    virtual idlist_t get_rels_by_way(osmid_t) { return {}; }
+    virtual void get_node_parents(
+        osmium::index::IdSetSmall<osmid_t> const & /*changed_nodes*/,
+        osmium::index::IdSetSmall<osmid_t> * /*parent_ways*/,
+        osmium::index::IdSetSmall<osmid_t> * /*parent_relations*/) const
+    {
+    }
+
+    virtual void get_way_parents(
+        osmium::index::IdSetSmall<osmid_t> const & /*changed_ways*/,
+        osmium::index::IdSetSmall<osmid_t> * /*parent_relations*/) const
+    {
+    }
 
     virtual std::shared_ptr<middle_query_t> get_query_instance() = 0;
 

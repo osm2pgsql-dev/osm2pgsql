@@ -18,6 +18,7 @@
 #include <cassert>
 #include <cstdint>
 #include <cstdlib>
+#include <iterator>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -40,6 +41,43 @@
 #include "osmtypes.hpp"
 #include "pgsql-helper.hpp"
 #include "util.hpp"
+
+static bool check_bucket_index(pg_conn_t const *db_connection,
+                               std::string const &prefix)
+{
+    auto const res =
+        db_connection->exec("SELECT relname FROM pg_class"
+                            " WHERE relkind='i'"
+                            " AND relname = '{}_ways_nodes_bucket_idx'",
+                            prefix);
+    return res.num_tuples() > 0;
+}
+
+static void send_id_list(pg_conn_t const &db_connection,
+                         std::string const &table,
+                         osmium::index::IdSetSmall<osmid_t> const &ids)
+{
+    std::string data;
+    for (auto const id : ids) {
+        fmt::format_to(std::back_inserter(data), FMT_STRING("{}\n"), id);
+    }
+
+    auto const sql = fmt::format("COPY {} FROM STDIN", table);
+    db_connection.copy_start(sql.c_str());
+    db_connection.copy_send(data, table);
+    db_connection.copy_end(table);
+}
+
+static void load_id_list(pg_conn_t const &db_connection,
+                         std::string const &table,
+                         osmium::index::IdSetSmall<osmid_t> *ids)
+{
+    auto const res =
+        db_connection.exec(fmt::format("SELECT id FROM {} ORDER BY id", table));
+    for (int n = 0; n < res.num_tuples(); ++n) {
+        ids->set(osmium::string_to_object_id(res.get_value(n, 0)));
+    }
+}
 
 static std::string build_sql(options_t const &options, std::string const &templ)
 {
@@ -89,8 +127,6 @@ middle_pgsql_t::table_desc::table_desc(options_t const &options,
     m_copy_target->id = "id";
 
     if (options.with_forward_dependencies) {
-        m_prepare_fw_dep_lookups =
-            build_sql(options, ts.prepare_fw_dep_lookups);
         m_create_fw_dep_indexes = build_sql(options, ts.create_fw_dep_indexes);
     }
 }
@@ -746,19 +782,132 @@ void middle_pgsql_t::node_delete(osmid_t osm_id)
     }
 }
 
-idlist_t middle_pgsql_t::get_ways_by_node(osmid_t osm_id)
+void middle_pgsql_t::get_node_parents(
+    osmium::index::IdSetSmall<osmid_t> const &changed_nodes,
+    osmium::index::IdSetSmall<osmid_t> *parent_ways,
+    osmium::index::IdSetSmall<osmid_t> *parent_relations) const
 {
-    return get_ids_from_db(&m_db_connection, "mark_ways_by_node", osm_id);
+    util::timer_t timer;
+
+    m_db_connection.exec("BEGIN");
+    m_db_connection.exec("CREATE TEMP TABLE osm2pgsql_changed_nodes"
+                         " (id int8 NOT NULL) ON COMMIT DROP");
+    m_db_connection.exec("CREATE TEMP TABLE osm2pgsql_changed_ways"
+                         " (id int8 NOT NULL) ON COMMIT DROP");
+    m_db_connection.exec("CREATE TEMP TABLE osm2pgsql_changed_relations"
+                         " (id int8 NOT NULL) ON COMMIT DROP");
+
+    send_id_list(m_db_connection, "osm2pgsql_changed_nodes", changed_nodes);
+
+    m_db_connection.exec("ANALYZE osm2pgsql_changed_nodes");
+
+    bool const has_bucket_index =
+        check_bucket_index(&m_db_connection, m_options->prefix);
+
+    if (has_bucket_index) {
+        m_db_connection.exec(build_sql(*m_options, R"(
+WITH changed_buckets AS (
+  SELECT array_agg(id) AS node_ids, id >> {way_node_index_id_shift} AS bucket
+    FROM osm2pgsql_changed_nodes GROUP BY id >> {way_node_index_id_shift}
+)
+INSERT INTO osm2pgsql_changed_ways
+  SELECT DISTINCT w.id
+    FROM {schema}"{prefix}_ways" w, changed_buckets b
+    WHERE w.nodes && b.node_ids
+      AND {schema}"{prefix}_index_bucket"(w.nodes)
+       && ARRAY[b.bucket];
+        )"));
+    } else {
+        m_db_connection.exec(build_sql(*m_options, R"(
+INSERT INTO osm2pgsql_changed_ways
+  SELECT DISTINCT w.id
+    FROM {schema}"{prefix}_ways" w, osm2pgsql_changed_nodes n
+    WHERE w.nodes && ARRAY[n.id]
+        )"));
+    }
+
+    if (m_options->middle_database_format == 1) {
+        m_db_connection.exec(build_sql(*m_options, R"(
+INSERT INTO osm2pgsql_changed_relations
+  SELECT DISTINCT r.id
+    FROM {schema}"{prefix}_rels" r, osm2pgsql_changed_nodes n
+    WHERE r.parts && ARRAY[n.id]
+      AND r.parts[1:way_off] && ARRAY[n.id]
+        )"));
+    } else {
+        m_db_connection.exec(build_sql(*m_options, R"(
+INSERT INTO osm2pgsql_changed_relations
+  SELECT DISTINCT r.id
+    FROM {schema}"{prefix}_rels" r, osm2pgsql_changed_nodes c
+    WHERE {schema}"{prefix}_member_ids"(r.members, 'N'::char) && ARRAY[c.id];
+        )"));
+    }
+
+    load_id_list(m_db_connection, "osm2pgsql_changed_ways", parent_ways);
+    load_id_list(m_db_connection, "osm2pgsql_changed_relations",
+                 parent_relations);
+
+    m_db_connection.exec("COMMIT");
+
+    timer.stop();
+
+    log_debug("Found {} new/changed nodes in input.", changed_nodes.size());
+    log_debug("  Found in {} their {} parent ways and {} parent relations.",
+              std::chrono::duration_cast<std::chrono::seconds>(timer.elapsed()),
+              parent_ways->size(), parent_relations->size());
 }
 
-idlist_t middle_pgsql_t::get_rels_by_node(osmid_t osm_id)
+void middle_pgsql_t::get_way_parents(
+    osmium::index::IdSetSmall<osmid_t> const &changed_ways,
+    osmium::index::IdSetSmall<osmid_t> *parent_relations) const
 {
-    return get_ids_from_db(&m_db_connection, "mark_rels_by_node", osm_id);
-}
+    util::timer_t timer;
 
-idlist_t middle_pgsql_t::get_rels_by_way(osmid_t osm_id)
-{
-    return get_ids_from_db(&m_db_connection, "mark_rels_by_way", osm_id);
+    auto const num_relations_referenced_by_nodes = parent_relations->size();
+
+    m_db_connection.exec("BEGIN");
+    m_db_connection.exec("CREATE TEMP TABLE osm2pgsql_changed_ways"
+                         " (id int8 NOT NULL) ON COMMIT DROP");
+    m_db_connection.exec("CREATE TEMP TABLE osm2pgsql_changed_relations"
+                         " (id int8 NOT NULL) ON COMMIT DROP");
+
+    send_id_list(m_db_connection, "osm2pgsql_changed_ways", changed_ways);
+
+    m_db_connection.exec("ANALYZE osm2pgsql_changed_ways");
+
+    if (m_options->middle_database_format == 1) {
+        m_db_connection.exec(build_sql(*m_options, R"(
+INSERT INTO osm2pgsql_changed_relations
+  SELECT DISTINCT r.id
+    FROM {schema}"{prefix}_rels" r, osm2pgsql_changed_ways w
+    WHERE r.parts && ARRAY[w.id]
+      AND r.parts[way_off+1:rel_off] && ARRAY[w.id]
+        )"));
+    } else {
+        m_db_connection.exec(build_sql(*m_options, R"(
+INSERT INTO osm2pgsql_changed_relations
+  SELECT DISTINCT r.id
+    FROM {schema}"{prefix}_rels" r, osm2pgsql_changed_ways c
+    WHERE {schema}"{prefix}_member_ids"(r.members, 'W'::char) && ARRAY[c.id];
+        )"));
+    }
+
+    load_id_list(m_db_connection, "osm2pgsql_changed_relations",
+                 parent_relations);
+
+    m_db_connection.exec("COMMIT");
+
+    timer.stop();
+    log_debug("Found {} ways that are new/changed in input or parent of"
+              " changed node.",
+              changed_ways.size());
+    log_debug("  Found in {} their {} parent relations.",
+              std::chrono::duration_cast<std::chrono::seconds>(timer.elapsed()),
+              parent_relations->size() - num_relations_referenced_by_nodes);
+
+    // (Potentially) contains parent relations from nodes and from ways. Make
+    // sure they are merged.
+    parent_relations->sort_unique();
 }
 
 void middle_pgsql_t::way_set(osmium::Way const &way)
@@ -1120,13 +1269,6 @@ void middle_pgsql_t::start()
         // problems when accessing the intarrays.
         m_db_connection.set_config("jit_above_cost", "-1");
         m_db_connection.set_config("max_parallel_workers_per_gather", "0");
-
-        // Prepare queries for updating dependent objects
-        for (auto &table : m_tables) {
-            if (!table.m_prepare_fw_dep_lookups.empty()) {
-                m_db_connection.exec(table.m_prepare_fw_dep_lookups);
-            }
-        }
     } else {
         if (m_store_options.db_format == 2) {
             table_setup(m_db_connection, m_users_table);
@@ -1279,8 +1421,7 @@ static table_sql sql_for_nodes_format2(middle_pgsql_options const &options)
     return sql;
 }
 
-static table_sql sql_for_ways_format1(bool has_bucket_index,
-                                      uint8_t way_node_index_id_shift)
+static table_sql sql_for_ways_format1(uint8_t way_node_index_id_shift)
 {
     table_sql sql{};
 
@@ -1299,20 +1440,6 @@ static table_sql sql_for_ways_format1(bool has_bucket_index,
                         "  SELECT id, nodes, tags"
                         "    FROM {schema}\"{prefix}_ways\""
                         "      WHERE id = ANY($1::int8[]);\n";
-
-    if (has_bucket_index) {
-        sql.prepare_fw_dep_lookups =
-            "PREPARE mark_ways_by_node(int8) AS"
-            "  SELECT id FROM {schema}\"{prefix}_ways\" w"
-            "    WHERE $1 = ANY(nodes)"
-            "      AND {schema}\"{prefix}_index_bucket\"(w.nodes)"
-            "       && {schema}\"{prefix}_index_bucket\"(ARRAY[$1]);\n";
-    } else {
-        sql.prepare_fw_dep_lookups =
-            "PREPARE mark_ways_by_node(int8) AS"
-            "  SELECT id FROM {schema}\"{prefix}_ways\""
-            "    WHERE nodes && ARRAY[$1];\n";
-    }
 
     if (way_node_index_id_shift == 0) {
         sql.create_fw_dep_indexes =
@@ -1335,8 +1462,7 @@ static table_sql sql_for_ways_format1(bool has_bucket_index,
     return sql;
 }
 
-static table_sql sql_for_ways_format2(bool has_bucket_index,
-                                      middle_pgsql_options const &options)
+static table_sql sql_for_ways_format2(middle_pgsql_options const &options)
 {
     table_sql sql{};
 
@@ -1360,20 +1486,6 @@ static table_sql sql_for_ways_format2(bool has_bucket_index,
                          " FROM {schema}\"{prefix}_ways\" o"
                         "  {users_table_access}"
                          " WHERE o.id = ANY($1::int8[]);\n";
-
-    if (has_bucket_index) {
-        sql.prepare_fw_dep_lookups =
-            "PREPARE mark_ways_by_node(int8) AS"
-            "  SELECT DISTINCT id FROM {schema}\"{prefix}_ways\" w"
-            "    WHERE $1 = ANY(nodes)"
-            "      AND {schema}\"{prefix}_index_bucket\"(w.nodes)"
-            "       && {schema}\"{prefix}_index_bucket\"(ARRAY[$1]);\n";
-    } else {
-        sql.prepare_fw_dep_lookups =
-            "PREPARE mark_ways_by_node(int8) AS"
-            "  SELECT DISTINCT id FROM {schema}\"{prefix}_ways\""
-            "    WHERE nodes && ARRAY[$1];\n";
-    }
 
     if (options.way_node_index_id_shift == 0) {
         sql.create_fw_dep_indexes =
@@ -1415,16 +1527,6 @@ static table_sql sql_for_relations_format1()
                         "  SELECT members, tags"
                         "    FROM {schema}\"{prefix}_rels\" WHERE id = $1;\n";
 
-    sql.prepare_fw_dep_lookups =
-        "PREPARE mark_rels_by_node(int8) AS"
-        "  SELECT id FROM {schema}\"{prefix}_rels\""
-        "    WHERE parts && ARRAY[$1]"
-        "      AND parts[1:way_off] && ARRAY[$1];\n"
-        "PREPARE mark_rels_by_way(int8) AS"
-        "  SELECT id FROM {schema}\"{prefix}_rels\""
-        "    WHERE parts && ARRAY[$1]"
-        "      AND parts[way_off+1:rel_off] && ARRAY[$1];\n";
-
     sql.create_fw_dep_indexes =
         "CREATE INDEX ON {schema}\"{prefix}_rels\" USING GIN (parts)"
         "  WITH (fastupdate = off) {index_tablespace};\n";
@@ -1459,16 +1561,6 @@ static table_sql sql_for_relations_format2()
                         " {users_table_access}"
                         " WHERE o.id = $1;\n";
 
-    sql.prepare_fw_dep_lookups =
-        "PREPARE mark_rels_by_node(int8) AS"
-        "  SELECT DISTINCT id FROM {schema}\"{prefix}_rels\""
-        "    WHERE {schema}\"{prefix}_member_ids\"(members, 'N'::char)"
-        "      @> ARRAY[$1::bigint];\n"
-        "PREPARE mark_rels_by_way(int8) AS"
-        "  SELECT DISTINCT id FROM {schema}\"{prefix}_rels\""
-        "    WHERE {schema}\"{prefix}_member_ids\"(members, 'W'::char)"
-        "      @> ARRAY[$1::bigint];\n";
-
     sql.create_fw_dep_indexes =
         "CREATE INDEX \"{prefix}_rels_node_members\""
         "  ON {schema}\"{prefix}_rels\" USING GIN"
@@ -1480,17 +1572,6 @@ static table_sql sql_for_relations_format2()
         "  WITH (fastupdate = off) {index_tablespace};\n";
 
     return sql;
-}
-
-static bool check_bucket_index(pg_conn_t *db_connection,
-                               std::string const &prefix)
-{
-    auto const res =
-        db_connection->exec("SELECT relname FROM pg_class"
-                            " WHERE relkind='i'"
-                            " AND relname = '{}_ways_nodes_bucket_idx'",
-                            prefix);
-    return res.num_tuples() > 0;
 }
 
 middle_pgsql_t::middle_pgsql_t(std::shared_ptr<thread_pool_t> thread_pool,
@@ -1537,8 +1618,7 @@ middle_pgsql_t::middle_pgsql_t(std::shared_ptr<thread_pool_t> thread_pool,
 
         m_tables.ways() = table_desc{
             *options,
-            sql_for_ways_format1(has_bucket_index,
-                                 m_store_options.way_node_index_id_shift)};
+            sql_for_ways_format1(m_store_options.way_node_index_id_shift)};
 
         m_tables.relations() =
             table_desc{*options, sql_for_relations_format1()};
@@ -1546,8 +1626,8 @@ middle_pgsql_t::middle_pgsql_t(std::shared_ptr<thread_pool_t> thread_pool,
         m_tables.nodes() =
             table_desc{*options, sql_for_nodes_format2(m_store_options)};
 
-        m_tables.ways() = table_desc{
-            *options, sql_for_ways_format2(has_bucket_index, m_store_options)};
+        m_tables.ways() =
+            table_desc{*options, sql_for_ways_format2(m_store_options)};
 
         m_tables.relations() =
             table_desc{*options, sql_for_relations_format2()};
