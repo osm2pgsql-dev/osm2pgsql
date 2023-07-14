@@ -171,6 +171,19 @@ mandatory for short options too.
 :   Set ID shift for way node bucket index in middle. Experts only. See
     documentation for details.
 
+\--middle-database-format=FORMAT
+:   Set the database format for the middle tables to FORMAT. Allowed formats
+    are **legacy** and **new**. The **legacy** format is the old format that
+    will eventually be deprecated and removed but is currently still the
+    default. The **new** format was introduced in version 1.9.0 and is still
+    experimental. See the manual for details on these formats. (Only works
+    with **\--slim**. In append mode osm2pgsql will automatically detect the
+    database format, so don't use this with **-a, \--append**.)
+
+\--middle-with-nodes
+:   Used together with the **new** middle database format when a flat nodes
+    file is used to force storing nodes with tags in the database, too.
+
 # OUTPUT OPTIONS
 
 -O, \--output=OUTPUT
