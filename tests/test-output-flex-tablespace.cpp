@@ -20,8 +20,8 @@ TEST_CASE("simple import with tablespaces for middle")
 {
     {
         auto conn = db.db().connect();
-        REQUIRE(1 ==
-                conn.get_count("pg_tablespace", "spcname = 'tablespacetest'"));
+        REQUIRE(1 == conn.get_count("pg_catalog.pg_tablespace",
+                                    "spcname = 'tablespacetest'"));
     }
 
     options_t options = testing::opt_t().slim().flex(conf_file);

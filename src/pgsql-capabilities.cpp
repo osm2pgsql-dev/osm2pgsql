@@ -47,7 +47,7 @@ static void init_settings(pg_conn_t const &db_connection)
     capabilities().settings.clear(); // In case this is called multiple times
 
     auto const res =
-        db_connection.exec("SELECT name, setting FROM pg_settings");
+        db_connection.exec("SELECT name, setting FROM pg_catalog.pg_settings");
 
     for (int i = 0; i < res.num_tuples(); ++i) {
         capabilities().settings.emplace(res.get(i, 0), res.get(i, 1));
@@ -70,7 +70,7 @@ static void init_postgis_version(pg_conn_t const &db_connection)
 {
     auto const res = db_connection.exec(
         "SELECT regexp_split_to_table(extversion, '\\.') FROM"
-        " pg_extension WHERE extname='postgis'");
+        " pg_catalog.pg_extension WHERE extname='postgis'");
 
     if (res.num_tuples() == 0) {
         throw fmt_error(

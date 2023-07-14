@@ -69,8 +69,8 @@ void pg_conn_t::set_config(char const *setting, char const *value) const
     // Update pg_settings instead of using SET because it does not yield
     // errors on older versions of PostgreSQL where the settings are not
     // implemented.
-    exec("UPDATE pg_settings SET setting = '{}' WHERE name = '{}'", value,
-         setting);
+    exec("UPDATE pg_catalog.pg_settings SET setting = '{}' WHERE name = '{}'",
+         value, setting);
 }
 
 pg_result_t pg_conn_t::exec(char const *sql) const
