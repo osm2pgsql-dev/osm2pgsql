@@ -84,14 +84,15 @@ On a Debian or Ubuntu system, this can be done with:
 ```sh
 sudo apt-get install make cmake g++ libboost-dev libboost-system-dev \
   libboost-filesystem-dev libexpat1-dev zlib1g-dev libpotrace-dev cimg-dev \
-  libbz2-dev libpq-dev libproj-dev lua5.3 liblua5.3-dev pandoc
+  libbz2-dev libpq-dev libproj-dev lua5.3 liblua5.3-dev pandoc \
+  nlohmann-json3-dev pyosmium
 ```
 
 On a Fedora system, use
 
 ```sh
 sudo dnf install cmake make gcc-c++ boost-devel expat-devel zlib-devel \
-  potrace-devel cimg-devel \
+  potrace-devel cimg-devel json-devel python3-osmium \
   bzip2-devel postgresql-devel proj-devel proj-epsg lua-devel pandoc
 ```
 
@@ -100,6 +101,7 @@ dependencies with:
 
 ```sh
 sudo yum install cmake make gcc-c++ boost-devel expat-devel zlib-devel \
+  potrace-devel cimg-devel json-devel python3-osmium \
   bzip2-devel postgresql-devel proj-devel proj-epsg lua-devel pandoc
 ```
 
