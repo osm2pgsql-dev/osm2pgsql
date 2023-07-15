@@ -357,7 +357,7 @@ jobs:
       BUILD_TYPE: Debug
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
@@ -375,7 +375,7 @@ jobs:
       BUILD_TYPE: Debug
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
