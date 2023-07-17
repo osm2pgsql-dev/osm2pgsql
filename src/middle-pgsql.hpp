@@ -94,8 +94,8 @@ struct table_sql
 {
     std::string name;
     std::string create_table;
-    std::string prepare_query;
-    std::string create_fw_dep_indexes;
+    std::vector<std::string> prepare_queries;
+    std::vector<std::string> create_fw_dep_indexes;
 };
 
 struct middle_pgsql_t : public middle_t
@@ -150,8 +150,8 @@ struct middle_pgsql_t : public middle_t
         void build_index(std::string const &conninfo) const;
 
         std::string m_create_table;
-        std::string m_prepare_query;
-        std::string m_create_fw_dep_indexes;
+        std::vector<std::string> m_prepare_queries;
+        std::vector<std::string> m_create_fw_dep_indexes;
 
         void task_set(std::future<std::chrono::microseconds> &&future)
         {
