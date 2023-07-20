@@ -160,9 +160,16 @@ struct middle_pgsql_t : public middle_t
 
         std::chrono::microseconds task_wait() { return m_task_result.wait(); }
 
+        void init_max_id(pg_conn_t const &db_connection);
+
+        osmid_t max_id() const noexcept { return m_max_id; }
+
     private:
         std::shared_ptr<db_target_descr_t> m_copy_target;
         task_result_t m_task_result;
+
+        /// The maximum id in the table (used only in append mode)
+        osmid_t m_max_id = 0;
     };
 
     std::shared_ptr<middle_query_t> get_query_instance() override;
