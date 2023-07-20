@@ -64,7 +64,7 @@ void db_deleter_by_type_and_id_t::delete_rows(std::string const &table,
 
         fmt::format_to(std::back_inserter(sql),
                        ") AS t (osm_type, osm_id) WHERE"
-                       " p.{} = t.osm_type AND p.{} = t.osm_id",
+                       " p.{} = t.osm_type::char(1) AND p.{} = t.osm_id",
                        type, column.c_str() + pos + 1);
     } else {
         fmt::format_to(std::back_inserter(sql),
