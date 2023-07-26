@@ -474,7 +474,7 @@ local function make_column_hash(columns)
     return h
 end
 
-local function make_get_output(columns, hstore_all)
+local function make_get_output(columns)
     local h = make_column_hash(columns)
     if hstore_all then
         return function(tags)
@@ -510,8 +510,8 @@ end
 
 local has_generic_tag = make_check_in_list_func(generic_keys)
 
-local get_point_output = make_get_output(point_columns, hstore_all)
-local get_non_point_output = make_get_output(non_point_columns, hstore_all)
+local get_point_output = make_get_output(point_columns)
+local get_non_point_output = make_get_output(non_point_columns)
 
 local function get_hstore_column(tags)
     local len = #hstore_column
