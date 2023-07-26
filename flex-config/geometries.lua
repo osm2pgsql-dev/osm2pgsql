@@ -54,7 +54,7 @@ tables.pubs = osm2pgsql.define_node_table('pubs', {
 
 -- Helper function to remove some of the tags we usually are not interested in.
 -- Returns true if there are no tags left.
-function clean_tags(tags)
+local function clean_tags(tags)
     tags.odbl = nil
     tags.created_by = nil
     tags.source = nil
@@ -65,7 +65,7 @@ end
 
 -- Helper function that looks at the tags and decides if this is possibly
 -- an area.
-function has_area_tags(tags)
+local function has_area_tags(tags)
     if tags.area == 'yes' then
         return true
     end

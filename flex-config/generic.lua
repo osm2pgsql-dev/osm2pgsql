@@ -182,7 +182,7 @@ local clean_tags = osm2pgsql.make_clean_tags_func(delete_keys)
 
 -- Helper function that looks at the tags and decides if this is possibly
 -- an area.
-function has_area_tags(tags)
+local function has_area_tags(tags)
     if tags.area == 'yes' then
         return true
     end

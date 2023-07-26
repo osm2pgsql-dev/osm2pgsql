@@ -49,7 +49,7 @@ tables.relations = osm2pgsql.define_relation_table('relations', {
     { column = 'members', type = 'jsonb' },
 })
 
-function format_date(ts)
+local function format_date(ts)
     return os.date('!%Y-%m-%dT%H:%M:%SZ', ts)
 end
 

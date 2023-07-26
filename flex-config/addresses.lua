@@ -19,7 +19,7 @@ local addrs = osm2pgsql.define_table({
     }
 })
 
-function get_address(tags)
+local function get_address(tags)
     local addr = {}
     local count = 0
 
