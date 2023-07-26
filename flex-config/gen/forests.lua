@@ -93,7 +93,7 @@ function osm2pgsql.process_way(object)
 end
 
 function osm2pgsql.process_relation(object)
-    if not object.tags.type == 'multipolygon' then
+    if object.tags.type ~= 'multipolygon' then
         return
     end
     local tags = object.tags
