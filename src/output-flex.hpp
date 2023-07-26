@@ -185,14 +185,11 @@ private:
 
     /**
      * Call a Lua function that was "prepared" earlier with the OSMObject
-     * as its only parameter.
+     * as its only parameter. Uses a mutex internally to make access to the
+     * Lua environment thread safe.
      */
     void call_lua_function(prepared_lua_function_t func,
                            osmium::OSMObject const &object);
-
-    /// Aquire the lua_mutex and the call `call_lua_function()`.
-    void get_mutex_and_call_lua_function(prepared_lua_function_t func,
-                                         osmium::OSMObject const &object);
 
     void init_lua(std::string const &filename);
 
