@@ -333,12 +333,8 @@ function gen_columns(text_columns, with_hstore, area, geometry_type)
 
     add_column('z_order', 'int')
 
-    if area ~= nil then
-        if area then
-            add_column('way_area', 'area')
-        else
-            add_column('way_area', 'real')
-        end
+    if area ~= nil and area then
+        add_column('way_area', 'real')
     end
 
     if hstore_column then
@@ -630,6 +626,7 @@ function osm2pgsql.process_way(object)
 
     if polygon and object.is_closed then
         output.way = object:as_polygon()
+        output.way_area=output.way:area()
         tables.polygon:insert(output)
     else
         add_line(output, object:as_linestring(), roads)
@@ -733,10 +730,12 @@ function osm2pgsql.process_relation(object)
         local geom = object:as_multipolygon()
         if multi_geometry then
             output.way = geom
+            output.way_area=output.way:area()
             tables.polygon:insert(output)
         else
             for sgeom in geom:geometries() do
                 output.way = sgeom
+                output.way_area=output.way:area()
                 tables.polygon:insert(output)
             end
         end
