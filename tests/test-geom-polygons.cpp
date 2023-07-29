@@ -18,12 +18,14 @@
 
 TEST_CASE("polygon geometry without inner", "[NoDB]")
 {
+    // POLYGON((0 0, 0 1, 1 1, 1 0, 0 0))
     geom::geometry_t const geom{
         geom::polygon_t{geom::ring_t{{0, 0}, {0, 1}, {1, 1}, {1, 0}, {0, 0}}}};
 
     REQUIRE(dimension(geom) == 2);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(1.0));
+    REQUIRE(spherical_area(geom) == Approx(12364031798.5));
     REQUIRE(length(geom) == Approx(0.0));
     REQUIRE(geometry_type(geom) == "POLYGON");
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{0.5, 0.5}});
@@ -32,12 +34,14 @@ TEST_CASE("polygon geometry without inner", "[NoDB]")
 
 TEST_CASE("polygon geometry without inner (reverse)", "[NoDB]")
 {
+    // POLYGON((0 0, 1 0, 1 1, 0 1, 0 0))
     geom::geometry_t const geom{
         geom::polygon_t{geom::ring_t{{0, 0}, {1, 0}, {1, 1}, {0, 1}, {0, 0}}}};
 
     REQUIRE(dimension(geom) == 2);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(1.0));
+    REQUIRE(spherical_area(geom) == Approx(12364031798.5));
     REQUIRE(length(geom) == Approx(0.0));
     REQUIRE(geometry_type(geom) == "POLYGON");
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{0.5, 0.5}});
@@ -48,6 +52,8 @@ TEST_CASE("geom::polygon_t", "[NoDB]")
     geom::polygon_t polygon;
 
     REQUIRE(polygon.outer().empty());
+
+    // POLYGON((0 0, 0 3, 3 3, 3 0, 0 0), (1 1, 2 1, 2 2, 1 2, 1 1))
     polygon.outer() = geom::ring_t{{0, 0}, {0, 3}, {3, 3}, {3, 0}, {0, 0}};
     polygon.inners().emplace_back(
         geom::ring_t{{1, 1}, {2, 1}, {2, 2}, {1, 2}, {1, 1}});
@@ -59,6 +65,7 @@ TEST_CASE("geom::polygon_t", "[NoDB]")
     REQUIRE(dimension(geom) == 2);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(8.0));
+    REQUIRE(spherical_area(geom) == Approx(98893356298.4));
     REQUIRE(length(geom) == Approx(0.0));
     REQUIRE(geometry_type(geom) == "POLYGON");
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{1.5, 1.5}});

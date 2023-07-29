@@ -148,6 +148,17 @@ geometry_t segmentize(geometry_t const &input, double max_segment_length);
 double area(geometry_t const &geom);
 
 /**
+ * Calculate area of geometry on the spheroid.
+ * For geometry types other than polygon or multipolygon this will always
+ * return 0.
+ *
+ * \param geom Input geometry.
+ * \returns Area in m².
+ * \pre \code geom.srid() == 4326 \endcode
+ */
+double spherical_area(geometry_t const &geom);
+
+/**
  * Split multigeometries into their parts. Non-multi geometries are left
  * alone and will end up as the only geometry in the result vector. If the
  * input geometry is a nullgeom_t, the result vector will be empty.

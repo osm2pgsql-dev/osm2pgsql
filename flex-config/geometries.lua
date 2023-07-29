@@ -34,7 +34,10 @@ tables.polygons = osm2pgsql.define_area_table('polygons', {
     -- if we have multiple geometry columns and some of them can be valid
     -- and others not.
     { column = 'geom', type = 'geometry', projection = 4326 },
+    -- In this column we'll put the area calculated in Mercator coordinates
     { column = 'area', type = 'real' },
+    -- In this column we'll put the true area calculated on the spheroid
+    { column = 'spherical_area', type = 'real' },
 })
 
 tables.boundaries = osm2pgsql.define_relation_table('boundaries', {
@@ -135,7 +138,9 @@ function osm2pgsql.process_way(object)
             geom = geom,
             -- Calculate the area in Mercator projection and store in the
             -- area column
-            area = geom:transform(3857):area()
+            area = geom:transform(3857):area(),
+            -- Also calculate "real" area in spheroid
+            spherical_area = geom:spherical_area()
         })
     else
         -- We want to split long lines into smaller segments. We can use
@@ -192,7 +197,9 @@ function osm2pgsql.process_relation(object)
             geom = geom,
             -- Calculate the area in Mercator projection and store in the
             -- area column
-            area = geom:transform(3857):area()
+            area = geom:transform(3857):area(),
+            -- Also calculate "real" area in spheroid
+            spherical_area = geom:spherical_area()
         })
     end
 end

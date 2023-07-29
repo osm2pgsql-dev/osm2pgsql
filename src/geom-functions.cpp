@@ -364,6 +364,44 @@ double area(geometry_t const &geom)
 
 /****************************************************************************/
 
+static double spherical_area(polygon_t const &geom)
+{
+    boost::geometry::strategy::area::spherical<> const spherical_earth{
+        6371008.8};
+
+    using sph_point = boost::geometry::model::point<
+        double, 2,
+        boost::geometry::cs::spherical_equatorial<boost::geometry::degree>>;
+
+    boost::geometry::model::polygon<sph_point> sph_geom;
+    boost::geometry::convert(geom, sph_geom);
+    return boost::geometry::area(sph_geom, spherical_earth);
+}
+
+double spherical_area(geometry_t const &geom)
+{
+    assert(geom.srid() == 4326);
+
+    return std::abs(geom.visit(overloaded{
+        [&](geom::nullgeom_t const & /*input*/) { return 0.0; },
+        [&](geom::collection_t const &input) {
+            return std::accumulate(input.cbegin(), input.cend(), 0.0,
+                                   [](double sum, auto const &geom) {
+                                       return sum + spherical_area(geom);
+                                   });
+        },
+        [&](geom::polygon_t const &input) { return spherical_area(input); },
+        [&](geom::multipolygon_t const &input) {
+            return std::accumulate(input.cbegin(), input.cend(), 0.0,
+                                   [&](double sum, auto const &geom) {
+                                       return sum + spherical_area(geom);
+                                   });
+        },
+        [&](auto const & /*input*/) { return 0.0; }}));
+}
+
+/****************************************************************************/
+
 double length(geometry_t const &geom)
 {
     return geom.visit(overloaded{
