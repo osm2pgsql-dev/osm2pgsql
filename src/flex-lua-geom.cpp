@@ -66,6 +66,24 @@ static int geom_area(lua_State *lua_state)
     return 1;
 }
 
+static int geom_spherical_area(lua_State *lua_state)
+{
+    auto const *const input_geometry = unpack_geometry(lua_state);
+
+    if (input_geometry->srid() != 4326) {
+        throw std::runtime_error{"Can only calculate spherical area for "
+                                 "geometries in WGS84 (4326) coordinates."};
+    }
+
+    try {
+        lua_pushnumber(lua_state, geom::spherical_area(*input_geometry));
+    } catch (...) {
+        return luaL_error(lua_state, "Unknown error in 'spherical_area()'.\n");
+    }
+
+    return 1;
+}
+
 static int geom_length(lua_State *lua_state)
 {
     auto const *const input_geometry = unpack_geometry(lua_state);
@@ -286,6 +304,7 @@ void init_geometry_class(lua_State *lua_state)
                         geom_pole_of_inaccessibility);
     luaX_add_table_func(lua_state, "segmentize", geom_segmentize);
     luaX_add_table_func(lua_state, "simplify", geom_simplify);
+    luaX_add_table_func(lua_state, "spherical_area", geom_spherical_area);
     luaX_add_table_func(lua_state, "srid", geom_srid);
     luaX_add_table_func(lua_state, "transform", geom_transform);
 

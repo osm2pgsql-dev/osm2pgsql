@@ -21,6 +21,7 @@ TEST_CASE("multipolygon geometry with single outer, no inner", "[NoDB]")
     geom::geometry_t geom{geom::multipolygon_t{}};
     auto &mp = geom.get<geom::multipolygon_t>();
 
+    // MULTIPOLYGON(((0 0, 0 1, 1 1, 1 0, 0 0)))
     mp.add_geometry(
         geom::polygon_t{geom::ring_t{{0, 0}, {0, 1}, {1, 1}, {1, 0}, {0, 0}}});
 
@@ -28,6 +29,7 @@ TEST_CASE("multipolygon geometry with single outer, no inner", "[NoDB]")
     REQUIRE(dimension(geom) == 2);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(1.0));
+    REQUIRE(spherical_area(geom) == Approx(12364031798.5));
     REQUIRE(length(geom) == Approx(0.0));
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{0.5, 0.5}});
     REQUIRE(geometry_n(geom, 1) ==
@@ -40,6 +42,7 @@ TEST_CASE("multipolygon geometry with two polygons", "[NoDB]")
     geom::geometry_t geom{geom::multipolygon_t{}};
     auto &mp = geom.get<geom::multipolygon_t>();
 
+    // MULTIPOLYGON(((0 0, 0 1, 1 1, 1 0, 0 0)), ((2 2, 2 5, 5 5, 5 2, 2 2), (3 3, 4 3, 4 4, 3 4, 3 3)))
     mp.add_geometry(
         geom::polygon_t{geom::ring_t{{0, 0}, {0, 1}, {1, 1}, {1, 0}, {0, 0}}});
 
@@ -56,6 +59,7 @@ TEST_CASE("multipolygon geometry with two polygons", "[NoDB]")
     REQUIRE(dimension(geom) == 2);
     REQUIRE(num_geometries(geom) == 2);
     REQUIRE(area(geom) == Approx(9.0));
+    REQUIRE(spherical_area(geom) == Approx(111106540105.7));
     REQUIRE(length(geom) == Approx(0.0));
 }
 
