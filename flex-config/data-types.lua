@@ -30,7 +30,7 @@ local highways = osm2pgsql.define_way_table('highways', {
 
 -- Helper function to remove some of the tags we usually are not interested in.
 -- Returns true if there are no tags left.
-function clean_tags(tags)
+local function clean_tags(tags)
     tags.odbl = nil
     tags.created_by = nil
     tags.source = nil
@@ -63,7 +63,7 @@ for _, k in ipairs(highway_types) do
 end
 
 -- Parse a maxspeed value like "30" or "55 mph" and return a number in km/h
-function parse_speed(input)
+local function parse_speed(input)
     if not input then
         return nil
     end

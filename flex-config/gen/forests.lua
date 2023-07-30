@@ -66,7 +66,7 @@ end
 -- the forest has a name tag and the area is larger than a defined minimum
 -- we'll also add the name and a point for the label.
 local minimum_area_for_label = 0.001
-function insert_forest(tags, geom)
+local function insert_forest(tags, geom)
     local attrs = {
         tags = tags,
         geom = geom,
@@ -93,7 +93,7 @@ function osm2pgsql.process_way(object)
 end
 
 function osm2pgsql.process_relation(object)
-    if not object.tags.type == 'multipolygon' then
+    if object.tags.type ~= 'multipolygon' then
         return
     end
     local tags = object.tags

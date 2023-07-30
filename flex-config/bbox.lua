@@ -32,7 +32,7 @@ tables.boundaries = osm2pgsql.define_relation_table('boundaries', {
 
 -- Helper function to remove some of the tags we usually are not interested in.
 -- Returns true if there are no tags left.
-function clean_tags(tags)
+local function clean_tags(tags)
     tags.odbl = nil
     tags.created_by = nil
     tags.source = nil
@@ -43,7 +43,7 @@ end
 
 -- Helper function that looks at the tags and decides if this is possibly
 -- an area.
-function has_area_tags(tags)
+local function has_area_tags(tags)
     if tags.area == 'yes' then
         return true
     end
@@ -81,8 +81,8 @@ end
 
 -- Format the bounding box we get from calling get_bbox() on the parameter
 -- in the way needed for the PostgreSQL/PostGIS box2d type.
-function format_bbox(object)
-    xmin, ymin, xmax, ymax = object.get_bbox()
+local function format_bbox(object)
+    local xmin, ymin, xmax, ymax = object.get_bbox()
     if xmin == nil then
         return nil
     end

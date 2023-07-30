@@ -15,7 +15,7 @@ tables.polygons = osm2pgsql.define_area_table('polygons', {
     { column = 'poi2', type = 'point', not_null = true },
 })
 
-function add(tags, geom)
+local function add(tags, geom)
     tables.polygons:insert({
         name = tags.name,
         tags = tags,

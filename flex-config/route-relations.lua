@@ -31,7 +31,7 @@ tables.routes = osm2pgsql.define_relation_table('routes', {
 -- it can be called any number of times and will lead to the same result.
 local w2r = {}
 
-function clean_tags(tags)
+local function clean_tags(tags)
     tags.odbl = nil
     tags.created_by = nil
     tags.source = nil

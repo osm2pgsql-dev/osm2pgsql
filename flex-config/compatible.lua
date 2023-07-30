@@ -52,9 +52,8 @@ if hstore and hstore_all then
 end
 
 -- Used for splitting up long linestrings
-if srid == 4326 then
-    max_length = 1
-else
+local max_length = 1
+if srid == 3857 then
     max_length = 100000
 end
 
@@ -320,8 +319,8 @@ local non_point_columns = {
     'wood',
 }
 
-function gen_columns(text_columns, with_hstore, area, geometry_type)
-    columns = {}
+local function gen_columns(text_columns, with_hstore, area, geometry_type)
+    local columns = {}
 
     local add_column = function (name, type)
         columns[#columns + 1] = { column = name, type = type }
@@ -412,11 +411,11 @@ local z_order_lookup = {
     motorway = {39, true}
 }
 
-function as_bool(value)
+local function as_bool(value)
     return value == 'yes' or value == 'true' or value == '1'
 end
 
-function get_z_order(tags)
+local function get_z_order(tags)
     local z_order = 100 * math.floor(tonumber(tags.layer or '0') or 0)
     local roads = false
 
@@ -447,7 +446,7 @@ function get_z_order(tags)
     return z_order, roads
 end
 
-function make_check_in_list_func(list)
+local function make_check_in_list_func(list)
     local h = {}
     for _, k in ipairs(list) do
         h[k] = true
@@ -465,7 +464,7 @@ end
 local is_polygon = make_check_in_list_func(polygon_keys)
 local clean_tags = osm2pgsql.make_clean_tags_func(delete_keys)
 
-function make_column_hash(columns)
+local function make_column_hash(columns)
     local h = {}
 
     for _, k in ipairs(columns) do
@@ -475,7 +474,7 @@ function make_column_hash(columns)
     return h
 end
 
-function make_get_output(columns, hstore_all)
+local function make_get_output(columns)
     local h = make_column_hash(columns)
     if hstore_all then
         return function(tags)
@@ -511,10 +510,10 @@ end
 
 local has_generic_tag = make_check_in_list_func(generic_keys)
 
-local get_point_output = make_get_output(point_columns, hstore_all)
-local get_non_point_output = make_get_output(non_point_columns, hstore_all)
+local get_point_output = make_get_output(point_columns)
+local get_non_point_output = make_get_output(non_point_columns)
 
-function get_hstore_column(tags)
+local function get_hstore_column(tags)
     local len = #hstore_column
     local h = {}
     for k, v in pairs(tags) do
@@ -561,7 +560,7 @@ function osm2pgsql.process_node(object)
     tables.point:insert(output)
 end
 
-function add_line(output, geom, roads)
+local function add_line(output, geom, roads)
     for sgeom in geom:segmentize(max_length):geometries() do
         output.way = sgeom
         tables.line:insert(output)
