@@ -41,6 +41,8 @@ gen_tile_raster_union_t::gen_tile_raster_union_t(pg_conn_t *connection,
     m_turdsize = static_cast<int>(
         uint_in_range(*params, "turdsize", 0, 65536, m_turdsize));
 
+    std::string const where_condition = get_params().get_string("where", "");
+
     if (get_params().has("img_path")) {
         m_image_path = get_params().get_string("img_path");
     }
@@ -89,30 +91,37 @@ CREATE TABLE IF NOT EXISTS "{}" (
     log_gen("Image extent: {}px, buffer: {}px, margin: {}", m_image_extent,
             m_image_buffer, m_margin);
 
+    std::string prepare;
     if (with_group_by()) {
-        dbexec(R"(
+        prepare = R"(
 PREPARE get_geoms (real, real, real, real) AS
  SELECT "{geom_column}", "{group_by_column}"
  FROM {src}
  WHERE "{geom_column}" && ST_MakeEnvelope($1, $2, $3, $4, 3857)
-)");
+)";
         dbexec(R"(
 PREPARE insert_geoms (geometry, int, int, text) AS
  INSERT INTO {dest} ("{geom_column}", x, y, "{group_by_column}")
  VALUES ({geom_sql}, $2, $3, $4)
 )");
     } else {
-        dbexec(R"(
+        prepare = R"(
 PREPARE get_geoms (real, real, real, real) AS
  SELECT "{geom_column}", NULL AS param
  FROM {src}
  WHERE "{geom_column}" && ST_MakeEnvelope($1, $2, $3, $4, 3857)
-)");
+)";
         dbexec(R"(
 PREPARE insert_geoms (geometry, int, int, text) AS
  INSERT INTO {dest} ("{geom_column}", x, y) VALUES ({geom_sql}, $2, $3)
 )");
     }
+
+    if (!where_condition.empty()) {
+        prepare.append(fmt::format(" AND ({})", where_condition));
+    }
+
+    dbexec(prepare);
 }
 
 static void save_image_to_table(pg_conn_t *connection, canvas_t const &canvas,
