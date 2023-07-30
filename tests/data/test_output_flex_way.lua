@@ -20,7 +20,7 @@ tables.tboth = osm2pgsql.define_way_table('osm2pgsql_test_tboth', {
 
 local w2r = {}
 
-function get_ids(data)
+local function get_ids(data)
     if data then
         local ids = {}
         for rel_id, _ in pairs(data) do
@@ -59,7 +59,7 @@ function osm2pgsql.process_way(object)
     end
 end
 
-function way_member_ids(relation)
+local function way_member_ids(relation)
     local ids = {}
     for _, member in ipairs(relation.members) do
         if member.type == 'w' and member.role == 'mark' then

@@ -1,0 +1,19 @@
+name: Check Lua scripts with luacheck
+
+on: [ push, pull_request ]
+
+jobs:
+  luacheck:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install prerequisites
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -yq --no-install-suggests --no-install-recommends lua-check
+
+      - name: Run luacheck
+        run: luacheck flex-config/*.lua flex-config/gen/*.lua tests/data/*.lua tests/lua/tests.lua
+
