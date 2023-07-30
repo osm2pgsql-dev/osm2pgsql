@@ -37,7 +37,7 @@ tables.route = osm2pgsql.define_table{
     }
 }
 
-function is_polygon(tags)
+local function is_polygon(tags)
     if tags.aeroway
         or tags.amenity
         or tags.area

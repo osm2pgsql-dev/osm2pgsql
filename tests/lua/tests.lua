@@ -93,7 +93,7 @@ do
     assert(tags['source:vs:source'] == nil)
     assert(tags['with:source:infix'] == 'keepme')
 
-    num = 0
+    local num = 0
     for k, v in pairs(tags) do
         num = num + 1
     end
@@ -116,7 +116,7 @@ assert(osm2pgsql.trim(nil) == nil)
 
 -- split_unit
 
-v, u = o.split_unit('20m', '')
+local v, u = o.split_unit('20m', '')
 assert(v == 20 and u == 'm')
 
 v, u = o.split_unit('20 m')
@@ -147,16 +147,16 @@ v, u = o.split_unit('-20000', 'leagues')
 assert(v == -20000 and u == 'leagues')
 
 v, u = o.split_unit('20xx20', '')
-assert(v == nil)
+assert(v == nil and u == nil)
 
 v, u = o.split_unit('20-20', '')
-assert(v == nil)
+assert(v == nil and u == nil)
 
 v, u = o.split_unit('20xx20', 'foo')
-assert(v == nil)
+assert(v == nil and u == nil)
 
 v, u = o.split_unit('abc', 'def')
-assert(v == nil)
+assert(v == nil and u == nil)
 
 v, u = o.split_unit(nil)
 assert(v == nil and u == nil)
@@ -166,7 +166,7 @@ assert(v == nil and u == nil)
 
 -- split_string
 
-r = o.split_string('ab c;d;e f;ghi')
+local r = o.split_string('ab c;d;e f;ghi')
 assert(#r == 4)
 assert(r[1] == 'ab c')
 assert(r[2] == 'd')
