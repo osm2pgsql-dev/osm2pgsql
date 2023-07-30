@@ -159,8 +159,16 @@ void output_pgsql_t::stop()
 
 void output_pgsql_t::wait()
 {
+    std::exception_ptr eptr;
     for (auto &t : m_tables) {
-        t->task_wait();
+        try {
+            t->task_wait();
+        } catch (...) {
+            eptr = std::current_exception();
+        }
+    }
+    if (eptr) {
+        std::rethrow_exception(eptr);
     }
 }
 

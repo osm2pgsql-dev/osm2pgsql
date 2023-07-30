@@ -1076,8 +1076,22 @@ void output_flex_t::stop()
 
 void output_flex_t::wait()
 {
+    std::exception_ptr eptr;
+    flex_table_t const *table_with_error = nullptr;
+
     for (auto &table : m_table_connections) {
-        table.task_wait();
+        try {
+            table.task_wait();
+        } catch (...) {
+            eptr = std::current_exception();
+            table_with_error = &table.table();
+        }
+    }
+
+    if (eptr) {
+        log_error("Error while doing postprocessing on table '{}':",
+                  table_with_error->name());
+        std::rethrow_exception(eptr);
     }
 }
 
