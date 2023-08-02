@@ -149,6 +149,12 @@ The compiled files can be installed with
 sudo make install
 ```
 
+To install the experimental `osm2pgsql-gen` binary use
+
+```sh
+sudo make install-gen
+```
+
 By default, the Release build with debug info is created and no tests are
 compiled. You can change that behavior by using additional options like
 following:
