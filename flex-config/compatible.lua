@@ -40,6 +40,11 @@ local hstore_match_only = false
 -- hstore column.
 local hstore_column = nil
 
+-- If this is set, area calculations are always in Mercator coordinates units
+-- irrespective of the srid setting.
+-- Set this to true if you used --reproject-area before.
+local reproject_area = false
+
 -- There is some very old specialized handling of route relations in osm2pgsql,
 -- which you probably don't need. This is disabled here, but you can enable
 -- it by setting this to true. If you don't understand this, leave it alone.
@@ -332,12 +337,8 @@ local function gen_columns(text_columns, with_hstore, area, geometry_type)
 
     add_column('z_order', 'int')
 
-    if area ~= nil then
-        if area then
-            add_column('way_area', 'area')
-        else
-            add_column('way_area', 'real')
-        end
+    if area then
+        add_column('way_area', 'real')
     end
 
     if hstore_column then
@@ -360,13 +361,13 @@ local tables = {}
 tables.point = osm2pgsql.define_table{
     name = prefix .. '_point',
     ids = { type = 'node', id_column = 'osm_id' },
-    columns = gen_columns(point_columns, hstore or hstore_all, nil, 'point')
+    columns = gen_columns(point_columns, hstore or hstore_all, false, 'point')
 }
 
 tables.line = osm2pgsql.define_table{
     name = prefix .. '_line',
     ids = { type = 'way', id_column = 'osm_id' },
-    columns = gen_columns(non_point_columns, hstore or hstore_all, false, 'linestring')
+    columns = gen_columns(non_point_columns, hstore or hstore_all, true, 'linestring')
 }
 
 tables.polygon = osm2pgsql.define_table{
@@ -378,7 +379,7 @@ tables.polygon = osm2pgsql.define_table{
 tables.roads = osm2pgsql.define_table{
     name = prefix .. '_roads',
     ids = { type = 'way', id_column = 'osm_id' },
-    columns = gen_columns(non_point_columns, hstore or hstore_all, false, 'linestring')
+    columns = gen_columns(non_point_columns, hstore or hstore_all, true, 'linestring')
 }
 
 local z_order_lookup = {
@@ -570,6 +571,20 @@ local function add_line(output, geom, roads)
     end
 end
 
+local function compute_geom_and_area(geom)
+    local area, projected_geom
+
+    projected_geom = geom:transform(srid)
+
+    if reproject_area and srid ~= 3857 then
+        area = geom:transform(3857):area()
+    else
+        area = projected_geom:area()
+    end
+
+    return projected_geom, area
+end
+
 function osm2pgsql.process_way(object)
     if clean_tags(object.tags) then
         return
@@ -628,7 +643,9 @@ function osm2pgsql.process_way(object)
     end
 
     if polygon and object.is_closed then
-        output.way = object:as_polygon()
+        local pgeom, area = compute_geom_and_area(object:as_polygon())
+        output.way = pgeom
+        output.way_area = area
         tables.polygon:insert(output)
     else
         add_line(output, object:as_linestring(), roads)
@@ -730,12 +747,17 @@ function osm2pgsql.process_relation(object)
 
     if make_boundary or make_polygon then
         local geom = object:as_multipolygon()
+
         if multi_geometry then
-            output.way = geom
+            local pgeom, area = compute_geom_and_area(geom)
+            output.way = pgeom
+            output.way_area = area
             tables.polygon:insert(output)
         else
             for sgeom in geom:geometries() do
-                output.way = sgeom
+                local pgeom, area = compute_geom_and_area(sgeom)
+                output.way = pgeom
+                output.way_area = area
                 tables.polygon:insert(output)
             end
         end
