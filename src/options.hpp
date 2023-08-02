@@ -136,7 +136,7 @@ struct options_t
 
     int cache = 800; ///< Memory usable for cache in MB
 
-    unsigned int num_procs;
+    unsigned int num_procs = 1;
 
     /**
      * How many bits should the node id be shifted for the way node index?

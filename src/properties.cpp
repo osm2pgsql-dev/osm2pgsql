@@ -17,11 +17,10 @@
 
 static constexpr char const *const properties_table = "osm2pgsql_properties";
 
-properties_t::properties_t(std::string const &conninfo,
-                           std::string const &schema)
-: m_conninfo(conninfo), m_schema(schema),
+properties_t::properties_t(std::string conninfo, std::string schema)
+: m_conninfo(std::move(conninfo)), m_schema(std::move(schema)),
   m_has_properties_table(
-      has_table(schema.empty() ? "public" : schema, properties_table))
+      has_table(m_schema.empty() ? "public" : m_schema, properties_table))
 {
     log_debug("Found properties table '{}': {}.", properties_table,
               m_has_properties_table);

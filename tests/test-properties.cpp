@@ -26,7 +26,7 @@ TEST_CASE("Store and retrieve properties (memory only)")
 
     REQUIRE(properties.get_string("foo", "baz") == "bar");
     REQUIRE(properties.get_string("something", "baz") == "baz");
-    REQUIRE(properties.get_string("empty", "baz") == "");
+    REQUIRE(properties.get_string("empty", "baz").empty());
     REQUIRE_THROWS(properties.get_int("foo", 1));
     REQUIRE_THROWS(properties.get_bool("foo", true));
 
@@ -45,7 +45,7 @@ TEST_CASE("Store and retrieve properties (memory only)")
 TEST_CASE("Store and retrieve properties (with database)")
 {
     for (std::string const schema : {"", "middleschema"}) {
-        testing::pg::tempdb_t db;
+        testing::pg::tempdb_t const db;
         auto conn = db.connect();
         if (!schema.empty()) {
             conn.exec("CREATE SCHEMA IF NOT EXISTS {};", schema);
@@ -82,7 +82,7 @@ TEST_CASE("Store and retrieve properties (with database)")
 
             REQUIRE(properties.get_string("foo", "baz") == "bar");
             REQUIRE(properties.get_string("something", "baz") == "baz");
-            REQUIRE(properties.get_string("empty", "baz") == "");
+            REQUIRE(properties.get_string("empty", "baz").empty());
             REQUIRE_THROWS(properties.get_int("foo", 1));
             REQUIRE_THROWS(properties.get_bool("foo", true));
 
@@ -102,7 +102,7 @@ TEST_CASE("Store and retrieve properties (with database)")
 
 TEST_CASE("Update existing properties in database")
 {
-    testing::pg::tempdb_t db;
+    testing::pg::tempdb_t const db;
     auto conn = db.connect();
 
     {
@@ -146,7 +146,7 @@ TEST_CASE("Update existing properties in database")
 
 TEST_CASE("Load returns false if there are no properties in database")
 {
-    testing::pg::tempdb_t db;
+    testing::pg::tempdb_t const db;
     auto conn = db.connect();
     init_database_capabilities(conn);
 

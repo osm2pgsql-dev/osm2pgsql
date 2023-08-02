@@ -65,7 +65,7 @@ TEST_CASE("find_by_name()", "[NoDB]")
     t.emplace_back("baz");
 
     REQUIRE(util::find_by_name(t, "") == nullptr);
-    REQUIRE(util::find_by_name(t, "foo") == &t[0]);
+    REQUIRE(util::find_by_name(t, "foo") == t.data());
     REQUIRE(util::find_by_name(t, "bar") == &t[1]);
     REQUIRE(util::find_by_name(t, "baz") == &t[2]);
     REQUIRE(util::find_by_name(t, "nothing") == nullptr);
