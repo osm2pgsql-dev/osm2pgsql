@@ -72,8 +72,8 @@ static file_info run(options_t const &options)
 
     // Processing: In this phase the input file(s) are read and parsed,
     // populating some of the tables.
-    auto const finfo = process_files(files, &osmdata, options.append,
-                                     get_logger().show_progress());
+    auto finfo = process_files(files, &osmdata, options.append,
+                               get_logger().show_progress());
 
     show_memory_usage();
 

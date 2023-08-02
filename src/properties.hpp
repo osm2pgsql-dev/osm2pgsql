@@ -35,7 +35,7 @@ public:
      *
      * \pre You must have called init_database_capabilities() before this.
      */
-    properties_t(std::string const &conninfo, std::string const &schema);
+    properties_t(std::string conninfo, std::string schema);
 
     std::string get_string(std::string const &property,
                            std::string const &default_value) const;

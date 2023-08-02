@@ -15,6 +15,7 @@
  * emit the final geometry-enabled output formats
 */
 
+#include <array>
 #include <cassert>
 #include <cstdint>
 #include <cstdlib>
@@ -120,6 +121,7 @@ static std::vector<std::string>
 build_sql(options_t const &options, std::vector<std::string> const &templs)
 {
     std::vector<std::string> out;
+    out.reserve(templs.size());
 
     for (auto const &templ : templs) {
         out.push_back(build_sql(options, templ));
@@ -1071,10 +1073,10 @@ void middle_pgsql_t::way_delete(osmid_t osm_id)
 void middle_pgsql_t::relation_set_format1(osmium::Relation const &rel)
 {
     // Sort relation members by their type.
-    idlist_t parts[3];
+    std::array<idlist_t, 3> parts;
 
     for (auto const &m : rel.members()) {
-        parts[osmium::item_type_to_nwr_index(m.type())].push_back(m.ref());
+        parts.at(osmium::item_type_to_nwr_index(m.type())).push_back(m.ref());
     }
 
     m_db_copy.new_line(m_tables.relations().copy_target());

@@ -34,7 +34,7 @@ std::size_t expire_output_t::output_tiles_to_file(
 {
     FILE *outfile = std::fopen(m_filename.data(), "a");
     if (outfile == nullptr) {
-        std::system_error error{errno, std::generic_category()};
+        std::system_error const error{errno, std::generic_category()};
         log_warn("Failed to open expired tiles file ({}). Tile expiry "
                  "list will not be written!",
                  error.code().message());
