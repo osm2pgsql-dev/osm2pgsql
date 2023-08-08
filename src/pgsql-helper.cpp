@@ -7,9 +7,11 @@
  * For a full list of authors see the git log.
  */
 
+#include "pgsql-helper.hpp"
+
 #include "format.hpp"
 #include "pgsql.hpp"
-#include "pgsql-helper.hpp"
+#include "pgsql-capabilities.hpp"
 
 #include <cassert>
 
@@ -72,4 +74,11 @@ void analyze_table(pg_conn_t const &db_connection, std::string const &schema,
 {
     auto const qual_name = qualified_name(schema, name);
     db_connection.exec("ANALYZE {}", qual_name);
+}
+
+void drop_table_if_exists(pg_conn_t const &db_connection,
+                          std::string const &schema, std::string const &name)
+{
+    db_connection.exec("DROP TABLE IF EXISTS {} CASCADE",
+                       qualified_name(schema, name));
 }

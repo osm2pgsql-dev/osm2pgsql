@@ -83,21 +83,22 @@ void table_t::start(connection_params_t const &connection_params,
 
     connect();
     log_info("Setting up table '{}'", m_target->name());
-    auto const qual_name = qualified_name(m_target->schema(), m_target->name());
-    auto const qual_tmp_name =
-        qualified_name(m_target->schema(), m_target->name() + "_tmp");
 
     // we are making a new table
     if (!m_append) {
-        m_db_connection->exec("DROP TABLE IF EXISTS {} CASCADE", qual_name);
+        drop_table_if_exists(*m_db_connection, m_target->schema(),
+                             m_target->name());
     }
 
     // These _tmp tables can be left behind if we run out of disk space.
-    m_db_connection->exec("DROP TABLE IF EXISTS {}", qual_tmp_name);
+    drop_table_if_exists(*m_db_connection, m_target->schema(),
+                         m_target->name() + "_tmp");
 
     //making a new table
     if (!m_append) {
         //define the new table
+        auto const qual_name =
+            qualified_name(m_target->schema(), m_target->name());
         auto sql =
             fmt::format("CREATE UNLOGGED TABLE {} (osm_id int8,", qual_name);
 
