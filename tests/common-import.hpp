@@ -70,7 +70,7 @@ public:
     data_t() = default;
 
     template <typename CONTAINER>
-    data_t(CONTAINER const &objects)
+    explicit data_t(CONTAINER const &objects)
     {
         std::copy(std::begin(objects), std::end(objects),
                   std::back_inserter(m_objects));
@@ -167,7 +167,8 @@ public:
     void run_import(options_t options, char const *data,
                     std::string const &format = "opl")
     {
-        run_import(options, std::initializer_list<std::string>{data}, format);
+        run_import(std::move(options), std::initializer_list<std::string>{data},
+                   format);
     }
 
     void run_file(options_t options, char const *file = nullptr)
@@ -195,7 +196,7 @@ public:
 
     testing::pg::conn_t connect() { return m_db.connect(); }
 
-    testing::pg::tempdb_t const &db() const { return m_db; }
+    testing::pg::tempdb_t const &db() const noexcept { return m_db; }
 
 private:
     testing::pg::tempdb_t m_db;
