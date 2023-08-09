@@ -85,18 +85,20 @@ def run_osm2pgsql_replication(context):
 
     if '-d' not in cmdline and '--database' not in cmdline:
         cmdline.extend(('-d', context.config.userdata['TEST_DB']))
-    
+
     # on Windows execute script directly with python, because shebang is not recognised
     if os.name == 'nt':
-        cmdline.insert(0, "python")  
+        cmdline.insert(0, "python")
 
     proc = subprocess.Popen(cmdline, cwd=str(context.workdir),
                             stdin=subprocess.PIPE,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    _, errs = proc.communicate()
+    outdata = proc.communicate()
 
-    return proc.returncode, errs.decode('utf-8')
+    context.osm2pgsql_outdata = [d.decode('utf-8').replace('\\n', '\n') for d in outdata]
+
+    return proc.returncode
 
 
 @given("no lua tagtransform")
@@ -156,11 +158,22 @@ def execute_osm2pgsql_with_failure(context, output):
 
 @when("running osm2pgsql-replication")
 def execute_osm2pgsql_replication_successfully(context):
-    returncode, errs = run_osm2pgsql_replication(context)
+    returncode = run_osm2pgsql_replication(context)
 
     assert returncode == 0,\
            f"osm2pgsql-replication failed with error code {returncode}.\n"\
-           f"Errors:\n{errs}"
+           f"Output:\n{context.osm2pgsql_outdata[0]}\n{context.osm2pgsql_outdata[1]}\n"
+
+
+@then("running osm2pgsql-replication fails(?: with returncode (?P<expected>\d+))?")
+def execute_osm2pgsql_replication_successfully(context, expected):
+    returncode = run_osm2pgsql_replication(context)
+
+    assert returncode != 0, "osm2pgsql-replication unexpectedly succeeded"
+    if expected:
+        assert returncode == int(expected), \
+               f"osm2pgsql-replication failed with returncode {returncode} instead of {expected}."\
+               f"Output:\n{context.osm2pgsql_outdata[0]}\n{context.osm2pgsql_outdata[1]}\n"
 
 
 @then("the (?P<kind>\w+) output contains")

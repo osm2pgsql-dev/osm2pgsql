@@ -130,6 +130,7 @@ def working_directory(context, **kwargs):
     with tempfile.TemporaryDirectory() as tmpdir:
         yield Path(tmpdir)
 
+
 def before_tag(context, tag):
     if tag == 'needs-pg-index-includes':
         if context.config.userdata['PG_VERSION'] < 110000:
