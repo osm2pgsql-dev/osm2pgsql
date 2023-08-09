@@ -8,6 +8,8 @@ from contextlib import closing
 from pathlib import Path
 import subprocess
 import tempfile
+import importlib.util
+from importlib.machinery import SourceFileLoader
 
 from behave import *
 import psycopg2
@@ -88,6 +90,14 @@ def before_all(context):
 
     context.test_data_dir = Path(context.config.userdata['TEST_DATA_DIR']).resolve()
     context.default_data_dir = Path(context.config.userdata['SRC_DIR']).resolve()
+
+    # Set up replication script.
+    replicationfile = str(Path(context.config.userdata['REPLICATION_SCRIPT']).resolve())
+    spec = importlib.util.spec_from_loader('osm2pgsql_replication',
+                                           SourceFileLoader( 'osm2pgsql_replication',replicationfile))
+    assert spec, f"File not found: {replicationfile}"
+    context.osm2pgsql_replication = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(context.osm2pgsql_replication)
 
 
 def before_scenario(context, scenario):

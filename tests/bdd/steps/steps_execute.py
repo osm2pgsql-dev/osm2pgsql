@@ -9,8 +9,10 @@ Steps for executing osm2pgsql.
 """
 from io import StringIO
 from pathlib import Path
-import os
+import sys
 import subprocess
+import contextlib
+import logging
 
 def get_import_file(context):
     if context.import_file is not None:
@@ -76,7 +78,7 @@ def run_osm2pgsql(context, output):
 
 
 def run_osm2pgsql_replication(context):
-    cmdline = [str(Path(context.config.userdata['REPLICATION_SCRIPT']).resolve())]
+    cmdline = []
     # convert table items to CLI arguments and inject constants to placeholders
     if context.table:
         cmdline.extend(f.format(**context.config.userdata) for f in context.table.headings if f)
@@ -86,19 +88,18 @@ def run_osm2pgsql_replication(context):
     if '-d' not in cmdline and '--database' not in cmdline:
         cmdline.extend(('-d', context.config.userdata['TEST_DB']))
 
-    # on Windows execute script directly with python, because shebang is not recognised
-    if os.name == 'nt':
-        cmdline.insert(0, "python")
 
-    proc = subprocess.Popen(cmdline, cwd=str(context.workdir),
-                            stdin=subprocess.PIPE,
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    serr = StringIO()
+    log_handler = logging.StreamHandler(serr)
+    context.osm2pgsql_replication.LOG.addHandler(log_handler)
+    with contextlib.redirect_stdout(StringIO()) as sout:
+        retval = context.osm2pgsql_replication.main(cmdline)
+    context.osm2pgsql_replication.LOG.removeHandler(log_handler)
 
-    outdata = proc.communicate()
+    context.osm2pgsql_outdata = [sout.getvalue(), serr.getvalue()]
+    print(context.osm2pgsql_outdata)
 
-    context.osm2pgsql_outdata = [d.decode('utf-8').replace('\\n', '\n') for d in outdata]
-
-    return proc.returncode
+    return retval
 
 
 @given("no lua tagtransform")

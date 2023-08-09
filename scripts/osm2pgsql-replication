@@ -656,9 +656,12 @@ def get_parser():
     return parser
 
 
-def main():
+def main(prog_args=None):
     parser = get_parser()
-    args = parser.parse_args()
+    try:
+        args = parser.parse_args(args=prog_args)
+    except SystemExit:
+        return 1
 
     if missing_modules:
         LOG.fatal("Missing required Python libraries %(mods)s.\n\n"
