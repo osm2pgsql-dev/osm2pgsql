@@ -180,9 +180,8 @@ class Osm2pgsqlProperties:
         if seq is None or isinstance(start_at, int):
             date = self._get_prop('current_timestamp')
             if date is None:
-                LOG.Fatal("Cannot get timestamp from database. "
-                          "Use --start-at to set an explicit date.")
-                return None, None, None
+                raise DBError(1, "Cannot get timestamp from database. "
+                                 "Use --start-at to set an explicit date.")
 
             date = from_osm_date(date)
             if start_at is not None:
@@ -239,8 +238,7 @@ class LegacyProperties:
             osmid = cur.fetchone()[0] if cur.rowcount == 1 else None
 
             if osmid is None:
-                LOG.fatal("No data found in the database.")
-                return None, None, None
+                raise DBError(1, "No data found in the database.")
 
         LOG.debug("Using way id %d for timestamp lookup", osmid)
         # Get the way from the API to find the timestamp when it was created.
@@ -251,9 +249,8 @@ class LegacyProperties:
             data = json.loads(response.read().decode('utf-8'))
 
         if not data.get('elements') or not 'timestamp' in data['elements'][0]:
-            LOG.fatal("The way data downloaded from the API does not contain valid data.\n"
-                      "URL used: %s", url)
-            return None, None, None
+            raise DBError(1, "The way data downloaded from the API does not contain valid data.\n"
+                             f"URL used: {url}")
 
         date = data['elements'][0]['timestamp']
         LOG.debug("Found timestamp %s", date)
@@ -261,8 +258,7 @@ class LegacyProperties:
         try:
             date = from_osm_date(date)
         except ValueError:
-            LOG.fatal("Cannot parse timestamp '%s'", date)
-            return None, None, None
+            raise DBError(1, f"Cannot parse timestamp '{date}'")
 
         if isinstance(start_at, int):
             date -= dt.timedelta(minutes=start_at)
@@ -423,30 +419,23 @@ def init(props, args):
     """
     if args.osm_file is None:
         base_url, seq, date = props.get_replication_base(args.server, args.start_at)
-        if base_url is None:
-            return 1
     else:
         base_url, seq, date = get_replication_header(args.osm_file)
         if base_url is None or (seq is None and date is None):
-            LOG.fatal("File '%s' has no usable replication headers. Use '--server' instead.", args.osm_file)
-            return 1
+            raise DBError(1, f"File '{args.osm_file}' has no usable replication headers. Use '--server' instead.")
 
     repl = ReplicationServer(base_url)
     if seq is None:
         seq = repl.timestamp_to_sequence(date)
-
         if seq is None:
-            LOG.fatal("Cannot reach the configured replication service '%s'.\n"
-                      "Does the URL point to a directory containing OSM update data?",
-                      base_url)
-            return 1
+            raise DBError(1, f"Cannot reach the configured replication service '{base_url}'.\n"
+                             "Does the URL point to a directory containing OSM update data?")
 
     if date is None:
         state = repl.get_state_info(seq)
         if state is None:
-            LOG.fatal("Cannot reach the configured replication service '%s'.\n"
-                      "Does the URL point to a directory containing OSM update data?",
-                      base_url)
+            raise DBError(1, f"Cannot reach the configured replication service '{base_url}'.\n"
+                             "Does the URL point to a directory containing OSM update data?")
         date = from_osm_date(state.timestamp)
 
     props.write_replication_state(base_url, seq, date)
@@ -483,11 +472,7 @@ def update(props, args):
     may be missing in the rare case that the replication service stops responding
     after the updates have been downloaded.
     """
-    try:
-        base_url, seq, ts = props.get_replication_state()
-    except DBError as err:
-        LOG.fatal(err.msg)
-        return 1
+    base_url, seq, ts = props.get_replication_state()
 
     initial_local_timestamp = ts
     LOG.info("Using replication service '%s'.", base_url)
@@ -496,10 +481,8 @@ def update(props, args):
     repl = ReplicationServer(base_url)
     current = repl.get_state_info()
     if current is None:
-        LOG.fatal("Cannot reach the configured replication service '%s'.\n"
-                  "Does the URL point to a directory containing OSM update data?",
-                  base_url)
-        return 1
+        raise DBError(1, f"Cannot reach the configured replication service '{base_url}'.\n"
+                         "Does the URL point to a directory containing OSM update data?")
 
     if seq >= current.sequence:
         LOG.info("Database already up-to-date.")
@@ -573,11 +556,7 @@ def update(props, args):
             break
 
     update_duration_sec = (dt.datetime.now(dt.timezone.utc) - update_started).total_seconds()
-    try:
-        _base_url, _seq, current_local_timestamp = props.get_replication_state()
-    except DBError as err:
-        LOG.fatal(err.msg)
-        return 1
+    _base_url, _seq, current_local_timestamp = props.get_replication_state()
 
     total_applied_changes_duration_sec = (current_local_timestamp - initial_local_timestamp).total_seconds()
     LOG.debug("It took %s (%d sec) to apply %s (%d sec) of changes. This is a speed of ×%.1f.",
@@ -710,7 +689,12 @@ def main():
                        'Database needs to be imported in --slim mode.')
             return 1
 
-        return args.handler(props, args)
+        try:
+            return args.handler(props, args)
+        except DBError as err:
+            LOG.fatal(err.msg)
+
+    return 1
 
 
 if __name__ == '__main__':
