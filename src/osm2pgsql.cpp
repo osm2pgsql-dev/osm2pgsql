@@ -113,6 +113,7 @@ static void store_properties(properties_t *properties, options_t const &options)
     properties->set_bool("updatable", options.slim && !options.droptemp);
     properties->set_string("version", get_osm2pgsql_short_version());
     properties->set_int("db_format", options.middle_database_format);
+    properties->set_string("output", options.output_backend);
 
     properties->store();
 }
@@ -241,6 +242,25 @@ static void check_db_format(properties_t const &properties, options_t *options)
     options->middle_database_format = format;
 }
 
+static void check_output(properties_t const &properties, options_t *options)
+{
+    auto const output = properties.get_string("output", "pgsql");
+
+    if (!options->output_backend_set) {
+        options->output_backend = output;
+        log_info("Using output '{}' (same as on import).", output);
+        return;
+    }
+
+    if (options->output_backend == output) {
+        return;
+    }
+
+    throw fmt_error("Different output specified on command line ('{}')"
+                    " then used on import ('{}').",
+                    options->output_backend, output);
+}
+
 // This is called in "append" mode to check that the command line options are
 // compatible with the properties stored in the database.
 static void check_and_update_properties(properties_t *properties,
@@ -251,6 +271,7 @@ static void check_and_update_properties(properties_t *properties,
     check_and_update_flat_node_file(properties, options);
     check_prefix(*properties, options);
     check_db_format(*properties, options);
+    check_output(*properties, options);
 }
 
 // If we are in append mode and the middle nodes table isn't there, it probably

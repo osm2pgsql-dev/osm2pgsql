@@ -38,10 +38,13 @@ def get_import_file(context):
 
 
 def run_osm2pgsql(context, output):
-    assert output in ('flex', 'pgsql', 'gazetteer', 'none')
+    assert output in ('flex', 'pgsql', 'gazetteer', 'null', 'nooutput')
 
     cmdline = [str(Path(context.config.userdata['BINARY']).resolve())]
-    cmdline.extend(('-O', output))
+
+    if output != 'nooutput':
+        cmdline.extend(('-O', output))
+
     cmdline.extend(context.osm2pgsql_params)
 
     # convert table items to CLI arguments and inject constants to placeholders

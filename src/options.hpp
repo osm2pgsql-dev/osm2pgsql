@@ -184,6 +184,8 @@ struct options_t
     bool parallel_indexing = true;
     bool create = false;
     bool pass_prompt = false;
+
+    bool output_backend_set = false;
 }; // struct options_t
 
 #endif // OSM2PGSQL_OPTIONS_HPP
