@@ -405,18 +405,35 @@ def init(props, args):
     """\
     Initialise the replication process.
 
-    There are two ways to initialise the replication process: if you have imported
-    from a file that contains replication source information, then the
-    initialisation process can use this and set up replication from there.
-    Use the command `%(prog)s --osm-file <filename>` for this.
+    This function sets the replication service to use and determines from
+    which date to apply updates. You must call this function at least once
+    to set up the replication process. It can safely be called again later
+    to change the replication servers or to roll back the update process and
+    reapply updates.
 
-    If the file has no replication information or you don't have the initial
-    import file anymore then replication can be set up according to
-    the data found in the database. It checks the planet_osm_way table for the
-    newest way in the database and then queries the OSM API when the way was
-    created. The date is used as the start date for replication. In this mode
-    the minutely diffs from the OSM servers are used as a source. You can change
-    this with the `--server` parameter.
+    There are different methods available for initialisation. When no
+    additional parameters are given, the data is initialised from the data
+    in the database. If the data was imported from a file with replication
+    information and the properties table is available (for osm2pgsql >= 1.9)
+    then the replication from the file is used. Otherwise the minutely
+    update service from openstreetmap.org is used as the default replication
+    service. The start date is either taken from the database timestamp
+    (for osm2pgsql >= 1.9) or determined from the newest way in the database
+    by querying the OSM API about its creation date.
+
+    The replication service can be changed with the `--server` parameter.
+    To use a different start date, add `--start-at` with an absolute
+    ISO timestamp (e.g. 2007-08-20T12:21:53Z). When the program determines the
+    start date from the database timestamp or way creation date, then it
+    subtracts another 3 hours by default to ensure that all new changes are
+    available. To change this rollback period, use `--start-at` with the
+    number of minutes to rollback. This rollback mode can also be used to
+    force initialisation to use the database date and ignore the date
+    from the replication information in the file.
+
+    The initialisation process can also use replication information from
+    an OSM file directly and ignore all other date information.
+    Use the command `%(prog)s --osm-file <filename>` for this.
     """
     if args.osm_file is None:
         base_url, seq, date = props.get_replication_base(args.server, args.start_at)
@@ -614,7 +631,7 @@ def get_parser():
     srcgrp.add_argument('--osm-file', metavar='FILE',
                         help='Get replication information from the given file.')
     srcgrp.add_argument('--server', metavar='URL',
-                        help='Use replication server at the given URL (default: %(default)s)')
+                        help='Use replication server at the given URL')
     grp.add_argument('--start-at', metavar='TIME', type=start_point,
                      help='Time when to start replication. When an absolute timestamp '
                           '(in ISO format) is given, it will be used. If a number '
