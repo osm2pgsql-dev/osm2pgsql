@@ -367,8 +367,8 @@ public:
         util::timer_t timer_sql;
         pg_conn_t const db_connection{m_conninfo};
         db_connection.exec(sql);
-        log_info("SQL command took {}.",
-                 util::human_readable_duration(timer_sql.stop()));
+        log_debug("SQL command took {}.",
+                  util::human_readable_duration(timer_sql.stop()));
 
         return 0;
     }
