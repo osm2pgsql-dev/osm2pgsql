@@ -8,6 +8,7 @@
  */
 
 #include <algorithm>
+#include <cassert>
 #include <cstdint>
 #include <cstdio>
 #include <limits>
@@ -34,6 +35,7 @@ table_t::table_t(std::string const &name, std::string type, columns_t columns,
   m_hstore_mode(hstore_mode), m_columns(std::move(columns)),
   m_hstore_columns(std::move(hstore_columns)), m_copy(copy_thread)
 {
+    assert(!schema.empty());
     m_target->schema = schema;
 
     // if we dont have any columns

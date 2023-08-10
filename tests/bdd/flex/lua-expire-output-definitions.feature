@@ -40,7 +40,7 @@ Feature: Expire output definitions in Lua file
         Then running osm2pgsql flex fails
         And the error output contains
             """
-            The expire output field must contain a 'schema' string field (or nil for default: '').
+            The expire output field must contain a 'schema' string field (or nil for default: 'public').
             """
 
     Scenario: Table in expire output definition has to be a string

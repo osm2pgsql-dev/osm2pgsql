@@ -12,6 +12,7 @@
 
 #include "tile.hpp"
 
+#include <cassert>
 #include <cstdint>
 #include <string>
 #include <utility>
@@ -39,6 +40,7 @@ public:
 
     void set_schema_and_table(std::string schema, std::string table)
     {
+        assert(!schema.empty());
         m_schema = std::move(schema);
         m_table = std::move(table);
     }
@@ -78,8 +80,8 @@ private:
     /// The filename (if any) for output
     std::string m_filename;
 
-    /// The schema (if any) for output
-    std::string m_schema;
+    /// The schema for output
+    std::string m_schema{"public"};
 
     /// The table (if any) for output
     std::string m_table;

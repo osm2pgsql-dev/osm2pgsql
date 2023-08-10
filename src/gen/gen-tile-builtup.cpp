@@ -33,7 +33,6 @@ gen_tile_builtup_t::gen_tile_builtup_t(pg_conn_t *connection, params_t *params)
 {
     check_src_dest_table_params_exist();
 
-    m_schema = get_params().get_identifier("schema");
     m_source_tables =
         osmium::split_string(get_params().get_string("src_tables"), ',');
 
@@ -108,10 +107,11 @@ CREATE TABLE IF NOT EXISTS "{}" (
             m_image_buffer, m_margin);
 
     int n = 0;
+    auto const schema = get_params().get_string("schema");
     for (auto const &src_table : m_source_tables) {
         params_t tmp_params;
         tmp_params.set("N", std::to_string(n++));
-        tmp_params.set("SRC", qualified_name(m_schema, src_table));
+        tmp_params.set("SRC", qualified_name(schema, src_table));
 
         dbexec(tmp_params, R"(
 PREPARE get_geoms_{N} (real, real, real, real) AS

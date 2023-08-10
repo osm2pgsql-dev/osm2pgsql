@@ -160,9 +160,6 @@ bool has_index_method(std::string const &value)
 
 bool has_table(std::string schema, std::string const &name)
 {
-    if (schema.empty()) {
-        schema = "public";
-    }
     schema += '.';
     schema += name;
 

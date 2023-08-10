@@ -30,8 +30,8 @@ create_expire_output(lua_State *lua_state,
     lua_pop(lua_state, 1); // "filename"
 
     // optional "schema" and "table" fields
-    auto const *schema =
-        luaX_get_table_string(lua_state, "schema", -1, "The expire output", "");
+    auto const *schema = luaX_get_table_string(lua_state, "schema", -1,
+                                               "The expire output", "public");
     check_identifier(schema, "schema field");
     auto const *table =
         luaX_get_table_string(lua_state, "table", -2, "The expire output", "");

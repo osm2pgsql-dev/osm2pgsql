@@ -24,9 +24,9 @@ TEST_CASE("Tablespace clause with tablespace")
     REQUIRE(tablespace_clause("foo") == R"( TABLESPACE "foo")");
 }
 
-TEST_CASE("Table name without schema")
+TEST_CASE("Table name with public schema")
 {
-    REQUIRE(qualified_name("", "foo") == R"("foo")");
+    REQUIRE(qualified_name("public", "foo") == R"("public"."foo")");
 }
 
 TEST_CASE("Table name with schema")

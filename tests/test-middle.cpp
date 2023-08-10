@@ -128,7 +128,7 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
                        "pronamespace = (SELECT oid FROM "
                        "pg_catalog.pg_namespace WHERE nspname = 'public')");
 
-    if (!options.middle_dbschema.empty()) {
+    if (options.middle_dbschema == "osm") {
         conn.exec("CREATE SCHEMA IF NOT EXISTS osm;");
     }
 
@@ -329,7 +329,7 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         REQUIRE_FALSE(mid_q->relation_get(999, &outbuf));
     }
 
-    if (!options.middle_dbschema.empty()) {
+    if (options.middle_dbschema != "public") {
         REQUIRE(num_tables == conn.get_count("pg_catalog.pg_tables",
                                              "schemaname = 'public'"));
         REQUIRE(num_indexes == conn.get_count("pg_catalog.pg_indexes",

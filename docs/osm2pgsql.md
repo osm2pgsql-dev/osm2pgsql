@@ -165,7 +165,7 @@ mandatory for short options too.
 
 \--middle-schema=SCHEMA
 :   Use PostgreSQL schema SCHEMA for all tables, indexes, and functions in
-    the middle (default is no schema, i.e. the `public` schema is used).
+    the middle (default is `public`).
 
 \--middle-way-node-index-id-shift=SHIFT
 :   Set ID shift for way node bucket index in middle. Experts only. See
@@ -275,8 +275,7 @@ mandatory for short options too.
 
 \--output-pgsql-schema=SCHEMA
 :   Use PostgreSQL schema SCHEMA for all tables, indexes, and functions in
-    the pgsql output (default is no schema, i.e. the `public` schema
-    is used).
+    the pgsql output (default is `public`).
 
 # EXPIRE OPTIONS
 

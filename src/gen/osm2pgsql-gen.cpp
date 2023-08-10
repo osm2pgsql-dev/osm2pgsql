@@ -90,6 +90,7 @@ Main Options:
     -c|--create           Run in create mode (default)
     -S|--style=FILE       The Lua config file (required, same as for osm2pgsql)
     -j|--jobs=NUM         Number of parallel jobs (default 1)
+       --middle-schema=SCHEMA  Database schema for middle tables
 
 Help/Version Options:
     -h|--help             Print this help text and stop
@@ -125,6 +126,7 @@ static std::array<option, 20> const long_options = {
      {"log-level", required_argument, nullptr, 'l'},
      {"style", required_argument, nullptr, 'S'},
      {"log-sql", no_argument, nullptr, 201},
+     {"middle-schema", required_argument, nullptr, 202},
      {nullptr, 0, nullptr, 0}}};
 
 struct tile_extent
@@ -583,6 +585,7 @@ int main(int argc, char *argv[])
 {
     try {
         database_options_t database_options;
+        std::string schema{"public"};
         std::string log_level;
         std::string style;
         uint32_t jobs = 1;
@@ -594,7 +597,7 @@ int main(int argc, char *argv[])
         while (-1 != (c = getopt_long(argc, argv, short_options,
                                       long_options.data(), nullptr))) {
             switch (c) {
-            case 'h':
+            case 'h': // --help
                 show_help();
                 return 0;
             case 'a': // --append
@@ -622,18 +625,26 @@ int main(int argc, char *argv[])
             case 'P': // --port
                 database_options.port = optarg;
                 break;
-            case 'l':
+            case 'l': // --log-level
                 log_level = optarg;
                 break;
-            case 'S':
+            case 'S': // --style
                 style = optarg;
                 break;
-            case 'V':
+            case 'V': // --version
                 log_info("osm2pgsql-gen version {}", get_osm2pgsql_version());
                 canvas_t::info();
                 return 0;
-            case 201:
+            case 201: // --log-sql
                 get_logger().enable_sql();
+                break;
+            case 202: // --middle-schema
+                schema = optarg;
+                if (schema.empty()) {
+                    log_error("Schema must not be empty");
+                    return 2;
+                }
+                check_identifier(schema, "--middle-schema");
                 break;
             default:
                 log_error("Unknown argument");
@@ -696,7 +707,7 @@ int main(int argc, char *argv[])
             init_database_capabilities(db_connection);
         }
 
-        properties_t properties{conninfo, ""};
+        properties_t properties{conninfo, schema};
         properties.load();
 
         bool const updatable = properties.get_bool("updatable", false);
