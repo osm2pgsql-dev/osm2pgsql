@@ -20,7 +20,7 @@ class ReplicationServerMock:
 
 
     def get_state_info(self, seq=None, retries=2):
-        assert self.state_infos, 'Replication mock not propoerly set up'
+        assert self.state_infos, 'Replication mock not properly set up'
         if seq is None:
             return self.state_infos[-1]
 
@@ -31,7 +31,7 @@ class ReplicationServerMock:
         assert False, f"No sequence information for sequence ID {seq}."
 
     def timestamp_to_sequence(self, timestamp, balanced_search=False):
-        assert self.state_infos, 'Replication mock not propoerly set up'
+        assert self.state_infos, 'Replication mock not properly set up'
 
         if timestamp < self.state_infos[0].timestamp:
             return self.state_infos[0].sequence

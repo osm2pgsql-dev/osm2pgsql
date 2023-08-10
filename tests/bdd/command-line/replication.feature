@@ -35,7 +35,7 @@ Feature: Tests for the osm2pgsql-replication script with property table
             | replication_timestamp       | 2013-08-03T19:00:02Z                            |
 
 
-    Scenario: Replication cannot be initialsed when date information is missing
+    Scenario: Replication cannot be initialised when date information is missing
         Given the OSM data
             """
             n34 Tamenity=restaurant x77 y45.3
@@ -78,7 +78,7 @@ Feature: Tests for the osm2pgsql-replication script with property table
             | replication_timestamp       | 2013-08-03T19:00:02Z                            |
 
 
-    Scenario: Replication initialiasion will fail for a database in a different schema
+    Scenario: Replication initialisation will fail for a database in a different schema
         Given the database schema foobar
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the replication service at http://example.com/europe/liechtenstein-updates

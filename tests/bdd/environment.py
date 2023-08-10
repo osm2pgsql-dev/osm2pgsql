@@ -96,7 +96,8 @@ def before_all(context):
     # Set up replication script.
     replicationfile = str(Path(context.config.userdata['REPLICATION_SCRIPT']).resolve())
     spec = importlib.util.spec_from_loader('osm2pgsql_replication',
-                                           SourceFileLoader( 'osm2pgsql_replication',replicationfile))
+                                           SourceFileLoader('osm2pgsql_replication',
+                                                            replicationfile))
     assert spec, f"File not found: {replicationfile}"
     context.osm2pgsql_replication = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(context.osm2pgsql_replication)
