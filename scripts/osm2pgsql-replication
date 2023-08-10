@@ -185,9 +185,8 @@ class Osm2pgsqlProperties:
                                  "Use --start-at to set an explicit date.")
 
             date = from_osm_date(date)
-            if start_at is not None:
-                date -= dt.timedelta(minutes=start_at)
-                seq = None
+            date -= dt.timedelta(minutes=start_at or 180)
+            seq = None
         else:
             seq = int(seq)
 
@@ -261,8 +260,7 @@ class LegacyProperties:
         except ValueError:
             raise DBError(1, f"Cannot parse timestamp '{date}'")
 
-        if isinstance(start_at, int):
-            date -= dt.timedelta(minutes=start_at)
+        date -= dt.timedelta(minutes=start_at or 180)
 
         return server, None, date
 

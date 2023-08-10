@@ -107,7 +107,7 @@ Feature: Tests for the osm2pgsql-replication script without property table
 
         Then table planet_osm_replication_status contains exactly
             | url                                                 | sequence | importdate at time zone 'UTC' |
-            | https://planet.openstreetmap.org/replication/minute | 346      | 2020-10-15 12:21:53           |
+            | https://planet.openstreetmap.org/replication/minute | 346      | 2020-10-15 09:21:53           |
 
 
     Scenario: Replication can be initialised from the data in the database with rollback

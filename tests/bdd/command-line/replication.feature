@@ -135,6 +135,29 @@ Feature: Tests for the osm2pgsql-replication script with property table
             | replication_timestamp       | 2020-10-04T03:30:00Z                            |
 
 
+    Scenario: Replication can be initialised from database date
+        Given the OSM data
+            """
+            n34 Tamenity=restaurant x77 y45.3 t2020-10-04T04:00:01Z
+            """
+        And the replication service at https://planet.openstreetmap.org/replication/minute
+            | sequence | timestamp            |
+            | 345      | 2020-10-04T01:00:00Z |
+            | 346      | 2020-10-04T02:00:00Z |
+            | 347      | 2020-10-04T03:00:00Z |
+        When running osm2pgsql pgsql with parameters
+            | --slim |
+
+        And running osm2pgsql-replication
+            | init |
+
+        Then table osm2pgsql_properties contains
+            | property                    | value                                           |
+            | replication_base_url        | https://planet.openstreetmap.org/replication/minute |
+            | replication_sequence_number | 345                                             |
+            | replication_timestamp       | 2020-10-04T01:00:01Z                            |
+
+
     Scenario: Replication can be initialised with a rollback (no previous replication info)
         Given the OSM data
             """
@@ -195,7 +218,7 @@ Feature: Tests for the osm2pgsql-replication script with property table
             | property                    | value                      |
             | replication_base_url        | https://custom.replication |
             | replication_sequence_number | 1346                       |
-            | replication_timestamp       | 2013-08-03T15:55:30Z       |
+            | replication_timestamp       | 2013-08-03T12:55:30Z       |
 
 
     Scenario: Updates need an initialised replication
