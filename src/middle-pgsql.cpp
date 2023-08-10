@@ -1603,11 +1603,11 @@ static table_sql sql_for_relations_format2()
         "   FROM jsonb_array_elements($1) AS el"
         "    WHERE el->>'type' = $2"
         "$$ LANGUAGE SQL IMMUTABLE",
-        "CREATE INDEX \"{prefix}_rels_node_members\""
+        "CREATE INDEX \"{prefix}_rels_node_members_idx\""
         "  ON {schema}\"{prefix}_rels\" USING GIN"
         "  (({schema}\"{prefix}_member_ids\"(members, 'N'::char)))"
         "  WITH (fastupdate = off) {index_tablespace}",
-        "CREATE INDEX \"{prefix}_rels_way_members\""
+        "CREATE INDEX \"{prefix}_rels_way_members_idx\""
         "  ON {schema}\"{prefix}_rels\" USING GIN"
         "  (({schema}\"{prefix}_member_ids\"(members, 'W'::char)))"
         "  WITH (fastupdate = off) {index_tablespace}"};
