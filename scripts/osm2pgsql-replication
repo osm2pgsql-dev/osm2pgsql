@@ -54,6 +54,7 @@ LOG = logging.getLogger()
 OSM2PGSQL_PATH = Path(__file__).parent.resolve() / 'osm2pgsql'
 
 def pretty_format_timedelta(seconds):
+    seconds = int(seconds)
     (minutes, seconds) = divmod(seconds, 60)
     (hours, minutes) = divmod(minutes, 60)
     (days, hours) = divmod(hours, 24)
@@ -62,15 +63,15 @@ def pretty_format_timedelta(seconds):
     output = []
     # If weeks > 1 but hours == 0, we still want to show "0 hours"
     if weeks > 0:
-        output.append("{:d} week(s)".format(weeks))
+        output.append("{} week(s)".format(weeks))
     if days > 0 or weeks > 0:
-        output.append("{:d} day(s)".format(days))
+        output.append("{} day(s)".format(days))
     if hours > 0 or days > 0 or weeks > 0:
-        output.append("{:d} hour(s)".format(hours))
+        output.append("{} hour(s)".format(hours))
     if minutes > 0 or hours > 0 or days > 0 or weeks > 0:
-        output.append("{:d} minute(s)".format(minutes))
+        output.append("{} minute(s)".format(minutes))
 
-    output.append("{:d} second(s)".format(seconds))
+    output.append("{} second(s)".format(seconds))
 
     output = " ".join(output)
     return output
@@ -201,7 +202,7 @@ class Osm2pgsqlProperties:
         date = self._get_prop('replication_timestamp')
 
         if base_url is None or seq is None or date is None:
-            raise DBError(2, "Updates not set up correctly. Run 'osm2pgsql-updates init' first.")
+            raise DBError(2, "Updates not set up correctly. Run 'osm2pgsql-replication init' first.")
 
         return base_url, int(seq), from_osm_date(date)
 
@@ -243,7 +244,7 @@ class LegacyProperties:
         LOG.debug("Using way id %d for timestamp lookup", osmid)
         # Get the way from the API to find the timestamp when it was created.
         url = 'https://www.openstreetmap.org/api/0.6/way/{}/1'.format(osmid)
-        headers = {"User-Agent" : "osm2pgsql-update",
+        headers = {"User-Agent" : "osm2pgsql-replication",
                    "Accept" : "application/json"}
         with urlrequest.urlopen(urlrequest.Request(url, headers=headers)) as response:
             data = json.loads(response.read().decode('utf-8'))
@@ -272,12 +273,12 @@ class LegacyProperties:
         with self.db.conn.cursor() as cur:
             cur.execute(sql.SQL('SELECT * FROM {}').format(self.db.table_id(self.prop_table)))
             if cur.rowcount != 1:
-                raise DBError(2, "Updates not set up correctly. Run 'osm2pgsql-updates init' first.")
+                raise DBError(2, "Updates not set up correctly. Run 'osm2pgsql-replication init' first.")
 
             base_url, seq, date = cur.fetchone()
 
         if base_url is None or seq is None or date is None:
-            raise DBError(2, "Updates not set up correctly. Run 'osm2pgsql-updates init' first.")
+            raise DBError(2, "Updates not set up correctly. Run 'osm2pgsql-replication init' first.")
 
         return base_url, seq, date
 
@@ -491,7 +492,7 @@ def update(props, args):
     remote_server_age_sec = int((dt.datetime.now(dt.timezone.utc) - current.timestamp).total_seconds())
     LOG.debug("Applying %d sequence(s) (%d → %d), covering %s (%s sec) of changes (%s → %s)",
         current.sequence - seq, current.sequence, seq,
-        pretty_format_timedelta(int((current.timestamp - ts).total_seconds())),
+        pretty_format_timedelta((current.timestamp - ts).total_seconds()),
         int((current.timestamp - ts).total_seconds()),
         osm_date(ts.astimezone(dt.timezone.utc)),
         osm_date(current.timestamp.astimezone(dt.timezone.utc))

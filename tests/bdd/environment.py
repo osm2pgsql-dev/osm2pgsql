@@ -9,6 +9,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import importlib.util
+import io
 from importlib.machinery import SourceFileLoader
 
 from behave import *
@@ -16,6 +17,7 @@ import psycopg2
 from psycopg2 import sql
 
 from steps.geometry_factory import GeometryFactory
+from steps.replication_server_mock import ReplicationServerMock
 
 TEST_BASE_DIR = (Path(__file__) / '..' / '..').resolve()
 
@@ -115,6 +117,16 @@ def before_scenario(context, scenario):
     context.osm2pgsql_params = []
     context.workdir = use_fixture(working_directory, context)
     context.geometry_factory = GeometryFactory()
+    context.osm2pgsql_replication.ReplicationServer = ReplicationServerMock()
+    context.urlrequest_responses = {}
+
+    def _mock_urlopen(request):
+        if not request.full_url in context.urlrequest_responses:
+            raise urllib.error.URLError('Unknown URL')
+
+        return closing(io.BytesIO(context.urlrequest_responses[request.full_url].encode('utf-8')))
+
+    context.osm2pgsql_replication.urlrequest.urlopen = _mock_urlopen
 
 
 @fixture

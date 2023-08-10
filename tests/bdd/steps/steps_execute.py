@@ -13,6 +13,9 @@ import sys
 import subprocess
 import contextlib
 import logging
+import datetime as dt
+
+from osmium.replication.server import OsmosisState
 
 def get_import_file(context):
     if context.import_file is not None:
@@ -87,6 +90,13 @@ def run_osm2pgsql_replication(context):
 
     if '-d' not in cmdline and '--database' not in cmdline:
         cmdline.extend(('-d', context.config.userdata['TEST_DB']))
+
+    if cmdline[0] == 'update':
+        cmdline.extend(('--osm2pgsql-cmd',
+                        str(Path(context.config.userdata['BINARY']).resolve())))
+
+        if '--' not in cmdline:
+            cmdline.extend(('--', '-S', str(context.default_data_dir / 'default.style')))
 
 
     serr = StringIO()
@@ -191,3 +201,18 @@ def check_program_output(context, kind):
         if line:
             assert line in s,\
                    f"Output '{line}' not found in {kind} output:\n{s}\n"
+
+
+@given("the replication service at (?P<base_url>.*)")
+def setup_replication_mock(context, base_url):
+    context.osm2pgsql_replication.ReplicationServer.expected_base_url = base_url
+    if context.table:
+        context.osm2pgsql_replication.ReplicationServer.state_infos =\
+          [OsmosisState(int(row[0]),
+                        dt.datetime.strptime(row[1], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=dt.timezone.utc))
+           for row in context.table]
+
+
+@given("the URL (?P<base_url>.*) returns")
+def mock_url_response(context, base_url):
+    context.urlrequest_responses[base_url] = context.text
