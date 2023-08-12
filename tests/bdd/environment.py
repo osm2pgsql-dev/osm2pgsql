@@ -8,12 +8,16 @@ from contextlib import closing
 from pathlib import Path
 import subprocess
 import tempfile
+import importlib.util
+import io
+from importlib.machinery import SourceFileLoader
 
 from behave import *
 import psycopg2
 from psycopg2 import sql
 
 from steps.geometry_factory import GeometryFactory
+from steps.replication_server_mock import ReplicationServerMock
 
 TEST_BASE_DIR = (Path(__file__) / '..' / '..').resolve()
 
@@ -89,6 +93,15 @@ def before_all(context):
     context.test_data_dir = Path(context.config.userdata['TEST_DATA_DIR']).resolve()
     context.default_data_dir = Path(context.config.userdata['SRC_DIR']).resolve()
 
+    # Set up replication script.
+    replicationfile = str(Path(context.config.userdata['REPLICATION_SCRIPT']).resolve())
+    spec = importlib.util.spec_from_loader('osm2pgsql_replication',
+                                           SourceFileLoader('osm2pgsql_replication',
+                                                            replicationfile))
+    assert spec, f"File not found: {replicationfile}"
+    context.osm2pgsql_replication = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(context.osm2pgsql_replication)
+
 
 def before_scenario(context, scenario):
     """ Set up a fresh, empty test database.
@@ -105,6 +118,16 @@ def before_scenario(context, scenario):
     context.osm2pgsql_params = []
     context.workdir = use_fixture(working_directory, context)
     context.geometry_factory = GeometryFactory()
+    context.osm2pgsql_replication.ReplicationServer = ReplicationServerMock()
+    context.urlrequest_responses = {}
+
+    def _mock_urlopen(request):
+        if not request.full_url in context.urlrequest_responses:
+            raise urllib.error.URLError('Unknown URL')
+
+        return closing(io.BytesIO(context.urlrequest_responses[request.full_url].encode('utf-8')))
+
+    context.osm2pgsql_replication.urlrequest.urlopen = _mock_urlopen
 
 
 @fixture
@@ -129,6 +152,7 @@ def test_db(context, **kwargs):
 def working_directory(context, **kwargs):
     with tempfile.TemporaryDirectory() as tmpdir:
         yield Path(tmpdir)
+
 
 def before_tag(context, tag):
     if tag == 'needs-pg-index-includes':

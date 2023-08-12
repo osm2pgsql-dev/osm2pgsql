@@ -41,34 +41,69 @@ usage: osm2pgsql-replication init [-h] [-q] [-v] [-d DB] [-U NAME] [-H HOST]
                                   [-P PORT] [-p PREFIX]
                                   [--middle-schema MIDDLE_SCHEMA]
                                   [--osm-file FILE | --server URL]
+                                  [--start-at TIME]
 
 Initialise the replication process.
 .br
 
 .br
-There are two ways to initialise the replication process: if you have imported
+This function sets the replication service to use and determines from
 .br
-from a file that contains replication source information, then the
+which date to apply updates. You must call this function at least once
 .br
-initialisation process can use this and set up replication from there.
+to set up the replication process. It can safely be called again later
 .br
-Use the command \(cqosm2pgsql-replication \-\-osm\-file <filename>\(cq for this.
+to change the replication servers or to roll back the update process and
+.br
+reapply updates.
 .br
 
 .br
-If the file has no replication information or you don't have the initial
+There are different methods available for initialisation. When no
 .br
-import file anymore then replication can be set up according to
+additional parameters are given, the data is initialised from the data
 .br
-the data found in the database. It checks the planet_osm_way table for the
+in the database. If the data was imported from a file with replication
 .br
-newest way in the database and then queries the OSM API when the way was
+information and the properties table is available (for osm2pgsql >= 1.9)
 .br
-created. The date is used as the start date for replication. In this mode
+then the replication from the file is used. Otherwise the minutely
 .br
-the minutely diffs from the OSM servers are used as a source. You can change
+update service from openstreetmap.org is used as the default replication
 .br
-this with the \(cq\-\-server\(cq parameter.
+service. The start date is either taken from the database timestamp
+.br
+(for osm2pgsql >= 1.9) or determined from the newest way in the database
+.br
+by querying the OSM API about its creation date.
+.br
+
+.br
+The replication service can be changed with the \(cq\-\-server\(cq parameter.
+.br
+To use a different start date, add \(cq\-\-start\-at\(cq with an absolute
+.br
+ISO timestamp (e.g. 2007\-08\-20T12:21:53Z). When the program determines the
+.br
+start date from the database timestamp or way creation date, then it
+.br
+subtracts another 3 hours by default to ensure that all new changes are
+.br
+available. To change this rollback period, use \(cq\-\-start\-at\(cq with the
+.br
+number of minutes to rollback. This rollback mode can also be used to
+.br
+force initialisation to use the database date and ignore the date
+.br
+from the replication information in the file.
+.br
+
+.br
+The initialisation process can also use replication information from
+.br
+an OSM file directly and ignore all other date information.
+.br
+Use the command \(cqosm2pgsql-replication \-\-osm\-file <filename>\(cq for this.
 
 
 
@@ -110,7 +145,11 @@ Get replication information from the given file.
 
 .TP
 \fB\-\-server\fR URL
-Use replication server at the given URL (default: https://planet.openstreetmap.org/replication/minute)
+Use replication server at the given URL
+
+.TP
+\fB\-\-start\-at\fR TIME
+Time when to start replication. When an absolute timestamp (in ISO format) is given, it will be used. If a number is given, then replication starts the number of minutes before the known date of the database.
 
 .SH OPTIONS 'osm2pgsql-replication update'
 usage: osm2pgsql-replication update update [options] [-- param [param ...]]

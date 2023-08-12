@@ -9,8 +9,13 @@ Steps for executing osm2pgsql.
 """
 from io import StringIO
 from pathlib import Path
-import os
+import sys
 import subprocess
+import contextlib
+import logging
+import datetime as dt
+
+from osmium.replication.server import OsmosisState
 
 def get_import_file(context):
     if context.import_file is not None:
@@ -76,7 +81,7 @@ def run_osm2pgsql(context, output):
 
 
 def run_osm2pgsql_replication(context):
-    cmdline = [str(Path(context.config.userdata['REPLICATION_SCRIPT']).resolve())]
+    cmdline = []
     # convert table items to CLI arguments and inject constants to placeholders
     if context.table:
         cmdline.extend(f.format(**context.config.userdata) for f in context.table.headings if f)
@@ -85,18 +90,26 @@ def run_osm2pgsql_replication(context):
 
     if '-d' not in cmdline and '--database' not in cmdline:
         cmdline.extend(('-d', context.config.userdata['TEST_DB']))
-    
-    # on Windows execute script directly with python, because shebang is not recognised
-    if os.name == 'nt':
-        cmdline.insert(0, "python")  
 
-    proc = subprocess.Popen(cmdline, cwd=str(context.workdir),
-                            stdin=subprocess.PIPE,
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if cmdline[0] == 'update':
+        cmdline.extend(('--osm2pgsql-cmd',
+                        str(Path(context.config.userdata['BINARY']).resolve())))
 
-    _, errs = proc.communicate()
+        if '--' not in cmdline:
+            cmdline.extend(('--', '-S', str(context.default_data_dir / 'default.style')))
 
-    return proc.returncode, errs.decode('utf-8')
+
+    serr = StringIO()
+    log_handler = logging.StreamHandler(serr)
+    context.osm2pgsql_replication.LOG.addHandler(log_handler)
+    with contextlib.redirect_stdout(StringIO()) as sout:
+        retval = context.osm2pgsql_replication.main(cmdline)
+    context.osm2pgsql_replication.LOG.removeHandler(log_handler)
+
+    context.osm2pgsql_outdata = [sout.getvalue(), serr.getvalue()]
+    print(context.osm2pgsql_outdata)
+
+    return retval
 
 
 @given("no lua tagtransform")
@@ -156,11 +169,22 @@ def execute_osm2pgsql_with_failure(context, output):
 
 @when("running osm2pgsql-replication")
 def execute_osm2pgsql_replication_successfully(context):
-    returncode, errs = run_osm2pgsql_replication(context)
+    returncode = run_osm2pgsql_replication(context)
 
     assert returncode == 0,\
            f"osm2pgsql-replication failed with error code {returncode}.\n"\
-           f"Errors:\n{errs}"
+           f"Output:\n{context.osm2pgsql_outdata[0]}\n{context.osm2pgsql_outdata[1]}\n"
+
+
+@then("running osm2pgsql-replication fails(?: with returncode (?P<expected>\d+))?")
+def execute_osm2pgsql_replication_successfully(context, expected):
+    returncode = run_osm2pgsql_replication(context)
+
+    assert returncode != 0, "osm2pgsql-replication unexpectedly succeeded"
+    if expected:
+        assert returncode == int(expected), \
+               f"osm2pgsql-replication failed with returncode {returncode} instead of {expected}."\
+               f"Output:\n{context.osm2pgsql_outdata[0]}\n{context.osm2pgsql_outdata[1]}\n"
 
 
 @then("the (?P<kind>\w+) output contains")
@@ -177,3 +201,18 @@ def check_program_output(context, kind):
         if line:
             assert line in s,\
                    f"Output '{line}' not found in {kind} output:\n{s}\n"
+
+
+@given("the replication service at (?P<base_url>.*)")
+def setup_replication_mock(context, base_url):
+    context.osm2pgsql_replication.ReplicationServer.expected_base_url = base_url
+    if context.table:
+        context.osm2pgsql_replication.ReplicationServer.state_infos =\
+          [OsmosisState(int(row[0]),
+                        dt.datetime.strptime(row[1], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=dt.timezone.utc))
+           for row in context.table]
+
+
+@given("the URL (?P<base_url>.*) returns")
+def mock_url_response(context, base_url):
+    context.urlrequest_responses[base_url] = context.text
