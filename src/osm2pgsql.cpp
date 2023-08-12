@@ -115,6 +115,15 @@ static void store_properties(properties_t *properties, options_t const &options)
     properties->set_int("db_format", options.middle_database_format);
     properties->set_string("output", options.output_backend);
 
+    if (options.style.empty()) {
+        properties->set_string("style", "");
+    } else {
+        properties->set_string(
+            "style",
+            boost::filesystem::absolute(boost::filesystem::path{options.style})
+                .string());
+    }
+
     properties->store();
 }
 
@@ -261,6 +270,38 @@ static void check_output(properties_t const &properties, options_t *options)
                     options->output_backend, output);
 }
 
+static void check_and_update_style_file(properties_t *properties,
+                                        options_t *options)
+{
+    auto const style_file_from_import = properties->get_string("style", "");
+
+    if (options->style.empty()) {
+        log_info("Using style file '{}' (same as on import).",
+                 style_file_from_import);
+        options->style = style_file_from_import;
+        return;
+    }
+
+    if (style_file_from_import.empty()) {
+        throw std::runtime_error{"Style file from import is empty!?"};
+    }
+
+    const auto absolute_path =
+        boost::filesystem::absolute(boost::filesystem::path{options->style})
+            .string();
+
+    if (absolute_path == style_file_from_import) {
+        log_info("Using style file '{}' (same as on import).",
+                 style_file_from_import);
+        return;
+    }
+
+    log_info("Using the style file you specified on the command line"
+             " ('{}') instead of the one used on import ('{}').",
+             absolute_path, style_file_from_import);
+    properties->set_string("style", absolute_path, true);
+}
+
 // This is called in "append" mode to check that the command line options are
 // compatible with the properties stored in the database.
 static void check_and_update_properties(properties_t *properties,
@@ -272,6 +313,7 @@ static void check_and_update_properties(properties_t *properties,
     check_prefix(*properties, options);
     check_db_format(*properties, options);
     check_output(*properties, options);
+    check_and_update_style_file(properties, options);
 }
 
 // If we are in append mode and the middle nodes table isn't there, it probably
@@ -288,6 +330,20 @@ static void check_for_nodes_table(options_t const &options)
     if (!has_table(options.middle_dbschema, options.prefix + "_nodes")) {
         throw std::runtime_error{"You seem to not have a nodes table. Did "
                                  "you forget the --flat-nodes option?"};
+    }
+}
+
+static void check_and_set_style(options_t *options)
+{
+    if (!options->style_set) {
+        if (options->output_backend == "flex" ||
+            options->output_backend == "gazetteer") {
+            throw std::runtime_error{"You have to set the config file "
+                                     "with the -S|--style option."};
+        }
+        if (options->output_backend == "pgsql") {
+            options->style = DEFAULT_STYLE;
+        }
     }
 }
 
@@ -317,6 +373,7 @@ int main(int argc, char *argv[])
             if (properties.load()) {
                 check_and_update_properties(&properties, &options);
             } else {
+                check_and_set_style(&options);
                 check_for_nodes_table(options);
             }
 
@@ -334,6 +391,7 @@ int main(int argc, char *argv[])
                 }
             }
         } else {
+            check_and_set_style(&options);
             store_properties(&properties, options);
             auto const finfo = run(options);
             store_data_properties(&properties, finfo);

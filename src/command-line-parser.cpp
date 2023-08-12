@@ -514,14 +514,6 @@ static void check_options(options_t *options)
         options->expire_tiles_zoom = 0;
     }
 
-    if (options->output_backend == "flex" ||
-        options->output_backend == "gazetteer") {
-        if (options->style == DEFAULT_STYLE) {
-            throw std::runtime_error{
-                "You have to set the config file with the -S|--style option."};
-        }
-    }
-
     if (options->output_backend == "gazetteer") {
         log_warn(
             "The 'gazetteer' output is deprecated and will soon be removed.");
@@ -623,6 +615,7 @@ options_t parse_command_line(int argc, char *argv[])
             break;
         case 'S': // --style
             options.style = optarg;
+            options.style_set = true;
             break;
         case 'i': // --tablespace-index
             options.tblsmain_index = optarg;
