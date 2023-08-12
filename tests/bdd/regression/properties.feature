@@ -81,6 +81,25 @@ Feature: Updates to the test database with properties check
             | --prefix=abc   |                | Using prefix 'abc' (same as on import).       |
 
 
+    Scenario Outline: Create/append with various parameters with flex output
+        When running osm2pgsql flex with parameters
+            | --slim         |
+            | <param_create> |
+
+        Given the input file '000466354.osc.gz'
+        When running osm2pgsql flex with parameters
+            | -a             |
+            | --slim         |
+            | <param_append> |
+        Then the error output contains
+            """
+            <message>
+            """
+            | --style=x      |                | Using style file                              |
+            | --style=x      | --style=x      | Using style file                              |
+            | --style=x      | --style=y      | Using the style file you specified            |
+
+
     Scenario: Create with different output than append
         When running osm2pgsql pgsql with parameters
             | --slim         |

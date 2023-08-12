@@ -115,6 +115,15 @@ static void store_properties(properties_t *properties, options_t const &options)
     properties->set_int("db_format", options.middle_database_format);
     properties->set_string("output", options.output_backend);
 
+    if (options.style.empty()) {
+        properties->set_string("style", "");
+    } else {
+        properties->set_string(
+            "style",
+            boost::filesystem::absolute(boost::filesystem::path{options.style})
+                .string());
+    }
+
     properties->store();
 }
 
@@ -167,40 +176,39 @@ static void check_attributes(properties_t const &properties, options_t *options)
     }
 }
 
-static void check_and_update_flat_node_file(properties_t *properties,
-                                            options_t *options)
+static void check_and_update_file(properties_t *properties, std::string *option,
+                                  std::string const &file,
+                                  std::string const &opt_name)
 {
-    auto const flat_node_file_from_import =
-        properties->get_string("flat_node_file", "");
-    if (options->flat_node_file.empty()) {
-        if (flat_node_file_from_import.empty()) {
-            log_info("Not using flat node file (same as on import).");
+    auto const from_import = properties->get_string(opt_name, "");
+
+    if (option->empty()) {
+        if (from_import.empty()) {
+            log_info("Not using {} file (same as on import).", file);
         } else {
-            options->flat_node_file = flat_node_file_from_import;
-            log_info("Using flat node file '{}' (same as on import).",
-                     flat_node_file_from_import);
+            *option = from_import;
+            log_info("Using {} file '{}' (same as on import).", file,
+                     from_import);
         }
     } else {
         const auto absolute_path =
-            boost::filesystem::absolute(
-                boost::filesystem::path{options->flat_node_file})
+            boost::filesystem::absolute(boost::filesystem::path{*option})
                 .string();
 
-        if (flat_node_file_from_import.empty()) {
-            throw fmt_error("Database was imported without flat node file. Can"
-                            " not use flat node file '{}' now.",
-                            options->flat_node_file);
+        if (from_import.empty()) {
+            throw fmt_error("Database was imported without {0} file. Can"
+                            " not use {0} file '{1}' now.",
+                            file, *option);
         }
 
-        if (absolute_path == flat_node_file_from_import) {
-            log_info("Using flat node file '{}' (same as on import).",
-                     flat_node_file_from_import);
+        if (absolute_path == from_import) {
+            log_info("Using {} file '{}' (same as on import).", file,
+                     from_import);
         } else {
-            log_info(
-                "Using the flat node file you specified on the command line"
-                " ('{}') instead of the one used on import ('{}').",
-                absolute_path, flat_node_file_from_import);
-            properties->set_string("flat_node_file", absolute_path, true);
+            log_info("Using the {} file you specified on the command line"
+                     " ('{}') instead of the one used on import ('{}').",
+                     file, absolute_path, from_import);
+            properties->set_string(opt_name, absolute_path, true);
         }
     }
 }
@@ -268,10 +276,12 @@ static void check_and_update_properties(properties_t *properties,
 {
     check_updatable(*properties);
     check_attributes(*properties, options);
-    check_and_update_flat_node_file(properties, options);
+    check_and_update_file(properties, &options->flat_node_file, "flat node",
+                          "flat_node_file");
     check_prefix(*properties, options);
     check_db_format(*properties, options);
     check_output(*properties, options);
+    check_and_update_file(properties, &options->style, "style", "style");
 }
 
 // If we are in append mode and the middle nodes table isn't there, it probably
