@@ -30,14 +30,11 @@ table_t::table_t(std::string const &name, std::string type, columns_t columns,
                  hstore_column hstore_mode,
                  std::shared_ptr<db_copy_thread_t> const &copy_thread,
                  std::string const &schema)
-: m_target(std::make_shared<db_target_descr_t>(name.c_str(), "osm_id")),
+: m_target(std::make_shared<db_target_descr_t>(schema, name, "osm_id")),
   m_type(std::move(type)), m_srid(fmt::to_string(srid)), m_append(append),
   m_hstore_mode(hstore_mode), m_columns(std::move(columns)),
   m_hstore_columns(std::move(hstore_columns)), m_copy(copy_thread)
 {
-    assert(!schema.empty());
-    m_target->schema = schema;
-
     // if we dont have any columns
     if (m_columns.empty() && m_hstore_mode != hstore_column::all) {
         throw fmt_error("No columns provided for table {}.", name);

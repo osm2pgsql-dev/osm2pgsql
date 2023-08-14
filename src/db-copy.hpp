@@ -10,6 +10,7 @@
  * For a full list of authors see the git log.
  */
 
+#include <cassert>
 #include <condition_variable>
 #include <deque>
 #include <future>
@@ -29,7 +30,7 @@
 struct db_target_descr_t
 {
     /// Schema of the target table.
-    std::string schema{"public"};
+    std::string schema;
     /// Name of the target table for the copy operation.
     std::string name;
     /// Name of id column used when deleting objects.
@@ -46,11 +47,15 @@ struct db_target_descr_t
                                     name == other.name && rows == other.rows);
     }
 
-    db_target_descr_t() = default;
+    db_target_descr_t() = delete;
 
-    db_target_descr_t(std::string n, std::string i, std::string r = {})
-    : name(std::move(n)), id(std::move(i)), rows(std::move(r))
-    {}
+    db_target_descr_t(std::string s, std::string n, std::string i,
+                      std::string r = {})
+    : schema(std::move(s)), name(std::move(n)), id(std::move(i)),
+      rows(std::move(r))
+    {
+        assert(!schema.empty());
+    }
 };
 
 /**
