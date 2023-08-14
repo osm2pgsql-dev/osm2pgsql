@@ -472,7 +472,9 @@ private:
             log_debug("Running in multi-threaded mode.");
             std::mutex mut;
             std::vector<std::thread> threads;
-            for (unsigned int n = 1; n <= m_jobs; ++n) {
+            for (unsigned int n = 1;
+                 n <= std::min(m_jobs, static_cast<uint32_t>(tile_list.size()));
+                 ++n) {
                 threads.emplace_back(run_tile_gen, m_conninfo, generalizer,
                                      params, zoom, &tile_list, &mut, n);
             }
