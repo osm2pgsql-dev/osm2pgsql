@@ -10,6 +10,7 @@
  * For a full list of authors see the git log.
  */
 
+#include <cassert>
 #include <condition_variable>
 #include <deque>
 #include <future>
@@ -26,31 +27,45 @@
 /**
  * Table information necessary for building SQL queries.
  */
-struct db_target_descr_t
+class db_target_descr_t
 {
-    /// Schema of the target table.
-    std::string schema{"public"};
-    /// Name of the target table for the copy operation.
-    std::string name;
-    /// Name of id column used when deleting objects.
-    std::string id;
-    /// Comma-separated list of rows for copy operation (when empty: all rows)
-    std::string rows;
+public:
+    db_target_descr_t(std::string schema, std::string name, std::string id,
+                      std::string rows = {})
+    : m_schema(std::move(schema)), m_name(std::move(name)), m_id(std::move(id)),
+      m_rows(std::move(rows))
+    {
+        assert(!m_schema.empty());
+        assert(!m_name.empty());
+        assert(!m_id.empty());
+    }
+
+    std::string const &schema() const noexcept { return m_schema; }
+    std::string const &name() const noexcept { return m_name; }
+    std::string const &id() const noexcept { return m_id; }
+    std::string const &rows() const noexcept { return m_rows; }
+
+    void set_rows(std::string rows) { m_rows = std::move(rows); }
 
     /**
      * Check if the buffer would use exactly the same copy operation.
      */
     bool same_copy_target(db_target_descr_t const &other) const noexcept
     {
-        return (this == &other) || (schema == other.schema &&
-                                    name == other.name && rows == other.rows);
+        return (this == &other) ||
+               (m_schema == other.m_schema && m_name == other.m_name &&
+                m_id == other.m_id && m_rows == other.m_rows);
     }
 
-    db_target_descr_t() = default;
-
-    db_target_descr_t(std::string n, std::string i, std::string r = {})
-    : name(std::move(n)), id(std::move(i)), rows(std::move(r))
-    {}
+private:
+    /// Schema of the target table.
+    std::string m_schema;
+    /// Name of the target table for the copy operation.
+    std::string m_name;
+    /// Name of id column used when deleting objects.
+    std::string m_id;
+    /// Comma-separated list of rows for copy operation (when empty: all rows)
+    std::string m_rows;
 };
 
 /**
@@ -198,8 +213,9 @@ public:
     void delete_data(pg_conn_t *conn) override
     {
         if (m_deleter.has_data()) {
-            m_deleter.delete_rows(qualified_name(target->schema, target->name),
-                                  target->id, conn);
+            m_deleter.delete_rows(
+                qualified_name(target->schema(), target->name()), target->id(),
+                conn);
         }
     }
 

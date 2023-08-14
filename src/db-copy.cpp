@@ -188,7 +188,7 @@ void db_copy_thread_t::thread_t::write_to_db(db_cmd_copy_t *buffer)
         start_copy(buffer->target);
     }
 
-    m_conn->copy_send(buffer->buffer, buffer->target->name);
+    m_conn->copy_send(buffer->buffer, buffer->target->name());
 }
 
 void db_copy_thread_t::thread_t::start_copy(
@@ -196,16 +196,16 @@ void db_copy_thread_t::thread_t::start_copy(
 {
     assert(!m_inflight);
 
-    auto const qname = qualified_name(target->schema, target->name);
+    auto const qname = qualified_name(target->schema(), target->name());
     fmt::memory_buffer sql;
-    sql.reserve(qname.size() + target->rows.size() + 20);
-    if (target->rows.empty()) {
+    sql.reserve(qname.size() + target->rows().size() + 20);
+    if (target->rows().empty()) {
         fmt::format_to(std::back_inserter(sql),
                        FMT_STRING("COPY {} FROM STDIN"), qname);
     } else {
         fmt::format_to(std::back_inserter(sql),
                        FMT_STRING("COPY {} ({}) FROM STDIN"), qname,
-                       target->rows);
+                       target->rows());
     }
 
     sql.push_back('\0');
@@ -217,7 +217,7 @@ void db_copy_thread_t::thread_t::start_copy(
 void db_copy_thread_t::thread_t::finish_copy()
 {
     if (m_inflight) {
-        m_conn->copy_end(m_inflight->name);
+        m_conn->copy_end(m_inflight->name());
         m_inflight.reset();
     }
 }

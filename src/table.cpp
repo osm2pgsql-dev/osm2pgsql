@@ -30,14 +30,11 @@ table_t::table_t(std::string const &name, std::string type, columns_t columns,
                  hstore_column hstore_mode,
                  std::shared_ptr<db_copy_thread_t> const &copy_thread,
                  std::string const &schema)
-: m_target(std::make_shared<db_target_descr_t>(name.c_str(), "osm_id")),
+: m_target(std::make_shared<db_target_descr_t>(schema, name, "osm_id")),
   m_type(std::move(type)), m_srid(fmt::to_string(srid)), m_append(append),
   m_hstore_mode(hstore_mode), m_columns(std::move(columns)),
   m_hstore_columns(std::move(hstore_columns)), m_copy(copy_thread)
 {
-    assert(!schema.empty());
-    m_target->schema = schema;
-
     // if we dont have any columns
     if (m_columns.empty() && m_hstore_mode != hstore_column::all) {
         throw fmt_error("No columns provided for table {}.", name);
@@ -78,17 +75,17 @@ void table_t::start(std::string const &conninfo, std::string const &table_space)
 {
     if (m_sql_conn) {
         throw fmt_error("{} cannot start, its already started.",
-                        m_target->name);
+                        m_target->name());
     }
 
     m_conninfo = conninfo;
     m_table_space = tablespace_clause(table_space);
 
     connect();
-    log_info("Setting up table '{}'", m_target->name);
-    auto const qual_name = qualified_name(m_target->schema, m_target->name);
-    auto const qual_tmp_name = qualified_name(
-        m_target->schema, m_target->name + "_tmp");
+    log_info("Setting up table '{}'", m_target->name());
+    auto const qual_name = qualified_name(m_target->schema(), m_target->name());
+    auto const qual_tmp_name =
+        qualified_name(m_target->schema(), m_target->name() + "_tmp");
 
     // we are making a new table
     if (!m_append) {
@@ -135,8 +132,8 @@ void table_t::start(std::string const &conninfo, std::string const &table_space)
         m_sql_conn->exec(sql);
 
         if (m_srid != "4326") {
-            create_geom_check_trigger(m_sql_conn.get(), m_target->schema,
-                                      m_target->name, "ST_IsValid(NEW.way)");
+            create_geom_check_trigger(m_sql_conn.get(), m_target->schema(),
+                                      m_target->name(), "ST_IsValid(NEW.way)");
         }
     }
 
@@ -146,7 +143,7 @@ void table_t::start(std::string const &conninfo, std::string const &table_space)
 void table_t::prepare()
 {
     //let postgres cache this query as it will presumably happen a lot
-    auto const qual_name = qualified_name(m_target->schema, m_target->name);
+    auto const qual_name = qualified_name(m_target->schema(), m_target->name());
     m_sql_conn->exec("PREPARE get_wkb(int8) AS"
                      " SELECT way FROM {} WHERE osm_id = $1",
                      qual_name);
@@ -176,7 +173,7 @@ void table_t::generate_copy_column_list()
     // add geom column
     joiner.add("way");
 
-    m_target->rows = joiner();
+    m_target->set_rows(joiner());
 }
 
 void table_t::stop(bool updateable, bool enable_hstore_index,
@@ -185,17 +182,17 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
     // make sure that all data is written to the DB before continuing
     m_copy.sync();
 
-    auto const qual_name = qualified_name(m_target->schema, m_target->name);
-    auto const qual_tmp_name = qualified_name(
-        m_target->schema, m_target->name + "_tmp");
+    auto const qual_name = qualified_name(m_target->schema(), m_target->name());
+    auto const qual_tmp_name =
+        qualified_name(m_target->schema(), m_target->name() + "_tmp");
 
     if (!m_append) {
         if (m_srid != "4326") {
-            drop_geom_check_trigger(m_sql_conn.get(), m_target->schema,
-                                    m_target->name);
+            drop_geom_check_trigger(m_sql_conn.get(), m_target->schema(),
+                                    m_target->name());
         }
 
-        log_info("Clustering table '{}' by geometry...", m_target->name);
+        log_info("Clustering table '{}' by geometry...", m_target->name());
 
         std::string sql = fmt::format("CREATE TABLE {} {} AS SELECT * FROM {}",
                                       qual_tmp_name, m_table_space, qual_name);
@@ -205,7 +202,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
         sql += " ORDER BY ";
         if (postgis_version.major == 2 && postgis_version.minor < 4) {
             log_debug("Using GeoHash for clustering table '{}'",
-                      m_target->name);
+                      m_target->name());
             if (m_srid == "4326") {
                 sql += "ST_GeoHash(way,10)";
             } else {
@@ -214,7 +211,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
             sql += " COLLATE \"C\"";
         } else {
             log_debug("Using native order for clustering table '{}'",
-                      m_target->name);
+                      m_target->name());
             // Since Postgis 2.4 the order function for geometries gives
             // useful results.
             sql += "way";
@@ -224,9 +221,9 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
 
         m_sql_conn->exec("DROP TABLE {}", qual_name);
         m_sql_conn->exec(R"(ALTER TABLE {} RENAME TO "{}")", qual_tmp_name,
-                         m_target->name);
+                         m_target->name());
 
-        log_info("Creating geometry index on table '{}'...", m_target->name);
+        log_info("Creating geometry index on table '{}'...", m_target->name());
 
         // Use fillfactor 100 for un-updatable imports
         m_sql_conn->exec("CREATE INDEX ON {} USING GIST (way) {} {}", qual_name,
@@ -235,12 +232,13 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
 
         /* slim mode needs this to be able to apply diffs */
         if (updateable) {
-            log_info("Creating osm_id index on table '{}'...", m_target->name);
+            log_info("Creating osm_id index on table '{}'...",
+                     m_target->name());
             m_sql_conn->exec("CREATE INDEX ON {} USING BTREE (osm_id) {}",
                              qual_name, tablespace_clause(table_space_index));
             if (m_srid != "4326") {
-                create_geom_check_trigger(m_sql_conn.get(), m_target->schema,
-                                          m_target->name,
+                create_geom_check_trigger(m_sql_conn.get(), m_target->schema(),
+                                          m_target->name(),
                                           "ST_IsValid(NEW.way)");
             }
         }
@@ -248,7 +246,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
         /* Create hstore index if selected */
         if (enable_hstore_index) {
             log_info("Creating hstore indexes on table '{}'...",
-                     m_target->name);
+                     m_target->name());
             if (m_hstore_mode != hstore_column::none) {
                 m_sql_conn->exec("CREATE INDEX ON {} USING GIN (tags) {}",
                                  qual_name,
@@ -260,8 +258,8 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
                                  tablespace_clause(table_space_index));
             }
         }
-        log_info("Analyzing table '{}'...", m_target->name);
-        analyze_table(*m_sql_conn, m_target->schema, m_target->name);
+        log_info("Analyzing table '{}'...", m_target->name());
+        analyze_table(*m_sql_conn, m_target->schema(), m_target->name());
     }
     teardown();
 }
@@ -372,7 +370,7 @@ void table_t::write_hstore_columns(taglist_t const &tags)
 void table_t::task_wait()
 {
     auto const run_time = m_task_result.wait();
-    log_info("All postprocessing on table '{}' done in {}.", m_target->name,
+    log_info("All postprocessing on table '{}' done in {}.", m_target->name(),
              util::human_readable_duration(run_time));
 }
 

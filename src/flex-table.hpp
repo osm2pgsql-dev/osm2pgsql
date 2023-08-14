@@ -250,11 +250,10 @@ public:
                        std::shared_ptr<db_copy_thread_t> const &copy_thread)
     : m_proj(reprojection::create_projection(table->srid())), m_table(table),
       m_target(std::make_shared<db_target_descr_t>(
-          table->name(), table->id_column_names(),
+          table->schema(), table->name(), table->id_column_names(),
           table->build_sql_column_list())),
       m_copy_mgr(copy_thread), m_db_connection(nullptr)
     {
-        m_target->schema = table->schema();
     }
 
     void connect(std::string const &conninfo);

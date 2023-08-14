@@ -133,10 +133,13 @@ struct middle_pgsql_t : public middle_t
 
         std::string const &schema() const noexcept
         {
-            return m_copy_target->schema;
+            return m_copy_target->schema();
         }
 
-        std::string const &name() const noexcept { return m_copy_target->name; }
+        std::string const &name() const noexcept
+        {
+            return m_copy_target->name();
+        }
 
         std::shared_ptr<db_target_descr_t> const &copy_target() const noexcept
         {

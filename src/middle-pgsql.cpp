@@ -132,12 +132,9 @@ middle_pgsql_t::table_desc::table_desc(options_t const &options,
                                        table_sql const &ts)
 : m_create_table(build_sql(options, ts.create_table)),
   m_prepare_queries(build_sql(options, ts.prepare_queries)),
-  m_copy_target(std::make_shared<db_target_descr_t>())
+  m_copy_target(std::make_shared<db_target_descr_t>(
+      options.middle_dbschema, build_sql(options, ts.name), "id"))
 {
-    m_copy_target->name = build_sql(options, ts.name);
-    m_copy_target->schema = options.middle_dbschema;
-    m_copy_target->id = "id";
-
     if (options.with_forward_dependencies) {
         m_create_fw_dep_indexes = build_sql(options, ts.create_fw_dep_indexes);
     }
@@ -1324,9 +1321,8 @@ void middle_pgsql_t::write_users_table()
 {
     log_info("Writing {} entries to table '{}'...", m_users.size(),
              m_users_table.name());
-    auto const users_table =
-        std::make_shared<db_target_descr_t>(m_users_table.name(), "id");
-    users_table->schema = m_users_table.schema();
+    auto const users_table = std::make_shared<db_target_descr_t>(
+        m_users_table.schema(), m_users_table.name(), "id");
 
     for (auto const &[id, name] : m_users) {
         m_db_copy.new_line(users_table);

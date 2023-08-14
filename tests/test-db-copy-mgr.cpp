@@ -27,9 +27,8 @@ static std::shared_ptr<db_target_descr_t> setup_table(std::string const &cols)
     conn.exec("CREATE TABLE test_copy_mgr (id int8{}{})",
               cols.empty() ? "" : ",", cols);
 
-    auto table = std::make_shared<db_target_descr_t>();
-    table->name = "test_copy_mgr";
-    table->id = "id";
+    auto table =
+        std::make_shared<db_target_descr_t>("public", "test_copy_mgr", "id");
 
     return table;
 }
