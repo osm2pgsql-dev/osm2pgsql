@@ -36,12 +36,18 @@ mandatory for short options too.
     specified.
 
 -S, \--style=FILE
-:   The Lua config file. Same as for **osm2pgsql**.
+:   The Lua config file. Same as for **osm2pgsql**. Usually not required
+    because it is read from the `osm2pgsql_properties` table.
 
 -j, \-jobs=NUM
 :   Specifies the number of parallel threads used for certain operations.
     Setting this to the number of available CPU cores is a reasonable starting
     point.
+
+\--middle-schema=SCHEMA
+:   Database schema where the `osm2pgsql_properties` table is to be found.
+    Default `public`. Set to the same value as on the `osm2pgsql` command
+    line.
 
 # HELP/VERSION OPTIONS
 

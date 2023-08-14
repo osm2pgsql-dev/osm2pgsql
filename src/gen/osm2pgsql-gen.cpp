@@ -88,7 +88,7 @@ This program is EXPERIMENTAL and might change without notice.
 Main Options:
     -a|--append           Run in append mode
     -c|--create           Run in create mode (default)
-    -S|--style=FILE       The Lua config file (required, same as for osm2pgsql)
+    -S|--style=FILE       The Lua config file (same as for osm2pgsql)
     -j|--jobs=NUM         Number of parallel jobs (default 1)
        --middle-schema=SCHEMA  Database schema for middle tables
 
@@ -669,11 +669,6 @@ int main(int argc, char *argv[])
             return 2;
         }
 
-        if (style.empty()) {
-            log_error("Need --style/-S option");
-            return 2;
-        }
-
         if (jobs < 1 || jobs > 32) {
             log_error("The --jobs/-j parameter must be between 1 and 32.");
             return 2;
@@ -711,6 +706,14 @@ int main(int argc, char *argv[])
 
         properties_t properties{conninfo, schema};
         properties.load();
+
+        if (style.empty()) {
+            style = properties.get_string("style", "");
+            if (style.empty()) {
+                log_error("Need --style/-S option");
+                return 2;
+            }
+        }
 
         bool const updatable = properties.get_bool("updatable", false);
         genproc_t gen{style, conninfo, append, updatable, jobs};

@@ -104,7 +104,7 @@ struct options_t
     /// Pg schema to store output tables in.
     std::string output_dbschema{"public"};
 
-    std::string style{DEFAULT_STYLE}; ///< style file to use
+    std::string style{}; ///< style file to use
 
     /// Name of the flat node file used. Empty if flat node file is not enabled.
     std::string flat_node_file{};
@@ -184,6 +184,9 @@ struct options_t
     bool parallel_indexing = true;
     bool create = false;
     bool pass_prompt = false;
+
+    bool output_backend_set = false;
+    bool style_set = false;
 }; // struct options_t
 
 #endif // OSM2PGSQL_OPTIONS_HPP
