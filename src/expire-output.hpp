@@ -81,7 +81,7 @@ private:
     std::string m_filename;
 
     /// The schema for output
-    std::string m_schema{"public"};
+    std::string m_schema;
 
     /// The table (if any) for output
     std::string m_table;

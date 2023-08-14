@@ -83,6 +83,7 @@ struct option const long_options[] = {
     {"prefix", required_argument, nullptr, 'p'},
     {"proj", required_argument, nullptr, 'E'},
     {"reproject-area", no_argument, nullptr, 213},
+    {"schema", required_argument, nullptr, 218},
     {"slim", no_argument, nullptr, 's'},
     {"style", required_argument, nullptr, 'S'},
     {"tablespace-index", required_argument, nullptr, 'i'},
@@ -140,6 +141,7 @@ Common options:\n\
                     information in slim mode instead of in PostgreSQL.\n\
                     This is a single large file (> 50GB). Only recommended\n\
                     for full planet imports. Default is disabled.\n\
+    --schema=SCHEMA Default schema (default: 'public').\n\
 \n\
 Database options:\n\
     -d|--database=DB  The name of the PostgreSQL database to connect to or\n\
@@ -181,7 +183,7 @@ Middle options:\n\
        --cache-strategy=STRATEGY  Deprecated. Not used any more.\n\
     -x|--extra-attributes  Include attributes (user name, user id, changeset\n\
                     id, timestamp and version) for each object in the database.\n\
-       --middle-schema=SCHEMA  Schema to use for middle tables (default: 'public').\n\
+       --middle-schema=SCHEMA  Schema to use for middle tables (default: setting of --schema).\n\
        --middle-way-node-index-id-shift=SHIFT  Set ID shift for bucket index.\n\
        --middle-database-format=FORMAT  Set middle db format (default: legacy).\n\
        --middle-with-nodes  Store tagged nodes in db (new middle db format only).\n\
@@ -213,7 +215,7 @@ Pgsql output options:\n\
     -K|--keep-coastlines  Keep coastline data rather than filtering it out.\n\
                     Default: discard objects tagged natural=coastline.\n\
        --output-pgsql-schema=SCHEMA Schema to use for pgsql output tables\n\
-                    (default: 'public').\n\
+                    (default: setting of --schema).\n\
        --reproject-area  Compute area column using web mercator coordinates.\n\
 \n\
 Expiry options:\n\
@@ -728,6 +730,13 @@ options_t parse_command_line(int argc, char *argv[])
             options.with_forward_dependencies =
                 parse_with_forward_dependencies_param(optarg);
             break;
+        case 218: // --schema
+            options.dbschema = optarg;
+            if (options.dbschema.empty()) {
+                throw std::runtime_error{"Schema can not be empty."};
+            }
+            check_identifier(options.dbschema, "--schema parameter");
+            break;
         case 300: // --middle-way-node-index-id-shift
             options.way_node_index_id_shift = atoi(optarg);
             break;
@@ -762,6 +771,14 @@ options_t parse_command_line(int argc, char *argv[])
             throw std::runtime_error{"Usage error. Try 'osm2pgsql --help'."};
         }
     } //end while
+
+    if (options.middle_dbschema.empty()) {
+        options.middle_dbschema = options.dbschema;
+    }
+
+    if (options.output_dbschema.empty()) {
+        options.output_dbschema = options.dbschema;
+    }
 
     //they were looking for usage info
     if (print_help) {

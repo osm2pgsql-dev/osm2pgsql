@@ -10,6 +10,7 @@
  * For a full list of authors see the git log.
  */
 
+#include <string>
 #include <vector>
 
 class expire_output_t;
@@ -20,6 +21,7 @@ static char const *const osm2pgsql_table_name = "osm2pgsql.Table";
 
 int setup_flex_table(lua_State *lua_state, std::vector<flex_table_t> *tables,
                      std::vector<expire_output_t> *expire_outputs,
-                     bool updatable, bool append_mode);
+                     std::string const &default_schema, bool updatable,
+                     bool append_mode);
 
 #endif // OSM2PGSQL_FLEX_LUA_TABLE_HPP

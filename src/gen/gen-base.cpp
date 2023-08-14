@@ -20,7 +20,7 @@ gen_base_t::gen_base_t(pg_conn_t *connection, params_t *params)
     assert(connection);
     assert(params);
 
-    params->check_identifier_with_default("schema", "public");
+    params->check_identifier_with_default("schema", "");
     auto const schema = params->get_identifier("schema");
 
     if (params->has("src_table")) {

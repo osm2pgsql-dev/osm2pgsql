@@ -48,7 +48,7 @@ TEST_CASE("check index with single column", "[NoDB]")
 {
     test_framework const tf;
 
-    flex_table_t table{"test_table"};
+    flex_table_t table{"public", "test_table"};
     table.add_column("geom", "geometry", "");
 
     REQUIRE(table.indexes().empty());
@@ -71,7 +71,7 @@ TEST_CASE("check index with multiple columns", "[NoDB]")
 {
     test_framework const tf;
 
-    flex_table_t table{"test_table"};
+    flex_table_t table{"public", "test_table"};
     table.add_column("a", "int", "");
     table.add_column("b", "int", "");
 
@@ -93,7 +93,7 @@ TEST_CASE("check unique index", "[NoDB]")
 {
     test_framework const tf;
 
-    flex_table_t table{"test_table"};
+    flex_table_t table{"public", "test_table"};
     table.add_column("col", "int", "");
 
     REQUIRE(tf.run_lua(
@@ -115,7 +115,7 @@ TEST_CASE("check index with tablespace from table", "[NoDB]")
 {
     test_framework const tf;
 
-    flex_table_t table{"test_table"};
+    flex_table_t table{"public", "test_table"};
     table.set_index_tablespace("foo");
     table.add_column("col", "int", "");
 
@@ -137,7 +137,7 @@ TEST_CASE("check index with tablespace", "[NoDB]")
 {
     test_framework const tf;
 
-    flex_table_t table{"test_table"};
+    flex_table_t table{"public", "test_table"};
     table.add_column("col", "int", "");
 
     REQUIRE(tf.run_lua("return { method = 'btree', column = 'col', tablespace "
@@ -159,7 +159,7 @@ TEST_CASE("check index with expression and where clause", "[NoDB]")
 {
     test_framework const tf;
 
-    flex_table_t table{"test_table"};
+    flex_table_t table{"public", "test_table"};
     table.add_column("col", "text", "");
 
     REQUIRE(tf.run_lua("return { method = 'btree', expression = 'lower(col)',"
@@ -181,7 +181,7 @@ TEST_CASE("check index with include", "[NoDB]")
 {
     test_framework const tf;
 
-    flex_table_t table{"test_table"};
+    flex_table_t table{"public", "test_table"};
     table.add_column("col", "int", "");
     table.add_column("extra", "int", "");
 
@@ -204,7 +204,7 @@ TEST_CASE("check index with include as array", "[NoDB]")
 {
     test_framework const tf;
 
-    flex_table_t table{"test_table"};
+    flex_table_t table{"public", "test_table"};
     table.add_column("col", "int", "");
     table.add_column("extra", "int", "");
 
@@ -227,7 +227,7 @@ TEST_CASE("check index with empty include array", "[NoDB]")
 {
     test_framework const tf;
 
-    flex_table_t table{"test_table"};
+    flex_table_t table{"public", "test_table"};
     table.add_column("col", "int", "");
     table.add_column("extra", "int", "");
 
@@ -250,7 +250,7 @@ TEST_CASE("check multiple indexes", "[NoDB]")
 {
     test_framework const tf;
 
-    flex_table_t table{"test_table"};
+    flex_table_t table{"public", "test_table"};
     table.add_column("a", "int", "");
     table.add_column("b", "int", "");
 
@@ -273,7 +273,7 @@ TEST_CASE("check various broken index configs", "[NoDB]")
 {
     test_framework const tf;
 
-    flex_table_t table{"test_table"};
+    flex_table_t table{"public", "test_table"};
     table.add_column("col", "text", "");
 
     SECTION("empty index description") { REQUIRE(tf.run_lua("return {}")); }
