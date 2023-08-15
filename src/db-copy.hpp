@@ -37,7 +37,6 @@ public:
     {
         assert(!m_schema.empty());
         assert(!m_name.empty());
-        assert(!m_id.empty());
     }
 
     std::string const &schema() const noexcept { return m_schema; }
