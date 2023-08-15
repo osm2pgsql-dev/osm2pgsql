@@ -1,4 +1,4 @@
-.TH "OSM2PGSQL" "1" "1.8.1" "" ""
+.TH "OSM2PGSQL" "1" "1.9.0" "" ""
 .SH NAME
 .PP
 osm2pgsql - OpenStreetMap data to PostgreSQL converter
@@ -93,6 +93,12 @@ Database server hostname or unix domain socket location.
 .TP
 -P, --port=PORT
 Database server port.
+.TP
+--schema=SCHEMA
+Default for various schema settings throughout osm2pgsql (default:
+\f[V]public\f[R]).
+The schema must exist in the database and be writable by the database
+user.
 .SH INPUT OPTIONS
 .TP
 -r, --input-reader=FORMAT
@@ -186,8 +192,11 @@ The default is disabled.
 .TP
 --middle-schema=SCHEMA
 Use PostgreSQL schema SCHEMA for all tables, indexes, and functions in
-the middle (default is no schema, i.e.\ the \f[V]public\f[R] schema is
-used).
+the middle.
+The schema must exist in the database and be writable by the database
+user.
+By default the schema set with \f[V]--schema\f[R] is used, or
+\f[V]public\f[R] if that is not set.
 .TP
 --middle-way-node-index-id-shift=SHIFT
 Set ID shift for way node bucket index in middle.
@@ -309,8 +318,11 @@ different projection is used for the geometries.
 .TP
 --output-pgsql-schema=SCHEMA
 Use PostgreSQL schema SCHEMA for all tables, indexes, and functions in
-the pgsql output (default is no schema, i.e.\ the \f[V]public\f[R]
-schema is used).
+the pgsql output.
+The schema must exist in the database and be writable by the database
+user.
+By default the schema set with \f[V]--schema\f[R] is used, or
+\f[V]public\f[R] if that is not set.
 .SH EXPIRE OPTIONS
 .TP
 -e, --expire-tiles=[MIN_ZOOM-]MAX-ZOOM
