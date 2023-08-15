@@ -44,11 +44,6 @@ mandatory for short options too.
     Setting this to the number of available CPU cores is a reasonable starting
     point.
 
-\--middle-schema=SCHEMA
-:   Database schema where the `osm2pgsql_properties` table is to be found.
-    Default `public`. Set to the same value as on the `osm2pgsql` command
-    line.
-
 # HELP/VERSION OPTIONS
 
 -h, \--help
@@ -84,6 +79,16 @@ mandatory for short options too.
 
 -P, \--port=PORT
 :   Database server port.
+
+\--schema=SCHEMA
+:   Default for various schema settings throughout osm2pgsql-gen
+    (default: `public`). The schema must exist in the database and be writable
+    by the database user. It must be the same as used with `osm2pgsql`.
+
+\--middle-schema=SCHEMA
+:   Database schema where the `osm2pgsql_properties` table is to be found.
+    Default set with `--schema`. Set to the same value as on the `osm2pgsql`
+    command line.
 
 # SEE ALSO
 

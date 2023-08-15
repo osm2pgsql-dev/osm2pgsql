@@ -91,6 +91,10 @@ mandatory for short options too.
 -P, \--port=PORT
 :   Database server port.
 
+\--schema=SCHEMA
+:   Default for various schema settings throughout osm2pgsql (default: `public`).
+    The schema must exist in the database and be writable by the database user.
+
 # INPUT OPTIONS
 
 -r, \--input-reader=FORMAT
@@ -164,8 +168,10 @@ mandatory for short options too.
     as it doesn't work well with small imports. The default is disabled.
 
 \--middle-schema=SCHEMA
-:   Use PostgreSQL schema SCHEMA for all tables, indexes, and functions in
-    the middle (default is `public`).
+:   Use PostgreSQL schema SCHEMA for all tables, indexes, and functions in the
+    middle. The schema must exist in the database and be writable by the
+    database user. By default the schema set with `--schema` is used, or
+    `public` if that is not set.
 
 \--middle-way-node-index-id-shift=SHIFT
 :   Set ID shift for way node bucket index in middle. Experts only. See
@@ -274,8 +280,10 @@ mandatory for short options too.
     different projection is used for the geometries.
 
 \--output-pgsql-schema=SCHEMA
-:   Use PostgreSQL schema SCHEMA for all tables, indexes, and functions in
-    the pgsql output (default is `public`).
+:   Use PostgreSQL schema SCHEMA for all tables, indexes, and functions in the
+    pgsql output. The schema must exist in the database and be writable by the
+    database user. By default the schema set with `--schema` is used, or
+    `public` if that is not set.
 
 # EXPIRE OPTIONS
 
