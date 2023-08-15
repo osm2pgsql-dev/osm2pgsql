@@ -61,7 +61,7 @@ Feature: Tests for the osm2pgsql-replication script with property table
             Database needs to be imported in --slim mode.
             """
 
-    Scenario: Replication can be initialised for a database in a different schema
+    Scenario: Replication can be initialised for a database in a different schema (middle-schema)
         Given the database schema foobar
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the replication service at http://example.com/europe/liechtenstein-updates
@@ -70,6 +70,41 @@ Feature: Tests for the osm2pgsql-replication script with property table
 
         And running osm2pgsql-replication
             | init | --middle-schema=foobar |
+
+        Then table foobar.osm2pgsql_properties contains
+            | property                    | value                                           |
+            | replication_base_url        | http://example.com/europe/liechtenstein-updates |
+            | replication_sequence_number | 9999999                                         |
+            | replication_timestamp       | 2013-08-03T19:00:02Z                            |
+
+
+    Scenario: Replication can be initialised for a database in a different schema (schema)
+        Given the database schema foobar
+        Given the input file 'liechtenstein-2013-08-03.osm.pbf'
+        And the replication service at http://example.com/europe/liechtenstein-updates
+        When running osm2pgsql pgsql with parameters
+            | --slim | --schema=foobar |
+
+        And running osm2pgsql-replication
+            | init | --schema=foobar |
+
+        Then table foobar.osm2pgsql_properties contains
+            | property                    | value                                           |
+            | replication_base_url        | http://example.com/europe/liechtenstein-updates |
+            | replication_sequence_number | 9999999                                         |
+            | replication_timestamp       | 2013-08-03T19:00:02Z                            |
+
+
+    Scenario: Replication can be initialised for a database in a different schema (schema)
+        Given the database schema foobar
+        Given the database schema baz
+        Given the input file 'liechtenstein-2013-08-03.osm.pbf'
+        And the replication service at http://example.com/europe/liechtenstein-updates
+        When running osm2pgsql pgsql with parameters
+            | --slim | --middle-schema=foobar | --schema=baz |
+
+        And running osm2pgsql-replication
+            | init | --middle-schema=foobar | --schema=baz |
 
         Then table foobar.osm2pgsql_properties contains
             | property                    | value                                           |

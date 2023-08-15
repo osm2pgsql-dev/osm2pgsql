@@ -615,8 +615,10 @@ def get_parser():
                        help='Database server port')
     group.add_argument('-p', '--prefix', metavar='PREFIX', default='planet_osm',
                        help="Prefix for table names (default 'planet_osm')")
-    group.add_argument('--middle-schema', metavar='MIDDLE_SCHEMA', default='public',
+    group.add_argument('--middle-schema', metavar='SCHEMA', default=None,
                     help='Name of the schema to store the table for the replication state in')
+    group.add_argument('--schema', metavar='SCHEMA', default=None,
+                    help='Name of the schema for the database')
 
     # Arguments for init
     cmd = subs.add_parser('init', parents=[default_args],
@@ -697,6 +699,8 @@ def main(prog_args=None):
                         datefmt='%Y-%m-%d %H:%M:%S',
                         level=max(4 - args.verbose, 1) * 10)
 
+    args.middle_schema = args.middle_schema or args.schema or 'public'
+
     with DBConnection(args) as db:
         if db.table_exists(Osm2pgsqlProperties.PROP_TABLE_NAME):
             props = Osm2pgsqlProperties(db)
@@ -704,7 +708,7 @@ def main(prog_args=None):
             props = LegacyProperties(db, args.prefix)
 
         if not props.is_updatable:
-            LOG.fatal(f'osm2pgsql middle table "{args.prefix}_ways" not found in database "{db.name}". '
+            LOG.fatal(f'osm2pgsql middle table "{args.middle_schema}.{args.prefix}_ways" not found in database "{db.name}". '
                        'Database needs to be imported in --slim mode.')
             return 1
 
