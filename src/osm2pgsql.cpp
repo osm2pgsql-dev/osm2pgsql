@@ -90,6 +90,7 @@ static void check_db(options_t const &options)
 
     init_database_capabilities(db_connection);
 
+    check_schema(options.dbschema);
     check_schema(options.middle_dbschema);
     check_schema(options.output_dbschema);
 }

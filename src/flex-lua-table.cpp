@@ -29,6 +29,7 @@ static void check_tablespace(std::string const &tablespace)
 }
 
 static flex_table_t &create_flex_table(lua_State *lua_state,
+                                       std::string const &default_schema,
                                        std::vector<flex_table_t> *tables)
 {
     std::string const table_name =
@@ -40,7 +41,7 @@ static flex_table_t &create_flex_table(lua_State *lua_state,
         throw fmt_error("Table with name '{}' already exists.", table_name);
     }
 
-    auto &new_table = tables->emplace_back(table_name);
+    auto &new_table = tables->emplace_back(default_schema, table_name);
 
     lua_pop(lua_state, 1); // "name"
 
@@ -411,14 +412,15 @@ static void setup_flex_table_indexes(lua_State *lua_state, flex_table_t *table,
 
 int setup_flex_table(lua_State *lua_state, std::vector<flex_table_t> *tables,
                      std::vector<expire_output_t> *expire_outputs,
-                     bool updatable, bool append_mode)
+                     std::string const &default_schema, bool updatable,
+                     bool append_mode)
 {
     if (lua_type(lua_state, 1) != LUA_TTABLE) {
         throw std::runtime_error{
             "Argument #1 to 'define_table' must be a table."};
     }
 
-    auto &new_table = create_flex_table(lua_state, tables);
+    auto &new_table = create_flex_table(lua_state, default_schema, tables);
     setup_flex_table_id_columns(lua_state, &new_table);
     setup_flex_table_columns(lua_state, &new_table, expire_outputs,
                              append_mode);

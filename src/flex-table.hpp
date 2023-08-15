@@ -59,7 +59,10 @@ public:
         permanent
     };
 
-    explicit flex_table_t(std::string name) : m_name(std::move(name)) {}
+    flex_table_t(std::string schema, std::string name)
+    : m_schema(std::move(schema)), m_name(std::move(name))
+    {
+    }
 
     std::string const &name() const noexcept { return m_name; }
 
@@ -195,11 +198,11 @@ public:
     bool has_columns_with_expire() const noexcept;
 
 private:
+    /// The schema this table is in
+    std::string m_schema;
+
     /// The name of the table
     std::string m_name;
-
-    /// The schema this table is in
-    std::string m_schema{"public"};
 
     /// The table space used for this table (empty for default tablespace)
     std::string m_data_tablespace;

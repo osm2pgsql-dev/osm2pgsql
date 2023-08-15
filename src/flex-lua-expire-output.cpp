@@ -18,7 +18,7 @@
 #include <lua.hpp>
 
 static expire_output_t &
-create_expire_output(lua_State *lua_state,
+create_expire_output(lua_State *lua_state, std::string const &default_schema,
                      std::vector<expire_output_t> *expire_outputs)
 {
     auto &new_expire_output = expire_outputs->emplace_back();
@@ -30,8 +30,8 @@ create_expire_output(lua_State *lua_state,
     lua_pop(lua_state, 1); // "filename"
 
     // optional "schema" and "table" fields
-    auto const *schema = luaX_get_table_string(lua_state, "schema", -1,
-                                               "The expire output", "public");
+    auto const *schema = luaX_get_table_string(
+        lua_state, "schema", -1, "The expire output", default_schema.c_str());
     check_identifier(schema, "schema field");
     auto const *table =
         luaX_get_table_string(lua_state, "table", -2, "The expire output", "");
@@ -72,6 +72,7 @@ create_expire_output(lua_State *lua_state,
 }
 
 int setup_flex_expire_output(lua_State *lua_state,
+                             std::string const &default_schema,
                              std::vector<expire_output_t> *expire_outputs)
 {
     if (lua_type(lua_state, 1) != LUA_TTABLE) {
@@ -79,7 +80,7 @@ int setup_flex_expire_output(lua_State *lua_state,
             "Argument #1 to 'define_expire_output' must be a Lua table."};
     }
 
-    create_expire_output(lua_state, expire_outputs);
+    create_expire_output(lua_state, default_schema, expire_outputs);
 
     void *ptr = lua_newuserdata(lua_state, sizeof(std::size_t));
     auto *num = new (ptr) std::size_t{};

@@ -20,6 +20,7 @@ static char const *const osm2pgsql_expire_output_name =
     "osm2pgsql.ExpireOutput";
 
 int setup_flex_expire_output(lua_State *lua_state,
+                             std::string const &default_schema,
                              std::vector<expire_output_t> *expire_outputs);
 
 #endif // OSM2PGSQL_FLEX_LUA_EXPIRE_OUTPUT_HPP

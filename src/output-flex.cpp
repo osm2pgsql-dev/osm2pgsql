@@ -402,6 +402,7 @@ int output_flex_t::app_define_table()
     }
 
     return setup_flex_table(lua_state(), m_tables.get(), m_expire_outputs.get(),
+                            get_options()->dbschema,
                             get_options()->slim && !get_options()->droptemp,
                             get_options()->append);
 }
@@ -414,7 +415,8 @@ int output_flex_t::app_define_expire_output()
             " main Lua code, not in any of the callbacks."};
     }
 
-    return setup_flex_expire_output(lua_state(), m_expire_outputs.get());
+    return setup_flex_expire_output(lua_state(), get_options()->dbschema,
+                                    m_expire_outputs.get());
 }
 
 // Check that the first element on the Lua stack is a "type_name"

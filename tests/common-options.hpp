@@ -28,6 +28,8 @@ public:
         m_opt.cache = 2;
         m_opt.append = false;
         m_opt.projection = reprojection::create_projection(PROJ_SPHERE_MERC);
+        m_opt.middle_dbschema = "public";
+        m_opt.output_dbschema = "public";
     }
 
     operator options_t() const { return m_opt; }

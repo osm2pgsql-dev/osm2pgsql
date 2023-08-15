@@ -90,7 +90,8 @@ Main Options:
     -c|--create           Run in create mode (default)
     -S|--style=FILE       The Lua config file (same as for osm2pgsql)
     -j|--jobs=NUM         Number of parallel jobs (default 1)
-       --middle-schema=SCHEMA  Database schema for middle tables
+       --middle-schema=SCHEMA  Database schema for middle tables (default set with --schema)
+       --schema=SCHEMA    Default database schema (default: 'public')
 
 Help/Version Options:
     -h|--help             Print this help text and stop
@@ -127,6 +128,7 @@ static std::array<option, 20> const long_options = {
      {"style", required_argument, nullptr, 'S'},
      {"log-sql", no_argument, nullptr, 201},
      {"middle-schema", required_argument, nullptr, 202},
+     {"schema", required_argument, nullptr, 203},
      {nullptr, 0, nullptr, 0}}};
 
 struct tile_extent
@@ -178,9 +180,10 @@ static tile_extent get_extent_from_db(pg_conn_t const &db_connection,
 }
 
 static tile_extent get_extent_from_db(pg_conn_t const &db_connection,
+                                      std::string const &default_schema,
                                       params_t const &params, uint32_t zoom)
 {
-    auto const schema = params.get_string("schema", "public");
+    auto const schema = params.get_string("schema", default_schema);
     std::string table;
     if (params.has("src_table")) {
         table = params.get_string("src_table");
@@ -267,8 +270,9 @@ void run_tile_gen(std::string const &conninfo, gen_base_t *master_generalizer,
 class genproc_t
 {
 public:
-    genproc_t(std::string const &filename, std::string conninfo, bool append,
-              bool updatable, uint32_t jobs);
+    genproc_t(std::string const &filename, std::string conninfo,
+              std::string dbschema, bool append, bool updatable,
+              uint32_t jobs);
 
     int app_define_table()
     {
@@ -281,12 +285,13 @@ public:
 #endif
 
         return setup_flex_table(m_lua_state.get(), &m_tables, &m_expire_outputs,
-                                true, m_append);
+                                m_dbschema, true, m_append);
     }
 
     int app_define_expire_output()
     {
-        return setup_flex_expire_output(m_lua_state.get(), &m_expire_outputs);
+        return setup_flex_expire_output(m_lua_state.get(), m_dbschema,
+                                        &m_expire_outputs);
     }
 
     int app_run_gen()
@@ -307,6 +312,10 @@ public:
         }
 
         auto params = parse_params();
+
+        if (!params.has("schema")) {
+            params.set("schema", m_dbschema);
+        }
 
         write_to_debug_log(params, "Params (config):");
 
@@ -440,7 +449,8 @@ private:
             log_debug("Truncating table '{}'...", table);
             db_connection.exec("TRUNCATE {}", table);
         } else {
-            auto const extent = get_extent_from_db(db_connection, params, zoom);
+            auto const extent =
+                get_extent_from_db(db_connection, m_dbschema, params, zoom);
 
             if (extent.valid) {
                 auto const num_tiles = (extent.xmax - extent.xmin + 1) *
@@ -493,6 +503,7 @@ private:
     std::vector<expire_output_t> m_expire_outputs;
 
     std::string m_conninfo;
+    std::string m_dbschema;
     std::size_t m_gen_run = 0;
     uint32_t m_jobs;
     bool m_append;
@@ -505,9 +516,10 @@ TRAMPOLINE(app_run_gen, run_gen)
 TRAMPOLINE(app_run_sql, run_sql)
 
 genproc_t::genproc_t(std::string const &filename, std::string conninfo,
-                     bool append, bool updatable, uint32_t jobs)
-: m_conninfo(std::move(conninfo)), m_jobs(jobs), m_append(append),
-  m_updatable(updatable)
+                     std::string dbschema, bool append, bool updatable,
+                     uint32_t jobs)
+: m_conninfo(std::move(conninfo)), m_dbschema(std::move(dbschema)),
+  m_jobs(jobs), m_append(append), m_updatable(updatable)
 {
     setup_lua_environment(lua_state(), filename, append);
 
@@ -587,7 +599,8 @@ int main(int argc, char *argv[])
 {
     try {
         database_options_t database_options;
-        std::string schema{"public"};
+        std::string dbschema{"public"};
+        std::string middle_dbschema{};
         std::string log_level;
         std::string style;
         uint32_t jobs = 1;
@@ -641,12 +654,20 @@ int main(int argc, char *argv[])
                 get_logger().enable_sql();
                 break;
             case 202: // --middle-schema
-                schema = optarg;
-                if (schema.empty()) {
+                middle_dbschema = optarg;
+                if (middle_dbschema.empty()) {
                     log_error("Schema must not be empty");
                     return 2;
                 }
-                check_identifier(schema, "--middle-schema");
+                check_identifier(middle_dbschema, "--middle-schema");
+                break;
+            case 203: // --schema
+                dbschema = optarg;
+                if (dbschema.empty()) {
+                    log_error("Schema must not be empty");
+                    return 2;
+                }
+                check_identifier(dbschema, "--schema");
                 break;
             default:
                 log_error("Unknown argument");
@@ -672,6 +693,10 @@ int main(int argc, char *argv[])
         if (jobs < 1 || jobs > 32) {
             log_error("The --jobs/-j parameter must be between 1 and 32.");
             return 2;
+        }
+
+        if (middle_dbschema.empty()) {
+            middle_dbschema = dbschema;
         }
 
         util::timer_t timer_overall;
@@ -704,7 +729,7 @@ int main(int argc, char *argv[])
             init_database_capabilities(db_connection);
         }
 
-        properties_t properties{conninfo, schema};
+        properties_t properties{conninfo, middle_dbschema};
         properties.load();
 
         if (style.empty()) {
@@ -716,7 +741,7 @@ int main(int argc, char *argv[])
         }
 
         bool const updatable = properties.get_bool("updatable", false);
-        genproc_t gen{style, conninfo, append, updatable, jobs};
+        genproc_t gen{style, conninfo, dbschema, append, updatable, jobs};
         gen.run();
 
         osmium::MemoryUsage const mem;
