@@ -58,6 +58,7 @@ jobs:
       POSTGRESQL_VERSION: 9.6
       POSTGIS_VERSION: 2.5
       BUILD_TYPE: Release
+      PSYCOPG: 2
 
     steps:
       - uses: actions/checkout@v3
@@ -75,6 +76,7 @@ jobs:
       POSTGRESQL_VERSION: 9.6
       POSTGIS_VERSION: 2.5
       BUILD_TYPE: Release
+      PSYCOPG: 2
 
     steps:
       - uses: actions/checkout@v3
@@ -93,6 +95,7 @@ jobs:
       POSTGRESQL_VERSION: 10
       POSTGIS_VERSION: 3
       BUILD_TYPE: Debug
+      PSYCOPG: 2
 
     steps:
       - uses: actions/checkout@v3
@@ -111,6 +114,7 @@ jobs:
       POSTGRESQL_VERSION: 11
       POSTGIS_VERSION: 2.5
       BUILD_TYPE: Debug
+      PSYCOPG: 2
 
     steps:
       - uses: actions/checkout@v3
@@ -128,6 +132,7 @@ jobs:
       POSTGRESQL_VERSION: 12
       POSTGIS_VERSION: 2.5
       BUILD_TYPE: Debug
+      PSYCOPG: 2
 
     steps:
       - uses: actions/checkout@v3
@@ -146,6 +151,7 @@ jobs:
       POSTGRESQL_VERSION: 13
       POSTGIS_VERSION: 3
       BUILD_TYPE: Debug
+      PSYCOPG: 2
 
     steps:
       - uses: actions/checkout@v3
@@ -164,6 +170,7 @@ jobs:
       POSTGIS_VERSION: 3
       USE_PROJ_LIB: 6
       BUILD_TYPE: Debug
+      PSYCOPG: 2
 
     steps:
       - uses: actions/checkout@v3
@@ -182,6 +189,7 @@ jobs:
       POSTGIS_VERSION: 3
       USE_PROJ_LIB: off
       BUILD_TYPE: Debug
+      PSYCOPG: 2
 
     steps:
       - uses: actions/checkout@v3
@@ -200,6 +208,7 @@ jobs:
       POSTGIS_VERSION: 3
       USE_PROJ_LIB: 6
       BUILD_TYPE: Debug
+      PSYCOPG: 2
 
     steps:
       - uses: actions/checkout@v3
@@ -217,6 +226,7 @@ jobs:
       POSTGRESQL_VERSION: 13
       POSTGIS_VERSION: 2.5
       BUILD_TYPE: Release
+      PSYCOPG: 2
 
     steps:
       - uses: actions/checkout@v3
@@ -232,6 +242,7 @@ jobs:
       POSTGRESQL_VERSION: 13
       POSTGIS_VERSION: 2.5
       BUILD_TYPE: Release
+      PSYCOPG: 2
 
     steps:
       - uses: actions/checkout@v3
@@ -249,6 +260,7 @@ jobs:
       POSTGRESQL_VERSION: 14
       POSTGIS_VERSION: 3
       BUILD_TYPE: Debug
+      PSYCOPG: 2
 
     steps:
       - uses: actions/checkout@v3
@@ -267,6 +279,7 @@ jobs:
       POSTGIS_VERSION: 3
       USE_PROJ_LIB: 6
       BUILD_TYPE: Debug
+      PSYCOPG: 2
 
     steps:
       - uses: actions/checkout@v3
@@ -285,6 +298,7 @@ jobs:
       POSTGIS_VERSION: 3
       USE_PROJ_LIB: off
       BUILD_TYPE: Debug
+      PSYCOPG: 2
 
     steps:
       - uses: actions/checkout@v3
@@ -303,6 +317,7 @@ jobs:
       POSTGIS_VERSION: 3
       USE_PROJ_LIB: 6
       BUILD_TYPE: Debug
+      PSYCOPG: 2
 
     steps:
       - uses: actions/checkout@v3
@@ -321,6 +336,7 @@ jobs:
       POSTGRESQL_VERSION: 14
       POSTGIS_VERSION: 3
       BUILD_TYPE: Release
+      PSYCOPG: 2
 
     steps:
       - uses: actions/checkout@v3
@@ -337,6 +353,7 @@ jobs:
       POSTGRESQL_VERSION: 14
       POSTGIS_VERSION: 3
       BUILD_TYPE: Release
+      PSYCOPG: 2
 
     steps:
       - uses: actions/checkout@v3
@@ -355,6 +372,7 @@ jobs:
       POSTGIS_VERSION: 3
       CPP_VERSION: 20
       BUILD_TYPE: Debug
+      PSYCOPG: 3
 
     steps:
       - uses: actions/checkout@v3
@@ -373,6 +391,7 @@ jobs:
       POSTGIS_VERSION: 3
       CPP_VERSION: 20
       BUILD_TYPE: Debug
+      PSYCOPG: 3
 
     steps:
       - uses: actions/checkout@v3
