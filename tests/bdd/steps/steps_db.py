@@ -25,7 +25,7 @@ def delete_table(context, table):
         cur.execute("DROP TABLE " + table)
 
 
-@then("table (?P<table>.+) has (?P<row_num>\d+) rows?(?P<has_where> with condition)?")
+@then("table (?P<table>.+) has (?P<row_num>\\d+) rows?(?P<has_where> with condition)?")
 def db_table_row_count(context, table, row_num, has_where):
     assert table_exists(context.db, table)
 
@@ -40,7 +40,7 @@ def db_table_row_count(context, table, row_num, has_where):
            f"Table {table}: expected {row_num} rows, got {actual}"
 
 
-@then("the sum of '(?P<formula>.+)' in table (?P<table>.+) is (?P<result>\d+)(?P<has_where> with condition)?")
+@then("the sum of '(?P<formula>.+)' in table (?P<table>.+) is (?P<result>\\d+)(?P<has_where> with condition)?")
 def db_table_sum_up(context, table, formula, result, has_where):
     assert table_exists(context.db, table)
 

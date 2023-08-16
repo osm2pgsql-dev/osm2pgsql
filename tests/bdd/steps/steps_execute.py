@@ -148,7 +148,7 @@ def setup_style_file(context, style):
     context.osm2pgsql_params.extend(('-S', str(context.test_data_dir / style)))
 
 
-@when("running osm2pgsql (?P<output>\w+)(?: with parameters)?")
+@when("running osm2pgsql (?P<output>\\w+)(?: with parameters)?")
 def execute_osm2pgsql_successfully(context, output):
     returncode = run_osm2pgsql(context, output)
 
@@ -160,7 +160,7 @@ def execute_osm2pgsql_successfully(context, output):
            f"Output:\n{context.osm2pgsql_outdata[0]}\n{context.osm2pgsql_outdata[1]}\n"
 
 
-@then("running osm2pgsql (?P<output>\w+)(?: with parameters)? fails")
+@then("running osm2pgsql (?P<output>\\w+)(?: with parameters)? fails")
 def execute_osm2pgsql_with_failure(context, output):
     returncode = run_osm2pgsql(context, output)
 
@@ -179,7 +179,7 @@ def execute_osm2pgsql_replication_successfully(context):
            f"Output:\n{context.osm2pgsql_outdata[0]}\n{context.osm2pgsql_outdata[1]}\n"
 
 
-@then("running osm2pgsql-replication fails(?: with returncode (?P<expected>\d+))?")
+@then("running osm2pgsql-replication fails(?: with returncode (?P<expected>\\d+))?")
 def execute_osm2pgsql_replication_successfully(context, expected):
     returncode = run_osm2pgsql_replication(context)
 
@@ -190,7 +190,7 @@ def execute_osm2pgsql_replication_successfully(context, expected):
                f"Output:\n{context.osm2pgsql_outdata[0]}\n{context.osm2pgsql_outdata[1]}\n"
 
 
-@then("the (?P<kind>\w+) output contains")
+@then("the (?P<kind>\\w+) output contains")
 def check_program_output(context, kind):
     if kind == 'error':
         s = context.osm2pgsql_outdata[1]
