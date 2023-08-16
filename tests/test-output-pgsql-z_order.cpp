@@ -33,7 +33,7 @@ TEST_CASE("compute Z order")
                                      " ORDER BY z_order DESC"
                                      " LIMIT 1 OFFSET {}",
                                      i);
-        REQUIRE(expected[i] == conn.result_as_string(sql));
+        REQUIRE(expected.at(i) == conn.result_as_string(sql));
     }
 
     REQUIRE("residential" ==
