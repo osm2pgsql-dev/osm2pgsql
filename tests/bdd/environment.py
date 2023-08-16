@@ -13,8 +13,13 @@ import io
 from importlib.machinery import SourceFileLoader
 
 from behave import *
-import psycopg2
-from psycopg2 import sql
+try:
+    import psycopg2 as psycopg
+    from psycopg2 import sql
+except ImportError:
+    import psycopg
+    from psycopg import sql
+
 
 from steps.geometry_factory import GeometryFactory
 from steps.replication_server_mock import ReplicationServerMock
@@ -44,14 +49,18 @@ def _connect_db(context, dbname):
         object as a context manager that automatically closes.
         Note that the connection does not commit automatically.
     """
-    return closing(psycopg2.connect(dbname=dbname))
+    if psycopg.__version__.startswith('2'):
+        conn = psycopg.connect(dbname=dbname)
+        conn.autocommit = True
+        return closing(conn)
+
+    return psycopg.connect(dbname=dbname, autocommit=True)
 
 
 def _drop_db(context, dbname, recreate_immediately=False):
     """ Drop the database with the given name if it exists.
     """
     with _connect_db(context, 'postgres') as conn:
-        conn.set_isolation_level(0)
         with conn.cursor() as cur:
             db = sql.Identifier(dbname)
             cur.execute(sql.SQL('DROP DATABASE IF EXISTS {}').format(db))
@@ -136,7 +145,6 @@ def test_db(context, **kwargs):
     _drop_db(context, dbname, recreate_immediately=True)
 
     with _connect_db(context, dbname) as conn:
-        conn.autocommit = True
 
         with conn.cursor() as cur:
             cur.execute('CREATE EXTENSION postgis')
