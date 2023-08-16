@@ -55,8 +55,6 @@ public:
 
     pg_result_t get_wkb(osmid_t id);
 
-    task_result_t m_task_result;
-
 private:
     void connect();
     void prepare();
@@ -81,6 +79,7 @@ private:
     columns_t m_columns;
     hstores_t m_hstore_columns;
     std::string m_table_space;
+    task_result_t m_task_result;
 
     db_copy_mgr_t<db_deleter_by_id_t> m_copy;
 };
