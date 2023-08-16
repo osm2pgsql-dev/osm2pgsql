@@ -104,7 +104,7 @@ Feature: Expire output definitions in Lua file
         Then running osm2pgsql flex fails
         And the error output contains
             """
-            Value of 'maxzoom' field must be between 1 and 20.
+            The 'maxzoom' field in a expire output must be between 1 and 20.
             """
 
     Scenario: Minzoom value in expire output definition has to be in range
@@ -121,7 +121,7 @@ Feature: Expire output definitions in Lua file
         Then running osm2pgsql flex fails
         And the error output contains
             """
-            Value of 'minzoom' field must be between 1 and 'maxzoom'.
+            The 'minzoom' field in a expire output must be between 1 and 'maxzoom'.
             """
 
     Scenario: Minzoom value in expire output definition has to be smaller than maxzoom
@@ -138,6 +138,6 @@ Feature: Expire output definitions in Lua file
         Then running osm2pgsql flex fails
         And the error output contains
             """
-            Value of 'minzoom' field must be between 1 and 'maxzoom'.
+            The 'minzoom' field in a expire output must be between 1 and 'maxzoom'.
             """
 

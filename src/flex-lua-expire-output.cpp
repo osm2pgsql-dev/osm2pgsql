@@ -46,25 +46,19 @@ create_expire_output(lua_State *lua_state, std::string const &default_schema,
     }
 
     // required "maxzoom" field
-    auto value = luaX_get_table_optional_uint32(
-        lua_state, "maxzoom", -1, "The 'maxzoom' field in a expire output");
-    if (value >= 1 && value <= 20) {
-        new_expire_output.set_minzoom(value);
-        new_expire_output.set_maxzoom(value);
-    } else {
-        throw std::runtime_error{
-            "Value of 'maxzoom' field must be between 1 and 20."};
-    }
+    auto const maxzoom = luaX_get_table_optional_uint32(
+        lua_state, "maxzoom", -1, "The 'maxzoom' field in a expire output", 1,
+        20, "1 and 20");
+    new_expire_output.set_minzoom(maxzoom);
+    new_expire_output.set_maxzoom(maxzoom);
     lua_pop(lua_state, 1); // "maxzoom"
 
     // optional "minzoom" field
-    value = luaX_get_table_optional_uint32(
-        lua_state, "minzoom", -1, "The 'minzoom' field in a expire output");
-    if (value >= 1 && value <= new_expire_output.maxzoom()) {
-        new_expire_output.set_minzoom(value);
-    } else if (value != 0) {
-        throw std::runtime_error{
-            "Value of 'minzoom' field must be between 1 and 'maxzoom'."};
+    auto const minzoom = luaX_get_table_optional_uint32(
+        lua_state, "minzoom", -1, "The 'minzoom' field in a expire output", 1,
+        maxzoom, "1 and 'maxzoom'");
+    if (minzoom > 0) {
+        new_expire_output.set_minzoom(minzoom);
     }
     lua_pop(lua_state, 1); // "minzoom"
 
