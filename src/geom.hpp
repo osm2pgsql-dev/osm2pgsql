@@ -22,6 +22,7 @@
 #include <cassert>
 #include <cmath>
 #include <initializer_list>
+#include <type_traits>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -197,12 +198,15 @@ public:
     using iterator = typename std::vector<GEOM>::iterator;
     using value_type = GEOM;
 
+    static constexpr bool const for_point = std::is_same_v<GEOM, point_t>;
+
     [[nodiscard]] std::size_t num_geometries() const noexcept
     {
         return m_geometry.size();
     }
 
-    GEOM &add_geometry(GEOM &&geom)
+    GEOM &
+    add_geometry(typename std::conditional_t<for_point, point_t, GEOM &&> geom)
     {
         m_geometry.push_back(std::forward<GEOM>(geom));
         return m_geometry.back();

@@ -332,22 +332,22 @@ TEST_CASE("expire multipoint geometry", "[NoDB]")
     expire_config_t const expire_config;
     expire_tiles et{zoom, defproj};
 
-    geom::point_t p1{0.0, 0.0};
-    geom::point_t p2{15000.0, 15000.0};
+    geom::point_t const p1{0.0, 0.0};
+    geom::point_t const p2{15000.0, 15000.0};
 
     SECTION("multipoint")
     {
         geom::multipoint_t mpt;
-        mpt.add_geometry(std::move(p1));
-        mpt.add_geometry(std::move(p2));
+        mpt.add_geometry(p1);
+        mpt.add_geometry(p2);
         et.from_geometry(mpt, expire_config);
     }
 
     SECTION("geom")
     {
         geom::multipoint_t mpt;
-        mpt.add_geometry(std::move(p1));
-        mpt.add_geometry(std::move(p2));
+        mpt.add_geometry(p1);
+        mpt.add_geometry(p2);
         geom::geometry_t const geom{std::move(mpt)};
         et.from_geometry(geom, expire_config);
     }
@@ -355,8 +355,8 @@ TEST_CASE("expire multipoint geometry", "[NoDB]")
     SECTION("geom with check")
     {
         geom::multipoint_t mpt;
-        mpt.add_geometry(std::move(p1));
-        mpt.add_geometry(std::move(p2));
+        mpt.add_geometry(p1);
+        mpt.add_geometry(p2);
         geom::geometry_t geom{std::move(mpt)};
         geom.set_srid(3857);
         et.from_geometry_if_3857(geom, expire_config);
