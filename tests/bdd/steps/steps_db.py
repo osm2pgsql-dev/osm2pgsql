@@ -11,7 +11,11 @@ import math
 import re
 from typing import Iterable
 
-from psycopg2 import sql
+try:
+    from psycopg2 import sql
+except ImportError:
+    from psycopg import sql
+
 
 @given("the database schema (?P<schema>.+)")
 def create_db_schema(context, schema):

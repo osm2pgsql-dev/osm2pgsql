@@ -122,7 +122,7 @@ class DBConnection:
                                         host=args.host, port=args.port,
                                         fallback_application_name="osm2pgsql-replication")
 
-        self.name = self.conn.get_dsn_parameters()['dbname']
+        self.name = self.conn.info.dbname
 
     def __enter__(self):
         return self
