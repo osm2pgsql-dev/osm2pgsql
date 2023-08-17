@@ -7,6 +7,7 @@
  * For a full list of authors see the git log.
  */
 
+#include <array>
 #include <cstdlib>
 #include <cstring>
 
@@ -18,27 +19,30 @@
 
 namespace {
 
-const struct
+struct layers_type
 {
     char const *highway;
     int offset;
     bool roads;
-} layers[] = {{"proposed", 1, false},       {"construction", 2, false},
-              {"steps", 10, false},         {"cycleway", 10, false},
-              {"bridleway", 10, false},     {"footway", 10, false},
-              {"path", 10, false},          {"track", 11, false},
-              {"service", 15, false},
+};
 
-              {"tertiary_link", 24, false}, {"secondary_link", 25, true},
-              {"primary_link", 27, true},   {"trunk_link", 28, true},
-              {"motorway_link", 29, true},
+constexpr std::array<layers_type, 25> const layers = {
+    {{"proposed", 1, false},       {"construction", 2, false},
+     {"steps", 10, false},         {"cycleway", 10, false},
+     {"bridleway", 10, false},     {"footway", 10, false},
+     {"path", 10, false},          {"track", 11, false},
+     {"service", 15, false},
 
-              {"raceway", 30, false},       {"pedestrian", 31, false},
-              {"living_street", 32, false}, {"road", 33, false},
-              {"unclassified", 33, false},  {"residential", 33, false},
-              {"tertiary", 34, false},      {"secondary", 36, true},
-              {"primary", 37, true},        {"trunk", 38, true},
-              {"motorway", 39, true}};
+     {"tertiary_link", 24, false}, {"secondary_link", 25, true},
+     {"primary_link", 27, true},   {"trunk_link", 28, true},
+     {"motorway_link", 29, true},
+
+     {"raceway", 30, false},       {"pedestrian", 31, false},
+     {"living_street", 32, false}, {"road", 33, false},
+     {"unclassified", 33, false},  {"residential", 33, false},
+     {"tertiary", 34, false},      {"secondary", 36, true},
+     {"primary", 37, true},        {"trunk", 38, true},
+     {"motorway", 39, true}}};
 
 } // anonymous namespace
 

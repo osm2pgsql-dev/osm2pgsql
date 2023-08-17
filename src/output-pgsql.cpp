@@ -352,12 +352,12 @@ void output_pgsql_t::delete_from_output_and_expire(osmid_t id)
 
     for (auto table : {t_line, t_poly}) {
         if (m_expire.enabled()) {
-            auto const results = m_tables[table]->get_wkb(id);
+            auto const results = m_tables.at(table)->get_wkb(id);
             if (expire_from_result(&m_expire, results, m_expire_config) != 0) {
-                m_tables[table]->delete_row(id);
+                m_tables.at(table)->delete_row(id);
             }
         } else {
-            m_tables[table]->delete_row(id);
+            m_tables.at(table)->delete_row(id);
         }
     }
 }
@@ -485,7 +485,7 @@ output_pgsql_t::output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
             std::abort(); // should never be here
         }
 
-        m_tables[i] = std::make_unique<table_t>(
+        m_tables.at(i) = std::make_unique<table_t>(
             name, type, columns, options.hstore_columns,
             options.projection->target_srs(), options.append,
             options.hstore_mode, copy_thread, options.output_dbschema);
@@ -504,8 +504,8 @@ output_pgsql_t::output_pgsql_t(
 {
     for (std::size_t i = 0; i < m_tables.size(); ++i) {
         //copy constructor will just connect to the already there table
-        m_tables[i] =
-            std::make_unique<table_t>(*(other->m_tables[i]), copy_thread);
+        m_tables.at(i) =
+            std::make_unique<table_t>(*(other->m_tables.at(i)), copy_thread);
     }
 }
 
