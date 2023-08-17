@@ -595,6 +595,7 @@ void genproc_t::run()
     }
 }
 
+// NOLINTNEXTLINE(bugprone-exception-escape)
 int main(int argc, char *argv[])
 {
     try {

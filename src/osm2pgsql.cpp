@@ -348,6 +348,7 @@ static void check_and_set_style(options_t *options)
     }
 }
 
+// NOLINTNEXTLINE(bugprone-exception-escape)
 int main(int argc, char *argv[])
 {
     try {
@@ -403,6 +404,9 @@ int main(int argc, char *argv[])
                  util::human_readable_duration(timer_overall.stop()));
     } catch (std::exception const &e) {
         log_error("{}", e.what());
+        return 1;
+    } catch (...) {
+        log_error("Unknown exception.");
         return 1;
     }
 
