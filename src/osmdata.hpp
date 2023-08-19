@@ -24,6 +24,7 @@
 #include <osmium/osm/box.hpp>
 
 #include "dependency-manager.hpp"
+#include "idlist.hpp"
 #include "osmtypes.hpp"
 #include "pgsql-params.hpp"
 

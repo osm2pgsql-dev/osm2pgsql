@@ -33,6 +33,7 @@
 #include <nlohmann/json.hpp>
 
 #include "format.hpp"
+#include "idlist.hpp"
 #include "json-writer.hpp"
 #include "logging.hpp"
 #include "middle-pgsql.hpp"

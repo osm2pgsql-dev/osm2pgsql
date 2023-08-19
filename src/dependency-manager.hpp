@@ -10,6 +10,7 @@
  * For a full list of authors see the git log.
  */
 
+#include "idlist.hpp"
 #include "osmtypes.hpp"
 
 #include <osmium/index/id_set.hpp>

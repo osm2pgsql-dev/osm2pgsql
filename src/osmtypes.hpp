@@ -238,23 +238,6 @@ private:
     std::vector<tag_t> m_tags;
 }; // class taglist_t
 
-struct idlist_t : public std::vector<osmid_t>
-{
-    // Get all constructors from std::vector
-    using vector<osmid_t>::vector;
-
-    // Even though we got all constructors from std::vector we need this on
-    // some compilers/libraries for some reason.
-    idlist_t() = default;
-
-    explicit idlist_t(osmium::NodeRefList const &list)
-    {
-        for (auto const &n : list) {
-            push_back(n.ref());
-        }
-    }
-};
-
 using rolelist_t = std::vector<char const *>;
 
 #endif // OSM2PGSQL_OSMTYPES_HPP

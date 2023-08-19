@@ -11,6 +11,7 @@
  */
 
 #include "format.hpp"
+#include "idlist.hpp"
 #include "osmtypes.hpp"
 
 #include <osmium/memory/buffer.hpp>
