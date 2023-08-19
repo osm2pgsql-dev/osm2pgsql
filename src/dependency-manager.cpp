@@ -39,27 +39,13 @@ void full_dependency_manager_t::after_nodes()
     m_changed_nodes.clear();
 }
 
-static idlist_t set_diff(idlist_t const &set, idlist_t const &to_be_removed)
-{
-    idlist_t new_set;
-
-    for (auto const id : set) {
-        if (!to_be_removed.get_binary_search(id)) {
-            new_set.push_back(id);
-        }
-    }
-
-    return new_set;
-}
-
 void full_dependency_manager_t::after_ways()
 {
     if (!m_changed_ways.empty()) {
         if (!m_ways_pending_tracker.empty()) {
             // Remove ids from changed ways in the input data from
             // m_ways_pending_tracker, because they have already been processed.
-            m_ways_pending_tracker =
-                set_diff(m_ways_pending_tracker, m_changed_ways);
+            m_ways_pending_tracker.remove_ids_if_in(m_changed_ways);
 
             // Add the list of pending way ids to the list of changed ways,
             // because we need the parents for them, too.
@@ -83,8 +69,7 @@ void full_dependency_manager_t::after_relations()
 {
     // Remove ids from changed relations in the input data from
     // m_rels_pending_tracker, because they have already been processed.
-    m_rels_pending_tracker =
-        set_diff(m_rels_pending_tracker, m_changed_relations);
+    m_rels_pending_tracker.remove_ids_if_in(m_changed_relations);
 
     m_changed_relations.clear();
 }

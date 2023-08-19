@@ -77,6 +77,12 @@ public:
 
     void merge_sorted(idlist_t const &other);
 
+    /**
+     * Remove all ids in this list that are also in the other list. Both
+     * lists must be sorted.
+     */
+    void remove_ids_if_in(idlist_t const &other);
+
 private:
     std::vector<osmid_t> m_list;
 

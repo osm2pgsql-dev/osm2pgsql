@@ -31,3 +31,15 @@ void idlist_t::merge_sorted(idlist_t const &other)
     using std::swap;
     swap(new_list, m_list);
 }
+
+void idlist_t::remove_ids_if_in(idlist_t const &other)
+{
+    std::vector<osmid_t> new_list;
+
+    new_list.reserve(m_list.size());
+    std::set_difference(m_list.cbegin(), m_list.cend(), other.m_list.cbegin(),
+                        other.m_list.cend(), std::back_inserter(new_list));
+
+    using std::swap;
+    swap(new_list, m_list);
+}
