@@ -7,12 +7,14 @@
  * For a full list of authors see the git log.
  */
 
+#include "output.hpp"
+
 #include "db-copy.hpp"
 #include "format.hpp"
+#include "options.hpp"
 #include "output-gazetteer.hpp"
 #include "output-null.hpp"
 #include "output-pgsql.hpp"
-#include "output.hpp"
 
 #ifdef HAVE_LUA
 # include "output-flex.hpp"

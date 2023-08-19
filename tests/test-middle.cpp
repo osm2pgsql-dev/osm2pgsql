@@ -18,6 +18,7 @@
 #include "dependency-manager.hpp"
 #include "middle-pgsql.hpp"
 #include "middle-ram.hpp"
+#include "output-requirements.hpp"
 
 #include "common-buffer.hpp"
 #include "common-cleanup.hpp"

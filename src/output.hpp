@@ -18,13 +18,14 @@
 
 #include <osmium/index/id_set.hpp>
 
-#include "options.hpp"
 #include "osmtypes.hpp"
+#include "output-requirements.hpp"
 
 class db_copy_thread_t;
 class thread_pool_t;
 
 struct middle_query_t;
+struct options_t;
 
 class output_t
 {
