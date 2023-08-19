@@ -20,7 +20,7 @@ void idlist_t::sort_unique()
     m_list.erase(last, m_list.end());
 }
 
-void idlist_t::merge_sorted(const idlist_t &other)
+void idlist_t::merge_sorted(idlist_t const &other)
 {
     std::vector<osmid_t> new_list;
 

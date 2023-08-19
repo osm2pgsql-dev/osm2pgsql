@@ -75,7 +75,7 @@ public:
 
     void sort_unique();
 
-    void merge_sorted(const idlist_t &other);
+    void merge_sorted(idlist_t const &other);
 
 private:
     std::vector<osmid_t> m_list;

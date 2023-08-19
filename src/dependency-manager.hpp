@@ -115,17 +115,23 @@ public:
 
     idlist_t get_pending_way_ids() override
     {
-        return get_ids(&m_ways_pending_tracker);
+        idlist_t list;
+        using std::swap;
+        swap(list, m_ways_pending_tracker);
+        list.sort_unique();
+        return list;
     }
 
     idlist_t get_pending_relation_ids() override
     {
-        return get_ids(&m_rels_pending_tracker);
+        idlist_t list;
+        using std::swap;
+        swap(list, m_rels_pending_tracker);
+        list.sort_unique();
+        return list;
     }
 
 private:
-    static idlist_t get_ids(idlist_t *tracker);
-
     std::shared_ptr<middle_t> m_object_store;
 
     /**
