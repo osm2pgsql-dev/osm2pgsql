@@ -244,8 +244,7 @@ private:
 
         std::lock_guard<std::mutex> const lock{*mutex};
         if (!queue->empty()) {
-            id = queue->back();
-            queue->pop_back();
+            id = queue->pop_id();
         }
 
         return id;
