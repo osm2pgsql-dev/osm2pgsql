@@ -56,8 +56,7 @@ static bool check_bucket_index(pg_conn_t const *db_connection,
 }
 
 static void send_id_list(pg_conn_t const &db_connection,
-                         std::string const &table,
-                         osmium::index::IdSetSmall<osmid_t> const &ids)
+                         std::string const &table, idlist_t const &ids)
 {
     std::string data;
     for (auto const id : ids) {
@@ -71,13 +70,12 @@ static void send_id_list(pg_conn_t const &db_connection,
 }
 
 static void load_id_list(pg_conn_t const &db_connection,
-                         std::string const &table,
-                         osmium::index::IdSetSmall<osmid_t> *ids)
+                         std::string const &table, idlist_t *ids)
 {
     auto const res = db_connection.exec(
         fmt::format("SELECT DISTINCT id FROM {} ORDER BY id", table));
     for (int n = 0; n < res.num_tuples(); ++n) {
-        ids->set(osmium::string_to_object_id(res.get_value(n, 0)));
+        ids->push_back(osmium::string_to_object_id(res.get_value(n, 0)));
     }
 }
 
@@ -827,10 +825,9 @@ void middle_pgsql_t::node_delete(osmid_t osm_id)
     }
 }
 
-void middle_pgsql_t::get_node_parents(
-    osmium::index::IdSetSmall<osmid_t> const &changed_nodes,
-    osmium::index::IdSetSmall<osmid_t> *parent_ways,
-    osmium::index::IdSetSmall<osmid_t> *parent_relations) const
+void middle_pgsql_t::get_node_parents(idlist_t const &changed_nodes,
+                                      idlist_t *parent_ways,
+                                      idlist_t *parent_relations) const
 {
     util::timer_t timer;
 
@@ -923,9 +920,8 @@ INSERT INTO osm2pgsql_changed_relations
               parent_ways->size(), parent_relations->size());
 }
 
-void middle_pgsql_t::get_way_parents(
-    osmium::index::IdSetSmall<osmid_t> const &changed_ways,
-    osmium::index::IdSetSmall<osmid_t> *parent_relations) const
+void middle_pgsql_t::get_way_parents(idlist_t const &changed_ways,
+                                     idlist_t *parent_relations) const
 {
     util::timer_t timer;
 

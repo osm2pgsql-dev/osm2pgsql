@@ -10,12 +10,12 @@
  * For a full list of authors see the git log.
  */
 
-#include <osmium/index/id_set.hpp>
 #include <osmium/memory/buffer.hpp>
 #include <osmium/osm/entity_bits.hpp>
 
 #include <memory>
 
+#include "idlist.hpp"
 #include "osmtypes.hpp"
 #include "thread-pool.hpp"
 
@@ -149,16 +149,14 @@ public:
 #endif
     }
 
-    virtual void get_node_parents(
-        osmium::index::IdSetSmall<osmid_t> const & /*changed_nodes*/,
-        osmium::index::IdSetSmall<osmid_t> * /*parent_ways*/,
-        osmium::index::IdSetSmall<osmid_t> * /*parent_relations*/) const
+    virtual void get_node_parents(idlist_t const & /*changed_nodes*/,
+                                  idlist_t * /*parent_ways*/,
+                                  idlist_t * /*parent_relations*/) const
     {
     }
 
-    virtual void get_way_parents(
-        osmium::index::IdSetSmall<osmid_t> const & /*changed_ways*/,
-        osmium::index::IdSetSmall<osmid_t> * /*parent_relations*/) const
+    virtual void get_way_parents(idlist_t const & /*changed_ways*/,
+                                 idlist_t * /*parent_relations*/) const
     {
     }
 

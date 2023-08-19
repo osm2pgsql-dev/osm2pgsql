@@ -24,6 +24,7 @@
 #include <osmium/index/nwr_array.hpp>
 
 #include "db-copy-mgr.hpp"
+#include "idlist.hpp"
 #include "middle.hpp"
 #include "pgsql.hpp"
 
@@ -117,14 +118,11 @@ struct middle_pgsql_t : public middle_t
     void after_ways() override;
     void after_relations() override;
 
-    void get_node_parents(
-        osmium::index::IdSetSmall<osmid_t> const &changed_nodes,
-        osmium::index::IdSetSmall<osmid_t> *parent_ways,
-        osmium::index::IdSetSmall<osmid_t> *parent_relations) const override;
+    void get_node_parents(idlist_t const &changed_nodes, idlist_t *parent_ways,
+                          idlist_t *parent_relations) const override;
 
-    void get_way_parents(
-        osmium::index::IdSetSmall<osmid_t> const &changed_ways,
-        osmium::index::IdSetSmall<osmid_t> *parent_relations) const override;
+    void get_way_parents(idlist_t const &changed_ways,
+                         idlist_t *parent_relations) const override;
 
     class table_desc
     {

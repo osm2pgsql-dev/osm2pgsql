@@ -38,7 +38,16 @@ public:
 
     auto end() const noexcept { return m_list.end(); }
 
+    auto cbegin() const noexcept { return m_list.cbegin(); }
+
+    auto cend() const noexcept { return m_list.cend(); }
+
     osmid_t operator[](std::size_t n) const noexcept { return m_list[n]; }
+
+    bool get_binary_search(osmid_t id) const noexcept
+    {
+        return std::binary_search(m_list.cbegin(), m_list.cend(), id);
+    }
 
     void clear() { m_list.clear(); }
 
@@ -63,6 +72,10 @@ public:
     {
         return !(lhs == rhs);
     }
+
+    void sort_unique();
+
+    void merge_sorted(const idlist_t &other);
 
 private:
     std::vector<osmid_t> m_list;

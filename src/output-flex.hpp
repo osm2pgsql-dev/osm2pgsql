@@ -16,9 +16,9 @@
 #include "flex-table-column.hpp"
 #include "flex-table.hpp"
 #include "geom.hpp"
+#include "idlist.hpp"
 #include "output.hpp"
 
-#include <osmium/index/id_set.hpp>
 #include <osmium/osm/item_type.hpp>
 
 #include <lua.hpp>
@@ -34,8 +34,6 @@ class db_deleter_by_type_and_id_t;
 class geom_transform_t;
 class thread_pool_t;
 struct options_t;
-
-using idset_t = osmium::index::IdSetSmall<osmid_t>;
 
 /**
  * When C++ code is called from the Lua code we sometimes need to know
@@ -128,7 +126,7 @@ public:
 
     void wait() override;
 
-    idset_t const &get_marked_way_ids() override;
+    idlist_t const &get_marked_way_ids() override;
     void reprocess_marked() override;
 
     void pending_way(osmid_t id) override;
@@ -295,7 +293,7 @@ private:
 
     // This is shared between all clones of the output and must only be
     // accessed while protected using the lua_mutex.
-    std::shared_ptr<idset_t> m_stage2_way_ids = std::make_shared<idset_t>();
+    std::shared_ptr<idlist_t> m_stage2_way_ids = std::make_shared<idlist_t>();
 
     std::shared_ptr<db_copy_thread_t> m_copy_thread;
 

@@ -19,6 +19,7 @@ target_sources(osm2pgsql_lib PRIVATE
   geom-from-osm.cpp
   geom-functions.cpp
   geom-pole-of-inaccessibility.cpp
+  idlist.cpp
   input.cpp
   logging.cpp
   middle.cpp
