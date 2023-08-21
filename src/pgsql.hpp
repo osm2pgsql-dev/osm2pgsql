@@ -215,9 +215,9 @@ public:
      */
     void set_config(char const *setting, char const *value) const;
 
-    void copy_start(char const *sql) const;
-    void copy_send(std::string const &data, std::string const &context) const;
-    void copy_end(std::string const &context) const;
+    void copy_start(std::string_view sql) const;
+    void copy_send(std::string_view data, std::string_view context) const;
+    void copy_end(std::string_view context) const;
 
     /// Return the latest generated error message on this connection.
     char const *error_msg() const noexcept;
