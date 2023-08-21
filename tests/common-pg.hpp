@@ -30,9 +30,8 @@
 #include <unistd.h>
 #endif
 
-namespace testing {
 /// Helper classes for postgres connections
-namespace pg {
+namespace testing::pg {
 
 class conn_t : public pg_conn_t
 {
@@ -153,7 +152,6 @@ private:
     std::string m_db_name;
 };
 
-} // namespace pg
-} // namespace testing
+} // namespace testing::pg
 
 #endif // OSM2PGSQL_TESTS_COMMON_PG_HPP

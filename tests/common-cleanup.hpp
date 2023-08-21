@@ -16,8 +16,7 @@
 
 #include <boost/filesystem.hpp>
 
-namespace testing {
-namespace cleanup {
+namespace testing::cleanup {
 
 /**
  * RAII structure to remove a file upon destruction.
@@ -56,7 +55,6 @@ private:
     std::string m_filename;
 };
 
-} // namespace cleanup
-} // namespace testing
+} // namespace testing::cleanup
 
 #endif // OSM2PGSQL_TESTS_COMMON_CLEANUP_HPP
