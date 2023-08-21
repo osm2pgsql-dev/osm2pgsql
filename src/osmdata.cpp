@@ -364,7 +364,7 @@ void osmdata_t::process_dependents() const
     }
 
     // stage 1c processing: mark parent relations of marked objects as changed
-    auto marked_ways = m_output->get_marked_way_ids();
+    auto const &marked_ways = m_output->get_marked_way_ids();
     if (marked_ways.empty()) {
         return;
     }

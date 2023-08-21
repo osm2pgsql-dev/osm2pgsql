@@ -27,8 +27,15 @@ public:
     using value_type = osmid_t;
 
     idlist_t() = default;
+    ~idlist_t() noexcept = default;
 
     idlist_t(std::initializer_list<osmid_t> ids) : m_list(ids) {}
+
+    idlist_t(idlist_t const &) = delete;
+    idlist_t &operator=(idlist_t const &) = delete;
+
+    idlist_t(idlist_t &&) = default;
+    idlist_t &operator=(idlist_t &&) = default;
 
     bool empty() const noexcept { return m_list.empty(); }
 
