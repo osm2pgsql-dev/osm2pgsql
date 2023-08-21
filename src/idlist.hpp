@@ -18,9 +18,14 @@
 
 #include "osmtypes.hpp"
 
-#include <cassert>
 #include <vector>
 
+/**
+ * A list of OSM object ids. Internally this is a vector of ids.
+ *
+ * Some operations are only allowed when the list of ids is sorted and
+ * without duplicates. Call sort_unique() to achieve this.
+ */
 class idlist_t
 {
 public:
@@ -51,20 +56,20 @@ public:
 
     osmid_t operator[](std::size_t n) const noexcept { return m_list[n]; }
 
-    void clear() { m_list.clear(); }
+    void clear() noexcept { m_list.clear(); }
 
     void push_back(osmid_t id) { m_list.push_back(id); }
 
     void reserve(std::size_t size) { m_list.reserve(size); }
 
-    osmid_t pop_id()
-    {
-        assert(!m_list.empty());
-        auto const id = m_list.back();
-        m_list.pop_back();
-        return id;
-    }
+    /**
+     * Remove id at the end of the list and return it.
+     *
+     * \pre \code !m_list.empty()) \endcode
+     */
+    osmid_t pop_id();
 
+    /// List are equal if they contain the same ids in the same order.
     friend bool operator==(idlist_t const &lhs, idlist_t const &rhs) noexcept
     {
         return lhs.m_list == rhs.m_list;
@@ -75,13 +80,22 @@ public:
         return !(lhs == rhs);
     }
 
+    /**
+     * Sort this list and remove duplicates.
+     */
     void sort_unique();
 
+    /**
+     * Merge other list into this one.
+     *
+     * \pre Both lists must be sorted and without duplicates.
+     */
     void merge_sorted(idlist_t const &other);
 
     /**
-     * Remove all ids in this list that are also in the other list. Both
-     * lists must be sorted.
+     * Remove all ids in this list that are also in the other list.
+     *
+     * \pre Both lists must be sorted and without duplicates.
      */
     void remove_ids_if_in(idlist_t const &other);
 

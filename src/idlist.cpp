@@ -10,8 +10,17 @@
 #include "idlist.hpp"
 
 #include <algorithm>
+#include <cassert>
 #include <iterator>
 #include <utility>
+
+osmid_t idlist_t::pop_id()
+{
+    assert(!m_list.empty());
+    auto const id = m_list.back();
+    m_list.pop_back();
+    return id;
+}
 
 void idlist_t::sort_unique()
 {

@@ -14,8 +14,9 @@
 #include <cassert>
 
 idlist_t get_ids_from_result(pg_result_t const &result) {
-    idlist_t ids;
     assert(result.num_tuples() >= 0);
+
+    idlist_t ids;
     ids.reserve(static_cast<std::size_t>(result.num_tuples()));
 
     for (int i = 0; i < result.num_tuples(); ++i) {

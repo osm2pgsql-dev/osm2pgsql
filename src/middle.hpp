@@ -15,9 +15,10 @@
 
 #include <memory>
 
-#include "idlist.hpp"
 #include "osmtypes.hpp"
 #include "thread-pool.hpp"
+
+class idlist_t;
 
 struct options_t;
 struct output_requirements;
