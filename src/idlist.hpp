@@ -51,11 +51,6 @@ public:
 
     osmid_t operator[](std::size_t n) const noexcept { return m_list[n]; }
 
-    bool get_binary_search(osmid_t id) const noexcept
-    {
-        return std::binary_search(m_list.cbegin(), m_list.cend(), id);
-    }
-
     void clear() { m_list.clear(); }
 
     void push_back(osmid_t id) { m_list.push_back(id); }
