@@ -67,14 +67,14 @@ TEST_CASE("Store and retrieve properties (with database)")
             std::string const full_table_name =
                 (schema.empty() ? "" : schema + ".") + "osm2pgsql_properties";
 
-            REQUIRE(conn.get_count(full_table_name.c_str()) == 4);
-            REQUIRE(conn.get_count(full_table_name.c_str(),
+            REQUIRE(conn.get_count(full_table_name) == 4);
+            REQUIRE(conn.get_count(full_table_name,
                                    "property='foo' AND value='bar'") == 1);
-            REQUIRE(conn.get_count(full_table_name.c_str(),
+            REQUIRE(conn.get_count(full_table_name,
                                    "property='empty' AND value=''") == 1);
-            REQUIRE(conn.get_count(full_table_name.c_str(),
+            REQUIRE(conn.get_count(full_table_name,
                                    "property='number' AND value='123'") == 1);
-            REQUIRE(conn.get_count(full_table_name.c_str(),
+            REQUIRE(conn.get_count(full_table_name,
                                    "property='decide' AND value='true'") == 1);
 
             properties_t properties{db.conninfo(), schema};
