@@ -1,7 +1,7 @@
 
 cmake_minimum_required(VERSION 3.8.0)
 
-project(osm2pgsql VERSION 1.9.0 LANGUAGES CXX C)
+project(osm2pgsql VERSION 1.9.1 LANGUAGES CXX C)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
