@@ -153,6 +153,8 @@ void osmdata_t::after_relations()
     if (m_append) {
         m_dependency_manager->after_relations();
     }
+
+    m_output->sync();
 }
 
 void osmdata_t::start() const
@@ -406,8 +408,6 @@ void osmdata_t::postprocess_database() const
 
 void osmdata_t::stop() const
 {
-    m_output->sync();
-
     if (m_append && m_with_forward_dependencies) {
         process_dependents();
     }
