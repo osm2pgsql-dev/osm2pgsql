@@ -10,6 +10,7 @@
 #include "logging.hpp"
 #include "middle-ram.hpp"
 #include "options.hpp"
+#include "output-requirements.hpp"
 
 #include <osmium/builder/osm_object_builder.hpp>
 #include <osmium/util/delta.hpp>
