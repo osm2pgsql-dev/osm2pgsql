@@ -110,8 +110,8 @@ bool lua_tagtransform_t::filter_tags(osmium::OSMObject const &o, bool *polygon,
             lua_pushstring(lua_state(), t.key.c_str());
             lua_pushstring(lua_state(), t.value.c_str());
             lua_rawset(lua_state(), -3);
+            ++sz;
         }
-        sz += tags.size();
     }
 
     lua_pushinteger(lua_state(), sz);

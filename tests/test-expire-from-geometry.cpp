@@ -390,13 +390,6 @@ TEST_CASE("expire multilinestring geometry", "[NoDB]")
         et.from_geometry(geom, expire_config);
     }
 
-    SECTION("geom with check")
-    {
-        geom::geometry_t geom{std::move(ml)};
-        geom.set_srid(3857);
-        et.from_geometry_if_3857(geom, expire_config);
-    }
-
     auto const tiles = et.get_tiles();
     REQUIRE(tiles.size() == 3);
     CHECK(tile_t::from_quadkey(tiles[0], zoom) == tile_t{zoom, 2049, 2046});
@@ -440,13 +433,6 @@ TEST_CASE("expire multipolygon geometry", "[NoDB]")
         et.from_geometry(geom, expire_config);
     }
 
-    SECTION("geom with check")
-    {
-        geom::geometry_t geom{std::move(mp)};
-        geom.set_srid(3857);
-        et.from_geometry_if_3857(geom, expire_config);
-    }
-
     auto const tiles = et.get_tiles();
     REQUIRE(tiles.size() == 17);
 
@@ -476,18 +462,8 @@ TEST_CASE("expire geometry collection", "[NoDB]")
     collection.add_geometry(geom::geometry_t{
         geom::linestring_t{{15000.0, 15000.0}, {25000.0, 15000.0}}});
 
-    SECTION("geom")
-    {
-        geom::geometry_t const geom{std::move(collection)};
-        et.from_geometry(geom, expire_config);
-    }
-
-    SECTION("geom with check")
-    {
-        geom::geometry_t geom{std::move(collection)};
-        geom.set_srid(3857);
-        et.from_geometry_if_3857(geom, expire_config);
-    }
+    geom::geometry_t const geom{std::move(collection)};
+    et.from_geometry(geom, expire_config);
 
     auto const tiles = et.get_tiles();
     REQUIRE(tiles.size() == 6);
@@ -497,6 +473,19 @@ TEST_CASE("expire geometry collection", "[NoDB]")
     CHECK(tile_t::from_quadkey(tiles[3], zoom) == tile_t{zoom, 2050, 2046});
     CHECK(tile_t::from_quadkey(tiles[4], zoom) == tile_t{zoom, 2047, 2048});
     CHECK(tile_t::from_quadkey(tiles[5], zoom) == tile_t{zoom, 2048, 2048});
+}
+
+TEST_CASE("expire works if in 3857", "[NoDB]")
+{
+    expire_config_t const expire_config;
+    expire_tiles et{zoom, defproj};
+
+    geom::geometry_t geom{geom::point_t{0.0, 0.0}};
+    geom.set_srid(3857);
+    et.from_geometry_if_3857(geom, expire_config);
+
+    auto const tiles = et.get_tiles();
+    REQUIRE(tiles.size() == 4);
 }
 
 TEST_CASE("expire doesn't do anything if not in 3857", "[NoDB]")
