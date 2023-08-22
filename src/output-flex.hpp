@@ -316,6 +316,8 @@ private:
      * add_row() command.
      */
     bool m_disable_add_row = false;
+
+    bool m_add_row_has_never_been_called = true;
 };
 
 #endif // OSM2PGSQL_OUTPUT_FLEX_HPP

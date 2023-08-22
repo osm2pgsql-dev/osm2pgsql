@@ -587,6 +587,13 @@ int output_flex_t::table_add_row()
     }
     lua_remove(lua_state(), 1);
 
+    if (m_add_row_has_never_been_called) {
+        m_add_row_has_never_been_called = false;
+        log_warn("The add_row() function is deprecated. Please read");
+        log_warn("https://osm2pgsql.org/doc/tutorials/"
+                 "switching-from-add-row-to-insert/");
+    }
+
     if (m_calling_context == calling_context::process_node) {
         if (!table.matches_type(osmium::item_type::node)) {
             throw fmt_error("Trying to add node to table '{}'.", table.name());

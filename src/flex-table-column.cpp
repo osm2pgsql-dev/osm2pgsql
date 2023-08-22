@@ -62,6 +62,12 @@ static table_column_type get_column_type_from_string(std::string const &type)
         throw fmt_error("Unknown column type '{}'.", type);
     }
 
+    if (column_type->type == table_column_type::area) {
+        log_warn("The 'area' column type is deprecated. Please read");
+        log_warn("https://osm2pgsql.org/doc/tutorials/"
+                 "switching-from-add-row-to-insert/");
+    }
+
     return column_type->type;
 }
 
