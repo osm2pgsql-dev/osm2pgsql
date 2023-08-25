@@ -1,4 +1,5 @@
--- For documentation of Lua tag transformations, see docs/lua.md.
+-- For documentation of Lua tag transformations see
+-- https://osm2pgsql.org/doc/manual.html#the-pgsql-output
 
 -- Objects with any of the following keys will be treated as polygon
 polygon_keys = {

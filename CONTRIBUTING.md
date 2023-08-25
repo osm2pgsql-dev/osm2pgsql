@@ -55,12 +55,12 @@ convention](https://www.doxygen.nl/manual/docblocks.html) using backslashes
 
 ## Documentation
 
-User documentation is available on [the website](https://osm2pgsql.org/), some
-is stored in `docs/`. Pages on the OpenStreetMap wiki are known to be
-unreliable and outdated.
+User documentation is available on [the website](https://osm2pgsql.org/). The
+source of the web page is in its own repository
+(https://github.com/openstreetmap/osm2pgsql-website).
 
-The man pages for [osm2pgsql](docs/osm2pgsql.1) and
-[osm2pgsql-replication](docs/osm2pgsql-replication.1) can be built from source
+The man pages for [osm2pgsql](man/osm2pgsql.1) and
+[osm2pgsql-replication](man/osm2pgsql-replication.1) can be built from source
 with `make man`.
 
 They need pandoc and argparse-manpage for the conversion. These tools can be
@@ -207,7 +207,7 @@ the report.
 
 * Decide on a new version. (See [semantic versioning](https://semver.org/).)
 * Update version in [CMakeLists.txt](CMakeLists.txt), look for `project` function.
-* Build man page (`make man`) and copy it to `docs/osm2pgsql.1`.
+* Build man page (`make man`) and copy it to `man/osm2pgsql.1`.
 * Tag release with release notes in commit message and upload the tag to Github.
 * Fill out release notes on Github.
 * Copy Windows binaries and source tarball to osm2pgsql.org.
