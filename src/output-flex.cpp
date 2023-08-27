@@ -942,6 +942,8 @@ void output_flex_t::select_relation_members()
         return;
     }
 
+    // We can not use get_mutex_and_call_lua_function() here, because we need
+    // the mutex to stick around as long as we are looking at the Lua stack.
     std::lock_guard<std::mutex> const guard{lua_mutex};
     call_lua_function(m_select_relation_members, m_relation_cache.get());
 
