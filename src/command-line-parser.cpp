@@ -486,7 +486,7 @@ static void check_options(options_t *options)
             throw std::runtime_error{
                 "RAM node cache can only be disabled in slim mode."};
         }
-        if (options->flat_node_file.empty()) {
+        if (options->flat_node_file.empty() && !options->append) {
             log_warn("RAM cache is disabled. This will likely slow down "
                      "processing a lot.");
         }
