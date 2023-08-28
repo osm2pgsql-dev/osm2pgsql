@@ -822,13 +822,15 @@ void middle_pgsql_t::get_node_parents(
 
     send_id_list(m_db_connection, "osm2pgsql_changed_nodes", changed_nodes);
 
-    m_db_connection.exec("ANALYZE osm2pgsql_changed_nodes");
+    std::vector<std::string> queries;
+
+    queries.emplace_back("ANALYZE osm2pgsql_changed_nodes");
 
     bool const has_bucket_index =
         check_bucket_index(&m_db_connection, m_options->prefix);
 
     if (has_bucket_index) {
-        m_db_connection.exec(build_sql(*m_options, R"(
+        queries.emplace_back(R"(
 WITH changed_buckets AS (
   SELECT array_agg(id) AS node_ids, id >> {way_node_index_id_shift} AS bucket
     FROM osm2pgsql_changed_nodes GROUP BY id >> {way_node_index_id_shift}
@@ -839,31 +841,35 @@ INSERT INTO osm2pgsql_changed_ways
     WHERE w.nodes && b.node_ids
       AND {schema}"{prefix}_index_bucket"(w.nodes)
        && ARRAY[b.bucket];
-        )"));
+        )");
     } else {
-        m_db_connection.exec(build_sql(*m_options, R"(
+        queries.emplace_back(R"(
 INSERT INTO osm2pgsql_changed_ways
   SELECT DISTINCT w.id
     FROM {schema}"{prefix}_ways" w, osm2pgsql_changed_nodes n
     WHERE w.nodes && ARRAY[n.id]
-        )"));
+        )");
     }
 
     if (m_options->middle_database_format == 1) {
-        m_db_connection.exec(build_sql(*m_options, R"(
+        queries.emplace_back(R"(
 INSERT INTO osm2pgsql_changed_relations
   SELECT DISTINCT r.id
     FROM {schema}"{prefix}_rels" r, osm2pgsql_changed_nodes n
     WHERE r.parts && ARRAY[n.id]
       AND r.parts[1:way_off] && ARRAY[n.id]
-        )"));
+        )");
     } else {
-        m_db_connection.exec(build_sql(*m_options, R"(
+        queries.emplace_back(R"(
 INSERT INTO osm2pgsql_changed_relations
   SELECT DISTINCT r.id
     FROM {schema}"{prefix}_rels" r, osm2pgsql_changed_nodes c
     WHERE {schema}"{prefix}_member_ids"(r.members, 'N'::char) && ARRAY[c.id];
-        )"));
+        )");
+    }
+
+    for (auto const &query : queries) {
+        m_db_connection.exec(build_sql(*m_options, query));
     }
 
     load_id_list(m_db_connection, "osm2pgsql_changed_ways", parent_ways);
