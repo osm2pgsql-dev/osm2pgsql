@@ -73,8 +73,8 @@ static void load_id_list(pg_conn_t const &db_connection,
                          std::string const &table,
                          osmium::index::IdSetSmall<osmid_t> *ids)
 {
-    auto const res =
-        db_connection.exec(fmt::format("SELECT id FROM {} ORDER BY id", table));
+    auto const res = db_connection.exec(
+        fmt::format("SELECT DISTINCT id FROM {} ORDER BY id", table));
     for (int n = 0; n < res.num_tuples(); ++n) {
         ids->set(osmium::string_to_object_id(res.get_value(n, 0)));
     }
@@ -836,7 +836,7 @@ WITH changed_buckets AS (
     FROM osm2pgsql_changed_nodes GROUP BY id >> {way_node_index_id_shift}
 )
 INSERT INTO osm2pgsql_changed_ways
-  SELECT DISTINCT w.id
+  SELECT w.id
     FROM {schema}"{prefix}_ways" w, changed_buckets b
     WHERE w.nodes && b.node_ids
       AND {schema}"{prefix}_index_bucket"(w.nodes)
@@ -845,7 +845,7 @@ INSERT INTO osm2pgsql_changed_ways
     } else {
         queries.emplace_back(R"(
 INSERT INTO osm2pgsql_changed_ways
-  SELECT DISTINCT w.id
+  SELECT w.id
     FROM {schema}"{prefix}_ways" w, osm2pgsql_changed_nodes n
     WHERE w.nodes && ARRAY[n.id]
         )");
@@ -854,7 +854,7 @@ INSERT INTO osm2pgsql_changed_ways
     if (m_options->middle_database_format == 1) {
         queries.emplace_back(R"(
 INSERT INTO osm2pgsql_changed_relations
-  SELECT DISTINCT r.id
+  SELECT r.id
     FROM {schema}"{prefix}_rels" r, osm2pgsql_changed_nodes n
     WHERE r.parts && ARRAY[n.id]
       AND r.parts[1:way_off] && ARRAY[n.id]
@@ -862,7 +862,7 @@ INSERT INTO osm2pgsql_changed_relations
     } else {
         queries.emplace_back(R"(
 INSERT INTO osm2pgsql_changed_relations
-  SELECT DISTINCT r.id
+  SELECT r.id
     FROM {schema}"{prefix}_rels" r, osm2pgsql_changed_nodes c
     WHERE {schema}"{prefix}_member_ids"(r.members, 'N'::char) && ARRAY[c.id];
         )");
