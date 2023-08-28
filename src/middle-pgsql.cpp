@@ -830,18 +830,33 @@ void middle_pgsql_t::get_node_parents(
         check_bucket_index(&m_db_connection, m_options->prefix);
 
     if (has_bucket_index) {
+        // The query to get the parent ways of changed nodes is "hidden"
+        // inside a PL/pgSQL function so that the query planner only sees
+        // a single node id that is being queried for. If we ask for all
+        // nodes at the same time the query planner sometimes thinks it is
+        // better to do a full table scan which totally destroys performance.
+        // This is due to the PostgreSQL statistics on ARRAYs being way off.
         queries.emplace_back(R"(
-WITH changed_buckets AS (
-  SELECT array_agg(id) AS node_ids, id >> {way_node_index_id_shift} AS bucket
-    FROM osm2pgsql_changed_nodes GROUP BY id >> {way_node_index_id_shift}
-)
-INSERT INTO osm2pgsql_changed_ways
-  SELECT w.id
-    FROM {schema}"{prefix}_ways" w, changed_buckets b
-    WHERE w.nodes && b.node_ids
-      AND {schema}"{prefix}_index_bucket"(w.nodes)
-       && ARRAY[b.bucket];
-        )");
+CREATE OR REPLACE FUNCTION osm2pgsql_find_changed_ways() RETURNS void AS $$
+DECLARE
+  changed_buckets RECORD;
+BEGIN
+  FOR changed_buckets IN
+    SELECT array_agg(id) AS node_ids, id >> {way_node_index_id_shift} AS bucket
+      FROM osm2pgsql_changed_nodes GROUP BY id >> {way_node_index_id_shift}
+  LOOP
+    INSERT INTO osm2pgsql_changed_ways
+    SELECT DISTINCT w.id
+      FROM {schema}"{prefix}_ways" w
+      WHERE w.nodes && changed_buckets.node_ids
+        AND {schema}"{prefix}_index_bucket"(w.nodes)
+         && ARRAY[changed_buckets.bucket];
+  END LOOP;
+END;
+$$ LANGUAGE plpgsql
+)");
+        queries.emplace_back("SELECT osm2pgsql_find_changed_ways()");
+        queries.emplace_back("DROP FUNCTION osm2pgsql_find_changed_ways()");
     } else {
         queries.emplace_back(R"(
 INSERT INTO osm2pgsql_changed_ways
