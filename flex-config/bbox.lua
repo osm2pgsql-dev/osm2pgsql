@@ -82,7 +82,7 @@ end
 -- Format the bounding box we get from calling get_bbox() on the parameter
 -- in the way needed for the PostgreSQL/PostGIS box2d type.
 local function format_bbox(object)
-    local xmin, ymin, xmax, ymax = object.get_bbox()
+    local xmin, ymin, xmax, ymax = object:get_bbox()
     if xmin == nil then
         return nil
     end
