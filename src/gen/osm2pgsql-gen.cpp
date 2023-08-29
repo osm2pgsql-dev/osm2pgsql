@@ -368,15 +368,49 @@ public:
 
         std::string const description =
             luaX_get_table_string(lua_state(), "description", 1, "Argument #1");
-        std::string const sql =
-            luaX_get_table_string(lua_state(), "sql", 1, "Argument #1");
 
-        log_debug("Running SQL command: {}.", description);
+        bool const transaction = luaX_get_table_bool(lua_state(), "transaction",
+                                                     1, "Argument #1", false);
+
+        std::vector<std::string> queries;
+        if (transaction) {
+            queries.emplace_back("BEGIN");
+        }
+
+        lua_getfield(lua_state(), 1, "sql");
+        int const ltype = lua_type(lua_state(), -1);
+        if (ltype == LUA_TSTRING) {
+            queries.emplace_back(lua_tostring(lua_state(), -1));
+        } else if (ltype == LUA_TTABLE) {
+            if (!luaX_is_array(lua_state())) {
+                throw std::runtime_error{
+                    "Table in 'sql' field must be an array."};
+            }
+            luaX_for_each(lua_state(), [&]() {
+                if (lua_type(lua_state(), -1) != LUA_TSTRING) {
+                    throw std::runtime_error{
+                        "Table in 'sql' field must only contain strings."};
+                }
+                queries.emplace_back(lua_tostring(lua_state(), -1));
+            });
+        } else {
+            throw std::runtime_error{
+                "Argument #1 must contain a 'sql' string or table field."};
+        }
+
+        if (transaction) {
+            queries.emplace_back("COMMIT");
+        }
+
+        log_debug("Running SQL commands: {}.", description);
 
         util::timer_t timer_sql;
         pg_conn_t const db_connection{m_conninfo};
-        db_connection.exec(sql);
-        log_debug("SQL command took {}.",
+        for (auto const &query : queries) {
+            log_debug("Running sql: {}", query);
+            db_connection.exec(query);
+        }
+        log_debug("SQL commands took {}.",
                   util::human_readable_duration(timer_sql.stop()));
 
         return 0;
