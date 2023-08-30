@@ -296,7 +296,7 @@ public:
 
     int app_run_gen()
     {
-        log_debug("Running configured generalizer (run {})...", ++m_gen_run);
+        log_debug("Configuring generalizer...");
 
         if (lua_type(lua_state(), 1) != LUA_TSTRING) {
             throw std::runtime_error{"Argument #1 to 'run_gen' must be a "
@@ -326,8 +326,8 @@ public:
         auto generalizer =
             create_generalizer(strategy, &db_connection, &params);
 
-        log_debug("Generalizer '{}' ({}) initialized.", generalizer->name(),
-                  generalizer->strategy());
+        log_info("Running generalizer '{}' ({})...", generalizer->name(),
+                 generalizer->strategy());
 
         if (m_append) {
             params.set("delete_existing", true);
@@ -335,6 +335,7 @@ public:
 
         write_to_debug_log(params, "Params (after initialization):");
 
+        util::timer_t timer_gen;
         if (generalizer->on_tiles()) {
             process_tiles(db_connection, params, generalizer.get());
         } else {
@@ -353,8 +354,8 @@ public:
                 std::chrono::duration_cast<std::chrono::milliseconds>(
                     timer.elapsed())));
         }
-        log_debug("Finished generalizer '{}' (run {}).", generalizer->name(),
-                  m_gen_run);
+        log_info("Finished generalizer '{}' in {}.", generalizer->name(),
+                 util::human_readable_duration(timer_gen.stop()));
 
         return 0;
     }
@@ -368,16 +369,50 @@ public:
 
         std::string const description =
             luaX_get_table_string(lua_state(), "description", 1, "Argument #1");
-        std::string const sql =
-            luaX_get_table_string(lua_state(), "sql", 1, "Argument #1");
 
-        log_debug("Running SQL command: {}.", description);
+        bool const transaction = luaX_get_table_bool(lua_state(), "transaction",
+                                                     1, "Argument #1", false);
+
+        std::vector<std::string> queries;
+        if (transaction) {
+            queries.emplace_back("BEGIN");
+        }
+
+        lua_getfield(lua_state(), 1, "sql");
+        int const ltype = lua_type(lua_state(), -1);
+        if (ltype == LUA_TSTRING) {
+            queries.emplace_back(lua_tostring(lua_state(), -1));
+        } else if (ltype == LUA_TTABLE) {
+            if (!luaX_is_array(lua_state())) {
+                throw std::runtime_error{
+                    "Table in 'sql' field must be an array."};
+            }
+            luaX_for_each(lua_state(), [&]() {
+                if (lua_type(lua_state(), -1) != LUA_TSTRING) {
+                    throw std::runtime_error{
+                        "Table in 'sql' field must only contain strings."};
+                }
+                queries.emplace_back(lua_tostring(lua_state(), -1));
+            });
+        } else {
+            throw std::runtime_error{
+                "Argument #1 must contain a 'sql' string or table field."};
+        }
+
+        if (transaction) {
+            queries.emplace_back("COMMIT");
+        }
+
+        log_info("Running SQL commands: {}.", description);
 
         util::timer_t timer_sql;
         pg_conn_t const db_connection{m_conninfo};
-        db_connection.exec(sql);
-        log_debug("SQL command took {}.",
-                  util::human_readable_duration(timer_sql.stop()));
+        for (auto const &query : queries) {
+            log_debug("Running sql: {}", query);
+            db_connection.exec(query);
+        }
+        log_info("Finished SQL commands in {}.",
+                 util::human_readable_duration(timer_sql.stop()));
 
         return 0;
     }
@@ -504,7 +539,6 @@ private:
 
     std::string m_conninfo;
     std::string m_dbschema;
-    std::size_t m_gen_run = 0;
     uint32_t m_jobs;
     bool m_append;
     bool m_updatable;
