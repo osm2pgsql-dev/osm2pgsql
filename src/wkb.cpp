@@ -576,32 +576,35 @@ geom::geometry_t ewkb_to_geom(std::string_view wkb)
     return geom;
 }
 
-unsigned char decode_hex_char(char c)
-{
-    if (c >= '0' && c <= '9') {
-        return c - '0';
-    }
-    if (c >= 'A' && c <= 'F') {
-        return c - 'A' + 10;
-    }
-    if (c >= 'a' && c <= 'f') {
-        return c - 'a' + 10;
-    }
+static constexpr std::array<char, 256> const hex_table = {
+    0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,
+    0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,
+    0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,
+    0, 1, 2, 3,   4, 5, 6, 7,   8, 9, 0, 0,   0, 0, 0, 0,
 
-    throw std::runtime_error{"Invalid wkb: Not a hex character"};
+    0, 10, 11, 12,   13, 14, 15, 0,   0, 0, 0, 0,   0, 0, 0, 0,
+    0,  0,  0,  0,    0,  0,  0, 0,   0, 0, 0, 0,   0, 0, 0, 0,
+    0, 10, 11, 12,   13, 14, 15, 0,   0, 0, 0, 0,   0, 0, 0, 0,
+};
+
+unsigned char decode_hex_char(char c) noexcept
+{
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+    return hex_table[static_cast<std::size_t>(static_cast<unsigned char>(c))];
 }
 
-std::string decode_hex(char const *hex)
+std::string decode_hex(std::string_view hex_string)
 {
+    if (hex_string.size() % 2 != 0) {
+        throw std::runtime_error{"Invalid wkb: Not a valid hex string"};
+    }
+
     std::string wkb;
+    wkb.reserve(hex_string.size() / 2);
 
-    while (*hex != '\0') {
+    // NOLINTNEXTLINE(llvm-qualified-auto, readability-qualified-auto)
+    for (auto hex = hex_string.begin(); hex != hex_string.end();) {
         unsigned int const c = decode_hex_char(*hex++);
-
-        if (*hex == '\0') {
-            throw std::runtime_error{"Invalid wkb: Not a valid hex string"};
-        }
-
         wkb += static_cast<char>((c << 4U) | decode_hex_char(*hex++));
     }
 

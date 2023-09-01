@@ -41,15 +41,15 @@
 [[nodiscard]] geom::geometry_t ewkb_to_geom(std::string_view wkb);
 
 /**
- * Decode one hex character (0-9A-F or 0-9a-f) and return its value. Throw
- * an exception if not a valid hex character.
+ * Decode one hex character (0-9A-F or 0-9a-f) and return its value.
+ * Returns 0 for characters that are not hex characters.
  */
-[[nodiscard]] unsigned char decode_hex_char(char c);
+[[nodiscard]] unsigned char decode_hex_char(char c) noexcept;
 
 /**
  * Decode a string of hex characters. Throws an exception if the input is not
  * a valid hex encoding.
  */
-[[nodiscard]] std::string decode_hex(char const *hex);
+[[nodiscard]] std::string decode_hex(std::string_view hex);
 
 #endif // OSM2PGSQL_WKB_HPP

@@ -189,7 +189,7 @@ TEST_CASE("wkb: geometrycollection", "[NoDB]")
 
 TEST_CASE("wkb: invalid", "[NoDB]") { REQUIRE_THROWS(ewkb_to_geom("INVALID")); }
 
-TEST_CASE("wkb hex decode of valid hex characters")
+TEST_CASE("wkb hex decode of valid and invalid hex characters")
 {
     REQUIRE(decode_hex_char('0') == 0);
     REQUIRE(decode_hex_char('9') == 9);
@@ -197,7 +197,11 @@ TEST_CASE("wkb hex decode of valid hex characters")
     REQUIRE(decode_hex_char('f') == 0x0f);
     REQUIRE(decode_hex_char('A') == 0x0a);
     REQUIRE(decode_hex_char('F') == 0x0f);
-    REQUIRE_THROWS(decode_hex_char('x'));
+    REQUIRE(decode_hex_char('#') == 0);
+    REQUIRE(decode_hex_char('@') == 0);
+    REQUIRE(decode_hex_char('g') == 0);
+    REQUIRE(decode_hex_char('G') == 0);
+    REQUIRE(decode_hex_char(0x7f) == 0);
 }
 
 TEST_CASE("wkb hex decode of valid hex string")
@@ -214,11 +218,6 @@ TEST_CASE("wkb hex decode of valid hex string")
     auto const result = decode_hex(hex.c_str());
     REQUIRE(result.size() == hex.size() / 2);
     REQUIRE(result == data);
-}
-
-TEST_CASE("wkb hex decode of invalid hex string")
-{
-    REQUIRE_THROWS(decode_hex("no"));
 }
 
 TEST_CASE("wkb hex decode of empty string is okay")
