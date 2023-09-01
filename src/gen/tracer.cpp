@@ -41,6 +41,15 @@ void tracer_t::reset()
     m_num_points = 0;
 }
 
+static potrace_word bit_squeeze(potrace_word w, unsigned char const *d) noexcept
+{
+    return (0x80U & d[0]) | (0x40U & d[1]) | (0x20U & d[2]) | (0x10U & d[3]) |
+           (0x08U & d[4]) | (0x04U & d[5]) | (0x02U & d[6]) | (0x01U & d[7]) |
+           w;
+}
+
+static_assert(sizeof(potrace_word) == 8);
+
 void tracer_t::prepare(canvas_t const &canvas) noexcept
 {
     std::size_t const size = canvas.size();
@@ -48,14 +57,17 @@ void tracer_t::prepare(canvas_t const &canvas) noexcept
 
     m_bits.reserve((size * size) / bits_per_word);
 
-    unsigned char const *d = canvas.begin();
-    while (d != canvas.end()) {
-        potrace_word w = 0x1U & *d++;
-        for (std::size_t n = 1; n < bits_per_word; ++n) {
-            w <<= 1U;
-            assert(d != canvas.end());
-            w |= 0x1U & *d++;
-        }
+    for (unsigned char const *d = canvas.begin(); d != canvas.end(); d += 8) {
+        auto w = bit_squeeze(0, d);
+
+        w = bit_squeeze(w << 8U, d += 8);
+        w = bit_squeeze(w << 8U, d += 8);
+        w = bit_squeeze(w << 8U, d += 8);
+        w = bit_squeeze(w << 8U, d += 8);
+        w = bit_squeeze(w << 8U, d += 8);
+        w = bit_squeeze(w << 8U, d += 8);
+        w = bit_squeeze(w << 8U, d += 8);
+
         m_bits.push_back(w);
     }
 
