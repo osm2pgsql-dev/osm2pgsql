@@ -16,6 +16,11 @@ def osm_set_import_file(context, osm_file):
     context.import_file = context.test_data_dir / osm_file
 
 
+@given("an empty grid")
+def osm_define_node_grid(context):
+    context.geometry_factory.remove_grid()
+
+
 @given("the (?P<step>[0-9.]+ )?grid(?: with origin (?P<origin_x>[0-9.-]+) (?P<origin_y>[0-9.-]+))?")
 def osm_define_node_grid(context, step, origin_x, origin_y):
     step = float(step.strip()) if step else 0.1

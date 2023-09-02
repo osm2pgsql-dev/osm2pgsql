@@ -31,7 +31,8 @@ Feature: Changing ways in a flex database
             | 13     |
             | 14     |
 
-        Given the OSM data
+        Given an empty grid
+        And the OSM data
             """
             <input>
             """
@@ -83,7 +84,8 @@ Feature: Changing ways in a flex database
             | 13     |
             | 14     |
 
-        Given the OSM data
+        Given an empty grid
+        And the OSM data
             """
             <input>
             """
@@ -136,7 +138,8 @@ Feature: Changing ways in a flex database
             | 13     |
             | 14     |
 
-        Given the OSM data
+        Given an empty grid
+        And the OSM data
             """
             <input>
             """
@@ -193,7 +196,8 @@ Feature: Changing ways in a flex database
             | 13     | NULL    |
             | 14     | {30}    |
 
-        Given the OSM data
+        Given an empty grid
+        And the OSM data
             """
             <input>
             """
@@ -239,7 +243,8 @@ Feature: Changing ways in a flex database
             | 13     | NULL    |
             | 14     | {30}    |
 
-        Given the OSM data
+        Given an empty grid
+        And the OSM data
             """
             w10 v2 dV Tt1=yes,t2=yes,tboth=yes Nn10,n11
             """

@@ -32,7 +32,8 @@ Feature: Handling changes to relations
             | --slim |
         Then table osm2pgsql_test_relations has 0 rows
 
-        Given the OSM data
+        Given an empty grid
+        And the OSM data
             """
             r30 v2 dV Ttype=multipolygon Mw20@,w21@
             """
@@ -55,7 +56,8 @@ Feature: Handling changes to relations
             | --slim |
         Then table osm2pgsql_test_relations has 0 rows
 
-        Given the OSM data
+        Given an empty grid
+        And the OSM data
             """
             w21 v2 dV Nn12,n13,n10
             """
@@ -77,7 +79,8 @@ Feature: Handling changes to relations
             | --slim |
         Then table osm2pgsql_test_relations has 0 rows
 
-        Given the OSM data
+        Given an empty grid
+        And the OSM data
             """
             n12 v2 dV x10.1 y10.1
             """
@@ -100,7 +103,8 @@ Feature: Handling changes to relations
             | --slim |
         Then table osm2pgsql_test_relations has 0 rows
 
-        Given the OSM data
+        Given an empty grid
+        And the OSM data
             """
             r30 v2 dV Ttype=multipolygon Mw20@,w21@
             """
@@ -123,7 +127,8 @@ Feature: Handling changes to relations
             | --slim |
         Then table osm2pgsql_test_relations has 1 row
 
-        Given the OSM data
+        Given an empty grid
+        And the OSM data
             """
             r30 v2 dV Mw20@,w21@
             """
@@ -146,7 +151,8 @@ Feature: Handling changes to relations
             | --slim |
         Then table osm2pgsql_test_relations has 1 row
 
-        Given the OSM data
+        Given an empty grid
+        And the OSM data
             """
             w21 v2 dV <new nodelist>
             """
@@ -174,7 +180,8 @@ Feature: Handling changes to relations
             | --slim |
         Then table osm2pgsql_test_relations has 1 row
 
-        Given the OSM data
+        Given an empty grid
+        And the OSM data
             """
             n12 v2 dV <new coordinates>
             """
@@ -202,7 +209,8 @@ Feature: Handling changes to relations
             | --slim |
         Then table osm2pgsql_test_relations has 1 row
 
-        Given the OSM data
+        Given an empty grid
+        And the OSM data
             """
             r30 v2 dV Ttype=multipolygon <new memberlist>
             """
@@ -232,7 +240,8 @@ Feature: Handling changes to relations
             | area_id | tags->'natural' | tags->'landuse' |
             | -30     | wood            | NULL            |
 
-        Given the OSM data
+        Given an empty grid
+        And the OSM data
             """
             r30 v2 dV Ttype=multipolygon,landuse=forest Mw20@,w21@
             """
