@@ -238,3 +238,26 @@ Feature: Expire configuration in Lua file
         Then table nodes has 1562 rows
         And table tiles has 0 rows
 
+    Scenario: Expire into table without maxzoom means maxzoom 0
+        Given the input file 'liechtenstein-2013-08-03.osm.pbf'
+        And the lua style
+            """
+            local eo = osm2pgsql.define_expire_output({
+                table = 'tiles',
+            })
+            local t = osm2pgsql.define_node_table('nodes', {
+                { column = 'geom',
+                  type = 'point',
+                  expire = {
+                    { output = eo }
+                }}
+            })
+
+            function osm2pgsql.process_node(object)
+                t:insert({ geom = object:as_point() })
+            end
+            """
+        When running osm2pgsql flex
+        Then table nodes has 1562 rows
+        And table tiles has 0 rows
+
