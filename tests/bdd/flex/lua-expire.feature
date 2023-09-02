@@ -72,7 +72,7 @@ Feature: Expire configuration in Lua file
             })
 
             function osm2pgsql.process_node(object)
-                t:insert({})
+                t:insert({ some = object:as_point() })
             end
             """
         When running osm2pgsql flex
@@ -93,7 +93,7 @@ Feature: Expire configuration in Lua file
             })
 
             function osm2pgsql.process_node(object)
-                t:insert({})
+                t:insert({ some = object:as_point() })
             end
             """
         When running osm2pgsql flex
@@ -136,7 +136,7 @@ Feature: Expire configuration in Lua file
             })
 
             function osm2pgsql.process_node(object)
-                t:insert({})
+                t:insert({ some = object:as_point() })
             end
             """
         Then running osm2pgsql flex fails
@@ -184,7 +184,7 @@ Feature: Expire configuration in Lua file
             })
 
             function osm2pgsql.process_node(object)
-                t:insert({})
+                t:insert({ some = object:as_point() })
             end
             """
         When running osm2pgsql flex
@@ -208,7 +208,7 @@ Feature: Expire configuration in Lua file
             })
 
             function osm2pgsql.process_node(object)
-                t:insert({})
+                t:insert({ some = object:as_point() })
             end
             """
         When running osm2pgsql flex
@@ -231,7 +231,7 @@ Feature: Expire configuration in Lua file
             })
 
             function osm2pgsql.process_node(object)
-                t:insert({})
+                t:insert({ geom = object:as_point() })
             end
             """
         When running osm2pgsql flex
