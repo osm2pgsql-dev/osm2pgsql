@@ -373,6 +373,9 @@ public:
         bool const transaction = luaX_get_table_bool(lua_state(), "transaction",
                                                      1, "Argument #1", false);
 
+        std::string const if_has_rows = luaX_get_table_string(
+            lua_state(), "if_has_rows", 1, "Argument #1", "");
+
         std::vector<std::string> queries;
         if (transaction) {
             queries.emplace_back("BEGIN");
@@ -403,10 +406,21 @@ public:
             queries.emplace_back("COMMIT");
         }
 
+        pg_conn_t const db_connection{m_conninfo};
+
+        if (m_append && !if_has_rows.empty()) {
+            auto const result = db_connection.exec(if_has_rows);
+            if (result.num_tuples() == 0) {
+                log_info("Not running SQL command: {} (no rows in "
+                         "condition result).",
+                         description);
+                return 0;
+            }
+        }
+
         log_info("Running SQL commands: {}.", description);
 
         util::timer_t timer_sql;
-        pg_conn_t const db_connection{m_conninfo};
         for (auto const &query : queries) {
             log_debug("Running sql: {}", query);
             db_connection.exec(query);
