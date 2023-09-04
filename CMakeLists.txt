@@ -16,6 +16,10 @@ else()
     set(ENABLE_INSTALL OFF)
 endif()
 
+if (NOT ${CMAKE_SIZEOF_VOID_P} EQUAL 8)
+    message(FATAL_ERROR "osm2pgsql needs a 64 bit architecture")
+endif()
+
 if (WIN32)
     set(DEFAULT_STYLE "default.style" CACHE STRING "Default style used unless one is given on the command line")
 else()
