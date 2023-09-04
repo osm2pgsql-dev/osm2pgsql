@@ -8,40 +8,56 @@
  */
 
 #include "canvas.hpp"
+
 #include "raster.hpp"
 
-cimg_library::CImg<int> canvas_t::create_pointlist(geom::point_list_t const &pl,
-                                                   tile_t const &tile) const
-{
-    cimg_library::CImg<int> points{static_cast<unsigned int>(pl.size()), 2};
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
 
-    int n = 0;
+void canvas_t::open_close(unsigned int buffer_size)
+{
+    auto const kernel1 = cv::getStructuringElement(
+        cv::MORPH_RECT,
+        cv::Size(static_cast<int>(buffer_size), static_cast<int>(buffer_size)));
+    auto const kernel2 = cv::getStructuringElement(
+        cv::MORPH_RECT, cv::Size(static_cast<int>(buffer_size * 2),
+                                 static_cast<int>(buffer_size * 2)));
+
+    cv::erode(m_rast, m_rast, kernel1);
+    cv::dilate(m_rast, m_rast, kernel2);
+    cv::erode(m_rast, m_rast, kernel1);
+}
+
+void canvas_t::create_pointlist(std::vector<cv::Point> *out,
+                                geom::point_list_t const &pl,
+                                tile_t const &tile) const
+{
+    out->reserve(pl.size());
+
     for (auto const point : pl) {
         auto const tp = tile.to_tile_coords(point, m_extent);
-        points(n, 0) = static_cast<int>(static_cast<double>(m_buffer) + tp.x());
-        points(n, 1) =
-            static_cast<int>(static_cast<double>(m_buffer + m_extent) - tp.y());
-        ++n;
+        auto const x = static_cast<double>(m_buffer) + tp.x();
+        auto const y = static_cast<double>(m_buffer + m_extent) - tp.y();
+        out->emplace_back(x, y);
     }
-
-    return points;
 }
 
 std::size_t canvas_t::draw_polygon(geom::polygon_t const &polygon,
                                    tile_t const &tile)
 {
-    if (polygon.inners().empty()) {
-        m_rast.draw_polygon(create_pointlist(polygon.outer(), tile), &White);
-        return polygon.outer().size();
-    }
-
     std::size_t num_points = polygon.outer().size();
-    m_temp.draw_polygon(create_pointlist(polygon.outer(), tile), &White);
+
+    std::vector<std::vector<cv::Point>> poly_data;
+    poly_data.resize(polygon.inners().size() + 1);
+
+    create_pointlist(poly_data.data(), polygon.outer(), tile);
+    std::size_t n = 1;
     for (auto const &inner : polygon.inners()) {
         num_points += inner.size();
-        m_temp.draw_polygon(create_pointlist(inner, tile), &Black);
+        create_pointlist(&poly_data[n], inner, tile);
+        n++;
     }
-    m_rast |= m_temp;
+    cv::fillPoly(m_rast, poly_data, cv::Scalar{255});
 
     return num_points;
 }
@@ -49,7 +65,9 @@ std::size_t canvas_t::draw_polygon(geom::polygon_t const &polygon,
 std::size_t canvas_t::draw_linestring(geom::linestring_t const &linestring,
                                       tile_t const &tile)
 {
-    m_rast.draw_line(create_pointlist(linestring, tile), &White);
+    std::vector<cv::Point> line_data;
+    create_pointlist(&line_data, linestring, tile);
+    cv::polylines(m_rast, line_data, false, cv::Scalar{255});
     return linestring.size();
 }
 
@@ -81,13 +99,13 @@ std::size_t canvas_t::draw(geom::geometry_t const &geometry, tile_t const &tile)
 
 void canvas_t::save(std::string const &filename) const
 {
-    m_rast.save(filename.c_str());
+    cv::imwrite(filename, m_rast);
 }
 
 std::string canvas_t::to_wkb(tile_t const &tile, double margin) const
 {
     std::string wkb;
-    wkb.reserve(61 + 2 + m_rast.size());
+    wkb.reserve(61 + 2 + size() * size());
 
     // header
     wkb_raster_header header{};
@@ -106,18 +124,24 @@ std::string canvas_t::to_wkb(tile_t const &tile, double margin) const
     add_raster_band(&wkb, band);
 
     // rasterdata
-    wkb.append(reinterpret_cast<char const *>(m_rast.data()), m_rast.size());
+    wkb.append(reinterpret_cast<char const *>(begin()),
+               reinterpret_cast<char const *>(end()));
 
-    assert(wkb.size() == 61 + 2 + m_rast.size());
+    assert(wkb.size() == 61 + 2 + size() * size());
 
     return wkb;
 }
 
-void canvas_t::merge(canvas_t const &other) { m_rast |= other.m_rast; }
+void canvas_t::merge(canvas_t const &other)
+{
+    cv::bitwise_or(m_rast, other.m_rast, m_rast);
+}
 
 std::string to_hex(std::string const &in)
 {
     std::string result;
+    result.reserve(in.size() * 2);
+
     char const *const lookup_hex = "0123456789ABCDEF";
 
     for (const auto c : in) {
