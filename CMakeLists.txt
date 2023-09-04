@@ -31,6 +31,10 @@ if (PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
     message(FATAL_ERROR "In-source builds are not allowed, please use a separate build directory like `mkdir build && cd build && cmake ..`")
 endif()
 
+if (NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
+    message(FATAL_ERROR "32bit is not supported")
+endif()
+
 message(STATUS "Building osm2pgsql ${PROJECT_VERSION}")
 
 if (NOT CMAKE_BUILD_TYPE)
