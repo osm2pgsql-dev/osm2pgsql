@@ -253,6 +253,7 @@ void gen_tile_builtup_t::process(tile_t const &tile)
 
     log_gen("Write geometries to destination table...");
     timer(m_timer_write).start();
+    connection().exec("BEGIN");
     for (auto const &geom : geometries) {
         auto const wkb = to_hex(geom_to_ewkb(geom));
         if (m_has_area_column) {
@@ -262,6 +263,7 @@ void gen_tile_builtup_t::process(tile_t const &tile)
             connection().exec_prepared("insert_geoms", wkb, tile.x(), tile.y());
         }
     }
+    connection().exec("COMMIT");
     timer(m_timer_write).stop();
     log_gen("Inserted {} generalized polygons", geometries.size());
 }
