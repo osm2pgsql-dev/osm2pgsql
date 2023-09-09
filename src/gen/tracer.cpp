@@ -26,18 +26,22 @@ tracer_t::trace(canvas_t const &canvas, tile_t const &tile, double min_area)
 {
     prepare(canvas);
 
-    m_state.reset(potrace_trace(m_param.get(), &m_bitmap));
-    if (!m_state || m_state->status != POTRACE_STATUS_OK) {
+    potrace_bitmap_t bitmap{int(canvas.size()), int(canvas.size()),
+                            int(canvas.size() / bits_per_word), m_bits.data()};
+
+    std::unique_ptr<potrace_state_t, potrace_state_deleter> state{
+        potrace_trace(m_param.get(), &bitmap)};
+
+    if (!state || state->status != POTRACE_STATUS_OK) {
         throw std::runtime_error{"potrace failed"};
     }
 
-    return build_geometries(tile, m_state->plist, min_area);
+    return build_geometries(tile, state->plist, min_area);
 }
 
 void tracer_t::reset()
 {
     m_bits.clear();
-    m_state.reset();
     m_num_points = 0;
 }
 
@@ -70,8 +74,6 @@ void tracer_t::prepare(canvas_t const &canvas) noexcept
 
         m_bits.push_back(w);
     }
-
-    m_bitmap = {int(size), int(size), int(size / bits_per_word), m_bits.data()};
 }
 
 std::vector<geom::geometry_t>
