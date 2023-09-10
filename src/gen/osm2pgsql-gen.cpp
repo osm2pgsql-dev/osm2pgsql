@@ -317,6 +317,10 @@ public:
             params.set("schema", m_dbschema);
         }
 
+        if (m_append) {
+            params.set("delete_existing", true);
+        }
+
         write_to_debug_log(params, "Params (config):");
 
         log_debug("Connecting to database...");
@@ -328,10 +332,6 @@ public:
 
         log_info("Running generalizer '{}' ({})...", generalizer->name(),
                  generalizer->strategy());
-
-        if (m_append) {
-            params.set("delete_existing", true);
-        }
 
         write_to_debug_log(params, "Params (after initialization):");
 
