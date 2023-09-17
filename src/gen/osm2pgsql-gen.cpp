@@ -262,7 +262,10 @@ void run_tile_gen(std::string const &conninfo, gen_base_t *master_generalizer,
             queue->pop_back();
         }
 
-        generalizer->process({zoom, p.first, p.second});
+        tile_t tile{zoom, p.first, p.second};
+        log_debug("Processing tile {}/{}/{}...", tile.zoom(), tile.x(),
+                  tile.y());
+        generalizer->process(tile);
     }
     log_debug("Shutting down generalizer thread.");
 }
