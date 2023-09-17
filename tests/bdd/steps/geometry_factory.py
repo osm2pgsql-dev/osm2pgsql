@@ -64,6 +64,10 @@ class GeometryFactory:
         return ','.join([self.mk_wkt_point(x) for x in geom.split(',')])
 
 
+    def remove_grid(self):
+        self.grid = {}
+
+
     def set_grid(self, lines, grid_step, origin_x, origin_y):
         """ Replace the grid with one from the given lines.
         """
