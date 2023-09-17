@@ -83,12 +83,14 @@ PREPARE gen_geoms (int, int, int) AS
 
 void gen_tile_vector_union_t::process(tile_t const &tile)
 {
+    connection().exec("BEGIN");
     delete_existing(tile);
 
     log_gen("Generalize...");
     timer(m_timer_simplify).start();
     auto const result = connection().exec_prepared("gen_geoms", tile.zoom(),
                                                    tile.x(), tile.y());
+    connection().exec("COMMIT");
     timer(m_timer_simplify).stop();
     log_gen("Inserted {} generalized polygons", result.affected_rows());
 }
