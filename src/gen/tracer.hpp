@@ -64,9 +64,7 @@ private:
                                                    double min_area) noexcept;
 
     std::vector<potrace_word> m_bits;
-    potrace_bitmap_t m_bitmap{};
     std::unique_ptr<potrace_param_t, potrace_param_deleter> m_param;
-    std::unique_ptr<potrace_state_t, potrace_state_deleter> m_state;
     std::size_t m_extent;
     std::size_t m_buffer;
     std::size_t m_num_points = 0;
