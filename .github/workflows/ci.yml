@@ -121,7 +121,7 @@ jobs:
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
-  ubuntu20-pg12-gcc10-jit:
+  ubuntu20-pg13-gcc10-jit:
     runs-on: ubuntu-20.04
 
     env:
@@ -129,7 +129,7 @@ jobs:
       CXX: g++-10
       LUA_VERSION: 5.3
       LUAJIT_OPTION: ON
-      POSTGRESQL_VERSION: 12
+      POSTGRESQL_VERSION: 13
       POSTGIS_VERSION: 2.5
       BUILD_TYPE: Debug
       PSYCOPG: 2
@@ -140,7 +140,7 @@ jobs:
       - uses: ./.github/actions/build-and-test
 
 
-  ubuntu20-pg13-clang10-jit:
+  ubuntu20-pg15-clang10-jit:
     runs-on: ubuntu-20.04
 
     env:
@@ -148,7 +148,7 @@ jobs:
       CXX: clang++-10
       LUA_VERSION: 5.3
       LUAJIT_OPTION: ON
-      POSTGRESQL_VERSION: 13
+      POSTGRESQL_VERSION: 15
       POSTGIS_VERSION: 3
       BUILD_TYPE: Debug
       PSYCOPG: 2
@@ -158,7 +158,7 @@ jobs:
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
-  ubuntu20-pg13-clang10-proj6:
+  ubuntu20-pg15-clang10-proj6:
     runs-on: ubuntu-20.04
 
     env:
@@ -166,7 +166,7 @@ jobs:
       CXX: clang++-10
       LUA_VERSION: 5.3
       LUAJIT_OPTION: OFF
-      POSTGRESQL_VERSION: 13
+      POSTGRESQL_VERSION: 15
       POSTGIS_VERSION: 3
       USE_PROJ_LIB: 6
       BUILD_TYPE: Debug
@@ -177,7 +177,7 @@ jobs:
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
-  ubuntu20-pg13-clang10-noproj:
+  ubuntu20-pg15-clang10-noproj:
     runs-on: ubuntu-20.04
 
     env:
@@ -185,7 +185,7 @@ jobs:
       CXX: clang++-10
       LUA_VERSION: 5.3
       LUAJIT_OPTION: OFF
-      POSTGRESQL_VERSION: 13
+      POSTGRESQL_VERSION: 15
       POSTGIS_VERSION: 3
       USE_PROJ_LIB: off
       BUILD_TYPE: Debug
@@ -196,7 +196,7 @@ jobs:
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
-  ubuntu20-pg15-clang10:
+  ubuntu20-pg16-clang10:
     runs-on: ubuntu-20.04
 
     env:
@@ -204,7 +204,7 @@ jobs:
       CXX: clang++-10
       LUA_VERSION: 5.3
       LUAJIT_OPTION: OFF
-      POSTGRESQL_VERSION: 15
+      POSTGRESQL_VERSION: 16
       POSTGIS_VERSION: 3
       USE_PROJ_LIB: 6
       BUILD_TYPE: Debug
@@ -249,7 +249,7 @@ jobs:
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
-  ubuntu22-pg15-clang14-jit:
+  ubuntu22-pg16-clang14-jit:
     runs-on: ubuntu-22.04
 
     env:
@@ -257,7 +257,7 @@ jobs:
       CXX: clang++-14
       LUA_VERSION: 5.4
       LUAJIT_OPTION: ON
-      POSTGRESQL_VERSION: 15
+      POSTGRESQL_VERSION: 16
       POSTGIS_VERSION: 3
       BUILD_TYPE: Debug
       PSYCOPG: 2
@@ -267,7 +267,7 @@ jobs:
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
-  ubuntu22-pg15-clang14-proj6:
+  ubuntu22-pg16-clang14-proj6:
     runs-on: ubuntu-22.04
 
     env:
@@ -275,7 +275,7 @@ jobs:
       CXX: clang++-14
       LUA_VERSION: 5.4
       LUAJIT_OPTION: OFF
-      POSTGRESQL_VERSION: 15
+      POSTGRESQL_VERSION: 16
       POSTGIS_VERSION: 3
       USE_PROJ_LIB: 6
       BUILD_TYPE: Debug
@@ -286,7 +286,7 @@ jobs:
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
-  ubuntu22-pg15-clang14-noproj:
+  ubuntu22-pg16-clang14-noproj:
     runs-on: ubuntu-22.04
 
     env:
@@ -294,7 +294,7 @@ jobs:
       CXX: clang++-14
       LUA_VERSION: 5.3
       LUAJIT_OPTION: OFF
-      POSTGRESQL_VERSION: 15
+      POSTGRESQL_VERSION: 16
       POSTGIS_VERSION: 3
       USE_PROJ_LIB: off
       BUILD_TYPE: Debug
@@ -324,7 +324,7 @@ jobs:
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
-  ubuntu22-pg15-gcc12-release:
+  ubuntu22-pg16-gcc12-release:
     runs-on: ubuntu-22.04
 
     env:
@@ -333,7 +333,7 @@ jobs:
       EXTRA_FLAGS: -Wno-stringop-overread
       LUA_VERSION: 5.4
       LUAJIT_OPTION: ON
-      POSTGRESQL_VERSION: 15
+      POSTGRESQL_VERSION: 16
       POSTGIS_VERSION: 3
       BUILD_TYPE: Release
       PSYCOPG: 2
@@ -343,14 +343,14 @@ jobs:
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
-  ubuntu22-pg15-gcc12-release-nolua:
+  ubuntu22-pg16-gcc12-release-nolua:
     runs-on: ubuntu-22.04
 
     env:
       CC: gcc-12
       CXX: g++-12
       EXTRA_FLAGS: -Wno-stringop-overread
-      POSTGRESQL_VERSION: 15
+      POSTGRESQL_VERSION: 16
       POSTGIS_VERSION: 3
       BUILD_TYPE: Release
       PSYCOPG: 2
@@ -360,7 +360,7 @@ jobs:
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
-  ubuntu22-pg15-clang14-cpp20:
+  ubuntu22-pg16-clang14-cpp20:
     runs-on: ubuntu-22.04
 
     env:
@@ -368,7 +368,7 @@ jobs:
       CXX: clang++-14
       LUA_VERSION: 5.3
       LUAJIT_OPTION: OFF
-      POSTGRESQL_VERSION: 15
+      POSTGRESQL_VERSION: 16
       POSTGIS_VERSION: 3
       CPP_VERSION: 20
       BUILD_TYPE: Debug
@@ -379,7 +379,7 @@ jobs:
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
-  ubuntu22-pg15-gcc12-cpp20:
+  ubuntu22-pg16-gcc12-cpp20:
     runs-on: ubuntu-22.04
 
     env:
@@ -387,7 +387,7 @@ jobs:
       CXX: g++-12
       LUA_VERSION: 5.3
       LUAJIT_OPTION: OFF
-      POSTGRESQL_VERSION: 15
+      POSTGRESQL_VERSION: 16
       POSTGIS_VERSION: 3
       CPP_VERSION: 20
       BUILD_TYPE: Debug
