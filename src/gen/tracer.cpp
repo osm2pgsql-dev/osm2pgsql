@@ -26,8 +26,9 @@ tracer_t::trace(canvas_t const &canvas, tile_t const &tile, double min_area)
 {
     prepare(canvas);
 
-    potrace_bitmap_t bitmap{int(canvas.size()), int(canvas.size()),
-                            int(canvas.size() / bits_per_word), m_bits.data()};
+    potrace_bitmap_t const bitmap{int(canvas.size()), int(canvas.size()),
+                                  int(canvas.size() / bits_per_word),
+                                  m_bits.data()};
 
     std::unique_ptr<potrace_state_t, potrace_state_deleter> state{
         potrace_trace(m_param.get(), &bitmap)};
