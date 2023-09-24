@@ -98,7 +98,7 @@ public:
     /// Constructor for new objects
     output_flex_t(std::shared_ptr<middle_query_t> const &mid,
                   std::shared_ptr<thread_pool_t> thread_pool,
-                  options_t const &options);
+                  options_t const &options, properties_t const &properties);
 
     /// Constructor for cloned objects
     output_flex_t(output_flex_t const *other,
@@ -192,7 +192,7 @@ private:
     void get_mutex_and_call_lua_function(prepared_lua_function_t func,
                                          osmium::OSMObject const &object);
 
-    void init_lua(std::string const &filename);
+    void init_lua(std::string const &filename, properties_t const &properties);
 
     // Get the flex table that is as first parameter on the Lua stack.
     flex_table_t const &get_table_from_param();
