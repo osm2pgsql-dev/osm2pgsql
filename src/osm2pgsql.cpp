@@ -393,6 +393,11 @@ int main(int argc, char *argv[])
                 }
             }
         } else {
+            if (has_table(options.middle_dbschema, "osm2pgsql_properties")) {
+                throw std::runtime_error{
+                    "Cowardly refusing to import data into database that"
+                    " already has osm2pgsql_properties table."};
+            }
             check_and_set_style(&options);
             store_properties(&properties, options);
             auto const finfo = run(options);
