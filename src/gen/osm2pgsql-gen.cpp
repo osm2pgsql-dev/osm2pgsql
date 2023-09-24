@@ -710,7 +710,6 @@ int main(int argc, char *argv[])
                 break;
             case 'V': // --version
                 log_info("osm2pgsql-gen version {}", get_osm2pgsql_version());
-                canvas_t::info();
                 return 0;
             case 201: // --log-sql
                 get_logger().enable_sql();

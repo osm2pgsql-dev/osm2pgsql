@@ -211,7 +211,7 @@ include_directories(SYSTEM ${NLOHMANN_INCLUDE_DIR})
 find_path(POTRACE_INCLUDE_DIR potracelib.h)
 find_library(POTRACE_LIBRARY NAMES potrace)
 
-find_path(CIMG_INCLUDE_DIR CImg.h)
+find_package(OpenCV OPTIONAL_COMPONENTS core imgcodecs imgproc)
 
 ############### Libraries are found now ########################
 
@@ -284,13 +284,12 @@ add_subdirectory(src)
 add_executable(osm2pgsql src/osm2pgsql.cpp)
 target_link_libraries(osm2pgsql osm2pgsql_lib ${LIBS})
 
-if (${POTRACE_LIBRARY} STREQUAL "POTRACE_LIBRARY-NOTFOUND" OR ${CIMG_INCLUDE_DIR} STREQUAL "CIMG_INCLUDE_DIR-NOTFOUND")
-    message(STATUS "Did not find cimg and/or potrace library. Not building osm2pgsql-gen.")
+if (${POTRACE_LIBRARY} STREQUAL "POTRACE_LIBRARY-NOTFOUND" OR NOT OPENCV_CORE_FOUND)
+    message(STATUS "Did not find opencv and/or potrace library. Not building osm2pgsql-gen.")
 else()
     if (WITH_LUA)
-        message(STATUS "Found cimg and potrace library. Building osm2pgsql-gen.")
+        message(STATUS "Found opencv and potrace library. Building osm2pgsql-gen.")
         set(BUILD_GEN 1)
-        include_directories(SYSTEM ${CIMG_INCLUDE_DIR})
         include_directories(SYSTEM ${POTRACE_INCLUDE_DIR})
         add_executable(osm2pgsql-gen src/gen/osm2pgsql-gen.cpp
                     src/gen/canvas.cpp
@@ -305,7 +304,7 @@ else()
                     src/gen/params.cpp
                     src/gen/raster.cpp
                     src/gen/tracer.cpp)
-        target_link_libraries(osm2pgsql-gen osm2pgsql_lib ${LIBS} ${POTRACE_LIBRARY})
+        target_link_libraries(osm2pgsql-gen osm2pgsql_lib ${LIBS} ${POTRACE_LIBRARY} ${OpenCV_LIBS})
     else()
         message(STATUS "No Lua. Not building osm2pgsql-gen.")
     endif()

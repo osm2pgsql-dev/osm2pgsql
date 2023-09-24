@@ -12,11 +12,11 @@ runs:
           boost-property-tree:x64-windows \
           boost-system:x64-windows \
           bzip2:x64-windows \
-          cimg:x64-windows \
           expat:x64-windows \
           libpq:x64-windows \
           lua:x64-windows \
           nlohmann-json:x64-windows \
+          opencv:x64-windows \
           proj4:x64-windows \
           zlib:x64-windows
       shell: bash

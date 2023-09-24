@@ -16,11 +16,13 @@ runs:
     - name: Install software
       run: |
         sudo apt-get install -yq --no-install-suggests --no-install-recommends \
-          cimg-dev \
           libboost-filesystem-dev \
           libboost-system-dev \
           libbz2-dev \
           libexpat1-dev \
+          libopencv-core-dev \
+          libopencv-imgcodecs-dev \
+          libopencv-imgproc-dev \
           libpotrace-dev \
           libpq-dev \
           libproj-dev \
