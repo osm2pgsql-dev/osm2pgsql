@@ -200,15 +200,15 @@ static tile_extent get_extent_from_db(pg_conn_t const &db_connection,
     return get_extent_from_db(db_connection, schema, table, geom_column, zoom);
 }
 
-static std::vector<std::pair<uint32_t, uint32_t>>
+static void
 get_tiles_from_table(pg_conn_t const &connection, std::string const &table,
-                     uint32_t zoom)
+                     uint32_t zoom,
+                     std::vector<std::pair<uint32_t, uint32_t>> *tiles)
 {
     auto const result = connection.exec(
         R"(SELECT x, y FROM "{}" WHERE zoom = {})", table, zoom);
 
-    std::vector<std::pair<uint32_t, uint32_t>> tiles;
-    tiles.reserve(result.num_tuples());
+    tiles->reserve(result.num_tuples());
 
     uint32_t const max = 1UL << zoom;
     for (int n = 0; n < result.num_tuples(); ++n) {
@@ -223,10 +223,8 @@ get_tiles_from_table(pg_conn_t const &connection, std::string const &table,
             log_error("Ignoring invalid y value in expire table '{}'", table);
             continue;
         }
-        tiles.emplace_back(x, y);
+        tiles->emplace_back(x, y);
     }
-
-    return tiles;
 }
 
 class tile_processor_t
@@ -509,7 +507,7 @@ private:
             auto const table = params.get_string("expire_list");
             log_debug("Running generalizer for expire list from table '{}'...",
                       table);
-            tile_list = get_tiles_from_table(db_connection, table, zoom);
+            get_tiles_from_table(db_connection, table, zoom, &tile_list);
             log_debug("Truncating table '{}'...", table);
             db_connection.exec("TRUNCATE {}", table);
         } else {
