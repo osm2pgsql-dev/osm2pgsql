@@ -84,9 +84,8 @@ On a Debian or Ubuntu system, this can be done with:
 ```sh
 sudo apt-get install make cmake g++ libboost-dev libboost-system-dev \
   libboost-filesystem-dev libexpat1-dev zlib1g-dev libpotrace-dev \
-  libopencv-core-dev libopencv-imgcodecs-dev libopencv-imgproc-dev \
-  libbz2-dev libpq-dev libproj-dev lua5.3 liblua5.3-dev pandoc \
-  nlohmann-json3-dev pyosmium
+  libopencv-dev libbz2-dev libpq-dev libproj-dev lua5.3 liblua5.3-dev \
+  pandoc nlohmann-json3-dev pyosmium
 ```
 
 On a Fedora system, use

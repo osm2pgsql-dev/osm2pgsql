@@ -20,9 +20,7 @@ runs:
           libboost-system-dev \
           libbz2-dev \
           libexpat1-dev \
-          libopencv-core-dev \
-          libopencv-imgcodecs-dev \
-          libopencv-imgproc-dev \
+          libopencv-dev \
           libpotrace-dev \
           libpq-dev \
           libproj-dev \
