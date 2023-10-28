@@ -71,6 +71,9 @@ public:
         return m_data.capacity() + m_index.used_memory();
     }
 
+    /// Dump information about memory usage to debug log
+    void log_stats();
+
     /**
      * Clear the memory used by this object. The object can be reused after
      * that.

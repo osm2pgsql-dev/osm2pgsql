@@ -190,6 +190,16 @@ void middle_ram_t::relation(osmium::Relation const &relation)
     }
 }
 
+void middle_ram_t::after_nodes()
+{
+    assert(m_middle_state == middle_state::node);
+#ifndef NDEBUG
+    m_middle_state = middle_state::way;
+#endif
+
+    m_node_locations.log_stats();
+}
+
 osmium::Location middle_ram_t::get_node_location(osmid_t id) const
 {
     return m_node_locations.get(id);
