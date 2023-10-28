@@ -443,6 +443,10 @@ template <typename T>
 void pgsql_parse_json_members(char const *string,
                               osmium::memory::Buffer *buffer, T *obuilder)
 {
+    if (*string == '\0') { // NULL
+        return;
+    }
+
     osmium::builder::RelationMemberListBuilder builder{*buffer, obuilder};
     member_list_json_builder parser{&builder};
     nlohmann::json::sax_parse(string, &parser);
