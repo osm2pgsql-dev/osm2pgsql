@@ -64,7 +64,7 @@ static void send_id_list(pg_conn_t const &db_connection,
     }
 
     auto const sql = fmt::format("COPY {} FROM STDIN", table);
-    db_connection.copy_start(sql.c_str());
+    db_connection.copy_start(sql);
     db_connection.copy_send(data, table);
     db_connection.copy_end(table);
 }
