@@ -360,12 +360,12 @@ jobs:
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
-  ubuntu22-pg16-clang14-cpp20:
+  ubuntu22-pg16-clang15-cpp20:
     runs-on: ubuntu-22.04
 
     env:
-      CC: clang-14
-      CXX: clang++-14
+      CC: clang-15
+      CXX: clang++-15
       LUA_VERSION: 5.3
       LUAJIT_OPTION: OFF
       POSTGRESQL_VERSION: 16
