@@ -323,6 +323,10 @@ template <typename T>
 void pgsql_parse_json_tags(char const *string, osmium::memory::Buffer *buffer,
                            T *obuilder)
 {
+    if (*string == '\0') { // NULL
+        return;
+    }
+
     auto const tags = nlohmann::json::parse(string);
     if (!tags.is_object()) {
         throw std::runtime_error{"Database format for tags invalid."};
@@ -439,6 +443,10 @@ template <typename T>
 void pgsql_parse_json_members(char const *string,
                               osmium::memory::Buffer *buffer, T *obuilder)
 {
+    if (*string == '\0') { // NULL
+        return;
+    }
+
     osmium::builder::RelationMemberListBuilder builder{*buffer, obuilder};
     member_list_json_builder parser{&builder};
     nlohmann::json::sax_parse(string, &parser);
@@ -613,6 +621,10 @@ void middle_pgsql_t::copy_attributes(osmium::OSMObject const &obj)
 void middle_pgsql_t::copy_tags(osmium::OSMObject const &obj)
 {
     if (m_store_options.db_format == 2) {
+        if (obj.tags().empty()) {
+            m_db_copy.add_null_column();
+            return;
+        }
         json_writer_t writer;
         tags_to_json(obj.tags(), &writer);
         m_db_copy.add_column(writer.json());
@@ -1464,7 +1476,7 @@ static table_sql sql_for_nodes_format2(middle_pgsql_options const &options)
             " lat int4 NOT NULL,"
             " lon int4 NOT NULL,"
             "{attribute_columns_definition}"
-            " tags jsonb NOT NULL"
+            " tags jsonb"
             ") {data_tablespace}";
 
         sql.prepare_queries = {
@@ -1530,7 +1542,7 @@ static table_sql sql_for_ways_format2(middle_pgsql_options const &options)
                        " id int8 PRIMARY KEY {using_tablespace},"
                        "{attribute_columns_definition}"
                        " nodes int8[] NOT NULL,"
-                       " tags jsonb NOT NULL"
+                       " tags jsonb"
                        ") {data_tablespace}";
 
     sql.prepare_queries = {"PREPARE get_way(int8) AS"
@@ -1601,7 +1613,7 @@ static table_sql sql_for_relations_format2()
                        " id int8 PRIMARY KEY {using_tablespace},"
                        "{attribute_columns_definition}"
                        " members jsonb NOT NULL,"
-                       " tags jsonb NOT NULL"
+                       " tags jsonb"
                        ") {data_tablespace}";
 
     sql.prepare_queries = {"PREPARE get_rel(int8) AS"
