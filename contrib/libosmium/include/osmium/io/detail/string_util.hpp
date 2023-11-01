@@ -113,7 +113,7 @@ namespace osmium {
 #endif
                                      string_snprintf(out,
                                                      old_size,
-                                                     std::size_t(len) + 1,
+                                                     static_cast<std::size_t>(len) + 1,
                                                      format,
                                                      args...);
                     assert(len2 == len);

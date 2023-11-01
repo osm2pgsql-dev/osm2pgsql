@@ -307,8 +307,9 @@ namespace osmium {
          */
         OSMObject& set_timestamp(const char* timestamp) {
             assert(timestamp);
-            m_timestamp = detail::parse_timestamp(timestamp);
-            if (timestamp[20] != '\0') {
+            const char** str = &timestamp;
+            m_timestamp = detail::parse_timestamp(str);
+            if (**str != '\0') {
                 throw std::invalid_argument{"can not parse timestamp: garbage after timestamp"};
             }
             return *this;

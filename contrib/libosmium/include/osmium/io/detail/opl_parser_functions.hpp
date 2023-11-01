@@ -243,7 +243,7 @@ namespace osmium {
                     }
                 }
 
-                return T(value);
+                return static_cast<T>(value);
             }
 
             inline osmium::object_id_type opl_parse_id(const char** s) {
