@@ -79,10 +79,10 @@ namespace osmium {
 
         Timer() = default;
 
-        void start() const noexcept { // NOLINT(readability-convert-member-functions-to-static)
+        void start() noexcept { // NOLINT(readability-convert-member-functions-to-static)
         }
 
-        void stop() const noexcept { // NOLINT(readability-convert-member-functions-to-static)
+        void stop() noexcept { // NOLINT(readability-convert-member-functions-to-static)
         }
 
         int64_t elapsed_microseconds() const noexcept { // NOLINT(readability-convert-member-functions-to-static)

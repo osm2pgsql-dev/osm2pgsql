@@ -181,7 +181,7 @@ namespace osmium {
             }
 
             diff_indicator_type diff() const noexcept {
-                return diff_indicator_type(m_diff);
+                return static_cast<diff_indicator_type>(m_diff);
             }
 
             char diff_as_char() const noexcept {
@@ -190,7 +190,7 @@ namespace osmium {
             }
 
             void set_diff(const diff_indicator_type diff) noexcept {
-                m_diff = uint16_t(diff);
+                m_diff = static_cast<uint16_t>(diff);
             }
 
         }; // class Item

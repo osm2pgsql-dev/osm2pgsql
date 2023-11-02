@@ -89,12 +89,12 @@ namespace osmium {
 
             // scale vector
             constexpr inline vec operator*(double s, const vec& v) noexcept {
-                return vec{int64_t(s * double(v.x)), int64_t(s * double(v.y))};
+                return vec{static_cast<int64_t>(s * static_cast<double>(v.x)), static_cast<int64_t>(s * static_cast<double>(v.y))};
             }
 
             // scale vector
             constexpr inline vec operator*(const vec& v, double s) noexcept {
-                return vec{int64_t(s * double(v.x)), int64_t(s * double(v.y))};
+                return vec{static_cast<int64_t>(s * static_cast<double>(v.x)), static_cast<int64_t>(s * static_cast<double>(v.y))};
             }
 
             // equality

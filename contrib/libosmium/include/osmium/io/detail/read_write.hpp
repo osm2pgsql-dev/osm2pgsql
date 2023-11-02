@@ -106,9 +106,10 @@ namespace osmium {
                     return 0; // stdin
                 }
 
-                int flags = O_RDONLY;
 #ifdef _WIN32
-                flags |= O_BINARY;
+                const int flags = O_RDONLY | O_BINARY;
+#else
+                const int flags = O_RDONLY;
 #endif
                 const int fd = ::open(filename.c_str(), flags);
                 if (fd < 0) {
@@ -253,7 +254,7 @@ namespace osmium {
              * needed again soon. Keeps the buffer cache clear for other
              * things.
              */
-#ifdef __linux__
+#if defined(__linux__) || defined(__FreeBSD__)
             inline void remove_buffered_pages(int fd) noexcept {
                 if (fd > 0) {
                     ::posix_fadvise(fd, 0, 0, POSIX_FADV_DONTNEED);
@@ -269,7 +270,7 @@ namespace osmium {
              * file that will not be needed again soon. Keeps the buffer cache
              * clear for other things.
              */
-#ifdef __linux__
+#if defined(__linux__) || defined(__FreeBSD__)
             inline void remove_buffered_pages(int fd, std::size_t size) noexcept {
                 constexpr const std::size_t block_size = 4096;
                 // Make sure to keep the last 10 blocks around, so were are

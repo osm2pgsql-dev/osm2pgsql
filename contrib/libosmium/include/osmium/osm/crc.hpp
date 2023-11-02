@@ -155,7 +155,7 @@ namespace osmium {
         }
 
         void update(const Timestamp& timestamp) noexcept {
-            update_int32(uint32_t(timestamp));
+            update_int32(static_cast<uint32_t>(timestamp));
         }
 
         void update(const osmium::Location& location) noexcept {
@@ -188,7 +188,7 @@ namespace osmium {
 
         void update(const osmium::RelationMember& member) noexcept {
             update_int64(static_cast<uint64_t>(member.ref()));
-            update_int16(uint16_t(member.type()));
+            update_int16(static_cast<uint16_t>(member.type()));
             update_string(member.role());
         }
 

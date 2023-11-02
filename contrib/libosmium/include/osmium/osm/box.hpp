@@ -136,7 +136,7 @@ namespace osmium {
          * Box is defined, ie. contains defined locations.
          */
         explicit constexpr operator bool() const noexcept {
-            return bool(m_bottom_left) && bool(m_top_right);
+            return static_cast<bool>(m_bottom_left) && static_cast<bool>(m_top_right);
         }
 
         /**
