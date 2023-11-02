@@ -89,7 +89,7 @@ Main Options:
     -a|--append           Run in append mode
     -c|--create           Run in create mode (default)
     -S|--style=FILE       The Lua config file (same as for osm2pgsql)
-    -j|--jobs=NUM         Number of parallel jobs (default 1)
+    -j|--jobs=NUM         Number of parallel jobs (default 1, max 256)
        --middle-schema=SCHEMA  Database schema for middle tables (default set with --schema)
        --schema=SCHEMA    Default database schema (default: 'public')
 
@@ -748,11 +748,6 @@ int main(int argc, char *argv[])
             log_error("Unknown log level: {}. "
                       "Use 'debug', 'info', 'warn', or 'error'.",
                       log_level);
-            return 2;
-        }
-
-        if (jobs < 1 || jobs > 32) {
-            log_error("The --jobs/-j parameter must be between 1 and 32.");
             return 2;
         }
 
