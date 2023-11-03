@@ -8,7 +8,6 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - "macos-11"
           - "macos-12" # latest
           - "macos-13"
     runs-on: ${{ matrix.os }}
