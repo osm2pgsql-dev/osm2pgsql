@@ -16,7 +16,6 @@ runs:
           libpq:x64-windows \
           lua:x64-windows \
           nlohmann-json:x64-windows \
-          opencv:x64-windows \
           proj4:x64-windows \
           zlib:x64-windows
       shell: bash
