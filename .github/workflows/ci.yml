@@ -436,7 +436,7 @@ jobs:
         run: |
           mkdir c:/artifact/
           mkdir c:/artifact/osm2pgsql-bin
-          cp -r Release/* ../README.md ../COPYING ../*.style ../scripts ../flex-config c:/artifact/osm2pgsql-bin/
+          cp -r Release/* ../README.md ../COPYING ../*.style ../scripts ../flex-config c:/vcpkg/installed/x64-windows/share/proj/proj.db c:/artifact/osm2pgsql-bin/
         shell: bash
         working-directory: build
         if: matrix.os == 'windows-2022'
