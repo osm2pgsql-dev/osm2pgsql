@@ -211,7 +211,7 @@ include_directories(SYSTEM ${NLOHMANN_INCLUDE_DIR})
 find_path(POTRACE_INCLUDE_DIR potracelib.h)
 find_library(POTRACE_LIBRARY NAMES potrace)
 
-find_package(OpenCV OPTIONAL_COMPONENTS core imgcodecs imgproc)
+find_package(OpenCV QUIET OPTIONAL_COMPONENTS core imgcodecs imgproc)
 
 ############### Libraries are found now ########################
 
