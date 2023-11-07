@@ -50,7 +50,8 @@ Required libraries are
 * [Boost libraries](https://www.boost.org/), including geometry, system and
   filesystem
 * [nlohmann/json](https://json.nlohmann.me/)
-* [OpenCV](https://opencv.org/) (Optional, for generalization only)
+* [OpenCV](https://opencv.org/) (Optional, for generalization only, only core,
+  imgproc and imgcodec needed)
 * [potrace](https://potrace.sourceforge.net/) (Optional, for generalization only)
 * [PostgreSQL](https://www.postgresql.org/) client libraries
 * [Lua](https://www.lua.org/) (Optional, used for Lua tag transforms
@@ -84,7 +85,8 @@ On a Debian or Ubuntu system, this can be done with:
 ```sh
 sudo apt-get install make cmake g++ libboost-dev libboost-system-dev \
   libboost-filesystem-dev libexpat1-dev zlib1g-dev libpotrace-dev \
-  libopencv-dev libbz2-dev libpq-dev libproj-dev lua5.3 liblua5.3-dev \
+  libopencv-core-dev libopencv-imgcodecs-dev libopencv-imgproc-dev \
+  libbz2-dev libpq-dev libproj-dev lua5.3 liblua5.3-dev \
   pandoc nlohmann-json3-dev pyosmium
 ```
 
