@@ -1,4 +1,4 @@
-.TH "OSM2PGSQL" "1" "1.8.1" "" ""
+.TH "OSM2PGSQL" "1" "1.10.0" "" ""
 .SH NAME
 .PP
 osm2pgsql-gen - Generalize OpenStreetMap data - EXPERIMENTAL!
@@ -23,7 +23,7 @@ information.
 .SH OPTIONS
 .PP
 This program follows the usual GNU command line syntax, with long
-options starting with two dashes (\f[C]--\f[R]).
+options starting with two dashes (\f[V]--\f[R]).
 Mandatory arguments to long options are mandatory for short options too.
 .SH MAIN OPTIONS
 .TP
@@ -37,6 +37,8 @@ This is the default if \f[B]-a, --append\f[R] is not specified.
 -S, --style=FILE
 The Lua config file.
 Same as for \f[B]osm2pgsql\f[R].
+Usually not required because it is read from the
+\f[V]osm2pgsql_properties\f[R] table.
 .TP
 -j, -jobs=NUM
 Specifies the number of parallel threads used for certain operations.
@@ -60,8 +62,8 @@ Enable logging of SQL commands for debugging.
 .TP
 -d, --database=NAME
 The name of the PostgreSQL database to connect to.
-If this parameter contains an \f[C]=\f[R] sign or starts with a valid
-URI prefix (\f[C]postgresql://\f[R] or \f[C]postgres://\f[R]), it is
+If this parameter contains an \f[V]=\f[R] sign or starts with a valid
+URI prefix (\f[V]postgresql://\f[R] or \f[V]postgres://\f[R]), it is
 treated as a conninfo string.
 See the PostgreSQL manual for details.
 .TP
@@ -76,6 +78,19 @@ Database server hostname or unix domain socket location.
 .TP
 -P, --port=PORT
 Database server port.
+.TP
+--schema=SCHEMA
+Default for various schema settings throughout osm2pgsql-gen (default:
+\f[V]public\f[R]).
+The schema must exist in the database and be writable by the database
+user.
+It must be the same as used with \f[V]osm2pgsql\f[R].
+.TP
+--middle-schema=SCHEMA
+Database schema where the \f[V]osm2pgsql_properties\f[R] table is to be
+found.
+Default set with \f[V]--schema\f[R].
+Set to the same value as on the \f[V]osm2pgsql\f[R] command line.
 .SH SEE ALSO
 .IP \[bu] 2
 osm2pgsql website (https://osm2pgsql.org)
