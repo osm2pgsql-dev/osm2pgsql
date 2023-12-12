@@ -29,11 +29,7 @@ mandatory for short options too.
 # MAIN OPTIONS
 
 -a, \--append
-:   Run in append mode.
-
--c, \--create
-:   Run in create mode. This is the default if **-a, \--append** is not
-    specified.
+:   Run in append mode. The default is to run in create mode.
 
 -S, \--style=FILE
 :   The Lua config file. Same as for **osm2pgsql**. Usually not required
@@ -42,7 +38,7 @@ mandatory for short options too.
 -j, \-jobs=NUM
 :   Specifies the number of parallel threads used for certain operations.
     Setting this to the number of available CPU cores is a reasonable starting
-    point.
+    point. Minimum value and default is 1, maximum value is 256.
 
 # HELP/VERSION OPTIONS
 

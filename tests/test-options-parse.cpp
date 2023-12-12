@@ -37,7 +37,7 @@ static options_t opt(std::vector<char const *> opts)
 
 TEST_CASE("Insufficient arguments", "[NoDB]")
 {
-    std::vector<char const *> opts = {"osm2pgsql", "-a", "-c", "--slim"};
+    std::vector<char const *> opts = {"osm2pgsql", "-c", "--slim"};
 
     REQUIRE_THROWS_WITH(
         parse_command_line((int)opts.size(), (char **)opts.data()),
@@ -50,7 +50,7 @@ TEST_CASE("Incompatible arguments", "[NoDB]")
 
     bad_opt({"--drop"}, "drop only makes sense with");
 
-    bad_opt({"-j", "-k"}, "You can not specify both");
+    bad_opt({"-j", "-k"}, "--hstore excludes --hstore-all");
 
     bad_opt({"-a"}, "--append can only be used with slim mode");
 }
@@ -67,10 +67,8 @@ TEST_CASE("Middle selection", "[NoDB]")
 TEST_CASE("Lua styles", "[NoDB]")
 {
 #ifdef HAVE_LUA
-    auto options = opt({"--tag-transform-script", "non_existing.lua"});
-    export_list const exlist;
-    REQUIRE_THROWS_WITH(tagtransform_t::make_tagtransform(&options, exlist),
-                        Catch::Matchers::Contains("No such file or directory"));
+    REQUIRE_THROWS_WITH(opt({"--tag-transform-script", "non_existing.lua"}),
+                        Catch::Matchers::Contains("File does not exist"));
 #endif
 }
 
@@ -180,7 +178,7 @@ TEST_CASE("Parsing log-level", "[NoDB]")
 
 TEST_CASE("Parsing log-level fails for unknown level", "[NoDB]")
 {
-    bad_opt({"--log-level", "foo"}, "Unknown value for --log-level option: ");
+    bad_opt({"--log-level", "foo"}, "--log-level: foo not in");
 }
 
 TEST_CASE("Parsing log-progress", "[NoDB]")

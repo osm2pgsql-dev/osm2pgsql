@@ -16,6 +16,7 @@
  */
 
 #include "canvas.hpp"
+#include "command-line-app.hpp"
 #include "debug-output.hpp"
 #include "expire-output.hpp"
 #include "flex-lua-expire-output.hpp"
@@ -77,59 +78,6 @@ constexpr std::size_t const max_force_single_thread = 4;
                               "Unknown error in '" #lua_name "'.\n");          \
         }                                                                      \
     }
-
-static void show_help()
-{
-    fmt::print(R"(osm2pgsql-gen [OPTIONS]
-Generalization of OSM data.
-
-This program is EXPERIMENTAL and might change without notice.
-
-Main Options:
-    -a|--append           Run in append mode
-    -c|--create           Run in create mode (default)
-    -S|--style=FILE       The Lua config file (same as for osm2pgsql)
-    -j|--jobs=NUM         Number of parallel jobs (default 1, max 256)
-       --middle-schema=SCHEMA  Database schema for middle tables (default set with --schema)
-       --schema=SCHEMA    Default database schema (default: 'public')
-
-Help/Version Options:
-    -h|--help             Print this help text and stop
-    -V|--version          Show version
-
-Logging options:
-    -l|--log-level=LEVEL  Log level (debug, info (default), warn, error)
-       --log-sql          Log SQL commands
-
-Database options:
-    -d|--database=DB    The name of the PostgreSQL database to connect to or
-                        a PostgreSQL conninfo string.
-    -U|--username=NAME  PostgreSQL user name.
-    -W|--password       Force password prompt.
-    -H|--host=HOST      Database server host name or socket location.
-    -P|--port=PORT      Database server port.
-)");
-}
-
-static char const *const short_options = "acd:hH:j:l:P:S:U:VW";
-
-static std::array<option, 20> const long_options = {
-    {{"help", no_argument, nullptr, 'h'},
-     {"version", no_argument, nullptr, 'V'},
-     {"append", no_argument, nullptr, 'a'},
-     {"create", no_argument, nullptr, 'c'},
-     {"jobs", required_argument, nullptr, 'j'},
-     {"database", required_argument, nullptr, 'd'},
-     {"user", required_argument, nullptr, 'U'},
-     {"host", required_argument, nullptr, 'H'},
-     {"port", required_argument, nullptr, 'P'},
-     {"password", no_argument, nullptr, 'W'},
-     {"log-level", required_argument, nullptr, 'l'},
-     {"style", required_argument, nullptr, 'S'},
-     {"log-sql", no_argument, nullptr, 201},
-     {"middle-schema", required_argument, nullptr, 202},
-     {"schema", required_argument, nullptr, 203},
-     {nullptr, 0, nullptr, 0}}};
 
 struct tile_extent
 {
@@ -660,105 +608,77 @@ void genproc_t::run()
 int main(int argc, char *argv[])
 {
     try {
-        database_options_t database_options;
         std::string dbschema{"public"};
-        std::string middle_dbschema{};
-        std::string log_level;
+        std::string middle_dbschema;
         std::string style;
         uint32_t jobs = 1;
-        bool pass_prompt = false;
         bool append = false;
 
-        int c = 0;
-        // NOLINTNEXTLINE(concurrency-mt-unsafe)
-        while (-1 != (c = getopt_long(argc, argv, short_options,
-                                      long_options.data(), nullptr))) {
-            switch (c) {
-            case 'h': // --help
-                show_help();
-                return 0;
-            case 'a': // --append
-                append = true;
-                break;
-            case 'c': // --create
-                append = false;
-                break;
-            case 'j': // --jobs
-                jobs =
-                    std::clamp(std::strtoul(optarg, nullptr, 10), 1UL, 256UL);
-                break;
-            case 'd': // --database
-                database_options.db = optarg;
-                break;
-            case 'U': // --username
-                database_options.username = optarg;
-                break;
-            case 'W': // --password
-                pass_prompt = true;
-                break;
-            case 'H': // --host
-                database_options.host = optarg;
-                break;
-            case 'P': // --port
-                database_options.port = optarg;
-                break;
-            case 'l': // --log-level
-                log_level = optarg;
-                break;
-            case 'S': // --style
-                style = optarg;
-                break;
-            case 'V': // --version
-                log_info("osm2pgsql-gen version {}", get_osm2pgsql_version());
-                return 0;
-            case 201: // --log-sql
-                get_logger().enable_sql();
-                break;
-            case 202: // --middle-schema
-                middle_dbschema = optarg;
-                if (middle_dbschema.empty()) {
-                    log_error("Schema must not be empty");
-                    return 2;
-                }
-                check_identifier(middle_dbschema, "--middle-schema");
-                break;
-            case 203: // --schema
-                dbschema = optarg;
-                if (dbschema.empty()) {
-                    log_error("Schema must not be empty");
-                    return 2;
-                }
-                check_identifier(dbschema, "--schema");
-                break;
-            default:
-                log_error("Unknown argument");
-                return 2;
-            }
+        command_line_app_t app{
+            "osm2pgsql-gen -- Generalize OpenStreetMap data\n"};
+
+        // ------------------------------------------------------------------
+        // Main options
+        // ------------------------------------------------------------------
+
+        app.add_flag("-a,--append", append)->description("Run in append mode.");
+
+        app.add_option("-S,--style", style)
+            ->description("The Lua config/style file (same as for osm2pgsql).")
+            ->type_name("FILE");
+
+        app.add_option("-j,--jobs", jobs)
+            ->check(CLI::Range(1, 256))
+            ->description("Number of parallel jobs (default: 1, max 256).")
+            ->type_name("NUM");
+
+        // ------------------------------------------------------------------
+        // Database options
+        // ------------------------------------------------------------------
+
+        app.add_option("--middle-schema", middle_dbschema)
+            ->description("Database schema for middle tables (default: setting "
+                          "of --schema).")
+            ->type_name("SCHEMA")
+            ->group("Database options");
+
+        app.add_option("--schema", dbschema)
+            ->description("Database schema (default: 'public').")
+            ->type_name("SCHEMA")
+            ->group("Database options");
+
+        try {
+            app.parse(argc, argv);
+        } catch (...) {
+            log_info("osm2pgsql-gen version {}", get_osm2pgsql_version());
+            throw;
         }
 
-        if (log_level == "debug") {
-            get_logger().set_level(log_level::debug);
-        } else if (log_level == "info" || log_level.empty()) {
-            get_logger().set_level(log_level::info);
-        } else if (log_level == "warn") {
-            get_logger().set_level(log_level::warn);
-        } else if (log_level == "error") {
-            get_logger().set_level(log_level::error);
-        } else {
-            log_error("Unknown log level: {}. "
-                      "Use 'debug', 'info', 'warn', or 'error'.",
-                      log_level);
-            return 2;
+        if (app.want_help()) {
+            std::cout << app.help();
+            return 0;
         }
-
-        if (middle_dbschema.empty()) {
-            middle_dbschema = dbschema;
-        }
-
-        util::timer_t timer_overall;
 
         log_info("osm2pgsql-gen version {}", get_osm2pgsql_version());
         log_warn("This is an EXPERIMENTAL extension to osm2pgsql.");
+
+        if (app.want_version()) {
+            return 0;
+        }
+
+        if (dbschema.empty()) {
+            log_error("Schema must not be empty");
+            return 2;
+        }
+        check_identifier(dbschema, "--schema");
+
+        if (middle_dbschema.empty()) {
+            middle_dbschema = dbschema;
+        } else {
+            check_identifier(middle_dbschema, "--middle-schema");
+        }
+
+        util::timer_t timer_overall;
 
         if (append) {
             log_debug("Running in append mode.");
@@ -774,10 +694,7 @@ int main(int argc, char *argv[])
                 jobs);
         }
 
-        if (pass_prompt) {
-            database_options.password = util::get_password();
-        }
-        auto const conninfo = build_conninfo(database_options);
+        auto const conninfo = build_conninfo(app.database_options());
 
         log_debug("Checking database capabilities...");
         {
