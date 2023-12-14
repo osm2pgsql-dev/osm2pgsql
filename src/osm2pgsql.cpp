@@ -336,7 +336,7 @@ static void check_for_nodes_table(options_t const &options)
 
 static void check_and_set_style(options_t *options)
 {
-    if (!options->style_set) {
+    if (options->style.empty()) {
         if (options->output_backend == "flex" ||
             options->output_backend == "gazetteer") {
             throw std::runtime_error{"You have to set the config file "

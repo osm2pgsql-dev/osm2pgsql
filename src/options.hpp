@@ -164,7 +164,6 @@ struct options_t
     bool pass_prompt = false;
 
     bool output_backend_set = false;
-    bool style_set = false;
 }; // struct options_t
 
 #endif // OSM2PGSQL_OPTIONS_HPP
