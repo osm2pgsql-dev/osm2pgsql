@@ -256,7 +256,7 @@ static void check_output(properties_t const &properties, options_t *options)
 {
     auto const output = properties.get_string("output", "pgsql");
 
-    if (!options->output_backend_set) {
+    if (options->output_backend.empty()) {
         options->output_backend = output;
         log_info("Using output '{}' (same as on import).", output);
         return;
@@ -334,8 +334,12 @@ static void check_for_nodes_table(options_t const &options)
     }
 }
 
-static void check_and_set_style(options_t *options)
+static void set_option_defaults(options_t *options)
 {
+    if (options->output_backend.empty()) {
+        options->output_backend = "pgsql";
+    }
+
     if (options->style.empty()) {
         if (options->output_backend == "flex" ||
             options->output_backend == "gazetteer") {
@@ -375,7 +379,7 @@ int main(int argc, char *argv[])
             if (properties.load()) {
                 check_and_update_properties(&properties, &options);
             } else {
-                check_and_set_style(&options);
+                set_option_defaults(&options);
                 check_for_nodes_table(options);
             }
 
@@ -393,7 +397,7 @@ int main(int argc, char *argv[])
                 }
             }
         } else {
-            check_and_set_style(&options);
+            set_option_defaults(&options);
             store_properties(&properties, options);
             auto const finfo = run(options);
             store_data_properties(&properties, finfo);

@@ -92,7 +92,7 @@ struct options_t
     /// File name to output expired tiles list to
     std::string expire_tiles_filename{"dirty_tiles"};
 
-    std::string output_backend{"pgsql"};
+    std::string output_backend;
     std::string input_format; ///< input file format (default: autodetect)
 
     osmium::Box bbox;
@@ -162,8 +162,6 @@ struct options_t
     bool parallel_indexing = true;
     bool create = false;
     bool pass_prompt = false;
-
-    bool output_backend_set = false;
 }; // struct options_t
 
 #endif // OSM2PGSQL_OPTIONS_HPP

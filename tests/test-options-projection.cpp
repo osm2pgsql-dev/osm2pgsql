@@ -22,8 +22,9 @@ TEST_CASE("Projection setup")
 {
     char const* const style_file = OSM2PGSQLDATA_DIR "default.style";
 
-    std::vector<char const *> option_params = {"osm2pgsql", "-S", style_file,
-                                               "--number-processes", "1"};
+    std::vector<char const *> option_params = {"osm2pgsql", "--output=pgsql",
+                                               "-S", style_file,
+                                               "--number-processes=1"};
 
     std::string proj_name;
     char const *srid = "";
