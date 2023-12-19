@@ -9,7 +9,7 @@ jobs:
       matrix:
         os:
           - "macos-12" # latest
-          - "macos-13"
+#          - "macos-13" disabled, because it doesn't work due to some problem with Homebrew
     runs-on: ${{ matrix.os }}
 
     env:
