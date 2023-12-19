@@ -617,7 +617,6 @@ options_t parse_command_line(int argc, char *argv[])
             break;
         case 'S': // --style
             options.style = optarg;
-            options.style_set = true;
             break;
         case 'i': // --tablespace-index
             options.tblsmain_index = optarg;
@@ -647,7 +646,6 @@ options_t parse_command_line(int argc, char *argv[])
             break;
         case 'O': // --output
             options.output_backend = optarg;
-            options.output_backend_set = true;
             break;
         case 'x': // --extra-attributes
             options.extra_attributes = true;

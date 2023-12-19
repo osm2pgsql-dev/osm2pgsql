@@ -22,6 +22,7 @@ class opt_t
 public:
     opt_t()
     {
+        m_opt.output_backend = "pgsql";
         m_opt.prefix = "osm2pgsql_test";
         m_opt.style = OSM2PGSQLDATA_DIR "default.style";
         m_opt.num_procs = 1;
