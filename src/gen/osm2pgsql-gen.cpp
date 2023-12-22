@@ -796,6 +796,11 @@ int main(int argc, char *argv[])
             }
         }
 
+        if (properties.get_string("output", "flex") != "flex") {
+            throw std::runtime_error{
+                "osm2pgsql-gen only works with flex output"};
+        }
+
         bool const updatable = properties.get_bool("updatable", false);
         genproc_t gen{style, conninfo, dbschema, append, updatable, jobs};
         gen.run();
