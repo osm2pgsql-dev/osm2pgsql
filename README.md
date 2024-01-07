@@ -43,6 +43,7 @@ to configure and build itself.
 
 Required libraries are
 
+* [CLI11](https://github.com/CLIUtils/CLI11)
 * [expat](https://libexpat.github.io/)
 * [proj](https://proj.org/)
 * [bzip2](http://www.bzip.org/)

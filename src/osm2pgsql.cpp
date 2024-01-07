@@ -356,8 +356,6 @@ static void set_option_defaults(options_t *options)
 int main(int argc, char *argv[])
 {
     try {
-        log_info("osm2pgsql version {}", get_osm2pgsql_version());
-
         auto options = parse_command_line(argc, argv);
 
         if (options.command == command_t::help) {

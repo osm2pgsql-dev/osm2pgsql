@@ -55,6 +55,7 @@ endif()
 option(EXTERNAL_LIBOSMIUM "Do not use the bundled libosmium" OFF)
 option(EXTERNAL_PROTOZERO "Do not use the bundled protozero" OFF)
 option(EXTERNAL_FMT       "Do not use the bundled fmt"       OFF)
+option(EXTERNAL_CLI11     "Do not use the bundled CLI11"     OFF)
 
 set(USE_PROJ_LIB "auto" CACHE STRING "Which version of PROJ API to use: ('4', '6', 'off', or 'auto')")
 
@@ -175,10 +176,14 @@ if (NOT EXTERNAL_FMT)
     set(FMT_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/fmt/include")
 endif()
 
+if (NOT EXTERNAL_CLI11)
+    set(CLI11_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/CLI11/include")
+endif()
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR})
 
 find_package(Osmium 2.17.3 REQUIRED COMPONENTS io)
-include_directories(SYSTEM ${OSMIUM_INCLUDE_DIRS} ${PROTOZERO_INCLUDE_DIR} ${FMT_INCLUDE_DIR})
+include_directories(SYSTEM ${OSMIUM_INCLUDE_DIRS} ${PROTOZERO_INCLUDE_DIR} ${FMT_INCLUDE_DIR} ${CLI11_INCLUDE_DIR})
 
 if (WITH_LUA)
     if (WITH_LUAJIT)
@@ -261,16 +266,6 @@ endif()
 
 if (WIN32)
     list(APPEND LIBS ws2_32)
-    if (MSVC)
-        find_path(GETOPT_INCLUDE_DIR getopt.h)
-        find_library(GETOPT_LIBRARY NAMES wingetopt getopt)
-        if (GETOPT_INCLUDE_DIR AND GETOPT_LIBRARY)
-            include_directories(SYSTEM ${GETOPT_INCLUDE_DIR})
-            list(APPEND LIBS ${GETOPT_LIBRARY})
-        else()
-            message(FATAL_ERROR "Can not find getopt library for Windows. Please get it from https://github.com/alex85k/wingetopt or alternative source.")
-        endif()
-    endif()
 endif()
 
 message(STATUS "Libraries used to build: ${LIBS}")

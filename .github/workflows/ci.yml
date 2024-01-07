@@ -405,8 +405,6 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     env:
-      GETOPT_INCLUDE_DIR: ${{ github.workspace }}/../wingetopt/src
-      GETOPT_LIBRARY: ${{ github.workspace }}/../wingetopt/build/Release/wingetopt.lib
       VCPKG_DEFAULT_BINARY_CACHE: C:/vcpkg_binary_cache
 
     steps:
@@ -428,7 +426,6 @@ jobs:
         shell: bash
       - uses: ./.github/actions/win-postgres
       - uses: ./.github/actions/win-install
-      - uses: ./.github/actions/win-getopt
       - uses: ./.github/actions/win-cmake
       - uses: ./.github/actions/win-build
       - uses: ./.github/actions/win-test

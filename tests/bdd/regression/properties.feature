@@ -79,7 +79,7 @@ Feature: Updates to the test database with properties check
             Different output specified on command line
             """
 
-    Scenario Outline: Create/append with with null output doesn't need style
+    Scenario: Create/append with with null output doesn't need style
         When running osm2pgsql null with parameters
             | --slim  |
 
@@ -87,17 +87,10 @@ Feature: Updates to the test database with properties check
         When running osm2pgsql null with parameters
             | -a      |
             | --slim  |
-            | <param> |
         Then the error output contains
             """
-            <message>
+            Using style file '' (same as on import).
             """
-
-        Examples:
-            | param    | message                                  |
-            |          | Using style file '' (same as on import). |
-            | --style= | Using style file '' (same as on import). |
-
 
     @config.have_lua
     Scenario Outline: Create/append with various style parameters with flex output
