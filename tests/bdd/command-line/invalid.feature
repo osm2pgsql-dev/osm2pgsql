@@ -24,7 +24,7 @@ Feature: Errors for invalid command line parameter combinations
 
     Scenario: append and middle-database-format cannot be used together
         Then running osm2pgsql pgsql with parameters fails
-            | -a | --slim | --middle-database-format=new |
+            | -a | --slim | --middle-database-format=legacy |
         And the error output contains
             """
             Do not use --middle-database-format with --append.

@@ -115,8 +115,13 @@ struct options_t
      */
     uint8_t way_node_index_id_shift = 5;
 
-    /// Database format (0=unknown/no database middle, 1=legacy, 2=new)
-    uint8_t middle_database_format = 1;
+    /**
+     * Middle database format:
+     * 0 = non-slim mode, no database middle (ram middle)
+     * 1 = slim mode, legacy database format
+     * 2 = slim mode, new database format
+     */
+    uint8_t middle_database_format = 0;
 
     /**
      * Should nodes (with tags) be stored in the middle? If no flat node file
