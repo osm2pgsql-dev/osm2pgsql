@@ -409,14 +409,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: |
             C:/vcpkg_binary_cache
           key: vcpkg-binary-cache-${{ matrix.os }}-${{ github.run_id }}
           restore-keys: |
             vcpkg-binary-cache-${{ matrix.os }}
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: |
             C:/postgis.zip
@@ -438,7 +438,7 @@ jobs:
         working-directory: build
         if: matrix.os == 'windows-2022'
       - name: 'Upload Artifact'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: osm2pgsql-win64
           path: c:/artifact
@@ -453,12 +453,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: |
             C:/postgis.zip
           key: postgis-cache
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: osm2pgsql-win64
       - uses: ./.github/actions/win-postgres
