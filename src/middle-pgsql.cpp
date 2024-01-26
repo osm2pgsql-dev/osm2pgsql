@@ -1376,7 +1376,7 @@ void middle_pgsql_t::update_users_table()
              m_users_table.name());
 
     m_db_connection.exec("PREPARE insert_user(int8, text) AS"
-                         " INSERT INTO {}\"{}\" (id, name) VALUES ($1, $2)"
+                         " INSERT INTO {}.\"{}\" (id, name) VALUES ($1, $2)"
                          " ON CONFLICT (id) DO UPDATE SET id=EXCLUDED.id",
                          m_users_table.schema(), m_users_table.name());
 
