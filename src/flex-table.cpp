@@ -269,7 +269,7 @@ enable_check_trigger(pg_conn_t *db_connection, flex_table_t const &table)
     // remove last " AND "
     checks.resize(checks.size() - 5);
 
-    create_geom_check_trigger(db_connection, table.schema(), table.name(),
+    create_geom_check_trigger(*db_connection, table.schema(), table.name(),
                               checks);
 }
 
@@ -310,7 +310,7 @@ void table_connection_t::stop(bool updateable, bool append)
 
     if (table().cluster_by_geom()) {
         if (table().geom_column().needs_isvalid()) {
-            drop_geom_check_trigger(m_db_connection.get(), table().schema(),
+            drop_geom_check_trigger(*m_db_connection, table().schema(),
                                     table().name());
         }
 

@@ -132,7 +132,7 @@ void table_t::start(std::string const &conninfo, std::string const &table_space)
         m_sql_conn->exec(sql);
 
         if (m_srid != "4326") {
-            create_geom_check_trigger(m_sql_conn.get(), m_target->schema(),
+            create_geom_check_trigger(*m_sql_conn, m_target->schema(),
                                       m_target->name(), "ST_IsValid(NEW.way)");
         }
     }
@@ -188,7 +188,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
 
     if (!m_append) {
         if (m_srid != "4326") {
-            drop_geom_check_trigger(m_sql_conn.get(), m_target->schema(),
+            drop_geom_check_trigger(*m_sql_conn, m_target->schema(),
                                     m_target->name());
         }
 
@@ -237,7 +237,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
             m_sql_conn->exec("CREATE INDEX ON {} USING BTREE (osm_id) {}",
                              qual_name, tablespace_clause(table_space_index));
             if (m_srid != "4326") {
-                create_geom_check_trigger(m_sql_conn.get(), m_target->schema(),
+                create_geom_check_trigger(*m_sql_conn, m_target->schema(),
                                           m_target->name(),
                                           "ST_IsValid(NEW.way)");
             }
