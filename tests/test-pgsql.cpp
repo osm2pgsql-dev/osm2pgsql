@@ -135,3 +135,13 @@ TEST_CASE("create table and insert something")
     REQUIRE(result.num_tuples() == 0);
     REQUIRE(result.affected_rows() == 2);
 }
+
+TEST_CASE("empty result object should return fatal status")
+{
+    pg_result_t result;
+    REQUIRE(result.status() == PGRES_FATAL_ERROR);
+    REQUIRE_FALSE(result);
+    REQUIRE(result.num_fields() == 0);
+    REQUIRE(result.num_tuples() == 0);
+    REQUIRE(result.affected_rows() == 0);
+}
