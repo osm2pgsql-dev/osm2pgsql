@@ -167,14 +167,15 @@ std::string flex_table_t::build_sql_prepare_get_wkb() const
 
     if (has_multicolumn_id_index()) {
         return fmt::format(
-            R"(PREPARE get_wkb(char(1), bigint) AS)"
+            R"(PREPARE get_wkb_{}(char(1), bigint) AS)"
             R"( SELECT {} FROM {} WHERE "{}" = $1 AND "{}" = $2)",
-            columns, full_name(), m_columns[0].name(), m_columns[1].name());
+            m_table_num, columns, full_name(), m_columns[0].name(),
+            m_columns[1].name());
     }
 
-    return fmt::format(R"(PREPARE get_wkb(bigint) AS)"
+    return fmt::format(R"(PREPARE get_wkb_{}(bigint) AS)"
                        R"( SELECT {} FROM {} WHERE "{}" = $1)",
-                       columns, full_name(), id_column_names());
+                       m_table_num, columns, full_name(), id_column_names());
 }
 
 std::string
@@ -413,11 +414,13 @@ pg_result_t table_connection_t::get_geoms_by_id(osmium::item_type type,
 {
     assert(table().has_geom_column());
     assert(m_db_connection);
+
+    std::string const stmt = fmt::format("get_wkb_{}", table().num());
     if (table().has_multicolumn_id_index()) {
-        return m_db_connection->exec_prepared_as_binary("get_wkb",
+        return m_db_connection->exec_prepared_as_binary(stmt.c_str(),
                                                         type_to_char(type), id);
     }
-    return m_db_connection->exec_prepared_as_binary("get_wkb", id);
+    return m_db_connection->exec_prepared_as_binary(stmt.c_str(), id);
 }
 
 void table_connection_t::delete_rows_with(osmium::item_type type, osmid_t id)

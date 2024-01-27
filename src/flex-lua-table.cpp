@@ -41,7 +41,8 @@ static flex_table_t &create_flex_table(lua_State *lua_state,
         throw fmt_error("Table with name '{}' already exists.", table_name);
     }
 
-    auto &new_table = tables->emplace_back(default_schema, table_name);
+    auto &new_table =
+        tables->emplace_back(default_schema, table_name, tables->size());
 
     lua_pop(lua_state, 1); // "name"
 

@@ -59,8 +59,8 @@ public:
         permanent
     };
 
-    flex_table_t(std::string schema, std::string name)
-    : m_schema(std::move(schema)), m_name(std::move(name))
+    flex_table_t(std::string schema, std::string name, std::size_t num)
+    : m_schema(std::move(schema)), m_name(std::move(name)), m_table_num(num)
     {
     }
 
@@ -197,6 +197,8 @@ public:
 
     bool has_columns_with_expire() const noexcept;
 
+    std::size_t num() const noexcept { return m_table_num; }
+
 private:
     /// The schema this table is in
     std::string m_schema;
@@ -229,6 +231,9 @@ private:
      * geometry column.
      */
     std::size_t m_geom_column = std::numeric_limits<std::size_t>::max();
+
+    /// Unique number for each table.
+    std::size_t m_table_num;
 
     /**
      * Type of id stored in this table.
