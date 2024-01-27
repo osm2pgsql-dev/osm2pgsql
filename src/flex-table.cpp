@@ -242,14 +242,6 @@ bool flex_table_t::has_columns_with_expire() const noexcept
                        [](auto const &column) { return column.has_expire(); });
 }
 
-void table_connection_t::connect(connection_params_t const &connection_params)
-{
-    assert(!m_db_connection);
-
-    m_db_connection =
-        std::make_unique<pg_conn_t>(connection_params, "out.flex.table");
-}
-
 static void enable_check_trigger(pg_conn_t const &db_connection,
                                  flex_table_t const &table)
 {
@@ -274,50 +266,46 @@ static void enable_check_trigger(pg_conn_t const &db_connection,
                               checks);
 }
 
-void table_connection_t::start(bool append)
+void table_connection_t::start(pg_conn_t const &db_connection, bool append)
 {
-    assert(m_db_connection);
-
     if (!append) {
-        m_db_connection->exec("DROP TABLE IF EXISTS {} CASCADE",
-                              table().full_name());
+        db_connection.exec("DROP TABLE IF EXISTS {} CASCADE",
+                           table().full_name());
     }
 
     // These _tmp tables can be left behind if we run out of disk space.
-    m_db_connection->exec("DROP TABLE IF EXISTS {}", table().full_tmp_name());
+    db_connection.exec("DROP TABLE IF EXISTS {}", table().full_tmp_name());
 
     if (!append) {
-        m_db_connection->exec(table().build_sql_create_table(
+        db_connection.exec(table().build_sql_create_table(
             table().cluster_by_geom() ? flex_table_t::table_type::interim
                                       : flex_table_t::table_type::permanent,
             table().full_name()));
 
-        enable_check_trigger(*m_db_connection, table());
+        enable_check_trigger(db_connection, table());
     }
 
-    prepare();
+    prepare(db_connection);
 }
 
-void table_connection_t::stop(bool updateable, bool append)
+void table_connection_t::stop(pg_conn_t const &db_connection, bool updateable,
+                              bool append)
 {
-    assert(m_db_connection);
-
     m_copy_mgr.sync();
 
     if (append) {
-        teardown();
         return;
     }
 
     if (table().cluster_by_geom()) {
         if (table().geom_column().needs_isvalid()) {
-            drop_geom_check_trigger(*m_db_connection, table().schema(),
+            drop_geom_check_trigger(db_connection, table().schema(),
                                     table().name());
         }
 
         log_info("Clustering table '{}' by geometry...", table().name());
 
-        m_db_connection->exec(table().build_sql_create_table(
+        db_connection.exec(table().build_sql_create_table(
             flex_table_t::table_type::permanent, table().full_tmp_name()));
 
         std::string const columns = table().build_sql_column_list();
@@ -350,15 +338,15 @@ void table_connection_t::stop(bool updateable, bool append)
             sql += geom_column_name;
         }
 
-        m_db_connection->exec(sql);
+        db_connection.exec(sql);
 
-        m_db_connection->exec("DROP TABLE {}", table().full_name());
-        m_db_connection->exec(R"(ALTER TABLE {} RENAME TO "{}")",
-                              table().full_tmp_name(), table().name());
+        db_connection.exec("DROP TABLE {}", table().full_name());
+        db_connection.exec(R"(ALTER TABLE {} RENAME TO "{}")",
+                           table().full_tmp_name(), table().name());
         m_id_index_created = false;
 
         if (updateable) {
-            enable_check_trigger(*m_db_connection, table());
+            enable_check_trigger(db_connection, table());
         }
     }
 
@@ -370,57 +358,53 @@ void table_connection_t::stop(bool updateable, bool append)
                      index.columns());
             auto const sql = index.create_index(
                 qualified_name(table().schema(), table().name()));
-            m_db_connection->exec(sql);
+            db_connection.exec(sql);
         }
     }
 
     if ((table().always_build_id_index() || updateable) &&
         table().has_id_column()) {
-        create_id_index();
+        create_id_index(db_connection);
     }
 
     log_info("Analyzing table '{}'...", table().name());
-    analyze();
-
-    teardown();
+    analyze(db_connection);
 }
 
-void table_connection_t::prepare()
+void table_connection_t::prepare(pg_conn_t const &db_connection)
 {
-    assert(m_db_connection);
     if (table().has_id_column() && table().has_columns_with_expire()) {
-        m_db_connection->exec(table().build_sql_prepare_get_wkb());
+        db_connection.exec(table().build_sql_prepare_get_wkb());
     }
 }
 
-void table_connection_t::analyze()
+void table_connection_t::analyze(pg_conn_t const &db_connection)
 {
-    analyze_table(*m_db_connection, table().schema(), table().name());
+    analyze_table(db_connection, table().schema(), table().name());
 }
 
-void table_connection_t::create_id_index()
+void table_connection_t::create_id_index(pg_conn_t const &db_connection)
 {
     if (m_id_index_created) {
         log_debug("Id index on table '{}' already created.", table().name());
     } else {
         log_info("Creating id index on table '{}'...", table().name());
-        m_db_connection->exec(table().build_sql_create_id_index());
+        db_connection.exec(table().build_sql_create_id_index());
         m_id_index_created = true;
     }
 }
 
-pg_result_t table_connection_t::get_geoms_by_id(osmium::item_type type,
+pg_result_t table_connection_t::get_geoms_by_id(pg_conn_t const &db_connection,
+                                                osmium::item_type type,
                                                 osmid_t id) const
 {
     assert(table().has_geom_column());
-    assert(m_db_connection);
-
     std::string const stmt = fmt::format("get_wkb_{}", table().num());
     if (table().has_multicolumn_id_index()) {
-        return m_db_connection->exec_prepared_as_binary(stmt.c_str(),
-                                                        type_to_char(type), id);
+        return db_connection.exec_prepared_as_binary(stmt.c_str(),
+                                                     type_to_char(type), id);
     }
-    return m_db_connection->exec_prepared_as_binary(stmt.c_str(), id);
+    return db_connection.exec_prepared_as_binary(stmt.c_str(), id);
 }
 
 void table_connection_t::delete_rows_with(osmium::item_type type, osmid_t id)

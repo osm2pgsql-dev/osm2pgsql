@@ -260,31 +260,28 @@ public:
       m_target(std::make_shared<db_target_descr_t>(
           table->schema(), table->name(), table->id_column_names(),
           table->build_sql_column_list())),
-      m_copy_mgr(copy_thread), m_db_connection(nullptr)
+      m_copy_mgr(copy_thread)
     {
     }
 
-    void connect(connection_params_t const &connection_params);
+    void start(pg_conn_t const &db_connection, bool append);
 
-    void start(bool append);
-
-    void stop(bool updateable, bool append);
+    void stop(pg_conn_t const &db_connection, bool updateable, bool append);
 
     flex_table_t const &table() const noexcept { return *m_table; }
 
-    void teardown() { m_db_connection.reset(); }
+    void prepare(pg_conn_t const &db_connection);
 
-    void prepare();
+    void analyze(pg_conn_t const &db_connection);
 
-    void analyze();
-
-    void create_id_index();
+    void create_id_index(pg_conn_t const &db_connection);
 
     /**
      * Get all geometries that have at least one expire config defined
      * from the database and return the result set.
      */
-    pg_result_t get_geoms_by_id(osmium::item_type type, osmid_t id) const;
+    pg_result_t get_geoms_by_id(pg_conn_t const &db_connection,
+                                osmium::item_type type, osmid_t id) const;
 
     void flush() { m_copy_mgr.flush(); }
 
@@ -331,9 +328,6 @@ private:
      * to the database server.
      */
     db_copy_mgr_t<db_deleter_by_type_and_id_t> m_copy_mgr;
-
-    /// The connection to the database server.
-    std::unique_ptr<pg_conn_t> m_db_connection;
 
     task_result_t m_task_result;
 
