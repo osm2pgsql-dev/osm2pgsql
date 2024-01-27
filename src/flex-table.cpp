@@ -249,8 +249,8 @@ void table_connection_t::connect(std::string const &conninfo)
     m_db_connection->exec("SET synchronous_commit = off");
 }
 
-static void
-enable_check_trigger(pg_conn_t *db_connection, flex_table_t const &table)
+static void enable_check_trigger(pg_conn_t const &db_connection,
+                                 flex_table_t const &table)
 {
     std::string checks;
 
@@ -269,7 +269,7 @@ enable_check_trigger(pg_conn_t *db_connection, flex_table_t const &table)
     // remove last " AND "
     checks.resize(checks.size() - 5);
 
-    create_geom_check_trigger(*db_connection, table.schema(), table.name(),
+    create_geom_check_trigger(db_connection, table.schema(), table.name(),
                               checks);
 }
 
@@ -291,7 +291,7 @@ void table_connection_t::start(bool append)
                                       : flex_table_t::table_type::permanent,
             table().full_name()));
 
-        enable_check_trigger(m_db_connection.get(), table());
+        enable_check_trigger(*m_db_connection, table());
     }
 
     prepare();
@@ -357,7 +357,7 @@ void table_connection_t::stop(bool updateable, bool append)
         m_id_index_created = false;
 
         if (updateable) {
-            enable_check_trigger(m_db_connection.get(), table());
+            enable_check_trigger(*m_db_connection, table());
         }
     }
 
