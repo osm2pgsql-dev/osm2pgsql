@@ -92,9 +92,10 @@ sudo apt-get install make cmake g++ libboost-dev libboost-system-dev \
 On a Fedora system, use
 
 ```sh
-sudo dnf install cmake make gcc-c++ boost-devel expat-devel zlib-devel \
-  potrace-devel opencv-devel json-devel python3-osmium \
-  bzip2-devel postgresql-devel proj-devel proj-epsg lua-devel pandoc
+sudo dnf install cmake make gcc-c++ libtool boost-devel bzip2-devel \
+  expat-devel fmt-devel json-devel libpq-devel lua-devel zlib-devel \
+  potrace-devel opencv-devel python3-osmium \
+  postgresql-devel proj-devel proj-epsg pandoc
 ```
 
 On RedHat / CentOS first run `sudo yum install epel-release` then install
@@ -117,7 +118,7 @@ On Alpine, use
 
 ```sh
 apk --update-cache add cmake make g++ boost-dev expat-dev \
-  bzip2-dev zlib-dev libpq proj-dev lua5.3-dev postgresql-dev
+  bzip2-dev zlib-dev libpq nlohmann-json proj-dev lua5.3-dev postgresql-dev
 ```
 
 Once dependencies are installed, use CMake to build the Makefiles in a separate
