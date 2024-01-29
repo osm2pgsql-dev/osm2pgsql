@@ -27,12 +27,12 @@ class pg_result_t;
  */
 idlist_t get_ids_from_result(pg_result_t const &result);
 
-void create_geom_check_trigger(pg_conn_t *db_connection,
+void create_geom_check_trigger(pg_conn_t const &db_connection,
                                std::string const &schema,
                                std::string const &table,
                                std::string const &condition);
 
-void drop_geom_check_trigger(pg_conn_t *db_connection,
+void drop_geom_check_trigger(pg_conn_t const &db_connection,
                              std::string const &schema,
                              std::string const &table);
 
