@@ -1231,7 +1231,7 @@ void output_flex_t::start()
 
 static void
 create_expire_tables(std::vector<expire_output_t> const &expire_outputs,
-                     std::string const &conninfo)
+                     connection_params_t const &conninfo)
 {
     if (std::all_of(expire_outputs.begin(), expire_outputs.end(),
                     [](auto const &expire_output) {

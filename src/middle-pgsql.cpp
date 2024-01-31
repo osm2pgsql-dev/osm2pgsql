@@ -159,7 +159,8 @@ void middle_pgsql_t::table_desc::drop_table(
              util::human_readable_duration(timer.stop()));
 }
 
-void middle_pgsql_t::table_desc::build_index(std::string const &conninfo) const
+void middle_pgsql_t::table_desc::build_index(
+    connection_params_t const &conninfo) const
 {
     if (m_create_fw_dep_indexes.empty()) {
         return;
@@ -1295,7 +1296,8 @@ void middle_pgsql_t::after_relations()
 }
 
 middle_query_pgsql_t::middle_query_pgsql_t(
-    std::string const &conninfo, std::shared_ptr<node_locations_t> cache,
+    connection_params_t const &conninfo,
+    std::shared_ptr<node_locations_t> cache,
     std::shared_ptr<node_persistent_cache> persistent_cache,
     middle_pgsql_options const &options)
 : m_sql_conn(conninfo), m_cache(std::move(cache)),

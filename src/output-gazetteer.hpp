@@ -16,6 +16,7 @@
 #include <osmium/memory/buffer.hpp>
 
 #include "gazetteer-style.hpp"
+#include "options.hpp"
 #include "osmtypes.hpp"
 #include "output.hpp"
 #include "reprojection.hpp"

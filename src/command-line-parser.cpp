@@ -32,48 +32,6 @@
 #include <stdexcept>
 #include <thread> // for number of threads
 
-static bool compare_prefix(std::string const &str,
-                           std::string const &prefix) noexcept
-{
-    return std::strncmp(str.c_str(), prefix.c_str(), prefix.size()) == 0;
-}
-
-std::string build_conninfo(database_options_t const &opt)
-{
-    if (compare_prefix(opt.db, "postgresql://") ||
-        compare_prefix(opt.db, "postgres://")) {
-        return opt.db;
-    }
-
-    util::string_joiner_t joiner{' '};
-    joiner.add("fallback_application_name='osm2pgsql'");
-
-    if (std::strchr(opt.db.c_str(), '=') != nullptr) {
-        joiner.add(opt.db);
-        return joiner();
-    }
-
-    joiner.add("client_encoding='UTF8'");
-
-    if (!opt.db.empty()) {
-        joiner.add(fmt::format("dbname='{}'", opt.db));
-    }
-    if (!opt.username.empty()) {
-        joiner.add(fmt::format("user='{}'", opt.username));
-    }
-    if (!opt.password.empty()) {
-        joiner.add(fmt::format("password='{}'", opt.password));
-    }
-    if (!opt.host.empty()) {
-        joiner.add(fmt::format("host='{}'", opt.host));
-    }
-    if (!opt.port.empty()) {
-        joiner.add(fmt::format("port='{}'", opt.port));
-    }
-
-    return joiner();
-}
-
 static osmium::Box parse_bbox_param(std::string const &arg)
 {
     double minx = NAN;
@@ -730,7 +688,7 @@ options_t parse_command_line(int argc, char *argv[])
 
     check_options(&options);
 
-    options.conninfo = build_conninfo(app.database_options());
+    options.conninfo = app.connection_params();
 
     if (!options.slim) {
         options.middle_database_format = 0;

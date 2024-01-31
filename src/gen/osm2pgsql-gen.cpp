@@ -195,8 +195,9 @@ private:
     std::size_t m_num_tiles;
 };
 
-void run_tile_gen(std::string const &conninfo, gen_base_t *master_generalizer,
-                  params_t params, uint32_t zoom,
+void run_tile_gen(connection_params_t const &conninfo,
+                  gen_base_t *master_generalizer, params_t params,
+                  uint32_t zoom,
                   std::vector<std::pair<uint32_t, uint32_t>> *queue,
                   std::mutex *mut, unsigned int n)
 {
@@ -231,9 +232,9 @@ void run_tile_gen(std::string const &conninfo, gen_base_t *master_generalizer,
 class genproc_t
 {
 public:
-    genproc_t(std::string const &filename, std::string conninfo,
-              std::string dbschema, bool append, bool updatable,
-              uint32_t jobs);
+    genproc_t(std::string const &filename,
+              connection_params_t conninfo, std::string dbschema,
+              bool append, bool updatable, uint32_t jobs);
 
     int app_define_table()
     {
@@ -512,7 +513,7 @@ private:
     std::vector<flex_table_t> m_tables;
     std::vector<expire_output_t> m_expire_outputs;
 
-    std::string m_conninfo;
+    connection_params_t m_conninfo;
     std::string m_dbschema;
     uint32_t m_jobs;
     bool m_append;
@@ -524,7 +525,7 @@ TRAMPOLINE(app_define_expire_output, define_expire_output)
 TRAMPOLINE(app_run_gen, run_gen)
 TRAMPOLINE(app_run_sql, run_sql)
 
-genproc_t::genproc_t(std::string const &filename, std::string conninfo,
+genproc_t::genproc_t(std::string const &filename, connection_params_t conninfo,
                      std::string dbschema, bool append, bool updatable,
                      uint32_t jobs)
 : m_conninfo(std::move(conninfo)), m_dbschema(std::move(dbschema)),
@@ -694,15 +695,15 @@ int main(int argc, char *argv[])
                 jobs);
         }
 
-        auto const conninfo = build_conninfo(app.database_options());
+        auto const connection_params = app.connection_params();
 
         log_debug("Checking database capabilities...");
         {
-            pg_conn_t const db_connection{conninfo};
+            pg_conn_t const db_connection{connection_params};
             init_database_capabilities(db_connection);
         }
 
-        properties_t properties{conninfo, middle_dbschema};
+        properties_t properties{connection_params, middle_dbschema};
         properties.load();
 
         if (style.empty()) {
@@ -719,7 +720,8 @@ int main(int argc, char *argv[])
         }
 
         bool const updatable = properties.get_bool("updatable", false);
-        genproc_t gen{style, conninfo, dbschema, append, updatable, jobs};
+        genproc_t gen{style,  connection_params, dbschema,
+                      append, updatable,         jobs};
         gen.run();
 
         osmium::MemoryUsage const mem;

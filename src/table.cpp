@@ -71,7 +71,8 @@ void table_t::connect()
     m_sql_conn->exec("SET synchronous_commit = off");
 }
 
-void table_t::start(std::string const &conninfo, std::string const &table_space)
+void table_t::start(connection_params_t const &conninfo,
+                    std::string const &table_space)
 {
     if (m_sql_conn) {
         throw fmt_error("{} cannot start, its already started.",

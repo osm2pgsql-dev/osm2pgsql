@@ -28,13 +28,36 @@ std::size_t pg_result_t::affected_rows() const noexcept
 
 std::atomic<std::uint32_t> pg_conn_t::connection_id{0};
 
-pg_conn_t::pg_conn_t(std::string const &conninfo)
-: m_conn(PQconnectdb(conninfo.c_str())),
-  m_connection_id(connection_id.fetch_add(1))
+static PGconn *open_connection(connection_params_t const &connection_params,
+                               std::uint32_t id)
 {
+    std::vector<char const *> keywords;
+    std::vector<char const *> values;
+
+    for (auto const &[k, v] : connection_params) {
+        keywords.push_back(k.c_str());
+        values.push_back(v.c_str());
+    }
+
+    std::string const app_name{fmt::format("osm2pgsql/C{}", id)};
+    keywords.push_back("fallback_application_name");
+    values.push_back(app_name.c_str());
+
+    keywords.push_back(nullptr);
+    values.push_back(nullptr);
+
+    return PQconnectdbParams(keywords.data(), values.data(), 1);
+}
+
+pg_conn_t::pg_conn_t(connection_params_t const &conninfo)
+: m_connection_id(connection_id.fetch_add(1))
+{
+    m_conn.reset(open_connection(conninfo, m_connection_id));
+
     if (!m_conn) {
         throw std::runtime_error{"Connecting to database failed."};
     }
+
     if (PQstatus(m_conn.get()) != CONNECTION_OK) {
         throw fmt_error("Connecting to database failed: {}.", error_msg());
     }

@@ -19,7 +19,7 @@
 
 static constexpr char const *const properties_table = "osm2pgsql_properties";
 
-properties_t::properties_t(std::string conninfo, std::string schema)
+properties_t::properties_t(connection_params_t conninfo, std::string schema)
 : m_conninfo(std::move(conninfo)), m_schema(std::move(schema)),
   m_has_properties_table(has_table(m_schema, properties_table))
 {

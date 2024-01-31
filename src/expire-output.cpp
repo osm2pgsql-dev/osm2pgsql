@@ -17,7 +17,7 @@
 #include <system_error>
 
 std::size_t expire_output_t::output(quadkey_list_t const &tile_list,
-                                    std::string const &conninfo) const
+                                    connection_params_t const &conninfo) const
 {
     std::size_t num = 0;
     if (!m_filename.empty()) {
@@ -51,9 +51,9 @@ std::size_t expire_output_t::output_tiles_to_file(
     return count;
 }
 
-std::size_t
-expire_output_t::output_tiles_to_table(quadkey_list_t const &tiles_at_maxzoom,
-                                       std::string const &conninfo) const
+std::size_t expire_output_t::output_tiles_to_table(
+    quadkey_list_t const &tiles_at_maxzoom,
+    connection_params_t const &conninfo) const
 {
     auto const qn = qualified_name(m_schema, m_table);
 

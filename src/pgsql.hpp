@@ -17,6 +17,7 @@
  */
 
 #include "format.hpp"
+#include "pgsql-params.hpp"
 
 #include <libpq-fe.h>
 
@@ -151,7 +152,7 @@ public:
 class pg_conn_t
 {
 public:
-    explicit pg_conn_t(std::string const &conninfo);
+    explicit pg_conn_t(connection_params_t const &conninfo);
 
     /**
      * Run the specified SQL command.

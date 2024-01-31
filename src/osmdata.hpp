@@ -25,6 +25,7 @@
 
 #include "dependency-manager.hpp"
 #include "osmtypes.hpp"
+#include "pgsql-params.hpp"
 
 class middle_t;
 class output_t;
@@ -79,7 +80,7 @@ private:
     std::shared_ptr<middle_t> m_mid;
     std::shared_ptr<output_t> m_output;
 
-    std::string m_conninfo;
+    connection_params_t m_conninfo;
 
     // Bounding box for node import (or invalid Box if everything should be
     // imported).

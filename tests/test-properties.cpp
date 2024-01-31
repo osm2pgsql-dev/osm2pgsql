@@ -15,7 +15,7 @@
 
 TEST_CASE("Store and retrieve properties (memory only)")
 {
-    properties_t properties{"", "public"};
+    properties_t properties{connection_params_t{}, "public"};
 
     properties.set_string("foo", "firstvalue");
     properties.set_string("foo", "bar"); // overwriting is okay

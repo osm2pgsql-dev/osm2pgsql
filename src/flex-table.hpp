@@ -259,7 +259,7 @@ public:
     {
     }
 
-    void connect(std::string const &conninfo);
+    void connect(connection_params_t const &conninfo);
 
     void start(bool append);
 

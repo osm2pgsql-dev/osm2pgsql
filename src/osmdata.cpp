@@ -171,7 +171,7 @@ namespace {
 class multithreaded_processor
 {
 public:
-    multithreaded_processor(std::string const &conninfo,
+    multithreaded_processor(connection_params_t const &conninfo,
                             std::shared_ptr<middle_t> const &mid,
                             std::shared_ptr<output_t> output,
                             std::size_t thread_count)

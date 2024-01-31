@@ -81,10 +81,11 @@ void db_deleter_by_type_and_id_t::delete_rows(std::string const &table,
     conn->exec(sql.data());
 }
 
-db_copy_thread_t::db_copy_thread_t(std::string const &conninfo)
+db_copy_thread_t::db_copy_thread_t(connection_params_t const &conninfo)
 {
-    // conninfo is captured by copy here, because we don't know wether the
-    // reference will still be valid once we get around to running the thread
+    // Connection params are captured by copy here, because we don't know
+    // whether the reference will still be valid once we get around to running
+    // the thread.
     m_worker = std::thread{thread_t{conninfo, &m_shared}};
 }
 
@@ -119,7 +120,8 @@ void db_copy_thread_t::finish()
     }
 }
 
-db_copy_thread_t::thread_t::thread_t(std::string conninfo, shared *shared)
+db_copy_thread_t::thread_t::thread_t(connection_params_t conninfo,
+                                     shared *shared)
 : m_conninfo(std::move(conninfo)), m_shared(shared)
 {}
 

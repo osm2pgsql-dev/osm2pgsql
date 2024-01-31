@@ -241,7 +241,7 @@ bool flex_table_t::has_columns_with_expire() const noexcept
                        [](auto const &column) { return column.has_expire(); });
 }
 
-void table_connection_t::connect(std::string const &conninfo)
+void table_connection_t::connect(connection_params_t const &conninfo)
 {
     assert(!m_db_connection);
 

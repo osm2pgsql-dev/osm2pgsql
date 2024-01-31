@@ -249,7 +249,7 @@ struct db_cmd_finish_t : public db_cmd_t
 class db_copy_thread_t
 {
 public:
-    explicit db_copy_thread_t(std::string const &conninfo);
+    explicit db_copy_thread_t(connection_params_t const &conninfo);
 
     db_copy_thread_t(db_copy_thread_t const &) = delete;
     db_copy_thread_t &operator=(db_copy_thread_t const &) = delete;
@@ -290,7 +290,7 @@ private:
     class thread_t
     {
     public:
-        thread_t(std::string conninfo, shared *shared);
+        thread_t(connection_params_t conninfo, shared *shared);
 
         void operator()();
 
@@ -300,7 +300,7 @@ private:
         void finish_copy();
         void delete_rows(db_cmd_copy_t *buffer);
 
-        std::string m_conninfo;
+        connection_params_t m_conninfo;
         std::unique_ptr<pg_conn_t> m_conn;
 
         // Target for copy operation currently ongoing.

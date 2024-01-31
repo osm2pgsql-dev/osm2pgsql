@@ -10,6 +10,8 @@
  * For a full list of authors see the git log.
  */
 
+#include "pgsql-params.hpp"
+
 #include <osmium/osm/box.hpp>
 
 #include <cstdint>
@@ -37,18 +39,6 @@ enum class hstore_column : char
     all = 2
 };
 
-/// Database connection options.
-struct database_options_t
-{
-    std::string db;
-    std::string username;
-    std::string host;
-    std::string password;
-    std::string port;
-};
-
-std::string build_conninfo(database_options_t const &opt);
-
 /**
  * Structure for storing command-line and other options
  */
@@ -56,7 +46,8 @@ struct options_t
 {
     command_t command = command_t::process;
 
-    std::string conninfo; ///< connection info for database
+    /// Parameters for initializing database connections
+    connection_params_t conninfo;
 
     std::string prefix{"planet_osm"};         ///< prefix for table names
     bool prefix_is_set = false;
