@@ -81,12 +81,12 @@ void db_deleter_by_type_and_id_t::delete_rows(std::string const &table,
     conn->exec(sql.data());
 }
 
-db_copy_thread_t::db_copy_thread_t(connection_params_t const &conninfo)
+db_copy_thread_t::db_copy_thread_t(connection_params_t const &connection_params)
 {
     // Connection params are captured by copy here, because we don't know
     // whether the reference will still be valid once we get around to running
     // the thread.
-    m_worker = std::thread{thread_t{conninfo, &m_shared}};
+    m_worker = std::thread{thread_t{connection_params, &m_shared}};
 }
 
 db_copy_thread_t::~db_copy_thread_t() { finish(); }
@@ -120,15 +120,15 @@ void db_copy_thread_t::finish()
     }
 }
 
-db_copy_thread_t::thread_t::thread_t(connection_params_t conninfo,
+db_copy_thread_t::thread_t::thread_t(connection_params_t connection_params,
                                      shared *shared)
-: m_conninfo(std::move(conninfo)), m_shared(shared)
+: m_connection_params(std::move(connection_params)), m_shared(shared)
 {}
 
 void db_copy_thread_t::thread_t::operator()()
 {
     try {
-        m_conn = std::make_unique<pg_conn_t>(m_conninfo);
+        m_conn = std::make_unique<pg_conn_t>(m_connection_params);
 
         // Let commits happen faster by delaying when they actually occur.
         m_conn->exec("SET synchronous_commit = off");

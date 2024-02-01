@@ -45,8 +45,8 @@ table_t::table_t(std::string const &name, std::string type, columns_t columns,
 
 table_t::table_t(table_t const &other,
                  std::shared_ptr<db_copy_thread_t> const &copy_thread)
-: m_conninfo(other.m_conninfo), m_target(other.m_target), m_type(other.m_type),
-  m_srid(other.m_srid), m_append(other.m_append),
+: m_connection_params(other.m_connection_params), m_target(other.m_target),
+  m_type(other.m_type), m_srid(other.m_srid), m_append(other.m_append),
   m_hstore_mode(other.m_hstore_mode), m_columns(other.m_columns),
   m_hstore_columns(other.m_hstore_columns), m_table_space(other.m_table_space),
   m_copy(copy_thread)
@@ -66,12 +66,12 @@ void table_t::sync() { m_copy.sync(); }
 
 void table_t::connect()
 {
-    m_sql_conn = std::make_unique<pg_conn_t>(m_conninfo);
+    m_sql_conn = std::make_unique<pg_conn_t>(m_connection_params);
     //let commits happen faster by delaying when they actually occur
     m_sql_conn->exec("SET synchronous_commit = off");
 }
 
-void table_t::start(connection_params_t const &conninfo,
+void table_t::start(connection_params_t const &connection_params,
                     std::string const &table_space)
 {
     if (m_sql_conn) {
@@ -79,7 +79,7 @@ void table_t::start(connection_params_t const &conninfo,
                         m_target->name());
     }
 
-    m_conninfo = conninfo;
+    m_connection_params = connection_params;
     m_table_space = tablespace_clause(table_space);
 
     connect();

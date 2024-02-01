@@ -49,10 +49,10 @@ static PGconn *open_connection(connection_params_t const &connection_params,
     return PQconnectdbParams(keywords.data(), values.data(), 1);
 }
 
-pg_conn_t::pg_conn_t(connection_params_t const &conninfo)
+pg_conn_t::pg_conn_t(connection_params_t const &connection_params)
 : m_connection_id(connection_id.fetch_add(1))
 {
-    m_conn.reset(open_connection(conninfo, m_connection_id));
+    m_conn.reset(open_connection(connection_params, m_connection_id));
 
     if (!m_conn) {
         throw std::runtime_error{"Connecting to database failed."};

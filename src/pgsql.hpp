@@ -152,7 +152,7 @@ public:
 class pg_conn_t
 {
 public:
-    explicit pg_conn_t(connection_params_t const &conninfo);
+    explicit pg_conn_t(connection_params_t const &connection_params);
 
     /**
      * Run the specified SQL command.

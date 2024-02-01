@@ -47,7 +47,7 @@ struct options_t
     command_t command = command_t::process;
 
     /// Parameters for initializing database connections
-    connection_params_t conninfo;
+    connection_params_t connection_params;
 
     std::string prefix{"planet_osm"};         ///< prefix for table names
     bool prefix_is_set = false;

@@ -418,7 +418,8 @@ void output_pgsql_t::start()
 {
     for (auto &t : m_tables) {
         //setup the table in postgres
-        t->start(get_options()->conninfo, get_options()->tblsmain_data);
+        t->start(get_options()->connection_params,
+                 get_options()->tblsmain_data);
     }
 }
 
@@ -451,7 +452,8 @@ output_pgsql_t::output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
 
     m_tagtransform = tagtransform_t::make_tagtransform(&options, exlist);
 
-    auto copy_thread = std::make_shared<db_copy_thread_t>(options.conninfo);
+    auto copy_thread =
+        std::make_shared<db_copy_thread_t>(options.connection_params);
 
     //for each table
     for (std::size_t i = 0; i < m_tables.size(); ++i) {

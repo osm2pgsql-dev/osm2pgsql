@@ -153,9 +153,9 @@ public:
         }
     }
 
-    conn_t connect() const { return conn_t{conninfo()}; }
+    conn_t connect() const { return conn_t{connection_params()}; }
 
-    connection_params_t conninfo() const {
+    connection_params_t connection_params() const {
         connection_params_t params;
         params.set("dbname", m_db_name);
         return params;

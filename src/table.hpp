@@ -37,7 +37,7 @@ public:
     table_t(table_t const &other,
             std::shared_ptr<db_copy_thread_t> const &copy_thread);
 
-    void start(connection_params_t const &conninfo,
+    void start(connection_params_t const &connection_params,
                std::string const &table_space);
     void stop(bool updateable, bool enable_hstore_index,
               std::string const &table_space_index);
@@ -70,7 +70,7 @@ private:
 
     void generate_copy_column_list();
 
-    connection_params_t m_conninfo;
+    connection_params_t m_connection_params;
     std::shared_ptr<db_target_descr_t> m_target;
     std::string m_type;
     std::unique_ptr<pg_conn_t> m_sql_conn;

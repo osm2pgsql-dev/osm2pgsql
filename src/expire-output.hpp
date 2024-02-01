@@ -53,7 +53,7 @@ public:
     void set_maxzoom(uint32_t maxzoom) noexcept { m_maxzoom = maxzoom; }
 
     std::size_t output(quadkey_list_t const &tile_list,
-                       connection_params_t const &conninfo) const;
+                       connection_params_t const &connection_params) const;
 
     /**
      * Write the list of tiles to a file.
@@ -67,11 +67,11 @@ public:
      * Write the list of tiles to a database table.
      *
      * \param tiles_at_maxzoom The list of tiles at maximum zoom level
-     * \param conninfo Database connection parameters
+     * \param connection_params Database connection parameters
      */
     std::size_t
     output_tiles_to_table(quadkey_list_t const &tiles_at_maxzoom,
-                          connection_params_t const &conninfo) const;
+                          connection_params_t const &connection_params) const;
 
     /**
      * Create table for tiles.

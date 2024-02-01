@@ -16,15 +16,16 @@
 
 #include <system_error>
 
-std::size_t expire_output_t::output(quadkey_list_t const &tile_list,
-                                    connection_params_t const &conninfo) const
+std::size_t
+expire_output_t::output(quadkey_list_t const &tile_list,
+                        connection_params_t const &connection_params) const
 {
     std::size_t num = 0;
     if (!m_filename.empty()) {
         num = output_tiles_to_file(tile_list);
     }
     if (!m_table.empty()) {
-        num = output_tiles_to_table(tile_list, conninfo);
+        num = output_tiles_to_table(tile_list, connection_params);
     }
     return num;
 }
@@ -53,11 +54,11 @@ std::size_t expire_output_t::output_tiles_to_file(
 
 std::size_t expire_output_t::output_tiles_to_table(
     quadkey_list_t const &tiles_at_maxzoom,
-    connection_params_t const &conninfo) const
+    connection_params_t const &connection_params) const
 {
     auto const qn = qualified_name(m_schema, m_table);
 
-    pg_conn_t connection{conninfo};
+    pg_conn_t connection{connection_params};
 
     auto const result = connection.exec("SELECT * FROM {} LIMIT 1", qn);
 

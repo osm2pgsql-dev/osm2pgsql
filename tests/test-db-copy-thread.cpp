@@ -30,7 +30,7 @@ TEST_CASE("db_copy_thread_t with db_deleter_by_id_t")
     auto const table =
         std::make_shared<db_target_descr_t>("public", "test_copy_thread", "id");
 
-    db_copy_thread_t t(db.conninfo());
+    db_copy_thread_t t{db.connection_params()};
     using cmd_copy_t = db_cmd_copy_delete_t<db_deleter_by_id_t>;
     auto cmd = std::make_unique<cmd_copy_t>(table);
 
@@ -159,7 +159,7 @@ TEST_CASE("db_copy_thread_t with db_deleter_place_t")
     auto table = std::make_shared<db_target_descr_t>(
         "public", "test_copy_thread", "place_id");
 
-    db_copy_thread_t t(db.conninfo());
+    db_copy_thread_t t{db.connection_params()};
     using cmd_copy_t = db_cmd_copy_delete_t<db_deleter_place_t>;
     auto cmd = std::make_unique<cmd_copy_t>(table);
 

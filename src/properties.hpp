@@ -32,12 +32,12 @@ public:
     /**
      * Create new properties store.
      *
-     * \param conninfo Parameters used to connect to the database.
+     * \param connection_params Parameters used to connect to the database.
      * \param schema The schema used for storing the data,
      *
      * \pre You must have called init_database_capabilities() before this.
      */
-    properties_t(connection_params_t conninfo, std::string schema);
+    properties_t(connection_params_t connection_params, std::string schema);
 
     std::string get_string(std::string const &property,
                            std::string const &default_value) const;
@@ -97,7 +97,7 @@ private:
     std::string table_name() const;
 
     std::map<std::string, std::string> m_properties;
-    connection_params_t m_conninfo;
+    connection_params_t m_connection_params;
     std::string m_schema;
     bool m_has_properties_table;
 

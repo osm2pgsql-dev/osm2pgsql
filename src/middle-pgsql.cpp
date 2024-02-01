@@ -160,7 +160,7 @@ void middle_pgsql_t::table_desc::drop_table(
 }
 
 void middle_pgsql_t::table_desc::build_index(
-    connection_params_t const &conninfo) const
+    connection_params_t const &connection_params) const
 {
     if (m_create_fw_dep_indexes.empty()) {
         return;
@@ -168,7 +168,7 @@ void middle_pgsql_t::table_desc::build_index(
 
     // Use a temporary connection here because we might run in a separate
     // thread context.
-    pg_conn_t const db_connection{conninfo};
+    pg_conn_t const db_connection{connection_params};
 
     log_info("Building index on table '{}'", name());
     for (auto const &query : m_create_fw_dep_indexes) {
@@ -1296,11 +1296,11 @@ void middle_pgsql_t::after_relations()
 }
 
 middle_query_pgsql_t::middle_query_pgsql_t(
-    connection_params_t const &conninfo,
+    connection_params_t const &connection_params,
     std::shared_ptr<node_locations_t> cache,
     std::shared_ptr<node_persistent_cache> persistent_cache,
     middle_pgsql_options const &options)
-: m_sql_conn(conninfo), m_cache(std::move(cache)),
+: m_sql_conn(connection_params), m_cache(std::move(cache)),
   m_persistent_cache(std::move(persistent_cache)), m_store_options(options)
 {
     // Disable JIT and parallel workers as they are known to cause
@@ -1409,7 +1409,7 @@ void middle_pgsql_t::stop()
         // Building the indexes takes time, so do it asynchronously.
         for (auto &table : m_tables) {
             table.task_set(thread_pool().submit(
-                [&]() { table.build_index(m_options->conninfo); }));
+                [&]() { table.build_index(m_options->connection_params); }));
         }
     }
 }
@@ -1649,8 +1649,8 @@ middle_pgsql_t::middle_pgsql_t(std::shared_ptr<thread_pool_t> thread_pool,
 : middle_t(std::move(thread_pool)), m_options(options),
   m_cache(std::make_unique<node_locations_t>(
       static_cast<std::size_t>(options->cache) * 1024UL * 1024UL)),
-  m_db_connection(m_options->conninfo),
-  m_copy_thread(std::make_shared<db_copy_thread_t>(options->conninfo)),
+  m_db_connection(m_options->connection_params),
+  m_copy_thread(std::make_shared<db_copy_thread_t>(options->connection_params)),
   m_db_copy(m_copy_thread), m_append(options->append)
 {
     m_store_options.with_attributes = options->extra_attributes;
@@ -1725,7 +1725,8 @@ middle_pgsql_t::get_query_instance()
     // NOTE: this is thread safe for use in pending async processing only
     // because during that process they are only read from
     auto mid = std::make_unique<middle_query_pgsql_t>(
-        m_options->conninfo, m_cache, m_persistent_cache, m_store_options);
+        m_options->connection_params, m_cache, m_persistent_cache,
+        m_store_options);
 
     // We use a connection per table to enable the use of COPY
     for (auto &table : m_tables) {

@@ -241,11 +241,11 @@ bool flex_table_t::has_columns_with_expire() const noexcept
                        [](auto const &column) { return column.has_expire(); });
 }
 
-void table_connection_t::connect(connection_params_t const &conninfo)
+void table_connection_t::connect(connection_params_t const &connection_params)
 {
     assert(!m_db_connection);
 
-    m_db_connection = std::make_unique<pg_conn_t>(conninfo);
+    m_db_connection = std::make_unique<pg_conn_t>(connection_params);
     m_db_connection->exec("SET synchronous_commit = off");
 }
 

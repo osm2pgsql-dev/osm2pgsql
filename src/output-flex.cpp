@@ -1086,8 +1086,9 @@ void output_flex_t::stop()
         if (!m_expire_tiles[i].empty()) {
             auto const &eo = (*m_expire_outputs)[i];
 
-            std::size_t const count = eo.output(m_expire_tiles[i].get_tiles(),
-                                                get_options()->conninfo);
+            std::size_t const count =
+                eo.output(m_expire_tiles[i].get_tiles(),
+                          get_options()->connection_params);
 
             log_info("Wrote {} entries to expire output [{}].", count, i);
         }
@@ -1224,14 +1225,14 @@ void output_flex_t::relation_modify(osmium::Relation const &rel)
 void output_flex_t::start()
 {
     for (auto &table : m_table_connections) {
-        table.connect(get_options()->conninfo);
+        table.connect(get_options()->connection_params);
         table.start(get_options()->append);
     }
 }
 
 static void
 create_expire_tables(std::vector<expire_output_t> const &expire_outputs,
-                     connection_params_t const &conninfo)
+                     connection_params_t const &connection_params)
 {
     if (std::all_of(expire_outputs.begin(), expire_outputs.end(),
                     [](auto const &expire_output) {
@@ -1240,7 +1241,7 @@ create_expire_tables(std::vector<expire_output_t> const &expire_outputs,
         return;
     }
 
-    pg_conn_t const connection{conninfo};
+    pg_conn_t const connection{connection_params};
     for (auto const &expire_output : expire_outputs) {
         if (!expire_output.table().empty()) {
             expire_output.create_output_table(connection);
@@ -1261,7 +1262,7 @@ output_flex_t::output_flex_t(output_flex_t const *other,
 {
     for (auto &table : *m_tables) {
         auto &tc = m_table_connections.emplace_back(&table, m_copy_thread);
-        tc.connect(get_options()->conninfo);
+        tc.connect(get_options()->connection_params);
         tc.prepare();
     }
 
@@ -1282,7 +1283,7 @@ output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
                              std::shared_ptr<thread_pool_t> thread_pool,
                              options_t const &options)
 : output_t(mid, std::move(thread_pool), options),
-  m_copy_thread(std::make_shared<db_copy_thread_t>(options.conninfo))
+  m_copy_thread(std::make_shared<db_copy_thread_t>(options.connection_params))
 {
     init_lua(options.style);
 
@@ -1331,7 +1332,7 @@ output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
                                     reprojection::create_projection(3857));
     }
 
-    create_expire_tables(*m_expire_outputs, get_options()->conninfo);
+    create_expire_tables(*m_expire_outputs, get_options()->connection_params);
 }
 
 /**

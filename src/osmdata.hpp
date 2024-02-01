@@ -80,7 +80,7 @@ private:
     std::shared_ptr<middle_t> m_mid;
     std::shared_ptr<output_t> m_output;
 
-    connection_params_t m_conninfo;
+    connection_params_t m_connection_params;
 
     // Bounding box for node import (or invalid Box if everything should be
     // imported).

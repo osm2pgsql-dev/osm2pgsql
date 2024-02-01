@@ -688,7 +688,7 @@ options_t parse_command_line(int argc, char *argv[])
 
     check_options(&options);
 
-    options.conninfo = app.connection_params();
+    options.connection_params = app.connection_params();
 
     if (!options.slim) {
         options.middle_database_format = 0;

@@ -19,8 +19,10 @@
 
 static constexpr char const *const properties_table = "osm2pgsql_properties";
 
-properties_t::properties_t(connection_params_t conninfo, std::string schema)
-: m_conninfo(std::move(conninfo)), m_schema(std::move(schema)),
+properties_t::properties_t(connection_params_t connection_params,
+                           std::string schema)
+: m_connection_params(std::move(connection_params)),
+  m_schema(std::move(schema)),
   m_has_properties_table(has_table(m_schema, properties_table))
 {
     assert(!m_schema.empty());
@@ -90,7 +92,7 @@ void properties_t::set_string(std::string property, std::string value,
     auto const &inserted = *(r.first);
     log_debug("  Storing {}='{}'", inserted.first, inserted.second);
 
-    pg_conn_t const db_connection{m_conninfo};
+    pg_conn_t const db_connection{m_connection_params};
     db_connection.exec(
         "PREPARE set_property(text, text) AS"
         " INSERT INTO {} (property, value) VALUES ($1, $2)"
@@ -117,7 +119,7 @@ void properties_t::store()
     auto const table = table_name();
 
     log_info("Storing properties to table '{}'.", table);
-    pg_conn_t const db_connection{m_conninfo};
+    pg_conn_t const db_connection{m_connection_params};
 
     if (m_has_properties_table) {
         db_connection.exec("TRUNCATE {}", table);
@@ -151,7 +153,7 @@ bool properties_t::load()
     auto const table = table_name();
     log_info("Loading properties from table '{}'.", table);
 
-    pg_conn_t const db_connection{m_conninfo};
+    pg_conn_t const db_connection{m_connection_params};
     auto const result = db_connection.exec("SELECT * FROM {}", table);
 
     for (int i = 0; i < result.num_tuples(); ++i) {
