@@ -128,6 +128,64 @@ void print_version()
 #endif
 }
 
+static void check_options_output_flex(CLI::App const &app)
+{
+    auto const ignored_options = app.get_options([](CLI::Option const *option) {
+        return option->get_group() == "Pgsql output options" ||
+               option->get_name() == "--tablespace-main-data" ||
+               option->get_name() == "--tablespace-main-index";
+    });
+
+    for (auto const *opt : ignored_options) {
+        if (opt->count()) {
+            log_warn("Ignoring option {} for 'flex' output",
+                     opt->get_name(false, true));
+        }
+    }
+}
+
+static void check_options_output_null(CLI::App const &app)
+{
+    auto const ignored_options = app.get_options([](CLI::Option const *option) {
+        return option->get_group() == "Pgsql output options" ||
+               option->get_group() == "Expire options" ||
+               option->get_name() == "--style" ||
+               option->get_name() == "--disable-parallel-indexing" ||
+               option->get_name() == "--number-processes";
+    });
+
+    for (auto const *opt : ignored_options) {
+        if (opt->count()) {
+            log_warn("Ignoring option {} for 'null' output",
+                     opt->get_name(false, true));
+        }
+    }
+}
+
+static void check_options_output_pgsql(CLI::App const &app, options_t *options)
+{
+    if (app.count("--latlong") + app.count("--merc") + app.count("--proj") >
+        1) {
+        throw std::runtime_error{"You can only use one of --latlong, -l, "
+                                 "--merc, -m, --proj, and -E"};
+    }
+
+    if (options->hstore_mode == hstore_column::none &&
+        options->hstore_columns.empty() && options->hstore_match_only) {
+        log_warn("--hstore-match-only only makes sense with --hstore, "
+                 "--hstore-all, or --hstore-column; ignored.");
+        options->hstore_match_only = false;
+    }
+
+    if (options->enable_hstore_index &&
+        options->hstore_mode == hstore_column::none &&
+        options->hstore_columns.empty()) {
+        log_warn("--hstore-add-index only makes sense with hstore enabled; "
+                 "ignored.");
+        options->enable_hstore_index = false;
+    }
+}
+
 static void check_options(options_t *options)
 {
     if (options->append && options->create) {
@@ -146,21 +204,6 @@ static void check_options(options_t *options)
     if (options->append && options->middle_database_format != 1) {
         throw std::runtime_error{
             "Do not use --middle-database-format with --append."};
-    }
-
-    if (options->hstore_mode == hstore_column::none &&
-        options->hstore_columns.empty() && options->hstore_match_only) {
-        log_warn("--hstore-match-only only makes sense with --hstore, "
-                 "--hstore-all, or --hstore-column; ignored.");
-        options->hstore_match_only = false;
-    }
-
-    if (options->enable_hstore_index &&
-        options->hstore_mode == hstore_column::none &&
-        options->hstore_columns.empty()) {
-        log_warn("--hstore-add-index only makes sense with hstore enabled; "
-                 "ignored.");
-        options->enable_hstore_index = false;
     }
 
     if (options->cache < 0) {
@@ -201,11 +244,6 @@ static void check_options(options_t *options)
         log_warn("Expire has been enabled (with -e or --expire-tiles) but "
                  "target SRS is not Mercator (EPSG:3857). Expire disabled!");
         options->expire_tiles_zoom = 0;
-    }
-
-    if (options->output_backend == "gazetteer") {
-        log_warn(
-            "The 'gazetteer' output is deprecated and will soon be removed.");
     }
 }
 
@@ -644,6 +682,18 @@ options_t parse_command_line(int argc, char *argv[])
     if (app.want_version()) {
         options.command = command_t::version;
         return options;
+    }
+
+    if (options.output_backend == "flex") {
+        check_options_output_flex(app);
+    } else if (options.output_backend == "gazetteer") {
+        log_warn(
+            "The 'gazetteer' output is deprecated and will soon be removed.");
+    } else if (options.output_backend == "null") {
+        check_options_output_null(app);
+    } else if (options.output_backend == "pgsql" ||
+               options.output_backend.empty()) {
+        check_options_output_pgsql(app, &options);
     }
 
     if (options.input_format == "auto") {
