@@ -29,7 +29,7 @@ std::size_t pg_result_t::affected_rows() const noexcept
 std::atomic<std::uint32_t> pg_conn_t::connection_id{0};
 
 static PGconn *open_connection(connection_params_t const &connection_params,
-                               std::uint32_t id)
+                               std::string_view context, std::uint32_t id)
 {
     std::vector<char const *> keywords;
     std::vector<char const *> values;
@@ -39,7 +39,7 @@ static PGconn *open_connection(connection_params_t const &connection_params,
         values.push_back(v.c_str());
     }
 
-    std::string const app_name{fmt::format("osm2pgsql/C{}", id)};
+    std::string const app_name{fmt::format("osm2pgsql.{}/C{}", context, id)};
     keywords.push_back("fallback_application_name");
     values.push_back(app_name.c_str());
 
@@ -49,23 +49,25 @@ static PGconn *open_connection(connection_params_t const &connection_params,
     return PQconnectdbParams(keywords.data(), values.data(), 1);
 }
 
-pg_conn_t::pg_conn_t(connection_params_t const &connection_params)
+pg_conn_t::pg_conn_t(connection_params_t const &connection_params,
+                     std::string_view context)
 : m_connection_id(connection_id.fetch_add(1))
 {
-    m_conn.reset(open_connection(connection_params, m_connection_id));
+    m_conn.reset(open_connection(connection_params, context, m_connection_id));
 
     if (!m_conn) {
-        throw std::runtime_error{"Connecting to database failed."};
+        throw fmt_error("Connecting to database failed (context={}).", context);
     }
 
     if (PQstatus(m_conn.get()) != CONNECTION_OK) {
-        throw fmt_error("Connecting to database failed: {}.", error_msg());
+        throw fmt_error("Connecting to database failed (context={}): {}.",
+                        context, error_msg());
     }
 
     if (get_logger().log_sql()) {
         auto const results = exec("SELECT pg_backend_pid()");
-        log_sql("(C{}) New database connection (backend_pid={})",
-                m_connection_id, results.get(0, 0));
+        log_sql("(C{}) New database connection (context={}, backend_pid={})",
+                m_connection_id, context, results.get(0, 0));
     }
 
     // PostgreSQL sends notices in many different contexts which aren't that

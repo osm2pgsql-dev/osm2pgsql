@@ -58,7 +58,7 @@ std::size_t expire_output_t::output_tiles_to_table(
 {
     auto const qn = qualified_name(m_schema, m_table);
 
-    pg_conn_t connection{connection_params};
+    pg_conn_t connection{connection_params, "expire"};
 
     auto const result = connection.exec("SELECT * FROM {} LIMIT 1", qn);
 

@@ -86,7 +86,7 @@ static file_info run(options_t const &options)
 
 static void check_db(options_t const &options)
 {
-    pg_conn_t const db_connection{options.connection_params};
+    pg_conn_t const db_connection{options.connection_params, "check"};
 
     init_database_capabilities(db_connection);
 

@@ -152,7 +152,8 @@ public:
 class pg_conn_t
 {
 public:
-    explicit pg_conn_t(connection_params_t const &connection_params);
+    explicit pg_conn_t(connection_params_t const &connection_params,
+                       std::string_view context);
 
     /**
      * Run the specified SQL command.
