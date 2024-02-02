@@ -89,7 +89,7 @@ static void check_row(std::vector<std::string> const &row)
 
 TEST_CASE("copy_mgr_t: Insert null")
 {
-    copy_mgr_t mgr{std::make_shared<db_copy_thread_t>(db.conninfo())};
+    copy_mgr_t mgr{std::make_shared<db_copy_thread_t>(db.connection_params())};
 
     auto const t = setup_table("big int8, t text");
 
@@ -109,7 +109,7 @@ TEST_CASE("copy_mgr_t: Insert null")
 
 TEST_CASE("copy_mgr_t: Insert numbers")
 {
-    copy_mgr_t mgr{std::make_shared<db_copy_thread_t>(db.conninfo())};
+    copy_mgr_t mgr{std::make_shared<db_copy_thread_t>(db.connection_params())};
 
     auto const t = setup_table("big int8, small smallint");
 
@@ -119,7 +119,7 @@ TEST_CASE("copy_mgr_t: Insert numbers")
 
 TEST_CASE("copy_mgr_t: Insert strings")
 {
-    copy_mgr_t mgr{std::make_shared<db_copy_thread_t>(db.conninfo())};
+    copy_mgr_t mgr{std::make_shared<db_copy_thread_t>(db.connection_params())};
 
     auto const t = setup_table("s0 text, s1 varchar");
 
@@ -150,7 +150,7 @@ TEST_CASE("copy_mgr_t: Insert strings")
 
 TEST_CASE("copy_mgr_t: Insert int arrays")
 {
-    copy_mgr_t mgr{std::make_shared<db_copy_thread_t>(db.conninfo())};
+    copy_mgr_t mgr{std::make_shared<db_copy_thread_t>(db.connection_params())};
 
     auto const t = setup_table("a int[]");
 
@@ -160,7 +160,7 @@ TEST_CASE("copy_mgr_t: Insert int arrays")
 
 TEST_CASE("copy_mgr_t: Insert string arrays")
 {
-    copy_mgr_t mgr{std::make_shared<db_copy_thread_t>(db.conninfo())};
+    copy_mgr_t mgr{std::make_shared<db_copy_thread_t>(db.connection_params())};
 
     auto const t = setup_table("a text[]");
 
@@ -183,7 +183,7 @@ TEST_CASE("copy_mgr_t: Insert string arrays")
 
 TEST_CASE("copy_mgr_t: Insert hashes")
 {
-    copy_mgr_t mgr{std::make_shared<db_copy_thread_t>(db.conninfo())};
+    copy_mgr_t mgr{std::make_shared<db_copy_thread_t>(db.connection_params())};
 
     auto const t = setup_table("h hstore");
 
@@ -206,7 +206,7 @@ TEST_CASE("copy_mgr_t: Insert hashes")
 
 TEST_CASE("copy_mgr_t: Insert something and roll back")
 {
-    copy_mgr_t mgr{std::make_shared<db_copy_thread_t>(db.conninfo())};
+    copy_mgr_t mgr{std::make_shared<db_copy_thread_t>(db.connection_params())};
 
     auto const t = setup_table("t text");
 
@@ -223,7 +223,7 @@ TEST_CASE("copy_mgr_t: Insert something and roll back")
 TEST_CASE("copy_mgr_t: Insert something, insert more, roll back, insert "
           "something else")
 {
-    copy_mgr_t mgr{std::make_shared<db_copy_thread_t>(db.conninfo())};
+    copy_mgr_t mgr{std::make_shared<db_copy_thread_t>(db.connection_params())};
 
     auto const t = setup_table("t text");
 

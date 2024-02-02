@@ -15,7 +15,7 @@
 
 TEST_CASE("Store and retrieve properties (memory only)")
 {
-    properties_t properties{"", "public"};
+    properties_t properties{connection_params_t{}, "public"};
 
     properties.set_string("foo", "firstvalue");
     properties.set_string("foo", "bar"); // overwriting is okay
@@ -52,7 +52,7 @@ TEST_CASE("Store and retrieve properties (with database)")
         }
 
         {
-            properties_t properties{db.conninfo(), schema};
+            properties_t properties{db.connection_params(), schema};
 
             properties.set_string("foo", "bar");
             properties.set_string("empty", "");
@@ -77,7 +77,7 @@ TEST_CASE("Store and retrieve properties (with database)")
             REQUIRE(conn.get_count(full_table_name,
                                    "property='decide' AND value='true'") == 1);
 
-            properties_t properties{db.conninfo(), schema};
+            properties_t properties{db.connection_params(), schema};
             REQUIRE(properties.load());
 
             REQUIRE(properties.get_string("foo", "baz") == "bar");
@@ -106,7 +106,7 @@ TEST_CASE("Update existing properties in database")
     auto conn = db.connect();
 
     {
-        properties_t properties{db.conninfo(), "public"};
+        properties_t properties{db.connection_params(), "public"};
 
         properties.set_string("a", "xxx");
         properties.set_string("b", "yyy");
@@ -118,7 +118,7 @@ TEST_CASE("Update existing properties in database")
         init_database_capabilities(conn);
         REQUIRE(conn.get_count("osm2pgsql_properties") == 2);
 
-        properties_t properties{db.conninfo(), "public"};
+        properties_t properties{db.connection_params(), "public"};
         REQUIRE(properties.load());
 
         REQUIRE(properties.get_string("a", "def") == "xxx");
@@ -135,7 +135,7 @@ TEST_CASE("Update existing properties in database")
     {
         REQUIRE(conn.get_count("osm2pgsql_properties") == 2);
 
-        properties_t properties{db.conninfo(), "public"};
+        properties_t properties{db.connection_params(), "public"};
         REQUIRE(properties.load());
 
         // only "b" was updated in the database
@@ -150,6 +150,6 @@ TEST_CASE("Load returns false if there are no properties in database")
     auto conn = db.connect();
     init_database_capabilities(conn);
 
-    properties_t properties{db.conninfo(), "public"};
+    properties_t properties{db.connection_params(), "public"};
     REQUIRE_FALSE(properties.load());
 }

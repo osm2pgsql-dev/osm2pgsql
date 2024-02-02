@@ -30,7 +30,7 @@ osmdata_t::osmdata_t(std::unique_ptr<dependency_manager_t> dependency_manager,
                      std::shared_ptr<middle_t> mid,
                      std::shared_ptr<output_t> output, options_t const &options)
 : m_dependency_manager(std::move(dependency_manager)), m_mid(std::move(mid)),
-  m_output(std::move(output)), m_conninfo(options.conninfo),
+  m_output(std::move(output)), m_connection_params(options.connection_params),
   m_bbox(options.bbox), m_num_procs(options.num_procs),
   m_append(options.append), m_droptemp(options.droptemp),
   m_with_extra_attrs(options.extra_attributes),
@@ -171,7 +171,7 @@ namespace {
 class multithreaded_processor
 {
 public:
-    multithreaded_processor(std::string const &conninfo,
+    multithreaded_processor(connection_params_t const &connection_params,
                             std::shared_ptr<middle_t> const &mid,
                             std::shared_ptr<output_t> output,
                             std::size_t thread_count)
@@ -183,7 +183,8 @@ public:
         // For each thread we create a clone of the output.
         for (std::size_t i = 0; i < thread_count; ++i) {
             auto const midq = mid->get_query_instance();
-            auto copy_thread = std::make_shared<db_copy_thread_t>(conninfo);
+            auto copy_thread =
+                std::make_shared<db_copy_thread_t>(connection_params);
             m_clones.push_back(m_output->clone(midq, copy_thread));
         }
     }
@@ -350,7 +351,8 @@ private:
 
 void osmdata_t::process_dependents() const
 {
-    multithreaded_processor proc{m_conninfo, m_mid, m_output, m_num_procs};
+    multithreaded_processor proc{m_connection_params, m_mid, m_output,
+                                 m_num_procs};
 
     // stage 1b processing: process parents of changed objects
     if (m_dependency_manager->has_pending()) {

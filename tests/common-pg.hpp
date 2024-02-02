@@ -37,7 +37,10 @@ namespace testing::pg {
 class conn_t : public pg_conn_t
 {
 public:
-    conn_t(std::string const &conninfo) : pg_conn_t(conninfo) {}
+    conn_t(connection_params_t const &connection_params)
+    : pg_conn_t(connection_params)
+    {
+    }
 
     std::string result_as_string(std::string const &cmd) const
     {
@@ -100,7 +103,9 @@ public:
     tempdb_t() noexcept
     {
         try {
-            conn_t conn{"dbname=postgres"};
+            connection_params_t connection_params;
+            connection_params.set("dbname", "postgres");
+            conn_t conn{connection_params};
 
             m_db_name =
                 fmt::format("osm2pgsql-test-{}-{}", getpid(), time(nullptr));
@@ -138,7 +143,9 @@ public:
                 return;
             }
             try {
-                conn_t conn{"dbname=postgres"};
+                connection_params_t connection_params;
+                connection_params.set("dbname", "postgres");
+                conn_t conn{connection_params};
                 conn.exec(R"(DROP DATABASE IF EXISTS "{}")", m_db_name);
             } catch (...) {
                 fprintf(stderr, "DROP DATABASE failed. Ignored.\n");
@@ -146,9 +153,13 @@ public:
         }
     }
 
-    conn_t connect() const { return conn_t{conninfo()}; }
+    conn_t connect() const { return conn_t{connection_params()}; }
 
-    std::string conninfo() const { return "dbname=" + m_db_name; }
+    connection_params_t connection_params() const {
+        connection_params_t params;
+        params.set("dbname", m_db_name);
+        return params;
+    }
 
 private:
     std::string m_db_name;

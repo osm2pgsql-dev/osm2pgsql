@@ -26,13 +26,13 @@ public:
 
     bool want_version() const;
 
-    database_options_t database_options() const noexcept
+    connection_params_t connection_params() const noexcept
     {
-        return m_database_options;
+        return m_connection_params;
     }
 
 private:
-    database_options_t m_database_options;
+    connection_params_t m_connection_params;
 
     void init_database_options();
     void init_logging_options();

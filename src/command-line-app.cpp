@@ -32,29 +32,44 @@ bool command_line_app_t::want_version() const { return count("--version"); }
 
 void command_line_app_t::init_database_options()
 {
-    add_option("-d,--database", m_database_options.db)
+    add_option_function<std::string>("-d,--database",
+                                     [&](std::string const &value) {
+                                         m_connection_params.set("dbname",
+                                                                 value);
+                                     })
         ->description("Database name or PostgreSQL conninfo string.")
         ->type_name("DB")
         ->group("Database options");
 
-    add_option("-U,--user", m_database_options.username)
+    add_option_function<std::string>("-U,--user",
+                                     [&](std::string const &value) {
+                                         m_connection_params.set("user", value);
+                                     })
         ->description("Database user.")
         ->type_name("USERNAME")
         ->group("Database options");
 
-    add_flag_function(
-        "-W,--password",
-        [&](int64_t) { m_database_options.password = util::get_password(); })
+    add_flag_function("-W,--password",
+                      [&](int64_t) {
+                          m_connection_params.set("password",
+                                                  util::get_password());
+                      })
         ->description("Force password prompt.")
         ->group("Database options");
 
-    add_option("-H,--host", m_database_options.host)
+    add_option_function<std::string>("-H,--host",
+                                     [&](std::string const &value) {
+                                         m_connection_params.set("host", value);
+                                     })
         ->description(
             "Database server hostname or unix domain socket location.")
         ->type_name("HOST")
         ->group("Database options");
 
-    add_option("-P,--port", m_database_options.port)
+    add_option_function<std::string>("-P,--port",
+                                     [&](std::string const &value) {
+                                         m_connection_params.set("port", value);
+                                     })
         ->description("Database server port.")
         ->type_name("PORT")
         ->group("Database options");

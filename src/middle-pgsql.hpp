@@ -55,7 +55,8 @@ class middle_query_pgsql_t : public middle_query_t
 {
 public:
     middle_query_pgsql_t(
-        std::string const &conninfo, std::shared_ptr<node_locations_t> cache,
+        connection_params_t const &connection_params,
+        std::shared_ptr<node_locations_t> cache,
         std::shared_ptr<node_persistent_cache> persistent_cache,
         middle_pgsql_options const &options);
 
@@ -150,7 +151,7 @@ struct middle_pgsql_t : public middle_t
         void drop_table(pg_conn_t const &db_connection) const;
 
         ///< Open a new database connection and build index on this table.
-        void build_index(std::string const &conninfo) const;
+        void build_index(connection_params_t const &connection_params) const;
 
         std::string m_create_table;
         std::vector<std::string> m_prepare_queries;

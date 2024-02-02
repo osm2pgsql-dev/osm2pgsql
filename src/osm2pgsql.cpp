@@ -86,7 +86,7 @@ static file_info run(options_t const &options)
 
 static void check_db(options_t const &options)
 {
-    pg_conn_t const db_connection{options.conninfo};
+    pg_conn_t const db_connection{options.connection_params};
 
     init_database_capabilities(db_connection);
 
@@ -372,7 +372,8 @@ int main(int argc, char *argv[])
 
         check_db(options);
 
-        properties_t properties{options.conninfo, options.middle_dbschema};
+        properties_t properties{options.connection_params,
+                                options.middle_dbschema};
         if (options.append) {
             if (properties.load()) {
                 check_and_update_properties(&properties, &options);
