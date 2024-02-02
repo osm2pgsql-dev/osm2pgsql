@@ -225,8 +225,11 @@ static void check_options(options_t *options)
     if (!options->slim && !options->flat_node_file.empty()) {
         log_warn("Ignoring --flat-nodes/-F setting in non-slim mode");
     }
+}
 
-    // zoom level 31 is the technical limit because we use 32-bit integers for the x and y index of a tile ID
+static void check_options_expire(options_t *options) {
+    // Zoom level 31 is the technical limit because we use 32-bit integers for
+    // the x and y index of a tile ID.
     if (options->expire_tiles_zoom_min > 31) {
         options->expire_tiles_zoom_min = 31;
         log_warn("Minimum zoom level for tile expiry is too "
@@ -735,6 +738,8 @@ options_t parse_command_line(int argc, char *argv[])
     if (!options.projection) {
         options.projection = reprojection::create_projection(PROJ_SPHERE_MERC);
     }
+
+    check_options_expire(&options);
 
     check_options(&options);
 
