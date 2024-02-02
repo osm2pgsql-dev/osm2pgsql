@@ -27,6 +27,7 @@
 #endif
 
 #include <algorithm>
+#include <array>
 #include <cstdio>
 #include <cstring>
 #include <stdexcept>
@@ -128,6 +129,25 @@ void print_version()
 #endif
 }
 
+static void check_options_non_slim(CLI::App const &app)
+{
+    std::array<std::string, 7> const slim_options = {
+        "--flat-nodes",
+        "--middle-database-format",
+        "--middle-schema",
+        "--middle-with-nodes",
+        "--middle-way-node-index-id-shift",
+        "--tablespace-slim-data",
+        "--tablespace-slim-index"};
+
+    for (auto const &opt : slim_options) {
+        if (app.count(opt) > 0) {
+            log_warn("Ignoring option {}. Can only be used in --slim mode.",
+                     app.get_option(opt)->get_name(false, true));
+        }
+    }
+}
+
 static void check_options_output_flex(CLI::App const &app)
 {
     auto const ignored_options = app.get_options([](CLI::Option const *option) {
@@ -220,10 +240,6 @@ static void check_options(options_t *options)
             log_warn("RAM cache is disabled. This will likely slow down "
                      "processing a lot.");
         }
-    }
-
-    if (!options->slim && !options->flat_node_file.empty()) {
-        log_warn("Ignoring --flat-nodes/-F setting in non-slim mode");
     }
 }
 
@@ -685,6 +701,10 @@ options_t parse_command_line(int argc, char *argv[])
     if (app.want_version()) {
         options.command = command_t::version;
         return options;
+    }
+
+    if (!options.slim) {
+        check_options_non_slim(app);
     }
 
     if (options.output_backend == "flex") {
