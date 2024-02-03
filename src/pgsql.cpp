@@ -75,6 +75,11 @@ pg_conn_t::pg_conn_t(connection_params_t const &connection_params,
     if (!get_logger().debug_enabled()) {
         exec("SET client_min_messages = WARNING");
     }
+
+    // Disable synchronous_commit on all connections. For some connections it
+    // might not matter, especially if they read only, but then it doesn't
+    // hurt either.
+    exec("SET synchronous_commit = off");
 }
 
 void pg_conn_t::close()
