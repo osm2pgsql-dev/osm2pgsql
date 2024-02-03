@@ -66,7 +66,7 @@ void table_t::sync() { m_copy.sync(); }
 
 void table_t::connect()
 {
-    m_sql_conn = std::make_unique<pg_conn_t>(m_connection_params);
+    m_sql_conn = std::make_unique<pg_conn_t>(m_connection_params, "out.pgsql");
     //let commits happen faster by delaying when they actually occur
     m_sql_conn->exec("SET synchronous_commit = off");
 }

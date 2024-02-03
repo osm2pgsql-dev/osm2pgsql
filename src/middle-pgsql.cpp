@@ -168,7 +168,7 @@ void middle_pgsql_t::table_desc::build_index(
 
     // Use a temporary connection here because we might run in a separate
     // thread context.
-    pg_conn_t const db_connection{connection_params};
+    pg_conn_t const db_connection{connection_params, "middle.index"};
 
     log_info("Building index on table '{}'", name());
     for (auto const &query : m_create_fw_dep_indexes) {
@@ -1300,7 +1300,7 @@ middle_query_pgsql_t::middle_query_pgsql_t(
     std::shared_ptr<node_locations_t> cache,
     std::shared_ptr<node_persistent_cache> persistent_cache,
     middle_pgsql_options const &options)
-: m_sql_conn(connection_params), m_cache(std::move(cache)),
+: m_sql_conn(connection_params, "middle.query"), m_cache(std::move(cache)),
   m_persistent_cache(std::move(persistent_cache)), m_store_options(options)
 {
     // Disable JIT and parallel workers as they are known to cause
@@ -1649,7 +1649,7 @@ middle_pgsql_t::middle_pgsql_t(std::shared_ptr<thread_pool_t> thread_pool,
 : middle_t(std::move(thread_pool)), m_options(options),
   m_cache(std::make_unique<node_locations_t>(
       static_cast<std::size_t>(options->cache) * 1024UL * 1024UL)),
-  m_db_connection(m_options->connection_params),
+  m_db_connection(m_options->connection_params, "middle.main"),
   m_copy_thread(std::make_shared<db_copy_thread_t>(options->connection_params)),
   m_db_copy(m_copy_thread), m_append(options->append)
 {

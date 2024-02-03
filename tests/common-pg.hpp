@@ -38,7 +38,7 @@ class conn_t : public pg_conn_t
 {
 public:
     conn_t(connection_params_t const &connection_params)
-    : pg_conn_t(connection_params)
+    : pg_conn_t(connection_params, "test")
     {
     }
 

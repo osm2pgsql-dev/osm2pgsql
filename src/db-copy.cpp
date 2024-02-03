@@ -128,7 +128,7 @@ db_copy_thread_t::thread_t::thread_t(connection_params_t connection_params,
 void db_copy_thread_t::thread_t::operator()()
 {
     try {
-        m_conn = std::make_unique<pg_conn_t>(m_connection_params);
+        m_conn = std::make_unique<pg_conn_t>(m_connection_params, "copy");
 
         // Let commits happen faster by delaying when they actually occur.
         m_conn->exec("SET synchronous_commit = off");

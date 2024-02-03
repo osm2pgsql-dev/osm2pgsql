@@ -1241,7 +1241,7 @@ create_expire_tables(std::vector<expire_output_t> const &expire_outputs,
         return;
     }
 
-    pg_conn_t const connection{connection_params};
+    pg_conn_t const connection{connection_params, "out.flex.expire"};
     for (auto const &expire_output : expire_outputs) {
         if (!expire_output.table().empty()) {
             expire_output.create_output_table(connection);

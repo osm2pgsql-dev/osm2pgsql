@@ -92,7 +92,7 @@ void properties_t::set_string(std::string property, std::string value,
     auto const &inserted = *(r.first);
     log_debug("  Storing {}='{}'", inserted.first, inserted.second);
 
-    pg_conn_t const db_connection{m_connection_params};
+    pg_conn_t const db_connection{m_connection_params, "prop.set"};
     db_connection.exec(
         "PREPARE set_property(text, text) AS"
         " INSERT INTO {} (property, value) VALUES ($1, $2)"
@@ -119,7 +119,7 @@ void properties_t::store()
     auto const table = table_name();
 
     log_info("Storing properties to table '{}'.", table);
-    pg_conn_t const db_connection{m_connection_params};
+    pg_conn_t const db_connection{m_connection_params, "prop.store"};
 
     if (m_has_properties_table) {
         db_connection.exec("TRUNCATE {}", table);
@@ -153,7 +153,7 @@ bool properties_t::load()
     auto const table = table_name();
     log_info("Loading properties from table '{}'.", table);
 
-    pg_conn_t const db_connection{m_connection_params};
+    pg_conn_t const db_connection{m_connection_params, "prop.load"};
     auto const result = db_connection.exec("SELECT * FROM {}", table);
 
     for (int i = 0; i < result.num_tuples(); ++i) {

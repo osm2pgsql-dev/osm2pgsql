@@ -205,7 +205,7 @@ void run_tile_gen(connection_params_t const &connection_params,
 
     log_debug("Started generalizer thread for '{}'.",
               master_generalizer->strategy());
-    pg_conn_t db_connection{connection_params};
+    pg_conn_t db_connection{connection_params, "gen.tile"};
     std::string const strategy{master_generalizer->strategy()};
     auto generalizer = create_generalizer(strategy, &db_connection, &params);
 
@@ -286,7 +286,7 @@ public:
         write_to_debug_log(params, "Params (config):");
 
         log_debug("Connecting to database...");
-        pg_conn_t db_connection{m_connection_params};
+        pg_conn_t db_connection{m_connection_params, "gen.proc"};
 
         log_debug("Creating generalizer...");
         auto generalizer =
@@ -368,7 +368,7 @@ public:
             queries.emplace_back("COMMIT");
         }
 
-        pg_conn_t const db_connection{m_connection_params};
+        pg_conn_t const db_connection{m_connection_params, "gen.sql"};
 
         if (m_append && !if_has_rows.empty()) {
             auto const result = db_connection.exec(if_has_rows);
@@ -592,7 +592,7 @@ void genproc_t::run()
     }
 
     if (!m_append) {
-        pg_conn_t const db_connection{m_connection_params};
+        pg_conn_t const db_connection{m_connection_params, "gen.index"};
         for (auto const &table : m_tables) {
             if (table.id_type() == flex_table_index_type::tile &&
                 (table.always_build_id_index() || m_updatable)) {
@@ -702,7 +702,7 @@ int main(int argc, char *argv[])
 
         log_debug("Checking database capabilities...");
         {
-            pg_conn_t const db_connection{connection_params};
+            pg_conn_t const db_connection{connection_params, "gen.check"};
             init_database_capabilities(db_connection);
         }
 
