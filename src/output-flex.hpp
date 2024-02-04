@@ -290,8 +290,8 @@ private:
 
     std::vector<table_connection_t> m_table_connections;
 
-    /// The connections to the database server for each table.
-    std::vector<pg_conn_t> m_db_connections;
+    /// The connection to the database server.
+    pg_conn_t m_db_connection;
 
     // This is shared between all clones of the output and must only be
     // accessed while protected using the lua_mutex.
