@@ -138,7 +138,7 @@ TEST_CASE("create table and insert something")
 
 TEST_CASE("empty result object should return fatal status")
 {
-    pg_result_t result;
+    pg_result_t const result;
     REQUIRE(result.status() == PGRES_FATAL_ERROR);
     REQUIRE_FALSE(result);
     REQUIRE(result.num_fields() == 0);
