@@ -1076,7 +1076,10 @@ void output_flex_t::stop()
 {
     for (auto &table : m_table_connections) {
         table.task_set(thread_pool().submit([&]() {
-            table.stop(get_options()->slim && !get_options()->droptemp,
+            pg_conn_t const db_connection{get_options()->connection_params,
+                                          "out.flex.stop"};
+            table.stop(db_connection,
+                       get_options()->slim && !get_options()->droptemp,
                        get_options()->append);
         }));
     }
@@ -1151,13 +1154,15 @@ void output_flex_t::relation_add(osmium::Relation const &relation)
 }
 
 void output_flex_t::delete_from_table(table_connection_t *table_connection,
+                                      pg_conn_t const &db_connection,
                                       osmium::item_type type, osmid_t osm_id)
 {
     assert(table_connection);
     auto const id = table_connection->table().map_id(type, osm_id);
 
     if (table_connection->table().has_columns_with_expire()) {
-        auto const result = table_connection->get_geoms_by_id(type, id);
+        auto const result =
+            table_connection->get_geoms_by_id(db_connection, type, id);
         auto const num_tuples = result.num_tuples();
         if (num_tuples > 0) {
             int col = 0;
@@ -1180,7 +1185,7 @@ void output_flex_t::delete_from_tables(osmium::item_type type, osmid_t osm_id)
 {
     for (auto &table : m_table_connections) {
         if (table.table().matches_type(type) && table.table().has_id_column()) {
-            delete_from_table(&table, type, osm_id);
+            delete_from_table(&table, m_db_connection, type, osm_id);
         }
     }
 }
@@ -1225,8 +1230,7 @@ void output_flex_t::relation_modify(osmium::Relation const &rel)
 void output_flex_t::start()
 {
     for (auto &table : m_table_connections) {
-        table.connect(get_options()->connection_params);
-        table.start(get_options()->append);
+        table.start(m_db_connection, get_options()->append);
     }
 }
 
@@ -1254,6 +1258,7 @@ output_flex_t::output_flex_t(output_flex_t const *other,
                              std::shared_ptr<db_copy_thread_t> copy_thread)
 : output_t(other, std::move(mid)), m_tables(other->m_tables),
   m_expire_outputs(other->m_expire_outputs),
+  m_db_connection(get_options()->connection_params, "out.flex.thread"),
   m_stage2_way_ids(other->m_stage2_way_ids),
   m_copy_thread(std::move(copy_thread)), m_lua_state(other->m_lua_state),
   m_process_node(other->m_process_node), m_process_way(other->m_process_way),
@@ -1262,8 +1267,7 @@ output_flex_t::output_flex_t(output_flex_t const *other,
 {
     for (auto &table : *m_tables) {
         auto &tc = m_table_connections.emplace_back(&table, m_copy_thread);
-        tc.connect(get_options()->connection_params);
-        tc.prepare();
+        tc.prepare(m_db_connection);
     }
 
     for (auto &expire_output : *m_expire_outputs) {
@@ -1283,6 +1287,7 @@ output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
                              std::shared_ptr<thread_pool_t> thread_pool,
                              options_t const &options)
 : output_t(mid, std::move(thread_pool), options),
+  m_db_connection(get_options()->connection_params, "out.flex.main"),
   m_copy_thread(std::make_shared<db_copy_thread_t>(options.connection_params))
 {
     init_lua(options.style);
@@ -1509,8 +1514,8 @@ void output_flex_t::reprocess_marked()
         for (auto &table : m_table_connections) {
             if (table.table().matches_type(osmium::item_type::way) &&
                 table.table().has_id_column()) {
-                table.analyze();
-                table.create_id_index();
+                table.analyze(m_db_connection);
+                table.create_id_index(m_db_connection);
             }
         }
 

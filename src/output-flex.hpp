@@ -224,7 +224,9 @@ private:
     void add_row(table_connection_t *table_connection, OBJECT const &object);
 
     void delete_from_table(table_connection_t *table_connection,
+                           pg_conn_t const &db_connection,
                            osmium::item_type type, osmid_t osm_id);
+
     void delete_from_tables(osmium::item_type type, osmid_t osm_id);
 
     lua_State *lua_state() noexcept { return m_lua_state.get(); }
@@ -287,6 +289,9 @@ private:
         std::make_shared<std::vector<expire_output_t>>();
 
     std::vector<table_connection_t> m_table_connections;
+
+    /// The connection to the database server.
+    pg_conn_t m_db_connection;
 
     // This is shared between all clones of the output and must only be
     // accessed while protected using the lua_mutex.
