@@ -111,7 +111,9 @@ mandatory for short options too.
 
 -i, \--tablespace-index=TABLESPC
 :   Store all indexes in the PostgreSQL tablespace `TABLESPC`. This option
-    also affects the tables created by the pgsql output.
+    also affects the tables created by the pgsql output. This option is
+    deprecated. Use the \--tablespace-slim-index and/or \--tablespace-main-index
+    options instead.
 
 \--tablespace-slim-data=TABLESPC
 :   Store the slim mode tables in the given tablespace.
@@ -211,7 +213,8 @@ mandatory for short options too.
 
 -i, \--tablespace-index=TABLESPC
 :   Store all indexes in the PostgreSQL tablespace `TABLESPC`. This option
-    also affects the middle tables.
+    also affects the middle tables. This option is deprecated. Use the
+    \--tablespace-slim-index and/or \--tablespace-main-index options instead.
 
 \--tablespace-main-data=TABLESPC
 :   Store the data tables in the PostgreSQL tablespace `TABLESPC`.

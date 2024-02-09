@@ -724,6 +724,9 @@ options_t parse_command_line(int argc, char *argv[])
     }
 
     if (!tablespace_index.empty()) {
+        log_warn(
+            "The option -i, --tablespace-index is deprecated. Use "
+            "--tablespace-slim-index and/or --tablespace-main-index instead.");
         if (options.tblsmain_index.empty()) {
             options.tblsmain_index = tablespace_index;
         }

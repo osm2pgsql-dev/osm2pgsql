@@ -115,6 +115,9 @@ Example: \f[B]--bbox\f[R] \f[B]-0.5,51.25,0.5,51.75\f[R]
 -i, --tablespace-index=TABLESPC
 Store all indexes in the PostgreSQL tablespace \f[V]TABLESPC\f[R].
 This option also affects the tables created by the pgsql output.
+This option is deprecated.
+Use the --tablespace-slim-index and/or --tablespace-main-index options
+instead.
 .TP
 --tablespace-slim-data=TABLESPC
 Store the slim mode tables in the given tablespace.
@@ -245,6 +248,9 @@ no default.)
 -i, --tablespace-index=TABLESPC
 Store all indexes in the PostgreSQL tablespace \f[V]TABLESPC\f[R].
 This option also affects the middle tables.
+This option is deprecated.
+Use the --tablespace-slim-index and/or --tablespace-main-index options
+instead.
 .TP
 --tablespace-main-data=TABLESPC
 Store the data tables in the PostgreSQL tablespace \f[V]TABLESPC\f[R].
