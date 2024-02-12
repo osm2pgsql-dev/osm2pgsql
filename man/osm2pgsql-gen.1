@@ -1,4 +1,4 @@
-.TH "OSM2PGSQL" "1" "1.10.0" "" ""
+.TH "OSM2PGSQL" "1" "1.11.0" "" ""
 .SH NAME
 .PP
 osm2pgsql-gen - Generalize OpenStreetMap data - EXPERIMENTAL!
@@ -29,10 +29,7 @@ Mandatory arguments to long options are mandatory for short options too.
 .TP
 -a, --append
 Run in append mode.
-.TP
--c, --create
-Run in create mode.
-This is the default if \f[B]-a, --append\f[R] is not specified.
+The default is to run in create mode.
 .TP
 -S, --style=FILE
 The Lua config file.
@@ -44,6 +41,7 @@ Usually not required because it is read from the
 Specifies the number of parallel threads used for certain operations.
 Setting this to the number of available CPU cores is a reasonable
 starting point.
+Minimum value and default is 1, maximum value is 256.
 .SH HELP/VERSION OPTIONS
 .TP
 -h, --help
