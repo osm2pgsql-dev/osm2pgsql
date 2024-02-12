@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2023, University of Cincinnati, developed by Henry Schreiner
+// Copyright (c) 2017-2024, University of Cincinnati, developed by Henry Schreiner
 // under NSF AWARD 1414736 and by the respective contributors.
 // All rights reserved.
 //
@@ -35,9 +35,9 @@ namespace CLI {
 // [CLI11:app_hpp:verbatim]
 
 #ifndef CLI11_PARSE
-#define CLI11_PARSE(app, argc, argv)                                                                                   \
+#define CLI11_PARSE(app, ...)                                                                                          \
     try {                                                                                                              \
-        (app).parse((argc), (argv));                                                                                   \
+        (app).parse(__VA_ARGS__);                                                                                      \
     } catch(const CLI::ParseError &e) {                                                                                \
         return (app).exit(e);                                                                                          \
     }
@@ -149,6 +149,12 @@ class App {
     ///@}
     /// @name Help
     ///@{
+
+    /// Usage to put after program/subcommand description in the help output INHERITABLE
+    std::string usage_{};
+
+    /// This is a function that generates a usage to put after program/subcommand description in help output
+    std::function<std::string()> usage_callback_{};
 
     /// Footer to put after all options in the help output INHERITABLE
     std::string footer_{};
@@ -284,6 +290,14 @@ class App {
 
     ///@}
 
+#ifdef _WIN32
+    /// When normalizing argv to UTF-8 on Windows, this is the storage for normalized args.
+    std::vector<std::string> normalized_argv_{};
+
+    /// When normalizing argv to UTF-8 on Windows, this is the `char**` value returned to the user.
+    std::vector<char *> normalized_argv_view_{};
+#endif
+
     /// Special private constructor for subcommand
     App(std::string app_description, std::string app_name, App *parent);
 
@@ -302,6 +316,9 @@ class App {
 
     /// virtual destructor
     virtual ~App() = default;
+
+    /// Convert the contents of argv to UTF-8. Only does something on Windows, does nothing elsewhere.
+    CLI11_NODISCARD char **ensure_utf8(char **argv);
 
     /// Set a callback for execution when all parsing and processing has completed
     ///
@@ -834,12 +851,18 @@ class App {
     /// Parses the command line - throws errors.
     /// This must be called after the options are in but before the rest of the program.
     void parse(int argc, const char *const *argv);
+    void parse(int argc, const wchar_t *const *argv);
 
+  private:
+    template <class CharT> void parse_char_t(int argc, const CharT *const *argv);
+
+  public:
     /// Parse a single string as if it contained command line arguments.
     /// This function splits the string into arguments then calls parse(std::vector<std::string> &)
     /// the function takes an optional boolean argument specifying if the programName is included in the string to
     /// process
     void parse(std::string commandline, bool program_name_included = false);
+    void parse(std::wstring commandline, bool program_name_included = false);
 
     /// The real work is done here. Expects a reversed vector.
     /// Changes the vector to the remaining options.
@@ -947,6 +970,16 @@ class App {
     /// @name Help
     ///@{
 
+    /// Set usage.
+    App *usage(std::string usage_string) {
+        usage_ = std::move(usage_string);
+        return this;
+    }
+    /// Set usage.
+    App *usage(std::function<std::string()> usage_function) {
+        usage_callback_ = std::move(usage_function);
+        return this;
+    }
     /// Set footer.
     App *footer(std::string footer_string) {
         footer_ = std::move(footer_string);
@@ -1054,6 +1087,11 @@ class App {
 
     /// Get the group of this subcommand
     CLI11_NODISCARD const std::string &get_group() const { return group_; }
+
+    /// Generate and return the usage.
+    CLI11_NODISCARD std::string get_usage() const {
+        return (usage_callback_) ? usage_callback_() + '\n' + usage_ : usage_;
+    }
 
     /// Generate and return the footer.
     CLI11_NODISCARD std::string get_footer() const {
@@ -1192,6 +1230,9 @@ class App {
     /// Read and process a configuration file (main app only)
     void _process_config_file();
 
+    /// Read and process a particular configuration file
+    bool _process_config_file(const std::string &config_file, bool throw_error);
+
     /// Get envname options if not yet passed. Runs on *all* subcommands.
     void _process_env();
 
@@ -1264,8 +1305,9 @@ class App {
     bool _parse_subcommand(std::vector<std::string> &args);
 
     /// Parse a short (false) or long (true) argument, must be at the top of the list
+    /// if local_processing_only is set to true then fallthrough is disabled will return false if not found
     /// return true if the argument was processed or false if nothing was done
-    bool _parse_arg(std::vector<std::string> &args, detail::Classifier current_type);
+    bool _parse_arg(std::vector<std::string> &args, detail::Classifier current_type, bool local_processing_only);
 
     /// Trigger the pre_parse callback if needed
     void _trigger_pre_parse(std::size_t remaining_args);

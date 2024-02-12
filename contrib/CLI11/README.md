@@ -4,7 +4,6 @@
 
 [![Build Status Azure][azure-badge]][azure]
 [![Actions Status][actions-badge]][actions-link]
-[![Build Status AppVeyor][appveyor-badge]][appveyor]
 [![Code Coverage][codecov-badge]][codecov]
 [![Codacy Badge][codacy-badge]][codacy-link]
 [![License: BSD][license-badge]](./LICENSE) [![DOI][doi-badge]][doi-link]
@@ -14,7 +13,7 @@
 [![Latest release][repology-badge]][repology]
 [![Conan.io][conan-badge]][conan-link]
 [![Conda Version][conda-badge]][conda-link]
-[![Try CLI11 2.1 online][wandbox-badge]][wandbox-link]
+[![Try CLI11 2.4 online][wandbox-badge]][wandbox-link]
 
 [What's new](./CHANGELOG.md) • [Documentation][gitbook] • [API
 Reference][api-docs]
@@ -52,7 +51,6 @@ set with a simple and intuitive interface.
     - [Formatting](#formatting)
     - [Subclassing](#subclassing)
     - [How it works](#how-it-works)
-      - [Example](#example-1)
     - [Unicode support](#unicode-support)
       - [Note on using Unicode paths](#note-on-using-unicode-paths)
     - [Utilities](#utilities)
@@ -207,8 +205,8 @@ int main(int argc, char** argv) {
 }
 ```
 
-For more information about 🚧`ensure_utf8` the section on
-[Unicode support](#unicode-support) below. The 🚧`ensure_utf8` function is only
+For more information about 🆕`ensure_utf8` the section on
+[Unicode support](#unicode-support) below. The 🆕`ensure_utf8` function is only
 available in main currently and not in a release.
 
 <details><summary>Note: If you don't like macros, this is what that macro expands to: (click to expand)</summary><p>
@@ -417,7 +415,7 @@ Before parsing, you can set the following options:
   option. Options can be removed from the excludes list with
   `->remove_excludes(opt)`
 - `->envname(name)`: Gets the value from the environment if present and not
-  passed on the command line. 🚧 The value must also pass any validators to be
+  passed on the command line. 🆕 The value must also pass any validators to be
   used.
 - `->group(name)`: The help group to put the option in. No effect for positional
   options. Defaults to `"Options"`. Options given an empty string will not show
@@ -452,8 +450,8 @@ Before parsing, you can set the following options:
   This equivalent to calling `->delimiter(delim)` and `->join()`. Valid values
   are `CLI::MultiOptionPolicy::Throw`, `CLI::MultiOptionPolicy::Throw`,
   `CLI::MultiOptionPolicy::TakeLast`, `CLI::MultiOptionPolicy::TakeFirst`,
-  `CLI::MultiOptionPolicy::Join`, `CLI::MultiOptionPolicy::TakeAll`, and
-  `CLI::MultiOptionPolicy::Sum` 🆕.
+  `CLI::MultiOptionPolicy::Join`, `CLI::MultiOptionPolicy::TakeAll`,
+  `CLI::MultiOptionPolicy::Sum`, and `CLI::MultiOptionPolicy::Reverse` 🆕.
 - `->check(std::string(const std::string &), validator_name="",validator_description="")`:
   Define a check function. The function should return a non empty string with
   the error message if the check fails
@@ -695,13 +693,24 @@ NOTES: If the container used in `IsMember`, `Transformer`, or
 fast search is performed first, and if that fails a linear search with the
 filters on the key values is performed.
 
-- `CLI::FileOnDefaultPath(default_path)`: 🆕 can be used to check for files in a
+- `CLI::FileOnDefaultPath(default_path)`: can be used to check for files in a
   default path. If used as a transform it will first check that a file exists,
   if it does nothing further is done, if it does not it tries to add a default
   Path to the file and search there again. If the file does not exist an error
   is returned normally but this can be disabled using
   `CLI::FileOnDefaultPath(default_path, false)`. This allows multiple paths to
   be chained using multiple transform calls.
+
+- `CLI::EscapedString`: 🆕 can be used to process an escaped string. The
+  processing is equivalent to that used for TOML config files, see
+  [TOML strings](https://toml.io/en/v1.0.0#string). With 2 notable exceptions.
+  \` can also be used as a literal string notation, and it also allows binary
+  string notation see
+  [binary strings](https://cliutils.github.io/CLI11/book/chapters/config.html).
+  The escaped string processing will remove outer quotes if present, `"` will
+  indicate a string with potential escape sequences, `'` and \` will indicate a
+  literal string and the quotes removed but no escape sequences will be
+  processed. This is the same escape processing as used in config files.
 
 ##### Validator operations
 
@@ -864,7 +873,7 @@ nameless subcommands are allowed. Callbacks for nameless subcommands are only
 triggered if any options from the subcommand were parsed. Subcommand names given
 through the `add_subcommand` method have the same restrictions as option names.
 
-🚧 Options or flags in a subcommand may be directly specified using dot notation
+🆕 Options or flags in a subcommand may be directly specified using dot notation
 
 - `--subcommand.long=val` (long subcommand option)
 - `--subcommand.long val` (long subcommand option)
@@ -874,9 +883,11 @@ through the `add_subcommand` method have the same restrictions as option names.
 - `--subcommand1.subsub.f val` (short form nested subcommand option)
 
 The use of dot notation in this form is equivalent `--subcommand.long <args>` =>
-`subcommand --long <args> ++`. Nested subcommands also work `"sub1.subsub"`
-would trigger the subsub subcommand in `sub1`. This is equivalent to "sub1
-subsub"
+`subcommand --long <args> ++`. Nested subcommands also work `sub1.subsub` would
+trigger the subsub subcommand in `sub1`. This is equivalent to "sub1 subsub".
+Quotes around the subcommand names are permitted 🆕 following the TOML standard
+for such specification. This includes allowing escape sequences. For example
+`"subcommand".'f'` or `"subcommand.with.dots".arg1 = value`.
 
 #### Subcommand options
 
@@ -914,9 +925,9 @@ option_groups. These are:
   before matching. Validation is specified through `transform`, `check`, and
   `each` for an option. If an argument fails validation it is not an error and
   matching proceeds to the next available positional or extra arguments.
-- `.validate_optional_arguments()`:🆕 Specify that optional arguments should
-  pass validation before being assigned to an option. Validation is specified
-  through `transform`, `check`, and `each` for an option. If an argument fails
+- `.validate_optional_arguments()`: Specify that optional arguments should pass
+  validation before being assigned to an option. Validation is specified through
+  `transform`, `check`, and `each` for an option. If an argument fails
   validation it is not an error and matching proceeds to the next available
   positional subcommand or extra arguments.
 - `.excludes(option_or_subcommand)`: If given an option pointer or pointer to
@@ -1002,10 +1013,10 @@ option_groups. These are:
 - `.prefix_command()`: Like `allow_extras`, but stop immediately on the first
   unrecognized item. It is ideal for allowing your app or subcommand to be a
   "prefix" to calling another app.
-- `.usage(message)`: Replace text to appear at the start of the help string
+- `.usage(message)`: 🆕 Replace text to appear at the start of the help string
   after description.
-- `.usage(std::string())`: Set a callback to generate a string that will appear
-  at the start of the help string after description.
+- `.usage(std::string())`: 🆕 Set a callback to generate a string that will
+  appear at the start of the help string after description.
 - `.footer(message)`: Set text to appear at the bottom of the help string.
 - `.footer(std::string())`: Set a callback to generate a string that will appear
   at the end of the help string.
@@ -1026,9 +1037,11 @@ option_groups. These are:
   command line for a flag. The operation will throw an exception if the option
   name is not valid.
 
-> Note: if you have a fixed number of required positional options, that will
-> match before subcommand names. `{}` is an empty filter function, and any
-> positional argument will match before repeated subcommand names.
+> [!NOTE]
+>
+> If you have a fixed number of required positional options, that will match
+> before subcommand names. `{}` is an empty filter function, and any positional
+> argument will match before repeated subcommand names.
 
 #### Callbacks
 
@@ -1208,18 +1221,22 @@ option (like `set_help_flag`). Setting a configuration option is special. If it
 is present, it will be read along with the normal command line arguments. The
 file will be read if it exists, and does not throw an error unless `required` is
 `true`. Configuration files are in [TOML][] format by default, though the
-default reader can also accept files in INI format as well. It should be noted
-that CLI11 does not contain a full TOML parser but can read strings from most
-TOML file and run them through the CLI11 parser. Other formats can be added by
-an adept user, some variations are available through customization points in the
-default formatter. An example of a TOML file:
+default reader can also accept files in INI format as well. The config reader
+can read most aspects of TOML files including strings both literal 🆕 and with
+potential escape sequences 🆕, digit separators 🆕, and multi-line strings 🆕,
+and run them through the CLI11 parser. Other formats can be added by an adept
+user, some variations are available through customization points in the default
+formatter. An example of a TOML file:
 
 ```toml
 # Comments are supported, using a #
 # The default section is [default], case insensitive
 
 value = 1
+value2 = 123_456 # a string with separators
 str = "A string"
+str2 = "A string\nwith new lines"
+str3 = 'A literal "string"'
 vector = [1,2,3]
 str_vector = ["one","two","and three"]
 
@@ -1227,6 +1244,7 @@ str_vector = ["one","two","and three"]
 [subcommand]
 in_subcommand = Wow
 sub.subcommand = true
+"sub"."subcommand2" = "string_value"
 ```
 
 or equivalently in INI format
@@ -1278,9 +1296,9 @@ boolean values are not quoted.
 
 For options or flags which allow 0 arguments to be passed using an empty string
 in the config file, `{}`, or `[]` will convert the result to the default value
-specified via `default_str` or `default_val` on the option 🆕. If no user
-specified default is given the result is an empty string or the converted value
-of an empty string.
+specified via `default_str` or `default_val` on the option. If no user specified
+default is given the result is an empty string or the converted value of an
+empty string.
 
 NOTE: Transforms and checks can be used with the option pointer returned from
 set_config like any other option to validate the input if needed. It can also be
@@ -1408,71 +1426,46 @@ CLI11 supports Unicode and wide strings as defined in the
 
 When using the command line on Windows with unicode arguments, your `main`
 function may already receive broken Unicode. Parsing `argv` at that point will
-not give you a correct string. To fix this, you have three good options and two
-bad ones:
+not give you a correct string. To fix this, you have three options; the first is
+recommended for cross-platform support:
 
-1. Replace `argv` with `app.ensure_utf8(argv)` before any arguments are parsed.
-   `ensure_utf8` will do nothing on systems where `argv` is already in UTF-8
-   (Such as Linux or macOS) and return `argv` unmodified. On Windows, it will
-   discard `argv` and replace it with a correctly decoded array or arguments
-   from win32 API.
+1\. Replace `argv` with `app.ensure_utf8(argv)` before any arguments are parsed.
+`ensure_utf8` will do nothing on systems where `argv` is already in UTF-8 (Such
+as Linux or macOS) and return `argv` unmodified. On Windows, it will discard
+`argv` and replace it with a correctly decoded array or arguments from win32
+API.
 
-   ```cpp
-   int main(int argc, char** argv) {
-       CLI::App app;
-       argv = app.ensure_utf8(argv);  // new argv memory is held by app
-       // ...
-       CLI11_PARSE(app, argc, argv);
-   }
-   ```
+```cpp
+int main(int argc, char** argv) {
+    CLI::App app;
+    argv = app.ensure_utf8(argv);  // new argv memory is held by app
+    // ...
+    CLI11_PARSE(app, argc, argv);
+}
+```
 
-2. If you pass unmodified command-line arguments to CLI11, call `app.parse()`
-   instead of `app.parse(argc, argv)` (or `CLI11_PARSE(app)` instead of
-   `CLI11_PARSE(app, argc, argv)`). The library will find correct arguments by
-   itself.
+Be sure you do not modify `argv` before this function call, as the correct
+values will be reconstructed using Windows APIs and produced by this call. It
+has no effect on other platforms and just passes through `argv`.
 
-   Note: this approach may not work on weird OS configurations, such as when the
-   `/proc` dir is missing on Linux systems (see also
-   [#845](https://github.com/CLIUtils/CLI11/issues/845)).
+<details><summary>Other options (click to expand)</summary><p>
 
-   ```cpp
-   int main() {
-       CLI::App app;
-       // ...
-       CLI11_PARSE(app);
-   }
-   ```
+2\. Use the Windows-only non-standard `wmain` function, which accepts
+`wchar_t *argv[]` instead of `char* argv[]`. Parsing this will allow CLI to
+convert wide strings to UTF-8 without losing information.
 
-3. Get correct arguments with which the program was originally executed using
-   provided functions: `CLI::argc()` and `CLI::argv()`. These three methods are
-   the only cross-platform ways of handling unicode correctly.
+```cpp
+int wmain(int argc, wchar_t *argv[]) {
+    CLI::App app;
+    // ...
+    CLI11_PARSE(app, argc, argv);
+}
+```
 
-   ```cpp
-   int main() {
-       CLI::App app;
-       // ...
-       CLI11_PARSE(app, CLI::argc(), CLI::argv());
-   }
-   ```
-
-<details><summary>Bad options (click to expand)</summary><p>
-
-4. Use the Windows-only non-standard `wmain` function, which accepts
-   `wchar_t *argv[]` instead of `char* argv[]`. Parsing this will allow CLI to
-   convert wide strings to UTF-8 without losing information.
-
-   ```cpp
-   int wmain(int argc, wchar_t *argv[]) {
-       CLI::App app;
-       // ...
-       CLI11_PARSE(app, argc, argv);
-   }
-   ```
-
-5. Retrieve arguments yourself by using Windows APIs like
-   [`CommandLineToArgvW`](https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-commandlinetoargvw)
-   and pass them to CLI. This is what the library is doing under the hood in
-   `CLI::argv()`.
+3\. Retrieve arguments yourself by using Windows APIs like
+[`CommandLineToArgvW`](https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-commandlinetoargvw)
+and pass them to CLI. This is what the library is doing under the hood in
+`ensure_utf8`.
 
 </p></details>
 </br>
@@ -1580,6 +1573,9 @@ GitBook][gitbook].
 Several short examples of different features are included in the repository. A
 brief description of each is included here
 
+- [arg_capture](https://github.com/CLIUtils/CLI11/blob/main/examples/arg_capture.cpp):
+  Example of capturing all remaining arguments after a specific option, using
+  subcommand and prefix_command() with an alias.
 - [callback_passthrough](https://github.com/CLIUtils/CLI11/blob/main/examples/callback_passthrough.cpp):
   Example of directly passing remaining arguments through to a callback function
   which generates a CLI11 application based on existing arguments.
@@ -1661,71 +1657,100 @@ thanks to all the contributors
 <table>
   <tbody>
     <tr>
-      <td align="center" valign="top" width="14.28%"><a href="http://iscinumpy.gitlab.io"><img src="https://avatars1.githubusercontent.com/u/4616906?v=4?s=100" width="100px;" alt="Henry Schreiner"/><br /><sub><b>Henry Schreiner</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/issues?q=author%3Ahenryiii" title="Bug reports">🐛</a> <a href="https://github.com/CLIUtils/CLI11/commits?author=henryiii" title="Documentation">📖</a> <a href="https://github.com/CLIUtils/CLI11/commits?author=henryiii" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/phlptp"><img src="https://avatars0.githubusercontent.com/u/20667153?v=4?s=100" width="100px;" alt="Philip Top"/><br /><sub><b>Philip Top</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/issues?q=author%3Aphlptp" title="Bug reports">🐛</a> <a href="https://github.com/CLIUtils/CLI11/commits?author=phlptp" title="Documentation">📖</a> <a href="https://github.com/CLIUtils/CLI11/commits?author=phlptp" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://www.linkedin.com/in/cbachhuber/"><img src="https://avatars0.githubusercontent.com/u/27212661?v=4?s=100" width="100px;" alt="Christoph Bachhuber"/><br /><sub><b>Christoph Bachhuber</b></sub></a><br /><a href="#example-cbachhuber" title="Examples">💡</a> <a href="https://github.com/CLIUtils/CLI11/commits?author=cbachhuber" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://lambdafu.net/"><img src="https://avatars1.githubusercontent.com/u/1138455?v=4?s=100" width="100px;" alt="Marcus Brinkmann"/><br /><sub><b>Marcus Brinkmann</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/issues?q=author%3Alambdafu" title="Bug reports">🐛</a> <a href="https://github.com/CLIUtils/CLI11/commits?author=lambdafu" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/SkyToGround"><img src="https://avatars1.githubusercontent.com/u/58835?v=4?s=100" width="100px;" alt="Jonas Nilsson"/><br /><sub><b>Jonas Nilsson</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/issues?q=author%3ASkyToGround" title="Bug reports">🐛</a> <a href="https://github.com/CLIUtils/CLI11/commits?author=SkyToGround" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/dvj"><img src="https://avatars2.githubusercontent.com/u/77217?v=4?s=100" width="100px;" alt="Doug Johnston"/><br /><sub><b>Doug Johnston</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/issues?q=author%3Advj" title="Bug reports">🐛</a> <a href="https://github.com/CLIUtils/CLI11/commits?author=dvj" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="http://lucas-czech.de"><img src="https://avatars0.githubusercontent.com/u/4741887?v=4?s=100" width="100px;" alt="Lucas Czech"/><br /><sub><b>Lucas Czech</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/issues?q=author%3Alczech" title="Bug reports">🐛</a> <a href="https://github.com/CLIUtils/CLI11/commits?author=lczech" title="Code">💻</a></td>
-    </tr>
-    <tr>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/rafiw"><img src="https://avatars3.githubusercontent.com/u/3034707?v=4?s=100" width="100px;" alt="Rafi Wiener"/><br /><sub><b>Rafi Wiener</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/issues?q=author%3Arafiw" title="Bug reports">🐛</a> <a href="https://github.com/CLIUtils/CLI11/commits?author=rafiw" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/mensinda"><img src="https://avatars3.githubusercontent.com/u/3407462?v=4?s=100" width="100px;" alt="Daniel Mensinger"/><br /><sub><b>Daniel Mensinger</b></sub></a><br /><a href="#platform-mensinda" title="Packaging/porting to new platform">📦</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/jbriales"><img src="https://avatars1.githubusercontent.com/u/6850478?v=4?s=100" width="100px;" alt="Jesus Briales"/><br /><sub><b>Jesus Briales</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=jbriales" title="Code">💻</a> <a href="https://github.com/CLIUtils/CLI11/issues?q=author%3Ajbriales" title="Bug reports">🐛</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://seanfisk.com/"><img src="https://avatars0.githubusercontent.com/u/410322?v=4?s=100" width="100px;" alt="Sean Fisk"/><br /><sub><b>Sean Fisk</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/issues?q=author%3Aseanfisk" title="Bug reports">🐛</a> <a href="https://github.com/CLIUtils/CLI11/commits?author=seanfisk" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/fpeng1985"><img src="https://avatars1.githubusercontent.com/u/87981?v=4?s=100" width="100px;" alt="fpeng1985"/><br /><sub><b>fpeng1985</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=fpeng1985" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/almikhayl"><img src="https://avatars2.githubusercontent.com/u/6747040?v=4?s=100" width="100px;" alt="almikhayl"/><br /><sub><b>almikhayl</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=almikhayl" title="Code">💻</a> <a href="#platform-almikhayl" title="Packaging/porting to new platform">📦</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://profiles.sussex.ac.uk/p281168-alex-dewar/publications"><img src="https://avatars.githubusercontent.com/u/23149834?v=4?s=100" width="100px;" alt="Alex Dewar"/><br /><sub><b>Alex Dewar</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=alexdewar" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/andrew-hardin"><img src="https://avatars0.githubusercontent.com/u/16496326?v=4?s=100" width="100px;" alt="Andrew Hardin"/><br /><sub><b>Andrew Hardin</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=andrew-hardin" title="Code">💻</a></td>
-    </tr>
-    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/andreasxp"><img src="https://avatars.githubusercontent.com/u/28830446?v=4?s=100" width="100px;" alt="Andrey Zhukov"/><br /><sub><b>Andrey Zhukov</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=andreasxp" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/SX91"><img src="https://avatars2.githubusercontent.com/u/754754?v=4?s=100" width="100px;" alt="Anton"/><br /><sub><b>Anton</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=SX91" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/helmesjo"><img src="https://avatars0.githubusercontent.com/u/2501070?v=4?s=100" width="100px;" alt="Fred Helmesjö"/><br /><sub><b>Fred Helmesjö</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/issues?q=author%3Ahelmesjo" title="Bug reports">🐛</a> <a href="https://github.com/CLIUtils/CLI11/commits?author=helmesjo" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/skannan89"><img src="https://avatars0.githubusercontent.com/u/11918764?v=4?s=100" width="100px;" alt="Kannan"/><br /><sub><b>Kannan</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/issues?q=author%3Askannan89" title="Bug reports">🐛</a> <a href="https://github.com/CLIUtils/CLI11/commits?author=skannan89" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="http://himvis.com"><img src="https://avatars3.githubusercontent.com/u/465279?v=4?s=100" width="100px;" alt="Khem Raj"/><br /><sub><b>Khem Raj</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=kraj" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://www.mogigoma.com/"><img src="https://avatars2.githubusercontent.com/u/130862?v=4?s=100" width="100px;" alt="Mak Kolybabi"/><br /><sub><b>Mak Kolybabi</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=mogigoma" title="Documentation">📖</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="http://msoeken.github.io"><img src="https://avatars0.githubusercontent.com/u/1998245?v=4?s=100" width="100px;" alt="Mathias Soeken"/><br /><sub><b>Mathias Soeken</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=msoeken" title="Documentation">📖</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/nathanhourt"><img src="https://avatars2.githubusercontent.com/u/271977?v=4?s=100" width="100px;" alt="Nathan Hourt"/><br /><sub><b>Nathan Hourt</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/issues?q=author%3Anathanhourt" title="Bug reports">🐛</a> <a href="https://github.com/CLIUtils/CLI11/commits?author=nathanhourt" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/trokhymchuk"><img src="https://avatars.githubusercontent.com/u/66204814?v=4?s=100" width="100px;" alt="Artem Trokhymchuk "/><br /><sub><b>Artem Trokhymchuk </b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=trokhymchuk" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/BenjaminBeichler"><img src="https://avatars.githubusercontent.com/u/1441492?v=4?s=100" width="100px;" alt="Benjamin Beichler"/><br /><sub><b>Benjamin Beichler</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=BenjaminBeichler" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://www.linkedin.com/in/cbachhuber/"><img src="https://avatars0.githubusercontent.com/u/27212661?v=4?s=100" width="100px;" alt="Christoph Bachhuber"/><br /><sub><b>Christoph Bachhuber</b></sub></a><br /><a href="#example-cbachhuber" title="Examples">💡</a> <a href="https://github.com/CLIUtils/CLI11/commits?author=cbachhuber" title="Code">💻</a></td>
     </tr>
     <tr>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/pleroux0"><img src="https://avatars2.githubusercontent.com/u/39619854?v=4?s=100" width="100px;" alt="Paul le Roux"/><br /><sub><b>Paul le Roux</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=pleroux0" title="Code">💻</a> <a href="#platform-pleroux0" title="Packaging/porting to new platform">📦</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/chfast"><img src="https://avatars1.githubusercontent.com/u/573380?v=4?s=100" width="100px;" alt="Paweł Bylica"/><br /><sub><b>Paweł Bylica</b></sub></a><br /><a href="#platform-chfast" title="Packaging/porting to new platform">📦</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/peterazmanov"><img src="https://avatars0.githubusercontent.com/u/15322318?v=4?s=100" width="100px;" alt="Peter Azmanov"/><br /><sub><b>Peter Azmanov</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=peterazmanov" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/delpinux"><img src="https://avatars0.githubusercontent.com/u/35096584?v=4?s=100" width="100px;" alt="Stéphane Del Pino"/><br /><sub><b>Stéphane Del Pino</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=delpinux" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/metopa"><img src="https://avatars2.githubusercontent.com/u/3974178?v=4?s=100" width="100px;" alt="Viacheslav Kroilov"/><br /><sub><b>Viacheslav Kroilov</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=metopa" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="http://cs.odu.edu/~ctsolakis"><img src="https://avatars0.githubusercontent.com/u/6725596?v=4?s=100" width="100px;" alt="christos"/><br /><sub><b>christos</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=ChristosT" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/deining"><img src="https://avatars3.githubusercontent.com/u/18169566?v=4?s=100" width="100px;" alt="deining"/><br /><sub><b>deining</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=deining" title="Documentation">📖</a></td>
-    </tr>
-    <tr>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/elszon"><img src="https://avatars0.githubusercontent.com/u/2971495?v=4?s=100" width="100px;" alt="elszon"/><br /><sub><b>elszon</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=elszon" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/ncihnegn"><img src="https://avatars3.githubusercontent.com/u/12021721?v=4?s=100" width="100px;" alt="ncihnegn"/><br /><sub><b>ncihnegn</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=ncihnegn" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/nurelin"><img src="https://avatars3.githubusercontent.com/u/5276274?v=4?s=100" width="100px;" alt="nurelin"/><br /><sub><b>nurelin</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=nurelin" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/ryan4729"><img src="https://avatars3.githubusercontent.com/u/40183301?v=4?s=100" width="100px;" alt="ryan4729"/><br /><sub><b>ryan4729</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=ryan4729" title="Tests">⚠️</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://izzys.casa"><img src="https://avatars0.githubusercontent.com/u/63051?v=4?s=100" width="100px;" alt="Isabella Muerte"/><br /><sub><b>Isabella Muerte</b></sub></a><br /><a href="#platform-slurps-mad-rips" title="Packaging/porting to new platform">📦</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/KOLANICH"><img src="https://avatars1.githubusercontent.com/u/240344?v=4?s=100" width="100px;" alt="KOLANICH"/><br /><sub><b>KOLANICH</b></sub></a><br /><a href="#platform-KOLANICH" title="Packaging/porting to new platform">📦</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/jgerityneurala"><img src="https://avatars2.githubusercontent.com/u/57360646?v=4?s=100" width="100px;" alt="James Gerity"/><br /><sub><b>James Gerity</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=jgerityneurala" title="Documentation">📖</a></td>
-    </tr>
-    <tr>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/jsoref"><img src="https://avatars0.githubusercontent.com/u/2119212?v=4?s=100" width="100px;" alt="Josh Soref"/><br /><sub><b>Josh Soref</b></sub></a><br /><a href="#tool-jsoref" title="Tools">🔧</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/geir-t"><img src="https://avatars3.githubusercontent.com/u/35292136?v=4?s=100" width="100px;" alt="geir-t"/><br /><sub><b>geir-t</b></sub></a><br /><a href="#platform-geir-t" title="Packaging/porting to new platform">📦</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://ondrejcertik.com/"><img src="https://avatars3.githubusercontent.com/u/20568?v=4?s=100" width="100px;" alt="Ondřej Čertík"/><br /><sub><b>Ondřej Čertík</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/issues?q=author%3Acertik" title="Bug reports">🐛</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="http://sam.hocevar.net/"><img src="https://avatars2.githubusercontent.com/u/245089?v=4?s=100" width="100px;" alt="Sam Hocevar"/><br /><sub><b>Sam Hocevar</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=samhocevar" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="http://www.ratml.org/"><img src="https://avatars0.githubusercontent.com/u/1845039?v=4?s=100" width="100px;" alt="Ryan Curtin"/><br /><sub><b>Ryan Curtin</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=rcurtin" title="Documentation">📖</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://mbh.sh"><img src="https://avatars3.githubusercontent.com/u/20403931?v=4?s=100" width="100px;" alt="Michael Hall"/><br /><sub><b>Michael Hall</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=mbhall88" title="Documentation">📖</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/ferdymercury"><img src="https://avatars3.githubusercontent.com/u/10653970?v=4?s=100" width="100px;" alt="ferdymercury"/><br /><sub><b>ferdymercury</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=ferdymercury" title="Documentation">📖</a></td>
-    </tr>
-    <tr>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/jakoblover"><img src="https://avatars0.githubusercontent.com/u/14160441?v=4?s=100" width="100px;" alt="Jakob Lover"/><br /><sub><b>Jakob Lover</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=jakoblover" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/ZeeD26"><img src="https://avatars2.githubusercontent.com/u/2487468?v=4?s=100" width="100px;" alt="Dominik Steinberger"/><br /><sub><b>Dominik Steinberger</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=ZeeD26" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/dfleury2"><img src="https://avatars1.githubusercontent.com/u/4805384?v=4?s=100" width="100px;" alt="D. Fleury"/><br /><sub><b>D. Fleury</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=dfleury2" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/dbarowy"><img src="https://avatars3.githubusercontent.com/u/573142?v=4?s=100" width="100px;" alt="Dan Barowy"/><br /><sub><b>Dan Barowy</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=dbarowy" title="Documentation">📖</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/paddy-hack"><img src="https://avatars.githubusercontent.com/u/6804372?v=4?s=100" width="100px;" alt="Olaf Meeuwissen"/><br /><sub><b>Olaf Meeuwissen</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=paddy-hack" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/dryleev"><img src="https://avatars.githubusercontent.com/u/83670813?v=4?s=100" width="100px;" alt="dryleev"/><br /><sub><b>dryleev</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=dryleev" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/mensinda"><img src="https://avatars3.githubusercontent.com/u/3407462?v=4?s=100" width="100px;" alt="Daniel Mensinger"/><br /><sub><b>Daniel Mensinger</b></sub></a><br /><a href="#platform-mensinda" title="Packaging/porting to new platform">📦</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/DarkWingMcQuack"><img src="https://avatars.githubusercontent.com/u/38857302?v=4?s=100" width="100px;" alt="DarkWingMcQuack"/><br /><sub><b>DarkWingMcQuack</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=DarkWingMcQuack" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/ZeeD26"><img src="https://avatars2.githubusercontent.com/u/2487468?v=4?s=100" width="100px;" alt="Dominik Steinberger"/><br /><sub><b>Dominik Steinberger</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=ZeeD26" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/dvj"><img src="https://avatars2.githubusercontent.com/u/77217?v=4?s=100" width="100px;" alt="Doug Johnston"/><br /><sub><b>Doug Johnston</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/issues?q=author%3Advj" title="Bug reports">🐛</a> <a href="https://github.com/CLIUtils/CLI11/commits?author=dvj" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/eli-schwartz"><img src="https://avatars.githubusercontent.com/u/6551424?v=4?s=100" width="100px;" alt="Eli Schwartz"/><br /><sub><b>Eli Schwartz</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=eli-schwartz" title="Code">💻</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/helmesjo"><img src="https://avatars0.githubusercontent.com/u/2501070?v=4?s=100" width="100px;" alt="Fred Helmesjö"/><br /><sub><b>Fred Helmesjö</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/issues?q=author%3Ahelmesjo" title="Bug reports">🐛</a> <a href="https://github.com/CLIUtils/CLI11/commits?author=helmesjo" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="http://iscinumpy.gitlab.io"><img src="https://avatars1.githubusercontent.com/u/4616906?v=4?s=100" width="100px;" alt="Henry Schreiner"/><br /><sub><b>Henry Schreiner</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/issues?q=author%3Ahenryiii" title="Bug reports">🐛</a> <a href="https://github.com/CLIUtils/CLI11/commits?author=henryiii" title="Documentation">📖</a> <a href="https://github.com/CLIUtils/CLI11/commits?author=henryiii" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://izzys.casa"><img src="https://avatars0.githubusercontent.com/u/63051?v=4?s=100" width="100px;" alt="Isabella Muerte"/><br /><sub><b>Isabella Muerte</b></sub></a><br /><a href="#platform-slurps-mad-rips" title="Packaging/porting to new platform">📦</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://izzys.casa/"><img src="https://avatars.githubusercontent.com/u/63051?v=4?s=100" width="100px;" alt="Izzy Muerte"/><br /><sub><b>Izzy Muerte</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=bruxisma" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/jakoblover"><img src="https://avatars0.githubusercontent.com/u/14160441?v=4?s=100" width="100px;" alt="Jakob Lover"/><br /><sub><b>Jakob Lover</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=jakoblover" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/jgerityneurala"><img src="https://avatars2.githubusercontent.com/u/57360646?v=4?s=100" width="100px;" alt="James Gerity"/><br /><sub><b>James Gerity</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=jgerityneurala" title="Documentation">📖</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/jbriales"><img src="https://avatars1.githubusercontent.com/u/6850478?v=4?s=100" width="100px;" alt="Jesus Briales"/><br /><sub><b>Jesus Briales</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=jbriales" title="Code">💻</a> <a href="https://github.com/CLIUtils/CLI11/issues?q=author%3Ajbriales" title="Bug reports">🐛</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/SkyToGround"><img src="https://avatars1.githubusercontent.com/u/58835?v=4?s=100" width="100px;" alt="Jonas Nilsson"/><br /><sub><b>Jonas Nilsson</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/issues?q=author%3ASkyToGround" title="Bug reports">🐛</a> <a href="https://github.com/CLIUtils/CLI11/commits?author=SkyToGround" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/j-rivero"><img src="https://avatars.githubusercontent.com/u/2098802?v=4?s=100" width="100px;" alt="Jose Luis Rivero"/><br /><sub><b>Jose Luis Rivero</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=j-rivero" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/jsoref"><img src="https://avatars0.githubusercontent.com/u/2119212?v=4?s=100" width="100px;" alt="Josh Soref"/><br /><sub><b>Josh Soref</b></sub></a><br /><a href="#tool-jsoref" title="Tools">🔧</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/KOLANICH"><img src="https://avatars1.githubusercontent.com/u/240344?v=4?s=100" width="100px;" alt="KOLANICH"/><br /><sub><b>KOLANICH</b></sub></a><br /><a href="#platform-KOLANICH" title="Packaging/porting to new platform">📦</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/skannan89"><img src="https://avatars0.githubusercontent.com/u/11918764?v=4?s=100" width="100px;" alt="Kannan"/><br /><sub><b>Kannan</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/issues?q=author%3Askannan89" title="Bug reports">🐛</a> <a href="https://github.com/CLIUtils/CLI11/commits?author=skannan89" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="http://himvis.com"><img src="https://avatars3.githubusercontent.com/u/465279?v=4?s=100" width="100px;" alt="Khem Raj"/><br /><sub><b>Khem Raj</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=kraj" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/looopTools"><img src="https://avatars.githubusercontent.com/u/1943536?v=4?s=100" width="100px;" alt="Lars Nielsen"/><br /><sub><b>Lars Nielsen</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=looopTools" title="Code">💻</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="http://lucas-czech.de"><img src="https://avatars0.githubusercontent.com/u/4741887?v=4?s=100" width="100px;" alt="Lucas Czech"/><br /><sub><b>Lucas Czech</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/issues?q=author%3Alczech" title="Bug reports">🐛</a> <a href="https://github.com/CLIUtils/CLI11/commits?author=lczech" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://www.mogigoma.com/"><img src="https://avatars2.githubusercontent.com/u/130862?v=4?s=100" width="100px;" alt="Mak Kolybabi"/><br /><sub><b>Mak Kolybabi</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=mogigoma" title="Documentation">📖</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/cetius"><img src="https://avatars.githubusercontent.com/u/6552472?v=4?s=100" width="100px;" alt="Marcin Ropa"/><br /><sub><b>Marcin Ropa</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=cetius" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://lambdafu.net/"><img src="https://avatars1.githubusercontent.com/u/1138455?v=4?s=100" width="100px;" alt="Marcus Brinkmann"/><br /><sub><b>Marcus Brinkmann</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/issues?q=author%3Alambdafu" title="Bug reports">🐛</a> <a href="https://github.com/CLIUtils/CLI11/commits?author=lambdafu" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="http://msoeken.github.io"><img src="https://avatars0.githubusercontent.com/u/1998245?v=4?s=100" width="100px;" alt="Mathias Soeken"/><br /><sub><b>Mathias Soeken</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=msoeken" title="Documentation">📖</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://www.mmmccormick.com/"><img src="https://avatars.githubusercontent.com/u/25432?v=4?s=100" width="100px;" alt="Matt McCormick"/><br /><sub><b>Matt McCormick</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=thewtex" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/AnticliMaxtic"><img src="https://avatars.githubusercontent.com/u/43995389?v=4?s=100" width="100px;" alt="Max"/><br /><sub><b>Max</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=AnticliMaxtic" title="Code">💻</a></td>
     </tr>
     <tr>
-      <td align="center" valign="top" width="14.28%"><a href="https://profiles.sussex.ac.uk/p281168-alex-dewar/publications"><img src="https://avatars.githubusercontent.com/u/23149834?v=4?s=100" width="100px;" alt="Alex Dewar"/><br /><sub><b>Alex Dewar</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=alexdewar" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/trokhymchuk"><img src="https://avatars.githubusercontent.com/u/66204814?v=4?s=100" width="100px;" alt="Artem Trokhymchuk "/><br /><sub><b>Artem Trokhymchuk </b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=trokhymchuk" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://mbh.sh"><img src="https://avatars3.githubusercontent.com/u/20403931?v=4?s=100" width="100px;" alt="Michael Hall"/><br /><sub><b>Michael Hall</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=mbhall88" title="Documentation">📖</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/nathanhourt"><img src="https://avatars2.githubusercontent.com/u/271977?v=4?s=100" width="100px;" alt="Nathan Hourt"/><br /><sub><b>Nathan Hourt</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/issues?q=author%3Anathanhourt" title="Bug reports">🐛</a> <a href="https://github.com/CLIUtils/CLI11/commits?author=nathanhourt" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/nathanielhourt"><img src="https://avatars.githubusercontent.com/u/271977?v=4?s=100" width="100px;" alt="Nathaniel Hourt"/><br /><sub><b>Nathaniel Hourt</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=nathanielhourt" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/paddy-hack"><img src="https://avatars.githubusercontent.com/u/6804372?v=4?s=100" width="100px;" alt="Olaf Meeuwissen"/><br /><sub><b>Olaf Meeuwissen</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=paddy-hack" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://ondrejcertik.com/"><img src="https://avatars3.githubusercontent.com/u/20568?v=4?s=100" width="100px;" alt="Ondřej Čertík"/><br /><sub><b>Ondřej Čertík</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/issues?q=author%3Acertik" title="Bug reports">🐛</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/pleroux0"><img src="https://avatars2.githubusercontent.com/u/39619854?v=4?s=100" width="100px;" alt="Paul le Roux"/><br /><sub><b>Paul le Roux</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=pleroux0" title="Code">💻</a> <a href="#platform-pleroux0" title="Packaging/porting to new platform">📦</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/chfast"><img src="https://avatars1.githubusercontent.com/u/573380?v=4?s=100" width="100px;" alt="Paweł Bylica"/><br /><sub><b>Paweł Bylica</b></sub></a><br /><a href="#platform-chfast" title="Packaging/porting to new platform">📦</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/PeteAudinate"><img src="https://avatars.githubusercontent.com/u/99274874?v=4?s=100" width="100px;" alt="PeteAudinate"/><br /><sub><b>PeteAudinate</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=PeteAudinate" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/peterazmanov"><img src="https://avatars0.githubusercontent.com/u/15322318?v=4?s=100" width="100px;" alt="Peter Azmanov"/><br /><sub><b>Peter Azmanov</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=peterazmanov" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/peterh"><img src="https://avatars.githubusercontent.com/u/79339?v=4?s=100" width="100px;" alt="Peter Harris"/><br /><sub><b>Peter Harris</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=peterh" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="http://ptheywood.uk/"><img src="https://avatars.githubusercontent.com/u/628937?v=4?s=100" width="100px;" alt="Peter Heywood"/><br /><sub><b>Peter Heywood</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=ptheywood" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/phlptp"><img src="https://avatars0.githubusercontent.com/u/20667153?v=4?s=100" width="100px;" alt="Philip Top"/><br /><sub><b>Philip Top</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/issues?q=author%3Aphlptp" title="Bug reports">🐛</a> <a href="https://github.com/CLIUtils/CLI11/commits?author=phlptp" title="Documentation">📖</a> <a href="https://github.com/CLIUtils/CLI11/commits?author=phlptp" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/rafiw"><img src="https://avatars3.githubusercontent.com/u/3034707?v=4?s=100" width="100px;" alt="Rafi Wiener"/><br /><sub><b>Rafi Wiener</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/issues?q=author%3Arafiw" title="Bug reports">🐛</a> <a href="https://github.com/CLIUtils/CLI11/commits?author=rafiw" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/RangeMachine"><img src="https://avatars.githubusercontent.com/u/11577601?v=4?s=100" width="100px;" alt="RangeMachine"/><br /><sub><b>RangeMachine</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=RangeMachine" title="Code">💻</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/Krzmbrzl"><img src="https://avatars.githubusercontent.com/u/12751591?v=4?s=100" width="100px;" alt="Robert Adam"/><br /><sub><b>Robert Adam</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=Krzmbrzl" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="http://www.ratml.org/"><img src="https://avatars0.githubusercontent.com/u/1845039?v=4?s=100" width="100px;" alt="Ryan Curtin"/><br /><sub><b>Ryan Curtin</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=rcurtin" title="Documentation">📖</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/SherlockInSpace"><img src="https://avatars.githubusercontent.com/u/5507786?v=4?s=100" width="100px;" alt="Ryan Sherlock"/><br /><sub><b>Ryan Sherlock</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=SherlockInSpace" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="http://sam.hocevar.net/"><img src="https://avatars2.githubusercontent.com/u/245089?v=4?s=100" width="100px;" alt="Sam Hocevar"/><br /><sub><b>Sam Hocevar</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=samhocevar" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://seanfisk.com/"><img src="https://avatars0.githubusercontent.com/u/410322?v=4?s=100" width="100px;" alt="Sean Fisk"/><br /><sub><b>Sean Fisk</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/issues?q=author%3Aseanfisk" title="Bug reports">🐛</a> <a href="https://github.com/CLIUtils/CLI11/commits?author=seanfisk" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/delpinux"><img src="https://avatars0.githubusercontent.com/u/35096584?v=4?s=100" width="100px;" alt="Stéphane Del Pino"/><br /><sub><b>Stéphane Del Pino</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=delpinux" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/metopa"><img src="https://avatars2.githubusercontent.com/u/3974178?v=4?s=100" width="100px;" alt="Viacheslav Kroilov"/><br /><sub><b>Viacheslav Kroilov</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=metopa" title="Code">💻</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/VolkerChristian"><img src="https://avatars.githubusercontent.com/u/18554540?v=4?s=100" width="100px;" alt="Volker Christian"/><br /><sub><b>Volker Christian</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=VolkerChristian" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/almikhayl"><img src="https://avatars2.githubusercontent.com/u/6747040?v=4?s=100" width="100px;" alt="almikhayl"/><br /><sub><b>almikhayl</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=almikhayl" title="Code">💻</a> <a href="#platform-almikhayl" title="Packaging/porting to new platform">📦</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/ayum"><img src="https://avatars.githubusercontent.com/u/6747040?v=4?s=100" width="100px;" alt="ayum"/><br /><sub><b>ayum</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=ayum" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/captainurist"><img src="https://avatars.githubusercontent.com/u/73941350?v=4?s=100" width="100px;" alt="captainurist"/><br /><sub><b>captainurist</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=captainurist" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="http://cs.odu.edu/~ctsolakis"><img src="https://avatars0.githubusercontent.com/u/6725596?v=4?s=100" width="100px;" alt="christos"/><br /><sub><b>christos</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=ChristosT" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/deining"><img src="https://avatars3.githubusercontent.com/u/18169566?v=4?s=100" width="100px;" alt="deining"/><br /><sub><b>deining</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=deining" title="Documentation">📖</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/dherrera-fb"><img src="https://avatars.githubusercontent.com/u/89840711?v=4?s=100" width="100px;" alt="dherrera-fb"/><br /><sub><b>dherrera-fb</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=dherrera-fb" title="Code">💻</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/djerius"><img src="https://avatars.githubusercontent.com/u/196875?v=4?s=100" width="100px;" alt="djerius"/><br /><sub><b>djerius</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=djerius" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/dryleev"><img src="https://avatars.githubusercontent.com/u/83670813?v=4?s=100" width="100px;" alt="dryleev"/><br /><sub><b>dryleev</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=dryleev" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/elszon"><img src="https://avatars0.githubusercontent.com/u/2971495?v=4?s=100" width="100px;" alt="elszon"/><br /><sub><b>elszon</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=elszon" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/ferdymercury"><img src="https://avatars3.githubusercontent.com/u/10653970?v=4?s=100" width="100px;" alt="ferdymercury"/><br /><sub><b>ferdymercury</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=ferdymercury" title="Documentation">📖</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/fpeng1985"><img src="https://avatars1.githubusercontent.com/u/87981?v=4?s=100" width="100px;" alt="fpeng1985"/><br /><sub><b>fpeng1985</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=fpeng1985" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/geir-t"><img src="https://avatars3.githubusercontent.com/u/35292136?v=4?s=100" width="100px;" alt="geir-t"/><br /><sub><b>geir-t</b></sub></a><br /><a href="#platform-geir-t" title="Packaging/porting to new platform">📦</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/ncihnegn"><img src="https://avatars3.githubusercontent.com/u/12021721?v=4?s=100" width="100px;" alt="ncihnegn"/><br /><sub><b>ncihnegn</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=ncihnegn" title="Code">💻</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/nurelin"><img src="https://avatars3.githubusercontent.com/u/5276274?v=4?s=100" width="100px;" alt="nurelin"/><br /><sub><b>nurelin</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=nurelin" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="http://polistern.i2p/"><img src="https://avatars.githubusercontent.com/u/55511995?v=4?s=100" width="100px;" alt="polistern"/><br /><sub><b>polistern</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=polistern" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/ryan4729"><img src="https://avatars3.githubusercontent.com/u/40183301?v=4?s=100" width="100px;" alt="ryan4729"/><br /><sub><b>ryan4729</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=ryan4729" title="Tests">⚠️</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/shameekganguly"><img src="https://avatars.githubusercontent.com/u/2412842?v=4?s=100" width="100px;" alt="shameekganguly"/><br /><sub><b>shameekganguly</b></sub></a><br /><a href="https://github.com/CLIUtils/CLI11/commits?author=shameekganguly" title="Code">💻</a></td>
     </tr>
   </tbody>
 </table>
@@ -1757,9 +1782,6 @@ try! Feedback is always welcome.
 [actions-link]: https://github.com/CLIUtils/CLI11/actions
 [actions-badge]:
   https://github.com/CLIUtils/CLI11/actions/workflows/tests.yml/badge.svg
-[appveyor-badge]:
-  https://ci.appveyor.com/api/projects/status/82niaxpaa28dwbms/branch/main?svg=true
-[appveyor]: https://ci.appveyor.com/project/HenrySchreiner/cli11
 [repology-badge]: https://repology.org/badge/latest-versions/cli11.svg
 [repology]: https://repology.org/project/cli11/versions
 [codecov-badge]:
@@ -1806,7 +1828,7 @@ try! Feedback is always welcome.
 [version 1.6 post]: https://iscinumpy.gitlab.io/post/announcing-cli11-16/
 [version 2.0 post]: https://iscinumpy.gitlab.io/post/announcing-cli11-20/
 [wandbox-badge]: https://img.shields.io/badge/try_2.1-online-blue.svg
-[wandbox-link]: https://wandbox.org/permlink/CA5bymNHh0AczdeN
+[wandbox-link]: https://wandbox.org/permlink/9eQyaD1DchlzukRv
 [releases-badge]: https://img.shields.io/github/release/CLIUtils/CLI11.svg
 [cli11-po-compare]:
   https://iscinumpy.gitlab.io/post/comparing-cli11-and-boostpo/

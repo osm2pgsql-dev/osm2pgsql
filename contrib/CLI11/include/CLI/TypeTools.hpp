@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2023, University of Cincinnati, developed by Henry Schreiner
+// Copyright (c) 2017-2024, University of Cincinnati, developed by Henry Schreiner
 // under NSF AWARD 1414736 and by the respective contributors.
 // All rights reserved.
 //
@@ -7,6 +7,7 @@
 #pragma once
 
 // [CLI11:public_includes:set]
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <exception>
@@ -18,6 +19,7 @@
 #include <vector>
 // [CLI11:public_includes:end]
 
+#include "Encoding.hpp"
 #include "StringTools.hpp"
 
 namespace CLI {
@@ -158,11 +160,19 @@ template <typename T, typename C> class is_direct_constructible {
     static auto test(int, std::true_type) -> decltype(
 // NVCC warns about narrowing conversions here
 #ifdef __CUDACC__
+#ifdef __NVCC_DIAG_PRAGMA_SUPPORT__
+#pragma nv_diag_suppress 2361
+#else
 #pragma diag_suppress 2361
+#endif
 #endif
         TT{std::declval<CC>()}
 #ifdef __CUDACC__
+#ifdef __NVCC_DIAG_PRAGMA_SUPPORT__
+#pragma nv_diag_default 2361
+#else
 #pragma diag_default 2361
+#endif
 #endif
         ,
         std::is_move_assignable<TT>());
@@ -242,8 +252,10 @@ struct is_mutable_container<
                          decltype(std::declval<T>().clear()),
                          decltype(std::declval<T>().insert(std::declval<decltype(std::declval<T>().end())>(),
                                                            std::declval<const typename T::value_type &>()))>,
-                  void>>
-    : public conditional_t<std::is_constructible<T, std::string>::value, std::false_type, std::true_type> {};
+                  void>> : public conditional_t<std::is_constructible<T, std::string>::value ||
+                                                    std::is_constructible<T, std::wstring>::value,
+                                                std::false_type,
+                                                std::true_type> {};
 
 // check to see if an object is a mutable container (fail by default)
 template <typename T, typename _ = void> struct is_readable_container : std::false_type {};
@@ -546,6 +558,8 @@ enum class object_category : int {
     // string like types
     string_assignable = 23,
     string_constructible = 24,
+    wstring_assignable = 25,
+    wstring_constructible = 26,
     other = 45,
     // special wrapper or container types
     wrapper_value = 50,
@@ -594,12 +608,23 @@ template <typename T> struct classify_object<T, typename std::enable_if<is_bool<
 template <typename T> struct classify_object<T, typename std::enable_if<std::is_floating_point<T>::value>::type> {
     static constexpr object_category value{object_category::floating_point};
 };
+#if defined _MSC_VER
+// in MSVC wstring should take precedence if available this isn't as useful on other compilers due to the broader use of
+// utf-8 encoding
+#define WIDE_STRING_CHECK                                                                                              \
+    !std::is_assignable<T &, std::wstring>::value && !std::is_constructible<T, std::wstring>::value
+#define STRING_CHECK true
+#else
+#define WIDE_STRING_CHECK true
+#define STRING_CHECK !std::is_assignable<T &, std::string>::value && !std::is_constructible<T, std::string>::value
+#endif
 
 /// String and similar direct assignment
 template <typename T>
-struct classify_object<T,
-                       typename std::enable_if<!std::is_floating_point<T>::value && !std::is_integral<T>::value &&
-                                               std::is_assignable<T &, std::string>::value>::type> {
+struct classify_object<
+    T,
+    typename std::enable_if<!std::is_floating_point<T>::value && !std::is_integral<T>::value && WIDE_STRING_CHECK &&
+                            std::is_assignable<T &, std::string>::value>::type> {
     static constexpr object_category value{object_category::string_assignable};
 };
 
@@ -609,8 +634,25 @@ struct classify_object<
     T,
     typename std::enable_if<!std::is_floating_point<T>::value && !std::is_integral<T>::value &&
                             !std::is_assignable<T &, std::string>::value && (type_count<T>::value == 1) &&
-                            std::is_constructible<T, std::string>::value>::type> {
+                            WIDE_STRING_CHECK && std::is_constructible<T, std::string>::value>::type> {
     static constexpr object_category value{object_category::string_constructible};
+};
+
+/// Wide strings
+template <typename T>
+struct classify_object<T,
+                       typename std::enable_if<!std::is_floating_point<T>::value && !std::is_integral<T>::value &&
+                                               STRING_CHECK && std::is_assignable<T &, std::wstring>::value>::type> {
+    static constexpr object_category value{object_category::wstring_assignable};
+};
+
+template <typename T>
+struct classify_object<
+    T,
+    typename std::enable_if<!std::is_floating_point<T>::value && !std::is_integral<T>::value &&
+                            !std::is_assignable<T &, std::wstring>::value && (type_count<T>::value == 1) &&
+                            STRING_CHECK && std::is_constructible<T, std::wstring>::value>::type> {
+    static constexpr object_category value{object_category::wstring_constructible};
 };
 
 /// Enumerations
@@ -625,12 +667,13 @@ template <typename T> struct classify_object<T, typename std::enable_if<is_compl
 /// Handy helper to contain a bunch of checks that rule out many common types (integers, string like, floating point,
 /// vectors, and enumerations
 template <typename T> struct uncommon_type {
-    using type = typename std::conditional<!std::is_floating_point<T>::value && !std::is_integral<T>::value &&
-                                               !std::is_assignable<T &, std::string>::value &&
-                                               !std::is_constructible<T, std::string>::value && !is_complex<T>::value &&
-                                               !is_mutable_container<T>::value && !std::is_enum<T>::value,
-                                           std::true_type,
-                                           std::false_type>::type;
+    using type = typename std::conditional<
+        !std::is_floating_point<T>::value && !std::is_integral<T>::value &&
+            !std::is_assignable<T &, std::string>::value && !std::is_constructible<T, std::string>::value &&
+            !std::is_assignable<T &, std::wstring>::value && !std::is_constructible<T, std::wstring>::value &&
+            !is_complex<T>::value && !is_mutable_container<T>::value && !std::is_enum<T>::value,
+        std::true_type,
+        std::false_type>::type;
     static constexpr bool value = type::value;
 };
 
@@ -819,7 +862,7 @@ bool integral_conversion(const std::string &input, T &output) noexcept {
     if(input.empty() || input.front() == '-') {
         return false;
     }
-    char *val = nullptr;
+    char *val{nullptr};
     errno = 0;
     std::uint64_t output_ll = std::strtoull(input.c_str(), &val, 0);
     if(errno == ERANGE) {
@@ -834,6 +877,33 @@ bool integral_conversion(const std::string &input, T &output) noexcept {
     if(val == (input.c_str() + input.size())) {
         output = (output_sll < 0) ? static_cast<T>(0) : static_cast<T>(output_sll);
         return (static_cast<std::int64_t>(output) == output_sll);
+    }
+    // remove separators
+    if(input.find_first_of("_'") != std::string::npos) {
+        std::string nstring = input;
+        nstring.erase(std::remove(nstring.begin(), nstring.end(), '_'), nstring.end());
+        nstring.erase(std::remove(nstring.begin(), nstring.end(), '\''), nstring.end());
+        return integral_conversion(nstring, output);
+    }
+    if(input.compare(0, 2, "0o") == 0) {
+        val = nullptr;
+        errno = 0;
+        output_ll = std::strtoull(input.c_str() + 2, &val, 8);
+        if(errno == ERANGE) {
+            return false;
+        }
+        output = static_cast<T>(output_ll);
+        return (val == (input.c_str() + input.size()) && static_cast<std::uint64_t>(output) == output_ll);
+    }
+    if(input.compare(0, 2, "0b") == 0) {
+        val = nullptr;
+        errno = 0;
+        output_ll = std::strtoull(input.c_str() + 2, &val, 2);
+        if(errno == ERANGE) {
+            return false;
+        }
+        output = static_cast<T>(output_ll);
+        return (val == (input.c_str() + input.size()) && static_cast<std::uint64_t>(output) == output_ll);
     }
     return false;
 }
@@ -859,11 +929,38 @@ bool integral_conversion(const std::string &input, T &output) noexcept {
         output = static_cast<T>(1);
         return true;
     }
+    // remove separators
+    if(input.find_first_of("_'") != std::string::npos) {
+        std::string nstring = input;
+        nstring.erase(std::remove(nstring.begin(), nstring.end(), '_'), nstring.end());
+        nstring.erase(std::remove(nstring.begin(), nstring.end(), '\''), nstring.end());
+        return integral_conversion(nstring, output);
+    }
+    if(input.compare(0, 2, "0o") == 0) {
+        val = nullptr;
+        errno = 0;
+        output_ll = std::strtoll(input.c_str() + 2, &val, 8);
+        if(errno == ERANGE) {
+            return false;
+        }
+        output = static_cast<T>(output_ll);
+        return (val == (input.c_str() + input.size()) && static_cast<std::int64_t>(output) == output_ll);
+    }
+    if(input.compare(0, 2, "0b") == 0) {
+        val = nullptr;
+        errno = 0;
+        output_ll = std::strtoll(input.c_str() + 2, &val, 2);
+        if(errno == ERANGE) {
+            return false;
+        }
+        output = static_cast<T>(output_ll);
+        return (val == (input.c_str() + input.size()) && static_cast<std::int64_t>(output) == output_ll);
+    }
     return false;
 }
 
-/// Convert a flag into an integer value  typically binary flags
-inline std::int64_t to_flag_value(std::string val) {
+/// Convert a flag into an integer value  typically binary flags sets errno to nonzero if conversion failed
+inline std::int64_t to_flag_value(std::string val) noexcept {
     static const std::string trueString("true");
     static const std::string falseString("false");
     if(val == trueString) {
@@ -891,7 +988,8 @@ inline std::int64_t to_flag_value(std::string val) {
             ret = 1;
             break;
         default:
-            throw std::invalid_argument("unrecognized character");
+            errno = EINVAL;
+            return -1;
         }
         return ret;
     }
@@ -900,7 +998,11 @@ inline std::int64_t to_flag_value(std::string val) {
     } else if(val == falseString || val == "off" || val == "no" || val == "disable") {
         ret = -1;
     } else {
-        ret = std::stoll(val);
+        char *loc_ptr{nullptr};
+        ret = std::strtoll(val.c_str(), &loc_ptr, 0);
+        if(loc_ptr != (val.c_str() + val.size()) && errno == 0) {
+            errno = EINVAL;
+        }
     }
     return ret;
 }
@@ -929,18 +1031,16 @@ bool lexical_cast(const std::string &input, T &output) {
 template <typename T,
           enable_if_t<classify_object<T>::value == object_category::boolean_value, detail::enabler> = detail::dummy>
 bool lexical_cast(const std::string &input, T &output) {
-    try {
-        auto out = to_flag_value(input);
+    errno = 0;
+    auto out = to_flag_value(input);
+    if(errno == 0) {
         output = (out > 0);
-        return true;
-    } catch(const std::invalid_argument &) {
-        return false;
-    } catch(const std::out_of_range &) {
-        // if the number is out of the range of a 64 bit value then it is still a number and for this purpose is still
-        // valid all we care about the sign
+    } else if(errno == ERANGE) {
         output = (input[0] != '-');
-        return true;
+    } else {
+        return false;
     }
+    return true;
 }
 
 /// Floats
@@ -953,7 +1053,17 @@ bool lexical_cast(const std::string &input, T &output) {
     char *val = nullptr;
     auto output_ld = std::strtold(input.c_str(), &val);
     output = static_cast<T>(output_ld);
-    return val == (input.c_str() + input.size());
+    if(val == (input.c_str() + input.size())) {
+        return true;
+    }
+    // remove separators
+    if(input.find_first_of("_'") != std::string::npos) {
+        std::string nstring = input;
+        nstring.erase(std::remove(nstring.begin(), nstring.end(), '_'), nstring.end());
+        nstring.erase(std::remove(nstring.begin(), nstring.end(), '\''), nstring.end());
+        return lexical_cast(nstring, output);
+    }
+    return false;
 }
 
 /// complex
@@ -1002,6 +1112,23 @@ template <
     enable_if_t<classify_object<T>::value == object_category::string_constructible, detail::enabler> = detail::dummy>
 bool lexical_cast(const std::string &input, T &output) {
     output = T(input);
+    return true;
+}
+
+/// Wide strings
+template <
+    typename T,
+    enable_if_t<classify_object<T>::value == object_category::wstring_assignable, detail::enabler> = detail::dummy>
+bool lexical_cast(const std::string &input, T &output) {
+    output = widen(input);
+    return true;
+}
+
+template <
+    typename T,
+    enable_if_t<classify_object<T>::value == object_category::wstring_constructible, detail::enabler> = detail::dummy>
+bool lexical_cast(const std::string &input, T &output) {
+    output = T{widen(input)};
     return true;
 }
 
@@ -1133,7 +1260,9 @@ template <typename AssignTo,
           typename ConvertTo,
           enable_if_t<std::is_same<AssignTo, ConvertTo>::value &&
                           (classify_object<AssignTo>::value == object_category::string_assignable ||
-                           classify_object<AssignTo>::value == object_category::string_constructible),
+                           classify_object<AssignTo>::value == object_category::string_constructible ||
+                           classify_object<AssignTo>::value == object_category::wstring_assignable ||
+                           classify_object<AssignTo>::value == object_category::wstring_constructible),
                       detail::enabler> = detail::dummy>
 bool lexical_assign(const std::string &input, AssignTo &output) {
     return lexical_cast(input, output);
@@ -1144,7 +1273,9 @@ template <typename AssignTo,
           typename ConvertTo,
           enable_if_t<std::is_same<AssignTo, ConvertTo>::value && std::is_assignable<AssignTo &, AssignTo>::value &&
                           classify_object<AssignTo>::value != object_category::string_assignable &&
-                          classify_object<AssignTo>::value != object_category::string_constructible,
+                          classify_object<AssignTo>::value != object_category::string_constructible &&
+                          classify_object<AssignTo>::value != object_category::wstring_assignable &&
+                          classify_object<AssignTo>::value != object_category::wstring_constructible,
                       detail::enabler> = detail::dummy>
 bool lexical_assign(const std::string &input, AssignTo &output) {
     if(input.empty()) {
@@ -1183,9 +1314,17 @@ bool lexical_assign(const std::string &input, AssignTo &output) {
         output = 0;
         return true;
     }
-    int val = 0;
+    int val{0};
     if(lexical_cast(input, val)) {
+#if defined(__clang__)
+/* on some older clang compilers */
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wsign-conversion"
+#endif
         output = val;
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
         return true;
     }
     return false;
@@ -1240,12 +1379,12 @@ template <typename AssignTo,
                       detail::enabler> = detail::dummy>
 bool lexical_conversion(const std::vector<std ::string> &strings, AssignTo &output) {
     // the remove const is to handle pair types coming from a container
-    typename std::remove_const<typename std::tuple_element<0, ConvertTo>::type>::type v1;
-    typename std::tuple_element<1, ConvertTo>::type v2;
-    bool retval = lexical_assign<decltype(v1), decltype(v1)>(strings[0], v1);
-    if(strings.size() > 1) {
-        retval = retval && lexical_assign<decltype(v2), decltype(v2)>(strings[1], v2);
-    }
+    using FirstType = typename std::remove_const<typename std::tuple_element<0, ConvertTo>::type>::type;
+    using SecondType = typename std::tuple_element<1, ConvertTo>::type;
+    FirstType v1;
+    SecondType v2;
+    bool retval = lexical_assign<FirstType, FirstType>(strings[0], v1);
+    retval = retval && lexical_assign<SecondType, SecondType>((strings.size() > 1) ? strings[1] : std::string{}, v2);
     if(retval) {
         output = AssignTo{v1, v2};
     }
@@ -1260,6 +1399,9 @@ template <class AssignTo,
                       detail::enabler> = detail::dummy>
 bool lexical_conversion(const std::vector<std ::string> &strings, AssignTo &output) {
     output.erase(output.begin(), output.end());
+    if(strings.empty()) {
+        return true;
+    }
     if(strings.size() == 1 && strings[0] == "{}") {
         return true;
     }
@@ -1404,7 +1546,7 @@ tuple_type_conversion(std::vector<std::string> &strings, AssignTo &output) {
 
     std::size_t index{subtype_count_min<ConvertTo>::value};
     const std::size_t mx_count{subtype_count<ConvertTo>::value};
-    const std::size_t mx{(std::max)(mx_count, strings.size())};
+    const std::size_t mx{(std::min)(mx_count, strings.size() - 1)};
 
     while(index < mx) {
         if(is_separator(strings[index])) {
@@ -1414,7 +1556,11 @@ tuple_type_conversion(std::vector<std::string> &strings, AssignTo &output) {
     }
     bool retval = lexical_conversion<AssignTo, ConvertTo>(
         std::vector<std::string>(strings.begin(), strings.begin() + static_cast<std::ptrdiff_t>(index)), output);
-    strings.erase(strings.begin(), strings.begin() + static_cast<std::ptrdiff_t>(index) + 1);
+    if(strings.size() > index) {
+        strings.erase(strings.begin(), strings.begin() + static_cast<std::ptrdiff_t>(index) + 1);
+    } else {
+        strings.clear();
+    }
     return retval;
 }
 
@@ -1558,12 +1704,13 @@ inline std::string sum_string_vector(const std::vector<std::string> &values) {
         double tv{0.0};
         auto comp = lexical_cast(arg, tv);
         if(!comp) {
-            try {
-                tv = static_cast<double>(detail::to_flag_value(arg));
-            } catch(const std::exception &) {
-                fail = true;
+            errno = 0;
+            auto fv = detail::to_flag_value(arg);
+            fail = (errno != 0);
+            if(fail) {
                 break;
             }
+            tv = static_cast<double>(fv);
         }
         val += tv;
     }
@@ -1572,13 +1719,10 @@ inline std::string sum_string_vector(const std::vector<std::string> &values) {
             output.append(arg);
         }
     } else {
-        if(val <= static_cast<double>((std::numeric_limits<std::int64_t>::min)()) ||
-           val >= static_cast<double>((std::numeric_limits<std::int64_t>::max)()) ||
-           std::ceil(val) == std::floor(val)) {
-            output = detail::value_string(static_cast<int64_t>(val));
-        } else {
-            output = detail::value_string(val);
-        }
+        std::ostringstream out;
+        out.precision(16);
+        out << val;
+        output = out.str();
     }
     return output;
 }
