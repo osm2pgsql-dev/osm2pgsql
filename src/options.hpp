@@ -156,7 +156,6 @@ struct options_t
     bool reproject_area = false;
 
     bool parallel_indexing = true;
-    bool create = false;
     bool pass_prompt = false;
 }; // struct options_t
 
