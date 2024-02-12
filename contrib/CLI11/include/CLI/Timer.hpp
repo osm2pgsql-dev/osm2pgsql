@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2023, University of Cincinnati, developed by Henry Schreiner
+// Copyright (c) 2017-2024, University of Cincinnati, developed by Henry Schreiner
 // under NSF AWARD 1414736 and by the respective contributors.
 // All rights reserved.
 //
@@ -126,7 +126,7 @@ class AutoTimer : public Timer {
     // GCC 4.7 does not support using inheriting constructors.
 
     /// This destructor prints the string
-    ~AutoTimer() { std::cout << to_string() << std::endl; }
+    ~AutoTimer() { std::cout << to_string() << '\n'; }
 };
 
 }  // namespace CLI

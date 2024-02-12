@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2023, University of Cincinnati, developed by Henry Schreiner
+// Copyright (c) 2017-2024, University of Cincinnati, developed by Henry Schreiner
 // under NSF AWARD 1414736 and by the respective contributors.
 // All rights reserved.
 //
@@ -34,7 +34,7 @@ CLI11_INLINE bool split_short(const std::string &current, std::string &name, std
 }
 
 CLI11_INLINE bool split_long(const std::string &current, std::string &name, std::string &value) {
-    if(current.size() > 2 && current.substr(0, 2) == "--" && valid_first_char(current[2])) {
+    if(current.size() > 2 && current.compare(0, 2, "--") == 0 && valid_first_char(current[2])) {
         auto loc = current.find_first_of('=');
         if(loc != std::string::npos) {
             name = current.substr(2, loc - 2);
@@ -106,7 +106,6 @@ get_names(const std::vector<std::string> &input) {
     std::vector<std::string> short_names;
     std::vector<std::string> long_names;
     std::string pos_name;
-
     for(std::string name : input) {
         if(name.length() == 0) {
             continue;
@@ -114,6 +113,8 @@ get_names(const std::vector<std::string> &input) {
         if(name.length() > 1 && name[0] == '-' && name[1] != '-') {
             if(name.length() == 2 && valid_first_char(name[1]))
                 short_names.emplace_back(1, name[1]);
+            else if(name.length() > 2)
+                throw BadNameString::MissingDash(name);
             else
                 throw BadNameString::OneCharName(name);
         } else if(name.length() > 2 && name.substr(0, 2) == "--") {
@@ -125,12 +126,15 @@ get_names(const std::vector<std::string> &input) {
         } else if(name == "-" || name == "--") {
             throw BadNameString::DashesOnly(name);
         } else {
-            if(pos_name.length() > 0)
+            if(!pos_name.empty())
                 throw BadNameString::MultiPositionalNames(name);
-            pos_name = name;
+            if(valid_name_string(name)) {
+                pos_name = name;
+            } else {
+                throw BadNameString::BadPositionalName(name);
+            }
         }
     }
-
     return std::make_tuple(short_names, long_names, pos_name);
 }
 
