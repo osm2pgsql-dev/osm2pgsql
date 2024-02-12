@@ -309,7 +309,7 @@ mandatory for short options too.
 
 \--with-forward-dependencies=BOOL
 :   Propagate changes from nodes to ways and node/way members to relations
-    (Default: `true`).
+    (Default: `true`). This option is deprecated.
 
 # SEE ALSO
 
