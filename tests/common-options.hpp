@@ -38,12 +38,14 @@ public:
     opt_t &slim()
     {
         m_opt.slim = true;
+        m_opt.middle_database_format = 2;
         return *this;
     }
 
     opt_t &slim(testing::pg::tempdb_t const &db)
     {
         m_opt.slim = true;
+        m_opt.middle_database_format = 2;
         m_opt.connection_params = db.connection_params();
         return *this;
     }

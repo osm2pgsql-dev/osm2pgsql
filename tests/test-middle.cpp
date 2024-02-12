@@ -83,22 +83,22 @@ struct options_flat_node_cache
     }
 };
 
-struct options_slim_new_format
+struct options_slim_legacy_format
 {
     static options_t options(testing::pg::tempdb_t const &tmpdb)
     {
         options_t o = testing::opt_t().slim(tmpdb);
-        o.middle_database_format = 2;
+        o.middle_database_format = 1;
         return o;
     }
 };
 
-struct options_slim_new_format_with_flatnodes
+struct options_slim_legacy_format_with_flatnodes
 {
     static options_t options(testing::pg::tempdb_t const &tmpdb)
     {
         options_t o = testing::opt_t().slim(tmpdb).flatnodes();
-        o.middle_database_format = 2;
+        o.middle_database_format = 1;
         return o;
     }
 };
@@ -112,7 +112,7 @@ struct options_ram_optimized
 };
 
 TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
-                   options_slim_new_format, options_slim_with_lc_prefix,
+                   options_slim_legacy_format, options_slim_with_lc_prefix,
                    options_slim_with_uc_prefix, options_slim_with_schema,
                    options_ram_optimized)
 {
@@ -367,9 +367,9 @@ static bool no_node(std::shared_ptr<middle_pgsql_t> const &mid, osmid_t id)
 }
 
 TEMPLATE_TEST_CASE("middle: add, delete and update node", "",
-                   options_slim_default, options_slim_new_format,
+                   options_slim_default, options_slim_legacy_format,
                    options_flat_node_cache,
-                   options_slim_new_format_with_flatnodes)
+                   options_slim_legacy_format_with_flatnodes)
 {
     auto thread_pool = std::make_shared<thread_pool_t>(1U);
 
@@ -586,9 +586,9 @@ static bool no_way(std::shared_ptr<middle_pgsql_t> const &mid, osmid_t id)
 }
 
 TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
-                   options_slim_default, options_slim_new_format,
+                   options_slim_default, options_slim_legacy_format,
                    options_flat_node_cache,
-                   options_slim_new_format_with_flatnodes)
+                   options_slim_legacy_format_with_flatnodes)
 {
     auto thread_pool = std::make_shared<thread_pool_t>(1U);
 
@@ -739,8 +739,8 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
 }
 
 TEMPLATE_TEST_CASE("middle: add way with attributes", "", options_slim_default,
-                   options_slim_new_format, options_flat_node_cache,
-                   options_slim_new_format_with_flatnodes)
+                   options_slim_legacy_format, options_flat_node_cache,
+                   options_slim_legacy_format_with_flatnodes)
 {
     auto thread_pool = std::make_shared<thread_pool_t>(1U);
 
@@ -840,9 +840,9 @@ static bool no_relation(std::shared_ptr<middle_pgsql_t> const &mid, osmid_t id)
 }
 
 TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
-                   options_slim_default, options_slim_new_format,
+                   options_slim_default, options_slim_legacy_format,
                    options_flat_node_cache,
-                   options_slim_new_format_with_flatnodes)
+                   options_slim_legacy_format_with_flatnodes)
 {
     auto thread_pool = std::make_shared<thread_pool_t>(1U);
 
@@ -993,9 +993,9 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
 }
 
 TEMPLATE_TEST_CASE("middle: add relation with attributes", "",
-                   options_slim_default, options_slim_new_format,
+                   options_slim_default, options_slim_legacy_format,
                    options_flat_node_cache,
-                   options_slim_new_format_with_flatnodes)
+                   options_slim_legacy_format_with_flatnodes)
 {
     auto thread_pool = std::make_shared<thread_pool_t>(1U);
 
@@ -1042,8 +1042,8 @@ TEMPLATE_TEST_CASE("middle: add relation with attributes", "",
 }
 
 TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
-                   options_slim_new_format, options_flat_node_cache,
-                   options_slim_new_format_with_flatnodes)
+                   options_slim_legacy_format, options_flat_node_cache,
+                   options_slim_legacy_format_with_flatnodes)
 {
     auto thread_pool = std::make_shared<thread_pool_t>(1U);
 
@@ -1198,8 +1198,8 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
 }
 
 TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
-                   options_slim_new_format, options_flat_node_cache,
-                   options_slim_new_format_with_flatnodes)
+                   options_slim_legacy_format, options_flat_node_cache,
+                   options_slim_legacy_format_with_flatnodes)
 {
     auto thread_pool = std::make_shared<thread_pool_t>(1U);
 

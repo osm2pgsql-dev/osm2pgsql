@@ -55,7 +55,7 @@ Feature: Timestamps in properties table should reflect timestamps in input file
         And table osm2pgsql_properties contains
             | property          | value                |
             | attributes        | false                |
-            | db_format         | 1                    |
+            | db_format         | 2                    |
             | flat_node_file    |                      |
             | prefix            | planet_osm           |
             | updatable         | true                 |
@@ -76,7 +76,7 @@ Feature: Timestamps in properties table should reflect timestamps in input file
         And table osm2pgsql_properties contains
             | property          | value                |
             | attributes        | false                |
-            | db_format         | 1                    |
+            | db_format         | 2                    |
             | flat_node_file    |                      |
             | prefix            | planet_osm           |
             | updatable         | true                 |
@@ -99,7 +99,7 @@ Feature: Timestamps in properties table should reflect timestamps in input file
         And table osm2pgsql_properties contains
             | property          | value                |
             | attributes        | false                |
-            | db_format         | 1                    |
+            | db_format         | 2                    |
             | flat_node_file    |                      |
             | prefix            | planet_osm           |
             | updatable         | true                 |
@@ -120,7 +120,7 @@ Feature: Timestamps in properties table should reflect timestamps in input file
         And table osm2pgsql_properties contains
             | property          | value                |
             | attributes        | false                |
-            | db_format         | 1                    |
+            | db_format         | 2                    |
             | flat_node_file    |                      |
             | prefix            | planet_osm           |
             | updatable         | true                 |
@@ -143,7 +143,7 @@ Feature: Timestamps in properties table should reflect timestamps in input file
         And table osm2pgsql_properties contains
             | property          | value                |
             | attributes        | false                |
-            | db_format         | 1                    |
+            | db_format         | 2                    |
             | flat_node_file    |                      |
             | prefix            | planet_osm           |
             | updatable         | true                 |
@@ -162,7 +162,7 @@ Feature: Timestamps in properties table should reflect timestamps in input file
         And table osm2pgsql_properties contains
             | property          | value                |
             | attributes        | false                |
-            | db_format         | 1                    |
+            | db_format         | 2                    |
             | flat_node_file    |                      |
             | prefix            | planet_osm           |
             | updatable         | true                 |

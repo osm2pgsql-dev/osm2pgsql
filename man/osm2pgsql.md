@@ -179,12 +179,11 @@ mandatory for short options too.
 
 \--middle-database-format=FORMAT
 :   Set the database format for the middle tables to FORMAT. Allowed formats
-    are **legacy** and **new**. The **legacy** format is the old format that
-    will eventually be deprecated and removed but is currently still the
-    default. The **new** format was introduced in version 1.9.0.
-    See the manual for details on these formats. (Only works
-    with **\--slim**. In append mode osm2pgsql will automatically detect the
-    database format, so don't use this with **-a, \--append**.)
+    are **new** (default) and **legacy** . The **legacy** format is deprecated
+    and will be removed in version 2.0.0. See the manual for details on these
+    formats. (Only works with **\--slim**. In append mode osm2pgsql will
+    automatically detect the database format, so don't use this with
+    **-a, \--append**.)
 
 \--middle-with-nodes
 :   Used together with the **new** middle database format when a flat nodes
