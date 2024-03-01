@@ -3,7 +3,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -13,6 +13,7 @@
 
 #include "geom-from-osm.hpp"
 #include "geom-functions.hpp"
+#include "geom-output.hpp"
 #include "geom.hpp"
 
 TEST_CASE("multipolygon geometry with single outer, no inner", "[NoDB]")
@@ -20,12 +21,16 @@ TEST_CASE("multipolygon geometry with single outer, no inner", "[NoDB]")
     geom::geometry_t geom{geom::multipolygon_t{}};
     auto &mp = geom.get<geom::multipolygon_t>();
 
+    // MULTIPOLYGON(((0 0, 0 1, 1 1, 1 0, 0 0)))
     mp.add_geometry(
         geom::polygon_t{geom::ring_t{{0, 0}, {0, 1}, {1, 1}, {1, 0}, {0, 0}}});
 
     REQUIRE(geometry_type(geom) == "MULTIPOLYGON");
+    REQUIRE(dimension(geom) == 2);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(1.0));
+    REQUIRE(spherical_area(geom) == Approx(12364031798.5));
+    REQUIRE(length(geom) == Approx(0.0));
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{0.5, 0.5}});
     REQUIRE(geometry_n(geom, 1) ==
             geom::geometry_t{geom::polygon_t{
@@ -37,6 +42,7 @@ TEST_CASE("multipolygon geometry with two polygons", "[NoDB]")
     geom::geometry_t geom{geom::multipolygon_t{}};
     auto &mp = geom.get<geom::multipolygon_t>();
 
+    // MULTIPOLYGON(((0 0, 0 1, 1 1, 1 0, 0 0)), ((2 2, 2 5, 5 5, 5 2, 2 2), (3 3, 4 3, 4 4, 3 4, 3 3)))
     mp.add_geometry(
         geom::polygon_t{geom::ring_t{{0, 0}, {0, 1}, {1, 1}, {1, 0}, {0, 0}}});
 
@@ -50,8 +56,11 @@ TEST_CASE("multipolygon geometry with two polygons", "[NoDB]")
     mp.add_geometry(std::move(polygon));
 
     REQUIRE(geometry_type(geom) == "MULTIPOLYGON");
+    REQUIRE(dimension(geom) == 2);
     REQUIRE(num_geometries(geom) == 2);
     REQUIRE(area(geom) == Approx(9.0));
+    REQUIRE(spherical_area(geom) == Approx(111106540105.7));
+    REQUIRE(length(geom) == Approx(0.0));
 }
 
 TEST_CASE("create_multipolygon creates simple polygon from OSM data", "[NoDB]")
@@ -65,8 +74,10 @@ TEST_CASE("create_multipolygon creates simple polygon from OSM data", "[NoDB]")
 
     REQUIRE(geom.is_polygon());
     REQUIRE(geometry_type(geom) == "POLYGON");
+    REQUIRE(dimension(geom) == 2);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(1.0));
+    REQUIRE(length(geom) == Approx(0.0));
     REQUIRE(
         geom.get<geom::polygon_t>() ==
         geom::polygon_t{geom::ring_t{{1, 1}, {2, 1}, {2, 2}, {1, 2}, {1, 1}}});
@@ -87,6 +98,7 @@ TEST_CASE("create_multipolygon from OSM data", "[NoDB]")
     REQUIRE(geometry_type(geom) == "MULTIPOLYGON");
     REQUIRE(num_geometries(geom) == 2);
     REQUIRE(area(geom) == Approx(51.0));
+    REQUIRE(length(geom) == Approx(0.0));
 }
 
 TEST_CASE("create_multipolygon from OSM data without locations", "[NoDB]")
@@ -111,7 +123,8 @@ TEST_CASE("create_multipolygon from invalid OSM data (single node)", "[NoDB]")
     REQUIRE(geom.is_null());
 }
 
-TEST_CASE("create_multipolygon from invalid OSM data (way node closed)", "[NoDB]")
+TEST_CASE("create_multipolygon from invalid OSM data (way node closed)",
+          "[NoDB]")
 {
     test_buffer_t buffer;
     buffer.add_way("w20 Nn1x1y1,n2x2y2");
@@ -122,7 +135,8 @@ TEST_CASE("create_multipolygon from invalid OSM data (way node closed)", "[NoDB]
     REQUIRE(geom.is_null());
 }
 
-TEST_CASE("create_multipolygon from invalid OSM data (self-intersection)", "[NoDB]")
+TEST_CASE("create_multipolygon from invalid OSM data (self-intersection)",
+          "[NoDB]")
 {
     test_buffer_t buffer;
     buffer.add_way("w20 Nn1x1y1,n2x1y2,n3x2y1,n4x2y2");

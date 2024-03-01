@@ -6,7 +6,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -22,6 +22,7 @@
 #include <cassert>
 #include <cmath>
 #include <initializer_list>
+#include <type_traits>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -84,13 +85,38 @@ public:
         return !(a == b);
     }
 
+    /// Give points an (arbitrary) order.
+    [[nodiscard]] constexpr friend bool operator<(point_t a, point_t b) noexcept
+    {
+        if (a.x() == b.x()) {
+            return a.y() < b.y();
+        }
+        return a.x() < b.x();
+    }
+
+    [[nodiscard]] constexpr friend bool operator>(point_t a, point_t b) noexcept
+    {
+        if (a.x() == b.x()) {
+            return a.y() > b.y();
+        }
+        return a.x() > b.x();
+    }
+
 private:
     double m_x = 0.0;
     double m_y = 0.0;
 
 }; // class point_t
 
-/// This type is used as the basis for linestrings and rings.
+/**
+ * This type is used as the basis for linestrings and rings.
+ *
+ * Point lists should not contain consecutive duplicate points. You can
+ * use the remove_duplicates() function to remove them if needed. (OGC validity
+ * only requires there to be at least two different points in a linestring, but
+ * we are more strict here to make sure we don't have to handle that anomaly
+ * later on.)
+ */
 class point_list_t : public std::vector<point_t>
 {
 public:
@@ -104,6 +130,9 @@ public:
     point_list_t(std::initializer_list<point_t> list)
     : std::vector<point_t>(list.begin(), list.end())
     {}
+
+    /// Collapse consecutive identical points into a single point (in-place).
+    void remove_duplicates();
 
 }; // class point_list_t
 
@@ -169,12 +198,15 @@ public:
     using iterator = typename std::vector<GEOM>::iterator;
     using value_type = GEOM;
 
+    static constexpr bool const for_point = std::is_same_v<GEOM, point_t>;
+
     [[nodiscard]] std::size_t num_geometries() const noexcept
     {
         return m_geometry.size();
     }
 
-    GEOM &add_geometry(GEOM &&geom)
+    GEOM &
+    add_geometry(typename std::conditional_t<for_point, point_t, GEOM &&> geom)
     {
         m_geometry.push_back(std::forward<GEOM>(geom));
         return m_geometry.back();
@@ -183,13 +215,13 @@ public:
     [[nodiscard]] GEOM &add_geometry() { return m_geometry.emplace_back(); }
 
     [[nodiscard]] friend bool operator==(multigeometry_t const &a,
-                                         multigeometry_t const &b) noexcept
+                                         multigeometry_t const &b)
     {
         return a.m_geometry == b.m_geometry;
     }
 
     [[nodiscard]] friend bool operator!=(multigeometry_t const &a,
-                                         multigeometry_t const &b) noexcept
+                                         multigeometry_t const &b)
     {
         return a.m_geometry != b.m_geometry;
     }
@@ -201,9 +233,14 @@ public:
     const_iterator cbegin() const noexcept { return m_geometry.cbegin(); }
     const_iterator cend() const noexcept { return m_geometry.cend(); }
 
-    GEOM const &operator[](std::size_t i) const noexcept
+    GEOM const &operator[](std::size_t n) const noexcept
     {
-        return m_geometry[i];
+        return m_geometry[n];
+    }
+
+    GEOM &operator[](std::size_t n) noexcept
+    {
+        return m_geometry[n];
     }
 
     void remove_last()
@@ -224,7 +261,6 @@ using multilinestring_t = multigeometry_t<linestring_t>;
 using multipolygon_t = multigeometry_t<polygon_t>;
 
 class geometry_t;
-
 using collection_t = multigeometry_t<geometry_t>;
 
 /**
@@ -236,8 +272,10 @@ class geometry_t
 public:
     constexpr geometry_t() = default;
 
-    constexpr explicit geometry_t(point_t &&geom, int srid = 4326)
-    : m_geom(geom), m_srid(srid) // geom is trivially copyable, no move needed
+    // point_t is small and trivially copyable, no move needed like for the
+    // other constructors.
+    constexpr explicit geometry_t(point_t geom, int srid = 4326)
+    : m_geom(geom), m_srid(srid)
     {}
 
     constexpr explicit geometry_t(linestring_t &&geom, int srid = 4326)
@@ -343,13 +381,13 @@ public:
     }
 
     [[nodiscard]] friend bool operator==(geometry_t const &a,
-                                         geometry_t const &b) noexcept
+                                         geometry_t const &b)
     {
         return (a.srid() == b.srid()) && (a.m_geom == b.m_geom);
     }
 
     [[nodiscard]] friend bool operator!=(geometry_t const &a,
-                                         geometry_t const &b) noexcept
+                                         geometry_t const &b)
     {
         return !(a == b);
     }
@@ -363,18 +401,27 @@ private:
 
 }; // class geometry_t
 
+inline std::size_t dimension(nullgeom_t const &) noexcept { return 0; }
+inline std::size_t dimension(point_t const &) noexcept { return 0; }
+inline std::size_t dimension(linestring_t const &) noexcept { return 1; }
+inline std::size_t dimension(polygon_t const &) noexcept { return 2; }
+inline std::size_t dimension(multipoint_t const &) noexcept { return 0; }
+inline std::size_t dimension(multilinestring_t const &) noexcept { return 1; }
+inline std::size_t dimension(multipolygon_t const &) noexcept { return 2; }
+
+std::size_t dimension(collection_t const &geom);
+
+/**
+ * Return the dimension of this geometry. This is:
+ *
+ * 0 - for null and point geometries
+ * 1 - for (multi)linestring geometries
+ * 2 - for (multi)polygon geometries
+ *
+ * For geometry collections this is the largest dimension of all its members.
+ */
+std::size_t dimension(geometry_t const &geom);
+
 } // namespace geom
-
-// This magic is used for visiting geometries. For an explanation see for
-// instance here:
-// https://arne-mertz.de/2018/05/overload-build-a-variant-visitor-on-the-fly/
-template <class... Ts>
-struct overloaded : Ts...
-{
-    using Ts::operator()...;
-};
-
-template <class... Ts>
-overloaded(Ts...) -> overloaded<Ts...>;
 
 #endif // OSM2PGSQL_GEOM_HPP

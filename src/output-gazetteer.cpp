@@ -3,7 +3,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -20,6 +20,8 @@
 #include <cstring>
 #include <memory>
 #include <string>
+
+output_gazetteer_t::~output_gazetteer_t() = default;
 
 void output_gazetteer_t::delete_unused_classes(char osm_type, osmid_t osm_id)
 {
@@ -47,7 +49,7 @@ void output_gazetteer_t::start()
     if (!get_options()->append) {
         int const srid = get_options()->projection->target_srs();
 
-        pg_conn_t conn{get_options()->database_options.conninfo()};
+        pg_conn_t const conn{get_options()->connection_params, "out.gazetteer"};
 
         /* Drop any existing table */
         conn.exec("DROP TABLE IF EXISTS place CASCADE");
@@ -55,16 +57,17 @@ void output_gazetteer_t::start()
         /* Create the new table */
 
         std::string const sql =
-            "CREATE TABLE place ("
-            "  osm_id int8 NOT NULL,"
-            "  osm_type char(1) NOT NULL,"
-            "  class text NOT NULL,"
-            "  type text NOT NULL,"
-            "  name hstore,"
-            "  admin_level smallint,"
-            "  address hstore,"
-            "  extratags hstore," +
-            "  geometry Geometry(Geometry,{}) NOT NULL"_format(srid) + ")" +
+            fmt::format("CREATE TABLE place ("
+                        "  osm_id int8 NOT NULL,"
+                        "  osm_type char(1) NOT NULL,"
+                        "  class text NOT NULL,"
+                        "  type text NOT NULL,"
+                        "  name hstore,"
+                        "  admin_level smallint,"
+                        "  address hstore,"
+                        "  extratags hstore,"
+                        "  geometry Geometry(Geometry,{}) NOT NULL)",
+                        srid) +
             tablespace_clause(get_options()->tblsmain_data);
 
         conn.exec(sql);

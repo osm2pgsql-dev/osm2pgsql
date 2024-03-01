@@ -6,11 +6,12 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
 #include "db-copy-mgr.hpp"
+#include "options.hpp"
 #include "osmtypes.hpp"
 #include "pgsql.hpp"
 #include "taginfo.hpp"
@@ -36,13 +37,14 @@ public:
     table_t(table_t const &other,
             std::shared_ptr<db_copy_thread_t> const &copy_thread);
 
-    void start(std::string const &conninfo, std::string const &table_space);
+    void start(connection_params_t const &connection_params,
+               std::string const &table_space);
     void stop(bool updateable, bool enable_hstore_index,
               std::string const &table_space_index);
 
     void sync();
 
-    void task_set(std::future<std::chrono::milliseconds> &&future)
+    void task_set(std::future<std::chrono::microseconds> &&future)
     {
         m_task_result.set(std::move(future));
     }
@@ -54,9 +56,7 @@ public:
 
     pg_result_t get_wkb(osmid_t id);
 
-    task_result_t m_task_result;
-
-protected:
+private:
     void connect();
     void prepare();
     void teardown();
@@ -70,7 +70,7 @@ protected:
 
     void generate_copy_column_list();
 
-    std::string m_conninfo;
+    connection_params_t m_connection_params;
     std::shared_ptr<db_target_descr_t> m_target;
     std::string m_type;
     std::unique_ptr<pg_conn_t> m_sql_conn;
@@ -80,6 +80,7 @@ protected:
     columns_t m_columns;
     hstores_t m_hstore_columns;
     std::string m_table_space;
+    task_result_t m_task_result;
 
     db_copy_mgr_t<db_deleter_by_id_t> m_copy;
 };

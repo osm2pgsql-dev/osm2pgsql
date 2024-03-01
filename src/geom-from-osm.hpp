@@ -6,7 +6,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -88,6 +88,33 @@ void create_polygon(geometry_t *geom, osmium::Way const &way);
  * \returns The created geometry.
  */
 [[nodiscard]] geometry_t create_polygon(osmium::Way const &way);
+
+/**
+ * Create a multipoint geometry from a bunch of nodes (usually this would be
+ * used for member nodes of a relation). The result is multipoint geometry
+ * (or a point geometry if there is only one point).
+ *
+ * If there are no (valid) points, a null geometry is returned.
+ *
+ * \param geom Pointer to an existing geometry which will be used as output.
+ * \param ways Buffer containing all the input ways. Object types other than
+ *             ways in the buffer are ignored.
+ */
+void create_multipoint(geometry_t *geom, osmium::memory::Buffer const &buffer);
+
+/**
+ * Create a multipoint geometry from a bunch of nodes (usually this would be
+ * used for member nodes of a relation). The result is multipoint geometry
+ * (or a point geometry if there is only one point).
+ *
+ * If there are no (valid) points, a null geometry is returned.
+ *
+ * \param ways Buffer containing all the input nodes. Object types other than
+ *             nodes in the buffer are ignored.
+ * \returns The created geometry.
+ */
+[[nodiscard]] geometry_t
+create_multipoint(osmium::memory::Buffer const &buffer);
 
 /**
  * Create a multilinestring geometry from a bunch of ways (usually this

@@ -4,18 +4,24 @@ on: [ push, pull_request ]
 
 jobs:
   macos:
-    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - "macos-12" # latest
+#          - "macos-13" disabled, because it doesn't work due to some problem with Homebrew
+    runs-on: ${{ matrix.os }}
 
     env:
       LUA_VERSION: 5.4
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Install prerequisites
         run: |
-          brew install lua boost postgis pandoc
-          pip3 install psycopg2 behave
+          brew install boost lua nlohmann-json opencv pandoc postgis potrace
+          pip3 install psycopg2 behave osmium
           pg_ctl -D /usr/local/var/postgres init
           pg_ctl -D /usr/local/var/postgres start
           # Work around homebrew postgresql installation screw-up, see
@@ -39,79 +45,82 @@ jobs:
         env:
           PGHOST: /tmp
 
-
-  ubuntu18-pg95-gcc7-jit:
-    runs-on: ubuntu-18.04
-
-    env:
-      CC: gcc-7
-      CXX: g++-7
-      LUA_VERSION: 5.3
-      LUAJIT_OPTION: ON
-      POSTGRESQL_VERSION: 9.5
-      POSTGIS_VERSION: 2.4
-      BUILD_TYPE: Release
-
-    steps:
-      - uses: actions/checkout@v2
-      - uses: ./.github/actions/ubuntu-prerequisites
-      - uses: ./.github/actions/build-and-test
-
-  ubuntu18-pg96-clang8-jit:
-    runs-on: ubuntu-18.04
+  ubuntu20-pg96-gcc10-jit:
+    runs-on: ubuntu-20.04
 
     env:
-      CC: clang-8
-      CXX: clang++-8
+      CC: gcc-10
+      CXX: g++-10
+      EXTRA_FLAGS: -Wno-unused-but-set-parameter # workaround for GCC bug
       LUA_VERSION: 5.3
       LUAJIT_OPTION: ON
       POSTGRESQL_VERSION: 9.6
-      POSTGIS_VERSION: 2.4
+      POSTGIS_VERSION: 2.5
       BUILD_TYPE: Release
+      PSYCOPG: 2
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
-  ubuntu18-pg10-gcc9:
-    runs-on: ubuntu-18.04
+  ubuntu20-pg96-clang10-jit:
+    runs-on: ubuntu-20.04
 
     env:
-      CC: gcc-9
-      CXX: g++-9
+      CC: clang-10
+      CXX: clang++-10
+      LUA_VERSION: 5.3
+      LUAJIT_OPTION: ON
+      POSTGRESQL_VERSION: 9.6
+      POSTGIS_VERSION: 2.5
+      BUILD_TYPE: Release
+      PSYCOPG: 2
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/build-and-test
+
+  ubuntu20-pg10-gcc10:
+    runs-on: ubuntu-20.04
+
+    env:
+      CC: gcc-10
+      CXX: g++-10
+      EXTRA_FLAGS: -Wno-unused-but-set-parameter # workaround for GCC bug
       LUA_VERSION: 5.3
       LUAJIT_OPTION: OFF
       POSTGRESQL_VERSION: 10
       POSTGIS_VERSION: 3
-      CPP_VERSION: 17
       BUILD_TYPE: Debug
+      PSYCOPG: 2
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
 
-  ubuntu18-pg11-clang9:
-    runs-on: ubuntu-18.04
+  ubuntu20-pg11-clang10:
+    runs-on: ubuntu-20.04
 
     env:
-      CC: clang-9
-      CXX: clang++-9
+      CC: clang-10
+      CXX: clang++-10
       LUA_VERSION: 5.3
       LUAJIT_OPTION: OFF
       POSTGRESQL_VERSION: 11
       POSTGIS_VERSION: 2.5
-      CPP_VERSION: 17
       BUILD_TYPE: Debug
+      PSYCOPG: 2
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
-  ubuntu20-pg12-gcc10-jit:
+  ubuntu20-pg13-gcc10-jit:
     runs-on: ubuntu-20.04
 
     env:
@@ -119,18 +128,18 @@ jobs:
       CXX: g++-10
       LUA_VERSION: 5.3
       LUAJIT_OPTION: ON
-      POSTGRESQL_VERSION: 12
+      POSTGRESQL_VERSION: 13
       POSTGIS_VERSION: 2.5
-      CPP_VERSION: 17
       BUILD_TYPE: Debug
+      PSYCOPG: 2
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
 
-  ubuntu20-pg13-clang10-jit:
+  ubuntu20-pg15-clang10-jit:
     runs-on: ubuntu-20.04
 
     env:
@@ -138,17 +147,17 @@ jobs:
       CXX: clang++-10
       LUA_VERSION: 5.3
       LUAJIT_OPTION: ON
-      POSTGRESQL_VERSION: 13
+      POSTGRESQL_VERSION: 15
       POSTGIS_VERSION: 3
-      CPP_VERSION: 17
       BUILD_TYPE: Debug
+      PSYCOPG: 2
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
-  ubuntu20-pg13-clang10-proj6:
+  ubuntu20-pg15-clang10-proj6:
     runs-on: ubuntu-20.04
 
     env:
@@ -156,18 +165,18 @@ jobs:
       CXX: clang++-10
       LUA_VERSION: 5.3
       LUAJIT_OPTION: OFF
-      POSTGRESQL_VERSION: 13
+      POSTGRESQL_VERSION: 15
       POSTGIS_VERSION: 3
-      CPP_VERSION: 17
       USE_PROJ_LIB: 6
       BUILD_TYPE: Debug
+      PSYCOPG: 2
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
-  ubuntu20-pg13-clang10-noproj:
+  ubuntu20-pg15-clang10-noproj:
     runs-on: ubuntu-20.04
 
     env:
@@ -175,18 +184,18 @@ jobs:
       CXX: clang++-10
       LUA_VERSION: 5.3
       LUAJIT_OPTION: OFF
-      POSTGRESQL_VERSION: 13
+      POSTGRESQL_VERSION: 15
       POSTGIS_VERSION: 3
-      CPP_VERSION: 17
       USE_PROJ_LIB: off
       BUILD_TYPE: Debug
+      PSYCOPG: 2
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
-  ubuntu20-pg13-clang10-cpp17:
+  ubuntu20-pg16-clang10:
     runs-on: ubuntu-20.04
 
     env:
@@ -194,14 +203,14 @@ jobs:
       CXX: clang++-10
       LUA_VERSION: 5.3
       LUAJIT_OPTION: OFF
-      POSTGRESQL_VERSION: 14
+      POSTGRESQL_VERSION: 16
       POSTGIS_VERSION: 3
-      CPP_VERSION: 17
       USE_PROJ_LIB: 6
       BUILD_TYPE: Debug
+      PSYCOPG: 2
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
@@ -215,11 +224,11 @@ jobs:
       LUAJIT_OPTION: ON
       POSTGRESQL_VERSION: 13
       POSTGIS_VERSION: 2.5
-      CPP_VERSION: 17
       BUILD_TYPE: Release
+      PSYCOPG: 2
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
@@ -231,11 +240,160 @@ jobs:
       CXX: g++-10
       POSTGRESQL_VERSION: 13
       POSTGIS_VERSION: 2.5
-      CPP_VERSION: 17
       BUILD_TYPE: Release
+      PSYCOPG: 2
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/build-and-test
+
+  ubuntu22-pg16-clang14-jit:
+    runs-on: ubuntu-22.04
+
+    env:
+      CC: clang-14
+      CXX: clang++-14
+      LUA_VERSION: 5.4
+      LUAJIT_OPTION: ON
+      POSTGRESQL_VERSION: 16
+      POSTGIS_VERSION: 3
+      BUILD_TYPE: Debug
+      PSYCOPG: 2
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/build-and-test
+
+  ubuntu22-pg16-clang14-proj6:
+    runs-on: ubuntu-22.04
+
+    env:
+      CC: clang-14
+      CXX: clang++-14
+      LUA_VERSION: 5.4
+      LUAJIT_OPTION: OFF
+      POSTGRESQL_VERSION: 16
+      POSTGIS_VERSION: 3
+      USE_PROJ_LIB: 6
+      BUILD_TYPE: Debug
+      PSYCOPG: 2
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/build-and-test
+
+  ubuntu22-pg16-clang14-noproj:
+    runs-on: ubuntu-22.04
+
+    env:
+      CC: clang-14
+      CXX: clang++-14
+      LUA_VERSION: 5.3
+      LUAJIT_OPTION: OFF
+      POSTGRESQL_VERSION: 16
+      POSTGIS_VERSION: 3
+      USE_PROJ_LIB: off
+      BUILD_TYPE: Debug
+      PSYCOPG: 2
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/build-and-test
+
+  ubuntu22-pg15-clang14:
+    runs-on: ubuntu-22.04
+
+    env:
+      CC: clang-14
+      CXX: clang++-14
+      LUA_VERSION: 5.4
+      LUAJIT_OPTION: OFF
+      POSTGRESQL_VERSION: 15
+      POSTGIS_VERSION: 3
+      USE_PROJ_LIB: 6
+      BUILD_TYPE: Debug
+      PSYCOPG: 2
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/build-and-test
+
+  ubuntu22-pg16-gcc12-release:
+    runs-on: ubuntu-22.04
+
+    env:
+      CC: gcc-12
+      CXX: g++-12
+      EXTRA_FLAGS: -Wno-stringop-overread
+      LUA_VERSION: 5.4
+      LUAJIT_OPTION: ON
+      POSTGRESQL_VERSION: 16
+      POSTGIS_VERSION: 3
+      BUILD_TYPE: Release
+      PSYCOPG: 2
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/build-and-test
+
+  ubuntu22-pg16-gcc12-release-nolua:
+    runs-on: ubuntu-22.04
+
+    env:
+      CC: gcc-12
+      CXX: g++-12
+      EXTRA_FLAGS: -Wno-stringop-overread
+      POSTGRESQL_VERSION: 16
+      POSTGIS_VERSION: 3
+      BUILD_TYPE: Release
+      PSYCOPG: 2
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/build-and-test
+
+  ubuntu22-pg16-clang15-cpp20:
+    runs-on: ubuntu-22.04
+
+    env:
+      CC: clang-15
+      CXX: clang++-15
+      LUA_VERSION: 5.3
+      LUAJIT_OPTION: OFF
+      POSTGRESQL_VERSION: 16
+      POSTGIS_VERSION: 3
+      CPP_VERSION: 20
+      BUILD_TYPE: Debug
+      PSYCOPG: 3
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/build-and-test
+
+  ubuntu22-pg16-gcc12-cpp20:
+    runs-on: ubuntu-22.04
+
+    env:
+      CC: gcc-12
+      CXX: g++-12
+      LUA_VERSION: 5.3
+      LUAJIT_OPTION: OFF
+      POSTGRESQL_VERSION: 16
+      POSTGIS_VERSION: 3
+      CPP_VERSION: 20
+      BUILD_TYPE: Debug
+      PSYCOPG: 3
+
+    steps:
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
@@ -247,18 +405,18 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     env:
-      GETOPT_INCLUDE_DIR: ${{ github.workspace }}/../wingetopt/src
-      GETOPT_LIBRARY: ${{ github.workspace }}/../wingetopt/build/Release/wingetopt.lib
       VCPKG_DEFAULT_BINARY_CACHE: C:/vcpkg_binary_cache
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v2
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
         with:
           path: |
             C:/vcpkg_binary_cache
-          key: vcpkg-binary-cache-${{ matrix.os }}
-      - uses: actions/cache@v2
+          key: vcpkg-binary-cache-${{ matrix.os }}-${{ github.run_id }}
+          restore-keys: |
+            vcpkg-binary-cache-${{ matrix.os }}
+      - uses: actions/cache@v4
         with:
           path: |
             C:/postgis.zip
@@ -268,7 +426,6 @@ jobs:
         shell: bash
       - uses: ./.github/actions/win-postgres
       - uses: ./.github/actions/win-install
-      - uses: ./.github/actions/win-getopt
       - uses: ./.github/actions/win-cmake
       - uses: ./.github/actions/win-build
       - uses: ./.github/actions/win-test
@@ -276,12 +433,12 @@ jobs:
         run: |
           mkdir c:/artifact/
           mkdir c:/artifact/osm2pgsql-bin
-          cp -r Release/* ../README.md ../COPYING ../*.style ../scripts ../flex-config c:/artifact/osm2pgsql-bin/
+          cp -r Release/* ../README.md ../COPYING ../*.style ../scripts ../flex-config c:/vcpkg/installed/x64-windows/share/proj/proj.db c:/artifact/osm2pgsql-bin/
         shell: bash
         working-directory: build
         if: matrix.os == 'windows-2022'
       - name: 'Upload Artifact'
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: osm2pgsql-win64
           path: c:/artifact
@@ -295,13 +452,13 @@ jobs:
       OSMURL: https://download.geofabrik.de/europe/monaco-latest.osm.bz2
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v2
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
         with:
           path: |
             C:/postgis.zip
           key: postgis-cache
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v4
         with:
           name: osm2pgsql-win64
       - uses: ./.github/actions/win-postgres

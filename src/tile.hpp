@@ -6,14 +6,66 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
+#include "geom-box.hpp"
 #include "geom.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <limits>
+
+class quadkey_t
+{
+public:
+    quadkey_t() noexcept = default;
+
+    explicit quadkey_t(uint64_t value) noexcept : m_value(value) {}
+
+    uint64_t value() const noexcept { return m_value; }
+
+    /**
+     * Calculate quad key with the given number of zoom levels down from the
+     * zoom level of this quad key.
+     */
+    quadkey_t down(uint32_t levels) const noexcept
+    {
+        quadkey_t qk;
+        qk.m_value = m_value >> (levels * 2);
+        return qk;
+    }
+
+    friend bool operator==(quadkey_t a, quadkey_t b) noexcept
+    {
+        return a.m_value == b.m_value;
+    }
+
+    friend bool operator!=(quadkey_t a, quadkey_t b) noexcept
+    {
+        return !(a == b);
+    }
+
+    friend bool operator<(quadkey_t a, quadkey_t b) noexcept
+    {
+        return a.value() < b.value();
+    }
+
+private:
+    uint64_t m_value = std::numeric_limits<uint64_t>::max();
+}; // class quadkey_t
+
+template <>
+struct std::hash<quadkey_t>
+{
+    std::size_t operator()(quadkey_t quadkey) const noexcept
+    {
+        return quadkey.value();
+    }
+};
+
+using quadkey_list_t = std::vector<quadkey_t>;
 
 /**
  * A tile in the usual web tile format.
@@ -93,6 +145,56 @@ public:
         return half_earth_circumference - m_y * extent();
     }
 
+    /// Same as box(margin).min_x().
+    double xmin(double margin) const noexcept
+    {
+        return std::clamp(xmin() - margin * extent(), -half_earth_circumference,
+                          half_earth_circumference);
+    }
+
+    /// Same as box(margin).max_x().
+    double xmax(double margin) const noexcept
+    {
+        return std::clamp(xmax() + margin * extent(), -half_earth_circumference,
+                          half_earth_circumference);
+    }
+
+    /// Same as box(margin).min_y().
+    double ymin(double margin) const noexcept
+    {
+        return std::clamp(ymin() - margin * extent(), -half_earth_circumference,
+                          half_earth_circumference);
+    }
+
+    /// Same as box(margin).max_y().
+    double ymax(double margin) const noexcept
+    {
+        return std::clamp(ymax() + margin * extent(), -half_earth_circumference,
+                          half_earth_circumference);
+    }
+
+    /**
+     * Get bounding box from tile.
+     */
+    geom::box_t box() const noexcept
+    {
+        return {xmin(), ymin(), xmax(), ymax()};
+    }
+
+    /**
+     * Get bounding box from tile with margin on all sides. The margin is
+     * specified as a fraction of the tile extent. So margin==0.5 (50%) makes
+     * the bounding box twice as wide and twice as heigh.
+     *
+     * The bounding box is clamped to the extent of the earth, so there will
+     * be no coordinates smaller than -half_earth_circumference or larger than
+     * half_earth_circumference.
+     */
+    geom::box_t box(double margin) const noexcept
+    {
+        return {xmin(margin), ymin(margin), xmax(margin), ymax(margin)};
+    }
+
     /**
      * Convert a point from web mercator (EPSG:3857) coordinates to
      * coordinates in the tile assuming a tile extent of `pixel_extent`.
@@ -148,12 +250,12 @@ public:
      * bits from the x and y values, similar to what's used for Bing maps:
      * https://docs.microsoft.com/en-us/bingmaps/articles/bing-maps-tile-system
      */
-    uint64_t quadkey() const noexcept;
+    quadkey_t quadkey() const noexcept;
 
     /**
      * Construct tile from quadkey.
      */
-    static tile_t from_quadkey(uint64_t quadkey, uint32_t zoom) noexcept;
+    static tile_t from_quadkey(quadkey_t quadkey, uint32_t zoom) noexcept;
 
 private:
     static constexpr uint32_t const invalid_zoom =
@@ -164,5 +266,56 @@ private:
     uint32_t m_y = 0;
     uint32_t m_zoom = invalid_zoom;
 }; // class tile_t
+
+/**
+ * Iterate over tiles and call output function for each tile on all requested
+ * zoom levels.
+ *
+ * \tparam OUTPUT Class with operator() taking a tile_t argument
+ *
+ * \param tiles_at_maxzoom The list of tiles at maximum zoom level
+ * \param minzoom Minimum zoom level
+ * \param maxzoom Maximum zoom level
+ * \param output Output function
+ */
+template <class OUTPUT>
+std::size_t for_each_tile(quadkey_list_t const &tiles_at_maxzoom,
+                          uint32_t minzoom, uint32_t maxzoom, OUTPUT &&output)
+{
+    assert(minzoom <= maxzoom);
+
+    if (minzoom == maxzoom) {
+        for (auto const quadkey : tiles_at_maxzoom) {
+            std::forward<OUTPUT>(output)(
+                tile_t::from_quadkey(quadkey, maxzoom));
+        }
+        return tiles_at_maxzoom.size();
+    }
+
+    /**
+     * Loop over all requested zoom levels (from maximum down to the minimum
+     * zoom level).
+     */
+    quadkey_t last_quadkey{};
+    std::size_t count = 0;
+    for (auto const quadkey : tiles_at_maxzoom) {
+        for (uint32_t dz = 0; dz <= maxzoom - minzoom; ++dz) {
+            auto const qt_current = quadkey.down(dz);
+            /**
+             * If dz > 0, there are probably multiple elements whose quadkey
+             * is equal because they are all sub-tiles of the same tile at the
+             * current zoom level. We skip all of them after we have written
+             * the first sibling.
+             */
+            if (qt_current != last_quadkey.down(dz)) {
+                std::forward<OUTPUT>(output)(
+                    tile_t::from_quadkey(qt_current, maxzoom - dz));
+                ++count;
+            }
+        }
+        last_quadkey = quadkey;
+    }
+    return count;
+}
 
 #endif // OSM2PGSQL_TILE_HPP

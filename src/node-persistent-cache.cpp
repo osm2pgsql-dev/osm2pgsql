@@ -3,7 +3,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -38,7 +38,7 @@ node_persistent_cache::node_persistent_cache(std::string file_name,
     if (m_fd < 0) {
         throw std::system_error{
             errno, std::system_category(),
-            "Unable to open flatnode file '{}'"_format(m_file_name)};
+            fmt::format("Unable to open flatnode file '{}'", m_file_name)};
     }
 
     m_index = std::make_unique<index_t>(m_fd);

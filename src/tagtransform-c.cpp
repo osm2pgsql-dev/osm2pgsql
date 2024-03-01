@@ -3,10 +3,11 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
+#include <array>
 #include <cstdlib>
 #include <cstring>
 
@@ -18,29 +19,34 @@
 
 namespace {
 
-static const struct
+struct layers_type
 {
     char const *highway;
     int offset;
     bool roads;
-} layers[] = {{"proposed", 1, false},       {"construction", 2, false},
-              {"steps", 10, false},         {"cycleway", 10, false},
-              {"bridleway", 10, false},     {"footway", 10, false},
-              {"path", 10, false},          {"track", 11, false},
-              {"service", 15, false},
+};
 
-              {"tertiary_link", 24, false}, {"secondary_link", 25, true},
-              {"primary_link", 27, true},   {"trunk_link", 28, true},
-              {"motorway_link", 29, true},
+constexpr std::array<layers_type, 25> const layers = {
+    {{"proposed", 1, false},       {"construction", 2, false},
+     {"steps", 10, false},         {"cycleway", 10, false},
+     {"bridleway", 10, false},     {"footway", 10, false},
+     {"path", 10, false},          {"track", 11, false},
+     {"service", 15, false},
 
-              {"raceway", 30, false},       {"pedestrian", 31, false},
-              {"living_street", 32, false}, {"road", 33, false},
-              {"unclassified", 33, false},  {"residential", 33, false},
-              {"tertiary", 34, false},      {"secondary", 36, true},
-              {"primary", 37, true},        {"trunk", 38, true},
-              {"motorway", 39, true}};
+     {"tertiary_link", 24, false}, {"secondary_link", 25, true},
+     {"primary_link", 27, true},   {"trunk_link", 28, true},
+     {"motorway_link", 29, true},
 
-void add_z_order(taglist_t *tags, bool *roads)
+     {"raceway", 30, false},       {"pedestrian", 31, false},
+     {"living_street", 32, false}, {"road", 33, false},
+     {"unclassified", 33, false},  {"residential", 33, false},
+     {"tertiary", 34, false},      {"secondary", 36, true},
+     {"primary", 37, true},        {"trunk", 38, true},
+     {"motorway", 39, true}}};
+
+} // anonymous namespace
+
+static void add_z_order(taglist_t *tags, bool *roads)
 {
     std::string const *const layer = tags->get("layer");
     std::string const *const highway = tags->get("highway");
@@ -51,12 +57,12 @@ void add_z_order(taglist_t *tags, bool *roads)
 
     int z_order = 0;
 
-    int l = layer ? (int)strtol(layer->c_str(), nullptr, 10) : 0;
+    int const l = layer ? (int)std::strtol(layer->c_str(), nullptr, 10) : 0;
     z_order = 100 * l;
     *roads = false;
 
     if (highway) {
-        for (const auto &layer : layers) {
+        for (auto const &layer : layers) {
             if (*highway == layer.highway) {
                 z_order += layer.offset;
                 *roads = layer.roads;
@@ -82,11 +88,8 @@ void add_z_order(taglist_t *tags, bool *roads)
         z_order -= 100;
     }
 
-    util::integer_to_buffer z{z_order};
-    tags->add_tag("z_order", z.c_str());
+    tags->add_tag("z_order", fmt::to_string(z_order));
 }
-
-} // anonymous namespace
 
 c_tagtransform_t::c_tagtransform_t(options_t const *options, export_list exlist)
 : m_options(options), m_export_list(std::move(exlist))

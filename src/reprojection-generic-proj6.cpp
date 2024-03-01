@@ -60,32 +60,30 @@ private:
     {
         assert(m_context);
 
-        std::string const source = "epsg:{}"_format(from);
-        std::string const target = "epsg:{}"_format(to);
+        std::string const source = fmt::format("epsg:{}", from);
+        std::string const target = fmt::format("epsg:{}", to);
 
-        std::unique_ptr<PJ, pj_deleter_t> trans{proj_create_crs_to_crs(
+        std::unique_ptr<PJ, pj_deleter_t> const trans{proj_create_crs_to_crs(
             m_context.get(), source.c_str(), target.c_str(), nullptr)};
 
         if (!trans) {
-            throw std::runtime_error{
-                "Invalid projection from {} to {}: {}"_format(from, to,
-                                                              errormsg())};
+            throw fmt_error("Invalid projection from {} to {}: {}", from, to,
+                            errormsg());
         }
 
         std::unique_ptr<PJ, pj_deleter_t> trans_vis{
             proj_normalize_for_visualization(m_context.get(), trans.get())};
 
         if (!trans_vis) {
-            throw std::runtime_error{
-                "Invalid projection from {} to {}: {}"_format(from, to,
-                                                              errormsg())};
+            throw fmt_error("Invalid projection from {} to {}: {}", from, to,
+                            errormsg());
         }
 
         return trans_vis;
     }
 
-    geom::point_t transform(PJ *transformation,
-                            geom::point_t point) const noexcept
+    static geom::point_t transform(PJ *transformation,
+                                   geom::point_t point) noexcept
     {
         PJ_COORD c_in;
         c_in.lpzt.z = 0.0;
@@ -121,6 +119,6 @@ std::shared_ptr<reprojection> reprojection::make_generic_projection(int srs)
 
 std::string get_proj_version()
 {
-    return "[API 6] {}"_format(proj_info().version);
+    return fmt::format("[API 6] {}", proj_info().version);
 }
 

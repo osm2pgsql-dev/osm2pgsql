@@ -2,11 +2,18 @@
 #define OSM2PGSQL_REPROJECTION_HPP
 
 /**
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * This file is part of osm2pgsql (https://osm2pgsql.org/).
+ *
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
+ * For a full list of authors see the git log.
+ */
+
+/**
  * \file
  *
- * This file is part of osm2pgsql (https://github.com/openstreetmap/osm2pgsql).
- *
- * It contains the reprojection class.
+ * Contains the reprojection class.
  */
 
 #include "geom.hpp"
@@ -70,5 +77,11 @@ private:
 };
 
 std::string get_proj_version();
+
+/**
+ * Get projection object for given srs. Objects are only created once and
+ * then cached.
+ */
+reprojection const &get_projection(int srs);
 
 #endif // OSM2PGSQL_REPROJECTION_HPP

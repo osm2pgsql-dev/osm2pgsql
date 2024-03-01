@@ -1,7 +1,7 @@
 
-cmake_minimum_required(VERSION 3.5.0)
+cmake_minimum_required(VERSION 3.8.0)
 
-project(osm2pgsql VERSION 1.7.0 LANGUAGES CXX C)
+project(osm2pgsql VERSION 1.11.0 LANGUAGES CXX C)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -14,6 +14,10 @@ if (${PROJECT_NAME} STREQUAL ${CMAKE_PROJECT_NAME})
     set(ENABLE_INSTALL ON)
 else()
     set(ENABLE_INSTALL OFF)
+endif()
+
+if (NOT ${CMAKE_SIZEOF_VOID_P} EQUAL 8)
+    message(FATAL_ERROR "osm2pgsql needs a 64 bit architecture")
 endif()
 
 if (WIN32)
@@ -37,12 +41,8 @@ if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE RelWithDebInfo)
 endif()
 
-if (NOT "${CMAKE_CXX_STANDARD}")
-    set(CMAKE_CXX_STANDARD 17)
-endif()
-message(STATUS "Building in C++${CMAKE_CXX_STANDARD} mode")
+# We don't want to use special compiler extensions because we want portability
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if (MSVC)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX)
@@ -55,7 +55,7 @@ endif()
 option(EXTERNAL_LIBOSMIUM "Do not use the bundled libosmium" OFF)
 option(EXTERNAL_PROTOZERO "Do not use the bundled protozero" OFF)
 option(EXTERNAL_FMT       "Do not use the bundled fmt"       OFF)
-option(EXTERNAL_RAPIDJSON "Do not use the bundled rapidjson" OFF)
+option(EXTERNAL_CLI11     "Do not use the bundled CLI11"     OFF)
 
 set(USE_PROJ_LIB "auto" CACHE STRING "Which version of PROJ API to use: ('4', '6', 'off', or 'auto')")
 
@@ -66,10 +66,10 @@ if (NOT WIN32 AND NOT APPLE)
     set(PostgreSQL_TYPE_INCLUDE_DIR /usr/include)
 endif()
 
-set(MINIMUM_POSTGRESQL_SERVER_VERSION "9.5")
-set(MINIMUM_POSTGRESQL_SERVER_VERSION_NUM "90500")
+set(MINIMUM_POSTGRESQL_SERVER_VERSION "9.6")
+set(MINIMUM_POSTGRESQL_SERVER_VERSION_NUM "90600")
 
-set(PostgreSQL_ADDITIONAL_VERSIONS "14" "13" "12" "11" "10" "9.6" "9.5")
+set(PostgreSQL_ADDITIONAL_VERSIONS "15" "14" "13" "12" "11" "10" "9.6")
 
 #############################################################
 # Version
@@ -176,14 +176,14 @@ if (NOT EXTERNAL_FMT)
     set(FMT_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/fmt/include")
 endif()
 
-if (NOT EXTERNAL_RAPIDJSON)
-    set(RAPIDJSON_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/rapidjson/include")
+if (NOT EXTERNAL_CLI11)
+    set(CLI11_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/CLI11/include")
 endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR})
 
 find_package(Osmium 2.17.3 REQUIRED COMPONENTS io)
-include_directories(SYSTEM ${OSMIUM_INCLUDE_DIRS} ${PROTOZERO_INCLUDE_DIR} ${FMT_INCLUDE_DIR} ${RAPIDJSON_INCLUDE_DIR})
+include_directories(SYSTEM ${OSMIUM_INCLUDE_DIRS} ${PROTOZERO_INCLUDE_DIR} ${FMT_INCLUDE_DIR} ${CLI11_INCLUDE_DIR})
 
 if (WITH_LUA)
     if (WITH_LUAJIT)
@@ -209,6 +209,14 @@ find_package(PostgreSQL REQUIRED)
 include_directories(SYSTEM ${PostgreSQL_INCLUDE_DIRS})
 
 find_package(Threads)
+
+find_path(NLOHMANN_INCLUDE_DIR nlohmann/json.hpp)
+include_directories(SYSTEM ${NLOHMANN_INCLUDE_DIR})
+
+find_path(POTRACE_INCLUDE_DIR potracelib.h)
+find_library(POTRACE_LIBRARY NAMES potrace)
+
+find_package(OpenCV QUIET OPTIONAL_COMPONENTS core imgcodecs imgproc)
 
 ############### Libraries are found now ########################
 
@@ -258,16 +266,6 @@ endif()
 
 if (WIN32)
     list(APPEND LIBS ws2_32)
-    if (MSVC)
-        find_path(GETOPT_INCLUDE_DIR getopt.h)
-        find_library(GETOPT_LIBRARY NAMES wingetopt getopt)
-        if (GETOPT_INCLUDE_DIR AND GETOPT_LIBRARY)
-            include_directories(SYSTEM ${GETOPT_INCLUDE_DIR})
-            list(APPEND LIBS ${GETOPT_LIBRARY})
-        else()
-            message(FATAL_ERROR "Can not find getopt library for Windows. Please get it from https://github.com/alex85k/wingetopt or alternative source.")
-        endif()
-    endif()
 endif()
 
 message(STATUS "Libraries used to build: ${LIBS}")
@@ -281,18 +279,44 @@ add_subdirectory(src)
 add_executable(osm2pgsql src/osm2pgsql.cpp)
 target_link_libraries(osm2pgsql osm2pgsql_lib ${LIBS})
 
+if (${POTRACE_LIBRARY} STREQUAL "POTRACE_LIBRARY-NOTFOUND" OR NOT OPENCV_CORE_FOUND)
+    message(STATUS "Did not find opencv and/or potrace library. Not building osm2pgsql-gen.")
+else()
+    if (WITH_LUA)
+        message(STATUS "Found opencv and potrace library. Building osm2pgsql-gen.")
+        set(BUILD_GEN 1)
+        include_directories(SYSTEM ${POTRACE_INCLUDE_DIR})
+        add_executable(osm2pgsql-gen src/gen/osm2pgsql-gen.cpp
+                    src/gen/canvas.cpp
+                    src/gen/gen-base.cpp
+                    src/gen/gen-create.cpp
+                    src/gen/gen-discrete-isolation.cpp
+                    src/gen/gen-rivers.cpp
+                    src/gen/gen-tile-builtup.cpp
+                    src/gen/gen-tile-raster.cpp
+                    src/gen/gen-tile-vector.cpp
+                    src/gen/gen-tile.cpp
+                    src/gen/params.cpp
+                    src/gen/raster.cpp
+                    src/gen/tracer.cpp)
+        target_link_libraries(osm2pgsql-gen osm2pgsql_lib ${LIBS} ${POTRACE_LIBRARY} ${OpenCV_LIBS})
+    else()
+        message(STATUS "No Lua. Not building osm2pgsql-gen.")
+    endif()
+endif()
+
 #############################################################
 # Optional "clang-tidy" target
 #############################################################
 
 message(STATUS "Looking for clang-tidy")
 find_program(CLANG_TIDY
-             NAMES clang-tidy clang-tidy-14 clang-tidy-13 clang-tidy-12 clang-tidy-11)
+             NAMES clang-tidy clang-tidy-16 clang-tidy-15 clang-tidy-14 clang-tidy-13 clang-tidy-12 clang-tidy-11)
 
 if (CLANG_TIDY)
     message(STATUS "Looking for clang-tidy - found ${CLANG_TIDY}")
 
-    file(GLOB CT_CHECK_FILES src/*.cpp tests/*cpp)
+    file(GLOB CT_CHECK_FILES src/*.cpp src/*/*.cpp tests/*cpp)
 
     add_custom_target(clang-tidy
         ${CLANG_TIDY}
@@ -326,7 +350,7 @@ endif()
 # Man page
 #############################################################
 
-add_subdirectory(docs)
+add_subdirectory(man)
 
 #############################################################
 # Install
@@ -337,6 +361,9 @@ include(GNUInstallDirs)
 if (ENABLE_INSTALL)
     install(TARGETS osm2pgsql DESTINATION bin)
     install(FILES default.style empty.style DESTINATION share/osm2pgsql)
-    install(CODE "set(OSM2PGSQL_BINDIR ${CMAKE_INSTALL_FULL_BINDIR})
-                  configure_file(${PROJECT_SOURCE_DIR}/scripts/osm2pgsql-replication ${CMAKE_INSTALL_FULL_BINDIR}/osm2pgsql-replication)")
+    install(PROGRAMS scripts/osm2pgsql-replication DESTINATION bin)
+    if (BUILD_GEN)
+        install(TARGETS osm2pgsql-gen COMPONENT gen EXCLUDE_FROM_ALL DESTINATION bin)
+        add_custom_target(install-gen cmake --install ${CMAKE_BINARY_DIR} --component gen)
+    endif()
 endif()

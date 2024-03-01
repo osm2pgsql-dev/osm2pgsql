@@ -3,7 +3,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -35,7 +35,7 @@ static void delete_location(node_persistent_cache *cache, osmid_t id)
 TEST_CASE("Persistent cache", "[NoDB]")
 {
     std::string const flat_node_file = "test_middle_flat.flat.nodes.bin";
-    testing::cleanup::file_t flatnode_cleaner{flat_node_file};
+    testing::cleanup::file_t const flatnode_cleaner{flat_node_file};
 
     // create a new cache
     {

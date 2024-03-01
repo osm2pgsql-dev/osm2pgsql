@@ -6,7 +6,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -85,7 +85,7 @@ private:
 
     /// The maximum number of bytes an entry will need in storage.
     constexpr static std::size_t max_bytes_per_entry() noexcept {
-        return 10U /*max varint length*/ * 3U /*id, x, y*/;
+        return 10UL /*max varint length*/ * 3UL /*id, x, y*/;
     }
 
     bool will_resize() const noexcept

@@ -42,8 +42,9 @@ function osm2pgsql.process_node(object)
         object.tags.population = tonumber(object.tags.population)
     end
 
-    places:add_row({
-        tags = object.tags
+    places:insert({
+        tags = object.tags,
+        geom = object:as_point()
     })
 end
 

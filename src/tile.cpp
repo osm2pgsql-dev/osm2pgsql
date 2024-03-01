@@ -3,7 +3,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -53,14 +53,14 @@ static uint32_t deinterleave_lowuint32(uint64_t word) noexcept
     return static_cast<uint32_t>(word);
 }
 
-uint64_t tile_t::quadkey() const noexcept
+quadkey_t tile_t::quadkey() const noexcept
 {
-    return interleave_uint32_with_zeros(m_x) |
-           (interleave_uint32_with_zeros(m_y) << 1U);
+    return quadkey_t{interleave_uint32_with_zeros(m_x) |
+                     (interleave_uint32_with_zeros(m_y) << 1U)};
 }
 
-tile_t tile_t::from_quadkey(uint64_t quadkey, uint32_t zoom) noexcept
+tile_t tile_t::from_quadkey(quadkey_t quadkey, uint32_t zoom) noexcept
 {
-    return {zoom, deinterleave_lowuint32(quadkey),
-            deinterleave_lowuint32(quadkey >> 1U)};
+    return {zoom, deinterleave_lowuint32(quadkey.value()),
+            deinterleave_lowuint32(quadkey.value() >> 1U)};
 }

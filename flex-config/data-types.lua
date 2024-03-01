@@ -30,7 +30,7 @@ local highways = osm2pgsql.define_way_table('highways', {
 
 -- Helper function to remove some of the tags we usually are not interested in.
 -- Returns true if there are no tags left.
-function clean_tags(tags)
+local function clean_tags(tags)
     tags.odbl = nil
     tags.created_by = nil
     tags.source = nil
@@ -63,7 +63,7 @@ for _, k in ipairs(highway_types) do
 end
 
 -- Parse a maxspeed value like "30" or "55 mph" and return a number in km/h
-function parse_speed(input)
+local function parse_speed(input)
     if not input then
         return nil
     end
@@ -102,7 +102,7 @@ function osm2pgsql.process_way(object)
     -- We want to put the name in its own column
     local name = object:grab_tag('name')
 
-    highways:add_row({
+    highways:insert({
         name = name,
         type = highway_type,
 
@@ -122,7 +122,8 @@ function osm2pgsql.process_way(object)
         -- for a column of type "int8[]".
         nodes = '{' .. table.concat(object.nodes, ',') .. '}',
 
-        tags = object.tags
+        tags = object.tags,
+        geom = object:as_linestring()
     })
 end
 

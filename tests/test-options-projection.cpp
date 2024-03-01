@@ -3,7 +3,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -12,6 +12,8 @@
 #include <vector>
 
 #include "common-import.hpp"
+
+#include "command-line-parser.hpp"
 #include "reprojection.hpp"
 
 static testing::db::import_t db;
@@ -20,8 +22,9 @@ TEST_CASE("Projection setup")
 {
     char const* const style_file = OSM2PGSQLDATA_DIR "default.style";
 
-    std::vector<char const *> option_params = {"osm2pgsql", "-S", style_file,
-                                               "--number-processes", "1"};
+    std::vector<char const *> option_params = {"osm2pgsql", "--output=pgsql",
+                                               "-S", style_file,
+                                               "--number-processes=1"};
 
     std::string proj_name;
     char const *srid = "";
@@ -73,7 +76,8 @@ TEST_CASE("Projection setup")
 
     option_params.push_back("foo");
 
-    options_t options{(int)option_params.size(), (char **)option_params.data()};
+    auto const options = parse_command_line((int)option_params.size(),
+                                            (char **)option_params.data());
 
     if (!proj_name.empty()) {
         CHECK(options.projection->target_desc() == proj_name);

@@ -3,7 +3,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -29,11 +29,19 @@ geometry_t create_point(osmium::Node const &node)
     return geometry_t{point_t{node.location()}};
 }
 
-static void fill_point_list(point_list_t *list,
+/**
+ * Fill point list with locations from nodes list. Consecutive identical
+ * locations are collapsed into a single point.
+ *
+ * Returns true if the result is a valid linestring, i.e. it has more than
+ * one point.
+ */
+static bool fill_point_list(point_list_t *list,
                             osmium::NodeRefList const &nodes)
 {
     osmium::Location last{};
 
+    list->reserve(nodes.size());
     for (auto const &node : nodes) {
         auto const loc = node.location();
         if (loc.valid() && loc != last) {
@@ -41,16 +49,15 @@ static void fill_point_list(point_list_t *list,
             last = loc;
         }
     }
+
+    return list->size() > 1;
 }
 
 void create_linestring(geometry_t *geom, osmium::Way const &way)
 {
     auto &line = geom->set<linestring_t>();
 
-    fill_point_list(&line, way.nodes());
-
-    // Return nullgeom_t if the line geometry is invalid
-    if (line.size() <= 1U) {
+    if (!fill_point_list(&line, way.nodes())) {
         geom->reset();
     }
 }
@@ -95,6 +102,45 @@ geometry_t create_polygon(osmium::Way const &way)
     return geom;
 }
 
+void create_multipoint(geometry_t *geom, osmium::memory::Buffer const &buffer)
+{
+    auto nodes = buffer.select<osmium::Node>();
+    if (nodes.size() == 1) {
+        auto const location = nodes.cbegin()->location();
+        if (location.valid()) {
+            geom->set<point_t>() = point_t{location};
+        } else {
+            geom->reset();
+        }
+    } else {
+        auto &multipoint = geom->set<multipoint_t>();
+        for (auto const &node : nodes) {
+            auto const location = node.location();
+            if (location.valid()) {
+                multipoint.add_geometry(point_t{location});
+            }
+        }
+        if (multipoint.num_geometries() == 0) {
+            geom->reset();
+        }
+
+        // In the (unlikely) event that this multipoint geometry only contains
+        // a single point because locations for all others were not available
+        // turn it into a point geometry retroactively.
+        if (multipoint.num_geometries() == 1) {
+            auto const p = multipoint[0];
+            geom->set<point_t>() = p;
+        }
+    }
+}
+
+geometry_t create_multipoint(osmium::memory::Buffer const &buffer)
+{
+    geometry_t geom{};
+    create_multipoint(&geom, buffer);
+    return geom;
+}
+
 void create_multilinestring(geometry_t *geom,
                             osmium::memory::Buffer const &buffer,
                             bool force_multi)
@@ -102,22 +148,31 @@ void create_multilinestring(geometry_t *geom,
     auto ways = buffer.select<osmium::Way>();
     if (ways.size() == 1 && !force_multi) {
         auto &line = geom->set<linestring_t>();
-        auto &way = *ways.begin();
-        fill_point_list(&line, way.nodes());
-        if (line.size() < 2U) {
+        auto const &way = *ways.begin();
+        if (!fill_point_list(&line, way.nodes())) {
             geom->reset();
         }
     } else {
         auto &multiline = geom->set<multilinestring_t>();
         for (auto const &way : ways) {
             linestring_t line;
-            fill_point_list(&line, way.nodes());
-            if (line.size() >= 2U) {
+            if (fill_point_list(&line, way.nodes())) {
                 multiline.add_geometry(std::move(line));
             }
         }
         if (multiline.num_geometries() == 0) {
             geom->reset();
+        }
+
+        // In the (unlikely) event that this multilinestring geometry only
+        // contains a single linestring because ways or locations for all
+        // others were not available turn it into a linestring geometry
+        // retroactively.
+        if (multiline.num_geometries() == 1 && !force_multi) {
+            // This has to be done in two steps, because the set<>()
+            // destroys the content of mulitline.
+            auto p = std::move(multiline[0]);
+            geom->set<linestring_t>() = std::move(p);
         }
     }
 }
@@ -197,8 +252,7 @@ void create_collection(geometry_t *geom, osmium::memory::Buffer const &buffer)
             auto const &way = static_cast<osmium::Way const &>(obj);
             geometry_t item;
             auto &line = item.set<linestring_t>();
-            fill_point_list(&line, way.nodes());
-            if (line.size() >= 2U) {
+            if (fill_point_list(&line, way.nodes())) {
                 collection.add_geometry(std::move(item));
             }
         }

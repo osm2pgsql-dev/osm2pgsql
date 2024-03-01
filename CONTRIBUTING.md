@@ -7,7 +7,7 @@ We operate the "Fork & Pull" model explained at
 https://help.github.com/articles/using-pull-requests
 
 You should fork the project into your own repo, create a topic branch
-there and then make one or more pull requests back to the openstreetmap repository.
+there and then make one or more pull requests back to the OpenStreetMap repository.
 Your pull requests will then be reviewed and discussed.
 
 ## History
@@ -55,12 +55,12 @@ convention](https://www.doxygen.nl/manual/docblocks.html) using backslashes
 
 ## Documentation
 
-User documentation is available on [the website](https://osm2pgsql.org/), some
-is stored in `docs/`. Pages on the OpenStreetMap wiki are known to be
-unreliable and outdated.
+User documentation is available on [the website](https://osm2pgsql.org/). The
+source of the web page is in its own repository
+(https://github.com/openstreetmap/osm2pgsql-website).
 
-The man pages for [osm2pgsql](docs/osm2pgsql.1) and
-[osm2pgsql-replication](docs/osm2pgsql-replication.1) can be built from source
+The man pages for [osm2pgsql](man/osm2pgsql.1) and
+[osm2pgsql-replication](man/osm2pgsql-replication.1) can be built from source
 with `make man`.
 
 They need pandoc and argparse-manpage for the conversion. These tools can be
@@ -78,6 +78,10 @@ Ideally osm2pgsql should compile on Linux, OS X, FreeBSD and Windows. It is
 actively tested on Debian, Ubuntu and FreeBSD by the maintainers.
 
 ## Testing
+
+osm2pgsql is tested with two types of tests: Classic tests written in C++ and BDD (Behavior Driven Development) tests written in Python.
+
+### Classic Tests
 
 The code comes with a suite of tests. They are only compiled and run when
 `BUILD_TESTS=ON` is set in the CMake config.
@@ -120,12 +124,7 @@ This will often be used together with the `-s` option of `pg_virtualenv` which
 drops you into a shell after a failed test where you can still access the
 database created by `pg_virtualenv`.
 
-### Performance testing
-
-If performance testing with a full planet import is required, indicate what
-needs testing in a pull request.
-
-### BDD testing
+### BDD Tests
 
 Tests in the `tests/bdd` directory use [behave](https://github.com/behave/behave),
 a Python implementation of a behaviour-driven test framework. To run the
@@ -145,7 +144,7 @@ behave -DBINARY=<your build directory>/osm2pgsql
 ```
 
 Per default, behave assumes that the build directory is under `osm2pgsql/build`.
-If your setup works like that, you can leave out the -D parameter.
+If your setup works like that, you can leave out the `-D` parameter.
 
 To make this a bit easier a shell script `run-behave` is provided in your
 build directory which sets those correct paths and calls `behave`. If run
@@ -178,6 +177,21 @@ The BDDs automatically detect if osm2pgsql was compiled with Lua and
 proj support and skip tests accordingly. They also check for the test
 tablespace `tablespacetest` for tests that need tablespaces.
 
+BDD tests hide print statements by default. For development purposes they
+can be shown by adding these lines to `tests/bdd/.behaverc`:
+
+```
+color=False
+stdout_capture=False
+stderr_capture=False
+log_capture=False
+```
+
+### Performance testing
+
+If performance testing with a full planet import is required, indicate what
+needs testing in a pull request.
+
 ## Coverage reports
 
 To create coverage reports, set `BUILD_COVERAGE` in the CMake config to `ON`,
@@ -193,7 +207,7 @@ the report.
 
 * Decide on a new version. (See [semantic versioning](https://semver.org/).)
 * Update version in [CMakeLists.txt](CMakeLists.txt), look for `project` function.
-* Build man page (`make man`) and copy it to `docs/osm2pgsql.1`.
+* Build man page (`make man`) and copy it to `man/osm2pgsql.1`.
 * Tag release with release notes in commit message and upload the tag to Github.
 * Fill out release notes on Github.
 * Copy Windows binaries and source tarball to osm2pgsql.org.

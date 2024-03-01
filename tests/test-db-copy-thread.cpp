@@ -3,7 +3,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -27,11 +27,10 @@ TEST_CASE("db_copy_thread_t with db_deleter_by_id_t")
     conn.exec("DROP TABLE IF EXISTS test_copy_thread");
     conn.exec("CREATE TABLE test_copy_thread (id int8)");
 
-    auto const table = std::make_shared<db_target_descr_t>();
-    table->name = "test_copy_thread";
-    table->id = "id";
+    auto const table =
+        std::make_shared<db_target_descr_t>("public", "test_copy_thread", "id");
 
-    db_copy_thread_t t(db.conninfo());
+    db_copy_thread_t t{db.connection_params()};
     using cmd_copy_t = db_cmd_copy_delete_t<db_deleter_by_id_t>;
     auto cmd = std::make_unique<cmd_copy_t>(table);
 
@@ -157,11 +156,10 @@ TEST_CASE("db_copy_thread_t with db_deleter_place_t")
               "osm_id bigint,"
               "class text)");
 
-    auto table = std::make_shared<db_target_descr_t>();
-    table->name = "test_copy_thread";
-    table->id = "place_id";
+    auto table = std::make_shared<db_target_descr_t>(
+        "public", "test_copy_thread", "place_id");
 
-    db_copy_thread_t t(db.conninfo());
+    db_copy_thread_t t{db.connection_params()};
     using cmd_copy_t = db_cmd_copy_delete_t<db_deleter_place_t>;
     auto cmd = std::make_unique<cmd_copy_t>(table);
 

@@ -1,16 +1,24 @@
 
 add_library(osm2pgsql_lib STATIC)
 
+# Set the minimum required C++ version for the library and hence for all
+# binaries that use it.
+target_compile_features(osm2pgsql_lib PUBLIC cxx_std_17)
+
 target_sources(osm2pgsql_lib PRIVATE
-  db-check.cpp
+  command-line-app.cpp
+  command-line-parser.cpp
   db-copy.cpp
+  debug-output.cpp
   dependency-manager.cpp
   expire-tiles.cpp
+  expire-output.cpp
   gazetteer-style.cpp
   geom.cpp
   geom-box.cpp
   geom-from-osm.cpp
   geom-functions.cpp
+  geom-pole-of-inaccessibility.cpp
   input.cpp
   logging.cpp
   middle.cpp
@@ -18,7 +26,6 @@ target_sources(osm2pgsql_lib PRIVATE
   middle-ram.cpp
   node-locations.cpp
   node-persistent-cache.cpp
-  options.cpp
   ordered-index.cpp
   osmdata.cpp
   output-gazetteer.cpp
@@ -26,8 +33,10 @@ target_sources(osm2pgsql_lib PRIVATE
   output-pgsql.cpp
   output.cpp
   pgsql.cpp
+  pgsql-capabilities.cpp
   pgsql-helper.cpp
   progress-display.cpp
+  properties.cpp
   reprojection.cpp
   table.cpp
   taginfo.cpp
@@ -46,10 +55,16 @@ if (WITH_LUA)
     file(READ "${CMAKE_CURRENT_SOURCE_DIR}/init.lua" LUA_INIT_CODE)
     configure_file(lua-init.cpp.in lua-init.cpp @ONLY)
     target_sources(osm2pgsql_lib PRIVATE
+        flex-index.cpp
         flex-table.cpp
         flex-table-column.cpp
+        flex-lua-expire-output.cpp
         flex-lua-geom.cpp
+        flex-lua-index.cpp
+        flex-lua-table.cpp
+        flex-write.cpp
         geom-transform.cpp
+        lua-setup.cpp
         lua-utils.cpp
         output-flex.cpp
         tagtransform-lua.cpp

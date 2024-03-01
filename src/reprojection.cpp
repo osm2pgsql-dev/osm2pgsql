@@ -3,7 +3,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -81,8 +81,23 @@ std::shared_ptr<reprojection> reprojection::create_projection(int srs)
     }
 
     if (srs <= 0) {
-        throw std::runtime_error{"Invalid projection SRID '{}'."_format(srs)};
+        throw fmt_error("Invalid projection SRID '{}'.", srs);
     }
 
     return make_generic_projection(srs);
+}
+
+reprojection const &get_projection(int srs)
+{
+    // In almost all cases there will be only one or two projections used, so
+    // storing them in a vector and doing linear search is totally fine.
+    static std::vector<std::shared_ptr<reprojection>> projections;
+
+    for (auto const &p : projections) {
+        if (p->target_srs() == srs) {
+            return *p;
+        }
+    }
+
+    return *projections.emplace_back(reprojection::create_projection(srs));
 }

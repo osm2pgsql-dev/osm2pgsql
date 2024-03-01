@@ -3,7 +3,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -24,9 +24,8 @@
 type_id check_input(type_id const &last, type_id curr)
 {
     if (curr.id < 0) {
-        throw std::runtime_error{
-            "Negative OSM object ids are not allowed: {} id {}."_format(
-                osmium::item_type_to_name(curr.type), curr.id)};
+        throw fmt_error("Negative OSM object ids are not allowed: {} id {}.",
+                        osmium::item_type_to_name(curr.type), curr.id);
     }
 
     if (last.type == curr.type) {
@@ -35,15 +34,14 @@ type_id check_input(type_id const &last, type_id curr)
         }
 
         if (last.id > curr.id) {
-            throw std::runtime_error{
-                "Input data is not ordered: {} id {} after {}."_format(
-                    osmium::item_type_to_name(last.type), curr.id, last.id)};
+            throw fmt_error("Input data is not ordered: {} id {} after {}.",
+                            osmium::item_type_to_name(last.type), curr.id,
+                            last.id);
         }
 
-        throw std::runtime_error{
-            "Input data is not ordered:"
-            " {} id {} appears more than once."_format(
-                osmium::item_type_to_name(last.type), curr.id)};
+        throw fmt_error("Input data is not ordered:"
+                        " {} id {} appears more than once.",
+                        osmium::item_type_to_name(last.type), curr.id);
     }
 
     if (item_type_to_nwr_index(last.type) <=
@@ -51,9 +49,9 @@ type_id check_input(type_id const &last, type_id curr)
         return curr;
     }
 
-    throw std::runtime_error{"Input data is not ordered: {} after {}."_format(
-        osmium::item_type_to_name(curr.type),
-        osmium::item_type_to_name(last.type))};
+    throw fmt_error("Input data is not ordered: {} after {}.",
+                    osmium::item_type_to_name(curr.type),
+                    osmium::item_type_to_name(last.type));
 }
 
 type_id check_input(type_id const &last, osmium::OSMObject const &object)
@@ -182,16 +180,15 @@ prepare_input_files(std::vector<std::string> const &input_files,
     std::vector<osmium::io::File> files;
 
     for (auto const &filename : input_files) {
-        osmium::io::File file{filename, input_format};
+        osmium::io::File const file{filename, input_format};
 
         if (file.format() == osmium::io::file_format::unknown) {
             if (input_format.empty()) {
-                throw std::runtime_error{
-                    "Cannot detect file format for '{}'. Try using -r."_format(
-                        filename)};
+                throw fmt_error("Cannot detect file format for '{}'."
+                                " Try using -r.",
+                                filename);
             }
-            throw std::runtime_error{
-                "Unknown file format '{}'."_format(input_format)};
+            throw fmt_error("Unknown file format '{}'.", input_format);
         }
 
         if (!append && file.has_multiple_object_versions()) {
@@ -264,11 +261,14 @@ private:
     bool m_append;
 }; // class input_context_t
 
-static void process_single_file(osmium::io::File const &file,
-                                osmdata_t *osmdata,
-                                progress_display_t *progress, bool append)
+static file_info process_single_file(osmium::io::File const &file,
+                                     osmdata_t *osmdata,
+                                     progress_display_t *progress, bool append)
 {
+    file_info finfo;
+
     osmium::io::Reader reader{file};
+    finfo.header = reader.header();
     type_id last{osmium::item_type::node, 0};
 
     input_context_t ctx{osmdata, progress, append};
@@ -276,17 +276,25 @@ static void process_single_file(osmium::io::File const &file,
         for (auto &object : buffer.select<osmium::OSMObject>()) {
             last = check_input(last, object);
             ctx.apply(&object);
+            if (object.timestamp() > finfo.last_timestamp) {
+                finfo.last_timestamp = object.timestamp();
+            }
         }
     }
     ctx.eof();
 
     reader.close();
+
+    return finfo;
 }
 
-static void process_multiple_files(std::vector<osmium::io::File> const &files,
-                                   osmdata_t *osmdata,
-                                   progress_display_t *progress, bool append)
+static file_info
+process_multiple_files(std::vector<osmium::io::File> const &files,
+                       osmdata_t *osmdata, progress_display_t *progress,
+                       bool append)
 {
+    file_info finfo;
+
     std::vector<data_source_t> data_sources;
     data_sources.reserve(files.size());
 
@@ -306,6 +314,9 @@ static void process_multiple_files(std::vector<osmium::io::File> const &files,
         queue.pop();
         if (queue.empty() || element != queue.top()) {
             ctx.apply(&element.object());
+            if (element.object().timestamp() > finfo.last_timestamp) {
+                finfo.last_timestamp = element.object().timestamp();
+            }
         }
 
         auto *source = element.data_source();
@@ -318,18 +329,20 @@ static void process_multiple_files(std::vector<osmium::io::File> const &files,
     for (auto &data_source : data_sources) {
         data_source.close();
     }
+
+    return finfo;
 }
 
-void process_files(std::vector<osmium::io::File> const &files,
-                   osmdata_t *osmdata, bool append, bool show_progress)
+file_info process_files(std::vector<osmium::io::File> const &files,
+                        osmdata_t *osmdata, bool append, bool show_progress)
 {
     assert(osmdata);
 
     progress_display_t progress{show_progress};
 
     if (files.size() == 1) {
-        process_single_file(files.front(), osmdata, &progress, append);
-    } else {
-        process_multiple_files(files, osmdata, &progress, append);
+        return process_single_file(files.front(), osmdata, &progress, append);
     }
+
+    return process_multiple_files(files, osmdata, &progress, append);
 }

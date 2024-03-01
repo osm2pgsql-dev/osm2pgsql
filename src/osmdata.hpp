@@ -6,14 +6,12 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
 /**
  * \file
- *
- * This file is part of osm2pgsql (https://github.com/openstreetmap/osm2pgsql).
  *
  * It contains the osmdata_t class.
  */
@@ -27,10 +25,11 @@
 
 #include "dependency-manager.hpp"
 #include "osmtypes.hpp"
+#include "pgsql-params.hpp"
 
 class middle_t;
-class options_t;
 class output_t;
+struct options_t;
 
 /**
  * This class guides the processing of the OSM data through its multiple
@@ -61,18 +60,6 @@ public:
     void stop() const;
 
 private:
-    void node_add(osmium::Node const &node) const;
-    void way_add(osmium::Way *way) const;
-    void relation_add(osmium::Relation const &rel) const;
-
-    void node_modify(osmium::Node const &node) const;
-    void way_modify(osmium::Way *way) const;
-    void relation_modify(osmium::Relation const &rel) const;
-
-    void node_delete(osmid_t id) const;
-    void way_delete(osmid_t id) const;
-    void relation_delete(osmid_t id) const;
-
     /**
      * Run stage 1b and stage 1c processing: Process dependent objects in
      * append mode.
@@ -93,7 +80,7 @@ private:
     std::shared_ptr<middle_t> m_mid;
     std::shared_ptr<output_t> m_output;
 
-    std::string m_conninfo;
+    connection_params_t m_connection_params;
 
     // Bounding box for node import (or invalid Box if everything should be
     // imported).

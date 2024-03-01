@@ -6,14 +6,21 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
 #define FMT_HEADER_ONLY
 #include <fmt/format.h>
 
-// NOLINTNEXTLINE(google-global-names-in-headers,google-build-using-namespace)
-using namespace fmt::literals;
+#include <stdexcept>
+
+template <typename... TArgs>
+std::runtime_error fmt_error(fmt::format_string<TArgs...> format_str,
+                             TArgs &&...args)
+{
+    return std::runtime_error{
+        fmt::format(format_str, std::forward<TArgs>(args)...)};
+}
 
 #endif // OSM2PGSQL_FORMAT_HPP

@@ -16,21 +16,21 @@ function osm2pgsql.process_node(object)
     local test_type = object.tags.type
 
     if test_type == 'nil' then
-        test_table:add_row()
+        test_table:insert({})
         return
     end
     if test_type == 'boolean' then
         local row = { tbool = true, tint2 = true, tint4 = true,
                       tint8 = true, tjson = true, tdirn = true }
-        test_table:add_row(row)
+        test_table:insert(row)
 
         row = { tbool = false, tint2 = false, tint4 = false,
                 tint8 = false, tjson = false, tdirn = false }
-        test_table:add_row(row)
+        test_table:insert(row)
         return
     end
     if test_type == 'boolean-fail' then
-        test_table:add_row{ [object.tags.column] = true }
+        test_table:insert{ [object.tags.column] = true }
         return
     end
     if test_type == 'number' then
@@ -40,7 +40,7 @@ function osm2pgsql.process_node(object)
                           2^15 - 1, 2^15, 2^15 + 1,
                           2^31 - 1, 2^31, 2^31 + 1 }
         for _, n in ipairs(numbers) do
-            test_table:add_row{
+            test_table:insert{
                 ttext = n,
                 tbool = n,
                 tint2 = n,
@@ -55,36 +55,36 @@ function osm2pgsql.process_node(object)
         return
     end
     if test_type == 'number-fail' then
-        test_table:add_row{ [object.tags.column] = 1 }
+        test_table:insert{ [object.tags.column] = 1 }
         return
     end
     if test_type == 'string-bool' then
-        test_table:add_row{ tbool = '1',     ttext = 'istrue' };
-        test_table:add_row{ tbool = 'yes',   ttext = 'istrue' };
-        test_table:add_row{ tbool = 'true',  ttext = 'istrue' };
+        test_table:insert{ tbool = '1',     ttext = 'istrue' };
+        test_table:insert{ tbool = 'yes',   ttext = 'istrue' };
+        test_table:insert{ tbool = 'true',  ttext = 'istrue' };
 
-        test_table:add_row{ tbool = '0',     ttext = 'isfalse' };
-        test_table:add_row{ tbool = 'no',    ttext = 'isfalse' };
-        test_table:add_row{ tbool = 'false', ttext = 'isfalse' };
+        test_table:insert{ tbool = '0',     ttext = 'isfalse' };
+        test_table:insert{ tbool = 'no',    ttext = 'isfalse' };
+        test_table:insert{ tbool = 'false', ttext = 'isfalse' };
 
-        test_table:add_row{ tbool = '',    ttext = 'isnull' };
-        test_table:add_row{ tbool = '2',   ttext = 'isnull' };
-        test_table:add_row{ tbool = 'YES', ttext = 'isnull' };
+        test_table:insert{ tbool = '',    ttext = 'isnull' };
+        test_table:insert{ tbool = '2',   ttext = 'isnull' };
+        test_table:insert{ tbool = 'YES', ttext = 'isnull' };
         return
     end
     if test_type == 'string-direction' then
-        test_table:add_row{ tdirn = '1',   tint2 = 1 };
-        test_table:add_row{ tdirn = 'yes', tint2 = 1 };
+        test_table:insert{ tdirn = '1',   tint2 = 1 };
+        test_table:insert{ tdirn = 'yes', tint2 = 1 };
 
-        test_table:add_row{ tdirn = '0',   tint2 = 0 };
-        test_table:add_row{ tdirn = 'no',  tint2 = 0 };
+        test_table:insert{ tdirn = '0',   tint2 = 0 };
+        test_table:insert{ tdirn = 'no',  tint2 = 0 };
 
-        test_table:add_row{ tdirn = '-1',  tint2 = -1 };
+        test_table:insert{ tdirn = '-1',  tint2 = -1 };
 
-        test_table:add_row{ tdirn = '2',   tint2 = nil };
-        test_table:add_row{ tdirn = '-2',  tint2 = nil };
-        test_table:add_row{ tdirn = '',    tint2 = nil };
-        test_table:add_row{ tdirn = 'FOO', tint2 = nil };
+        test_table:insert{ tdirn = '2',   tint2 = nil };
+        test_table:insert{ tdirn = '-2',  tint2 = nil };
+        test_table:insert{ tdirn = '',    tint2 = nil };
+        test_table:insert{ tdirn = 'FOO', tint2 = nil };
         return
     end
     if test_type == 'string-with-number' then
@@ -94,7 +94,7 @@ function osm2pgsql.process_node(object)
                           2^15 - 1, 2^15, 2^15 + 1,
                           2^31 - 1, 2^31, 2^31 + 1 }
         for _, n in ipairs(numbers) do
-            test_table:add_row{
+            test_table:insert{
                 ttext = string.format('%d', n),
                 tint2 = string.format('%d', n),
                 tint4 = string.format('%d', n),
@@ -103,7 +103,7 @@ function osm2pgsql.process_node(object)
                 tsqlt = string.format('%d', n),
             }
         end
-        test_table:add_row{
+        test_table:insert{
             ttext = ' 42',
             tint2 = ' 42',
             tint4 = ' 42',
@@ -116,7 +116,7 @@ function osm2pgsql.process_node(object)
     if test_type == 'string-with-invalid-number' then
         local not_numbers = { '', 'abc', '0a', '0xa', '--1', '1foo', '1.2' }
         for _, n in ipairs(not_numbers) do
-            test_table:add_row{
+            test_table:insert{
                 ttext = n,
                 tint2 = n,
                 tint4 = n,
@@ -127,25 +127,25 @@ function osm2pgsql.process_node(object)
         return
     end
     if test_type == 'function-fail' then
-        test_table:add_row{ [object.tags.column] = table.insert }
+        test_table:insert{ [object.tags.column] = table.insert }
         return
     end
     if test_type == 'table' then
         local t = { a = 'b', c = 'd' }
-        test_table:add_row{ thstr = {}, tjson = {} }
-        test_table:add_row{ thstr = t, tjson = t }
+        test_table:insert{ thstr = {}, tjson = {} }
+        test_table:insert{ thstr = t, tjson = t }
         return
     end
     if test_type == 'table-hstore-fail' then
-        test_table:add_row{ thstr = { num = 1, bln = true } }
+        test_table:insert{ thstr = { num = 1, bln = true } }
         return
     end
     if test_type == 'table-fail' then
-        test_table:add_row{ [object.tags.column] = {} }
+        test_table:insert{ [object.tags.column] = {} }
         return
     end
     if test_type == 'json' then
-        test_table:add_row{ tjson = {
+        test_table:insert{ tjson = {
             astring = '123',
             aninteger = 124,
             anumber = 12.5,
@@ -160,7 +160,7 @@ function osm2pgsql.process_node(object)
     if test_type == 'json-loop' then
         local atable = { a = 'b' }
         atable.c = atable
-        test_table:add_row{ tjson = atable }
+        test_table:insert{ tjson = atable }
         return
     end
 end

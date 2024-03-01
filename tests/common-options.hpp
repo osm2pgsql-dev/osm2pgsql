@@ -6,7 +6,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -22,12 +22,15 @@ class opt_t
 public:
     opt_t()
     {
+        m_opt.output_backend = "pgsql";
         m_opt.prefix = "osm2pgsql_test";
         m_opt.style = OSM2PGSQLDATA_DIR "default.style";
         m_opt.num_procs = 1;
         m_opt.cache = 2;
         m_opt.append = false;
         m_opt.projection = reprojection::create_projection(PROJ_SPHERE_MERC);
+        m_opt.middle_dbschema = "public";
+        m_opt.output_dbschema = "public";
     }
 
     operator options_t() const { return m_opt; }
@@ -35,13 +38,15 @@ public:
     opt_t &slim()
     {
         m_opt.slim = true;
+        m_opt.middle_database_format = 2;
         return *this;
     }
 
     opt_t &slim(testing::pg::tempdb_t const &db)
     {
         m_opt.slim = true;
-        m_opt.database_options = db.db_options();
+        m_opt.middle_database_format = 2;
+        m_opt.connection_params = db.connection_params();
         return *this;
     }
 

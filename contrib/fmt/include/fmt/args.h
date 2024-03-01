@@ -1,4 +1,4 @@
-// Formatting library for C++ - dynamic format arguments
+// Formatting library for C++ - dynamic argument lists
 //
 // Copyright (c) 2012 - present, Victor Zverovich
 // All rights reserved.
@@ -22,8 +22,9 @@ template <typename T> struct is_reference_wrapper : std::false_type {};
 template <typename T>
 struct is_reference_wrapper<std::reference_wrapper<T>> : std::true_type {};
 
-template <typename T> const T& unwrap(const T& v) { return v; }
-template <typename T> const T& unwrap(const std::reference_wrapper<T>& v) {
+template <typename T> auto unwrap(const T& v) -> const T& { return v; }
+template <typename T>
+auto unwrap(const std::reference_wrapper<T>& v) -> const T& {
   return static_cast<const T&>(v);
 }
 
@@ -50,7 +51,7 @@ class dynamic_arg_list {
   std::unique_ptr<node<>> head_;
 
  public:
-  template <typename T, typename Arg> const T& push(const Arg& arg) {
+  template <typename T, typename Arg> auto push(const Arg& arg) -> const T& {
     auto new_node = std::unique_ptr<typed_node<T>>(new typed_node<T>(arg));
     auto& value = new_node->value;
     new_node->next = std::move(head_);
@@ -95,10 +96,10 @@ class dynamic_format_arg_store
   };
 
   template <typename T>
-  using stored_type = conditional_t<detail::is_string<T>::value &&
-                                        !has_formatter<T, Context>::value &&
-                                        !detail::is_reference_wrapper<T>::value,
-                                    std::basic_string<char_type>, T>;
+  using stored_type = conditional_t<
+      std::is_convertible<T, std::basic_string<char_type>>::value &&
+          !detail::is_reference_wrapper<T>::value,
+      std::basic_string<char_type>, T>;
 
   // Storage of basic_format_arg must be contiguous.
   std::vector<basic_format_arg<Context>> data_;
@@ -110,14 +111,14 @@ class dynamic_format_arg_store
 
   friend class basic_format_args<Context>;
 
-  unsigned long long get_types() const {
+  auto get_types() const -> unsigned long long {
     return detail::is_unpacked_bit | data_.size() |
            (named_info_.empty()
                 ? 0ULL
                 : static_cast<unsigned long long>(detail::has_named_args_bit));
   }
 
-  const basic_format_arg<Context>* data() const {
+  auto data() const -> const basic_format_arg<Context>* {
     return named_info_.empty() ? data_.data() : data_.data() + 1;
   }
 
@@ -143,6 +144,8 @@ class dynamic_format_arg_store
   }
 
  public:
+  constexpr dynamic_format_arg_store() = default;
+
   /**
     \rst
     Adds an argument into the dynamic store for later passing to a formatting

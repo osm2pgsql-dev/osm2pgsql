@@ -3,7 +3,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -91,7 +91,7 @@ bool read_style_file(std::string const &filename, export_list *exlist)
     if (!in) {
         throw std::system_error{
             errno, std::system_category(),
-            "Couldn't open style file '{}'"_format(filename)};
+            fmt::format("Couldn't open style file '{}'", filename)};
     }
 
     char buffer[1024];
@@ -119,10 +119,9 @@ bool read_style_file(std::string const &filename, export_list *exlist)
         }
 
         if (fields < 3) {
-            std::fclose(in);
-            throw std::runtime_error{
-                "Error reading style file line {} (fields={})."_format(lineno,
-                                                                       fields)};
+            (void)std::fclose(in);
+            throw fmt_error("Error reading style file line {} (fields={}).",
+                            lineno, fields);
         }
 
         //place to keep info about this tag
@@ -143,9 +142,9 @@ bool read_style_file(std::string const &filename, export_list *exlist)
         if ((temp.flags != FLAG_DELETE) &&
             ((temp.name.find('?') != std::string::npos) ||
              (temp.name.find('*') != std::string::npos))) {
-            std::fclose(in);
-            throw std::runtime_error{
-                "Wildcard '{}' in non-delete style entry."_format(temp.name)};
+            (void)std::fclose(in);
+            throw fmt_error("Wildcard '{}' in non-delete style entry.",
+                            temp.name);
         }
 
         if ((temp.name == "way_area") && (temp.flags == FLAG_DELETE)) {
@@ -168,9 +167,8 @@ bool read_style_file(std::string const &filename, export_list *exlist)
 
         //do we really want to completely quit on an unusable line?
         if (!kept) {
-            std::fclose(in);
-            throw std::runtime_error{
-                "Weird style line {}:{}."_format(filename, lineno)};
+            (void)std::fclose(in);
+            throw fmt_error("Weird style line {}:{}.", filename, lineno);
         }
 
         read_valid_column = true;
@@ -178,13 +176,13 @@ bool read_style_file(std::string const &filename, export_list *exlist)
 
     if (std::ferror(in)) {
         int const err = errno;
-        std::fclose(in);
+        (void)std::fclose(in);
         throw std::system_error{
             err, std::system_category(),
-            "Error reading style file '{}'"_format(filename)};
+            fmt::format("Error reading style file '{}'", filename)};
     }
 
-    std::fclose(in);
+    (void)std::fclose(in);
 
     if (!read_valid_column) {
         throw std::runtime_error{"Unable to parse any valid columns from "

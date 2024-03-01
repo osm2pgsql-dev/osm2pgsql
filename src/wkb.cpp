@@ -3,13 +3,14 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
 #include "wkb.hpp"
 
 #include "format.hpp"
+#include "overloaded.hpp"
 
 #include <array>
 #include <cassert>
@@ -17,6 +18,7 @@
 #include <cstring>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <utility>
 
 namespace ewkb {
@@ -230,13 +232,13 @@ public:
 
         if (m_ensure_multi) {
             // Two 13 bytes headers plus n sets of coordinates
-            data.reserve(2 * 13 + geom.size() * (2 * 8));
+            data.reserve(2UL * 13UL + geom.size() * (2UL * 8UL));
             write_header(&data, wkb_multi_line, m_srid);
             write_length(&data, 1);
             write_linestring(&data, geom);
         } else {
             // 13 byte header plus n sets of coordinates
-            data.reserve(13 + geom.size() * (2 * 8));
+            data.reserve(13UL + geom.size() * (2UL * 8UL));
             write_linestring(&data, geom, m_srid);
         }
 
@@ -298,25 +300,23 @@ private:
  * Empty Multi* geometries and Geometry Collections will return a NULL
  * geometry object.
  *
- * Call next() to get a pointer to the next character that is not part of the
- * geometry any more. If this is not the same as the end pointer given to
- * the constructor, this means that there is extra data available in the
- * input data.
+ * Call is_done() to check whether the parser read all available data.
  *
  * Can only parse (E)WKB in native byte order.
  */
 class ewkb_parser_t
 {
 public:
-    ewkb_parser_t(char const *it, char const *end)
-    : m_it(it), m_end(end), m_max_length((end - it) / (sizeof(double) * 2))
+    explicit ewkb_parser_t(std::string_view input)
+    : m_data(input),
+      m_max_length(static_cast<uint32_t>(input.size()) / (sizeof(double) * 2))
     {}
 
     geom::geometry_t operator()()
     {
         geom::geometry_t geom;
 
-        if (m_it == m_end) {
+        if (m_data.empty()) {
             return geom;
         }
 
@@ -345,19 +345,19 @@ public:
             parse_collection(&geom);
             break;
         default:
-            throw std::runtime_error{
-                "Invalid WKB geometry: Unknown geometry type {}"_format(type)};
+            throw fmt_error("Invalid WKB geometry: Unknown geometry type {}",
+                            type);
         }
 
         return geom;
     }
 
-    char const *next() const noexcept { return m_it; }
+    bool is_done() const noexcept { return m_data.empty(); }
 
 private:
     void check_bytes(uint32_t bytes) const
     {
-        if (static_cast<std::size_t>(m_end - m_it) < bytes) {
+        if (m_data.size() < bytes) {
             throw std::runtime_error{"Invalid WKB geometry: Incomplete"};
         }
     }
@@ -367,8 +367,8 @@ private:
         check_bytes(sizeof(uint32_t));
 
         uint32_t data = 0;
-        std::memcpy(&data, m_it, sizeof(uint32_t));
-        m_it += sizeof(uint32_t);
+        std::memcpy(&data, m_data.data(), sizeof(uint32_t));
+        m_data.remove_prefix(sizeof(uint32_t));
 
         return data;
     }
@@ -392,7 +392,7 @@ private:
 
     uint32_t parse_header(geom::geometry_t *geom = nullptr)
     {
-        if (static_cast<uint8_t>(*m_it++) !=
+        if (static_cast<uint8_t>(m_data.front()) !=
             ewkb::wkb_byte_order_type_t::Endian) {
             throw std::runtime_error
             {
@@ -406,6 +406,7 @@ private:
                 "osm2pgsql can only process geometries in native byte order."
             };
         }
+        m_data.remove_prefix(1);
 
         auto type = parse_uint32();
         if (type & ewkb::geometry_type::wkb_srid) {
@@ -428,8 +429,8 @@ private:
         check_bytes(sizeof(double) * 2);
 
         std::array<double, 2> data{};
-        std::memcpy(&data[0], m_it, sizeof(double) * 2);
-        m_it += sizeof(double) * 2;
+        std::memcpy(data.data(), m_data.data(), sizeof(double) * 2);
+        m_data.remove_prefix(sizeof(double) * 2);
 
         point->set_x(data[0]);
         point->set_y(data[1]);
@@ -439,10 +440,9 @@ private:
     {
         auto const num_points = parse_length();
         if (num_points < min_points) {
-            throw std::runtime_error{
-                "Invalid WKB geometry: {} are not"
-                " enough points (must be at least {})"_format(num_points,
-                                                              min_points)};
+            throw fmt_error("Invalid WKB geometry: {} are not"
+                            " enough points (must be at least {})",
+                            num_points, min_points);
         }
         points->reserve(num_points);
         for (uint32_t i = 0; i < num_points; ++i) {
@@ -479,9 +479,9 @@ private:
             auto &point = multipoint.add_geometry();
             uint32_t const type = parse_header();
             if (type != geometry_type::wkb_point) {
-                throw std::runtime_error{
-                    "Invalid WKB geometry: Multipoint containing"
-                    " something other than point: {}"_format(type)};
+                throw fmt_error("Invalid WKB geometry: Multipoint containing"
+                                " something other than point: {}",
+                                type);
             }
             parse_point(&point);
         }
@@ -501,9 +501,10 @@ private:
             auto &linestring = multilinestring.add_geometry();
             uint32_t const type = parse_header();
             if (type != geometry_type::wkb_line) {
-                throw std::runtime_error{
+                throw fmt_error(
                     "Invalid WKB geometry: Multilinestring containing"
-                    " something other than linestring: {}"_format(type)};
+                    " something other than linestring: {}",
+                    type);
             }
             parse_point_list(&linestring, 2);
         }
@@ -523,9 +524,9 @@ private:
             auto &polygon = multipolygon.add_geometry();
             uint32_t const type = parse_header();
             if (type != geometry_type::wkb_polygon) {
-                throw std::runtime_error{
-                    "Invalid WKB geometry: Multipolygon containing"
-                    " something other than polygon: {}"_format(type)};
+                throw fmt_error("Invalid WKB geometry: Multipolygon containing"
+                                " something other than polygon: {}",
+                                type);
             }
             parse_polygon(&polygon);
         }
@@ -542,14 +543,13 @@ private:
 
         collection.reserve(num_geoms);
         for (uint32_t i = 0; i < num_geoms; ++i) {
-            ewkb_parser_t parser{m_it, m_end};
+            ewkb_parser_t parser{m_data};
             collection.add_geometry(parser());
-            m_it = parser.next();
+            m_data = parser.m_data;
         }
     }
 
-    char const *m_it;
-    char const *m_end;
+    std::string_view m_data;
     uint32_t m_max_length;
 
 }; // class ewkb_parser_t
@@ -564,45 +564,47 @@ std::string geom_to_ewkb(geom::geometry_t const &geom, bool ensure_multi)
         static_cast<uint32_t>(geom.srid()), ensure_multi});
 }
 
-geom::geometry_t ewkb_to_geom(std::string const &wkb)
+geom::geometry_t ewkb_to_geom(std::string_view wkb)
 {
-    const char *const end = wkb.data() + wkb.size();
-    ewkb::ewkb_parser_t parser{wkb.data(), end};
+    ewkb::ewkb_parser_t parser{wkb};
     auto geom = parser();
 
-    if (parser.next() != end) {
+    if (!parser.is_done()) {
         throw std::runtime_error{"Invalid WKB geometry: Extra data at end"};
     }
 
     return geom;
 }
 
-unsigned char decode_hex_char(char c)
-{
-    if (c >= '0' && c <= '9') {
-        return c - '0';
-    }
-    if (c >= 'A' && c <= 'F') {
-        return c - 'A' + 10;
-    }
-    if (c >= 'a' && c <= 'f') {
-        return c - 'a' + 10;
-    }
+static constexpr std::array<char, 256> const hex_table = {
+    0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,
+    0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,
+    0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,
+    0, 1, 2, 3,   4, 5, 6, 7,   8, 9, 0, 0,   0, 0, 0, 0,
 
-    throw std::runtime_error{"Invalid wkb: Not a hex character"};
+    0, 10, 11, 12,   13, 14, 15, 0,   0, 0, 0, 0,   0, 0, 0, 0,
+    0,  0,  0,  0,    0,  0,  0, 0,   0, 0, 0, 0,   0, 0, 0, 0,
+    0, 10, 11, 12,   13, 14, 15, 0,   0, 0, 0, 0,   0, 0, 0, 0,
+};
+
+unsigned char decode_hex_char(char c) noexcept
+{
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+    return hex_table[static_cast<std::size_t>(static_cast<unsigned char>(c))];
 }
 
-std::string decode_hex(char const *hex)
+std::string decode_hex(std::string_view hex_string)
 {
+    if (hex_string.size() % 2 != 0) {
+        throw std::runtime_error{"Invalid wkb: Not a valid hex string"};
+    }
+
     std::string wkb;
+    wkb.reserve(hex_string.size() / 2);
 
-    while (*hex != '\0') {
+    // NOLINTNEXTLINE(llvm-qualified-auto, readability-qualified-auto)
+    for (auto hex = hex_string.begin(); hex != hex_string.end();) {
         unsigned int const c = decode_hex_char(*hex++);
-
-        if (*hex == '\0') {
-            throw std::runtime_error{"Invalid wkb: Not a valid hex string"};
-        }
-
         wkb += static_cast<char>((c << 4U) | decode_hex_char(*hex++));
     }
 

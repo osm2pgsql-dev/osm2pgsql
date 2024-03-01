@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2022 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2023 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -47,7 +47,7 @@ namespace osmium {
             std::vector<std::string> types{"none", "zlib"};
 
 #ifdef OSMIUM_WITH_LZ4
-            types.push_back("lz4");
+            types.emplace_back("lz4");
 #endif
 
             return types;

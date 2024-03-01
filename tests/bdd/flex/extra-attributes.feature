@@ -1,14 +1,7 @@
 Feature: Tests for including extra attributes
 
     Background:
-        Given the grid
-            | 11 | 12 |
-            | 10 |    |
-        And the OSM data
-            """
-            w20 v1 dV c31 t2020-01-12T12:34:56Z i17 utest Thighway=primary Nn10,n11,n12
-            """
-        And the lua style
+        Given the lua style
             """
             local attr_table = osm2pgsql.define_table{
                 name = 'osm2pgsql_test_attr',
@@ -32,12 +25,19 @@ Feature: Tests for including extra attributes
             """
 
     Scenario: Importing data without extra attributes
+        Given the grid
+            | 11 | 12 |
+            | 10 |    |
+        And the OSM data
+            """
+            w20 v1 dV c31 t2020-01-12T12:34:56Z i17 utest Thighway=primary Nn10,n11,n12
+            """
         When running osm2pgsql flex with parameters
             | --slim |
 
         Then table osm2pgsql_test_attr contains
-            | type | way_id | tags->'highway' | version | changeset | timestamp | uid  | "user" |
-            | way  | 20     | primary         | NULL    | NULL      | NULL      | NULL | NULL   |
+            | type | way_id | tags->'highway' | tags->'osm_version' |  version | changeset | timestamp | uid  | "user" |
+            | way  | 20     | primary         | NULL                |  NULL    | NULL      | NULL      | NULL | NULL   |
 
         Given the grid
             |    |    |
@@ -46,17 +46,24 @@ Feature: Tests for including extra attributes
             | --slim | --append |
 
         Then table osm2pgsql_test_attr contains
-            | type |  way_id | tags->'highway' | version | changeset | timestamp | uid  | "user" |
-            | way  |  20     | primary         | NULL    | NULL      | NULL      | NULL | NULL   |
+            | type |  way_id | tags->'highway' | tags->'osm_version' | version | changeset | timestamp | uid  | "user" |
+            | way  |  20     | primary         | NULL                | NULL    | NULL      | NULL      | NULL | NULL   |
 
 
     Scenario: Importing data with extra attributes
+        Given the grid
+            | 11 | 12 |
+            | 10 |    |
+        And the OSM data
+            """
+            w20 v1 dV c31 t2020-01-12T12:34:56Z i17 utest Thighway=primary Nn10,n11,n12
+            """
         When running osm2pgsql flex with parameters
             | --slim | -x |
 
         Then table osm2pgsql_test_attr contains
-            | type |  way_id | tags->'highway' | version | changeset | timestamp  | uid  | "user" |
-            | way  |  20     | primary         | 1       | 31        | 1578832496 | 17   | test   |
+            | type |  way_id | tags->'highway' | tags->'osm_version' | version | changeset | timestamp  | uid  | "user" |
+            | way  |  20     | primary         | NULL                | 1       | 31        | 1578832496 | 17   | test   |
 
         Given the grid
             |    |    |
@@ -65,6 +72,6 @@ Feature: Tests for including extra attributes
             | --slim | --append | -x |
 
         Then table osm2pgsql_test_attr contains
-            | type |  way_id | tags->'highway' | version | changeset | timestamp  | uid | "user" |
-            | way  |  20     | primary         | 1       | 31        | 1578832496 | 17  | test   |
+            | type |  way_id | tags->'highway' | tags->'osm_version' | version | changeset | timestamp  | uid | "user" |
+            | way  |  20     | primary         | NULL                | 1       | 31        | 1578832496 | 17  | test   |
 

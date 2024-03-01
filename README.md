@@ -20,7 +20,6 @@ to install and run osm2pgsql.
 * Can apply diffs to keep the database up to date
 * Support the choice of output projection
 * Configurable table names
-* Gazetteer back-end for [Nominatim](https://wiki.openstreetmap.org/wiki/Nominatim)
 * Support for hstore field type to store the complete set of tags in one database
   field if desired
 
@@ -44,12 +43,16 @@ to configure and build itself.
 
 Required libraries are
 
+* [CLI11](https://github.com/CLIUtils/CLI11)
 * [expat](https://libexpat.github.io/)
 * [proj](https://proj.org/)
 * [bzip2](http://www.bzip.org/)
 * [zlib](https://www.zlib.net/)
 * [Boost libraries](https://www.boost.org/), including geometry, system and
   filesystem
+* [nlohmann/json](https://json.nlohmann.me/)
+* [OpenCV](https://opencv.org/) (Optional, for generalization only)
+* [potrace](https://potrace.sourceforge.net/) (Optional, for generalization only)
 * [PostgreSQL](https://www.postgresql.org/) client libraries
 * [Lua](https://www.lua.org/) (Optional, used for Lua tag transforms
   and the flex output)
@@ -63,7 +66,6 @@ with other versions of those libraries (set the `EXTERNAL_*libname*` option to
 * [fmt](https://fmt.dev/) (>= 7.1.3)
 * [libosmium](https://osmcode.org/libosmium/) (>= 2.17.0)
 * [protozero](https://github.com/mapbox/protozero) (>= 1.6.3)
-* [rapidjson](https://rapidjson.org/) (>= 1.1.0)
 
 It also requires access to a database server running
 [PostgreSQL](https://www.postgresql.org/) 9.6+ and
@@ -82,15 +84,18 @@ On a Debian or Ubuntu system, this can be done with:
 
 ```sh
 sudo apt-get install make cmake g++ libboost-dev libboost-system-dev \
-  libboost-filesystem-dev libexpat1-dev zlib1g-dev \
-  libbz2-dev libpq-dev libproj-dev lua5.3 liblua5.3-dev pandoc
+  libboost-filesystem-dev libexpat1-dev zlib1g-dev libpotrace-dev \
+  libopencv-dev libbz2-dev libpq-dev libproj-dev lua5.3 liblua5.3-dev \
+  pandoc nlohmann-json3-dev pyosmium
 ```
 
 On a Fedora system, use
 
 ```sh
-sudo dnf install cmake make gcc-c++ boost-devel expat-devel zlib-devel \
-  bzip2-devel postgresql-devel proj-devel proj-epsg lua-devel pandoc
+sudo dnf install cmake make gcc-c++ libtool boost-devel bzip2-devel \
+  expat-devel fmt-devel json-devel libpq-devel lua-devel zlib-devel \
+  potrace-devel opencv-devel python3-osmium \
+  postgresql-devel proj-devel proj-epsg pandoc
 ```
 
 On RedHat / CentOS first run `sudo yum install epel-release` then install
@@ -98,6 +103,7 @@ dependencies with:
 
 ```sh
 sudo yum install cmake make gcc-c++ boost-devel expat-devel zlib-devel \
+  potrace-devel opencv-devel json-devel python3-osmium \
   bzip2-devel postgresql-devel proj-devel proj-epsg lua-devel pandoc
 ```
 
@@ -144,6 +150,12 @@ The compiled files can be installed with
 
 ```sh
 sudo make install
+```
+
+To install the experimental `osm2pgsql-gen` binary use
+
+```sh
+sudo make install-gen
 ```
 
 By default, the Release build with debug info is created and no tests are
@@ -201,6 +213,11 @@ The output should show something like
 ```
 Lua 5.1.4 (LuaJIT 2.1.0-beta3)
 ```
+
+## Generalization
+
+There is some experimental support for data generalization. See
+https://osm2pgsql.org/generalization/ for details.
 
 ## Help/Support
 

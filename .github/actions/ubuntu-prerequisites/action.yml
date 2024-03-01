@@ -7,7 +7,9 @@ runs:
     - name: Remove preinstalled PostgreSQL
       run: |
         sudo apt-get remove -yq postgresql*
-        sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+        sudo apt-get install curl ca-certificates gnupg
+        curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/apt.postgresql.org.gpg >/dev/null
+        sudo sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
         sudo apt-get update -qq
       shell: bash
 
@@ -18,18 +20,25 @@ runs:
           libboost-system-dev \
           libbz2-dev \
           libexpat1-dev \
+          libopencv-dev \
+          libpotrace-dev \
           libpq-dev \
           libproj-dev \
+          nlohmann-json3-dev \
           pandoc \
           postgresql-${POSTGRESQL_VERSION} \
           postgresql-${POSTGRESQL_VERSION}-postgis-${POSTGIS_VERSION} \
           postgresql-${POSTGRESQL_VERSION}-postgis-${POSTGIS_VERSION}-scripts \
           postgresql-client postgresql-contrib-${POSTGRESQL_VERSION} \
-          python3-psycopg2 \
           python3-setuptools \
           zlib1g-dev
-        pip3 install behave
+        pip3 install behave osmium
         if [ "$CC" = clang-8 ]; then sudo apt-get install -yq --no-install-suggests --no-install-recommends clang-8; fi
+        if [ "$PSYCOPG" = "2"]; then
+            sudo apt-get install -yq --no-install-suggests --no-install-recommends python3-psycopg2
+        else
+            pip3 install psycopg
+        fi
       shell: bash
 
     - name: Install Lua

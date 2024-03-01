@@ -3,12 +3,14 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
 #include "flex-table-column.hpp"
 #include "format.hpp"
+#include "pgsql-capabilities.hpp"
+#include "util.hpp"
 
 #include <algorithm>
 #include <array>
@@ -19,8 +21,10 @@
 
 struct column_type_lookup
 {
-    char const *name;
+    char const *m_name;
     table_column_type type;
+
+    char const *name() const noexcept { return m_name; }
 };
 
 static std::array<column_type_lookup, 26> const column_types = {
@@ -51,29 +55,27 @@ static std::array<column_type_lookup, 26> const column_types = {
      {"id_type", table_column_type::id_type},
      {"id_num", table_column_type::id_num}}};
 
-static table_column_type
-get_column_type_from_string(std::string const &type)
+static table_column_type get_column_type_from_string(std::string const &type)
 {
-    // Because it doesn't work with MSVC:
-    // NOLINTNEXTLINE(llvm-qualified-auto,readability-qualified-auto)
-    auto const it =
-        std::find_if(std::begin(column_types), std::end(column_types),
-                     [&type](column_type_lookup name_type) {
-                         return type == name_type.name;
-                     });
-
-    if (it == std::end(column_types)) {
-        throw std::runtime_error{"Unknown column type '{}'."_format(type)};
+    auto const *column_type = util::find_by_name(column_types, type);
+    if (!column_type) {
+        throw fmt_error("Unknown column type '{}'.", type);
     }
 
-    return it->type;
+    if (column_type->type == table_column_type::area) {
+        log_warn("The 'area' column type is deprecated. Please read");
+        log_warn("https://osm2pgsql.org/doc/tutorials/"
+                 "switching-from-add-row-to-insert/");
+    }
+
+    return column_type->type;
 }
 
 static std::string lowercase(std::string const &str)
 {
     std::string result;
 
-    for (char c : str) {
+    for (char const c : str) {
         result +=
             static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
     }
@@ -87,7 +89,14 @@ flex_table_column_t::flex_table_column_t(std::string name,
 : m_name(std::move(name)), m_type_name(lowercase(type)),
   m_sql_type(std::move(sql_type)),
   m_type(get_column_type_from_string(m_type_name))
-{}
+{
+    if (m_type == table_column_type::hstore) {
+        if (!has_extension("hstore")) {
+            throw std::runtime_error{"Extension 'hstore' not available. Use "
+                                     "'CREATE EXTENSION hstore;' to load it."};
+        }
+    }
+}
 
 void flex_table_column_t::set_projection(char const *projection)
 {
@@ -111,8 +120,7 @@ void flex_table_column_t::set_projection(char const *projection)
     m_srid = static_cast<int>(std::strtoul(projection, &end, 10));
 
     if (*end != '\0') {
-        throw std::runtime_error{
-            "Unknown projection: '{}'."_format(projection)};
+        throw fmt_error("Unknown projection: '{}'.", projection);
     }
 }
 
@@ -144,21 +152,21 @@ std::string flex_table_column_t::sql_type_name() const
     case table_column_type::direction:
         return "int2";
     case table_column_type::geometry:
-        return "Geometry(GEOMETRY, {})"_format(m_srid);
+        return fmt::format("Geometry(GEOMETRY, {})", m_srid);
     case table_column_type::point:
-        return "Geometry(POINT, {})"_format(m_srid);
+        return fmt::format("Geometry(POINT, {})", m_srid);
     case table_column_type::linestring:
-        return "Geometry(LINESTRING, {})"_format(m_srid);
+        return fmt::format("Geometry(LINESTRING, {})", m_srid);
     case table_column_type::polygon:
-        return "Geometry(POLYGON, {})"_format(m_srid);
+        return fmt::format("Geometry(POLYGON, {})", m_srid);
     case table_column_type::multipoint:
-        return "Geometry(MULTIPOINT, {})"_format(m_srid);
+        return fmt::format("Geometry(MULTIPOINT, {})", m_srid);
     case table_column_type::multilinestring:
-        return "Geometry(MULTILINESTRING, {})"_format(m_srid);
+        return fmt::format("Geometry(MULTILINESTRING, {})", m_srid);
     case table_column_type::multipolygon:
-        return "Geometry(MULTIPOLYGON, {})"_format(m_srid);
+        return fmt::format("Geometry(MULTIPOLYGON, {})", m_srid);
     case table_column_type::geometrycollection:
-        return "Geometry(GEOMETRYCOLLECTION, {})"_format(m_srid);
+        return fmt::format("Geometry(GEOMETRYCOLLECTION, {})", m_srid);
     case table_column_type::area:
         return "real";
     case table_column_type::id_type:
@@ -186,5 +194,24 @@ std::string flex_table_column_t::sql_modifiers() const
 
 std::string flex_table_column_t::sql_create() const
 {
-    return R"("{}" {} {},)"_format(m_name, sql_type_name(), sql_modifiers());
+    return fmt::format(R"("{}" {} {})", m_name, sql_type_name(),
+                       sql_modifiers());
+}
+
+void flex_table_column_t::add_expire(expire_config_t const &config)
+{
+    assert(is_geometry_column());
+    assert(srid() == 3857);
+    m_expires.push_back(config);
+}
+
+void flex_table_column_t::do_expire(geom::geometry_t const &geom,
+                                    std::vector<expire_tiles> *expire) const
+{
+    assert(expire);
+    for (auto const &expire_config : m_expires) {
+        assert(expire_config.expire_output < expire->size());
+        (*expire)[expire_config.expire_output].from_geometry(geom,
+                                                             expire_config);
+    }
 }

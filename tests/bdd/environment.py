@@ -2,18 +2,27 @@
 #
 # This file is part of osm2pgsql (https://osm2pgsql.org/).
 #
-# Copyright (C) 2022 by the osm2pgsql developer community.
+# Copyright (C) 2006-2024 by the osm2pgsql developer community.
 # For a full list of authors see the git log.
 from contextlib import closing
 from pathlib import Path
 import subprocess
 import tempfile
+import importlib.util
+import io
+from importlib.machinery import SourceFileLoader
 
 from behave import *
-import psycopg2
-from psycopg2 import sql
+try:
+    import psycopg2 as psycopg
+    from psycopg2 import sql
+except ImportError:
+    import psycopg
+    from psycopg import sql
+
 
 from steps.geometry_factory import GeometryFactory
+from steps.replication_server_mock import ReplicationServerMock
 
 TEST_BASE_DIR = (Path(__file__) / '..' / '..').resolve()
 
@@ -23,6 +32,7 @@ TEST_BASE_DIR = (Path(__file__) / '..' / '..').resolve()
 #    behave -DBINARY=/tmp/my-builddir/osm2pgsql -DKEEP_TEST_DB
 USER_CONFIG = {
     'BINARY': (TEST_BASE_DIR / '..' / 'build' / 'osm2pgsql').resolve(),
+    'REPLICATION_SCRIPT': (TEST_BASE_DIR / '..' / 'scripts' / 'osm2pgsql-replication').resolve(),
     'TEST_DATA_DIR': TEST_BASE_DIR / 'data',
     'SRC_DIR': (TEST_BASE_DIR / '..').resolve(),
     'KEEP_TEST_DB': False,
@@ -39,14 +49,18 @@ def _connect_db(context, dbname):
         object as a context manager that automatically closes.
         Note that the connection does not commit automatically.
     """
-    return closing(psycopg2.connect(dbname=dbname))
+    if psycopg.__version__.startswith('2'):
+        conn = psycopg.connect(dbname=dbname)
+        conn.autocommit = True
+        return closing(conn)
+
+    return psycopg.connect(dbname=dbname, autocommit=True)
 
 
 def _drop_db(context, dbname, recreate_immediately=False):
     """ Drop the database with the given name if it exists.
     """
     with _connect_db(context, 'postgres') as conn:
-        conn.set_isolation_level(0)
         with conn.cursor() as cur:
             db = sql.Identifier(dbname)
             cur.execute(sql.SQL('DROP DATABASE IF EXISTS {}').format(db))
@@ -67,6 +81,9 @@ def before_all(context):
                 cur.execute("""SELECT spcname FROM pg_tablespace
                                WHERE spcname = 'tablespacetest'""")
                 context.config.userdata['HAVE_TABLESPACE'] = cur.rowcount > 0
+                cur.execute("""SELECT setting FROM pg_settings
+                               WHERE name = 'server_version_num'""")
+                context.config.userdata['PG_VERSION'] = int(cur.fetchone()[0])
 
     # Get the osm2pgsql configuration
     proc = subprocess.Popen([str(context.config.userdata['BINARY']), '--version'],
@@ -85,6 +102,15 @@ def before_all(context):
     context.test_data_dir = Path(context.config.userdata['TEST_DATA_DIR']).resolve()
     context.default_data_dir = Path(context.config.userdata['SRC_DIR']).resolve()
 
+    # Set up replication script.
+    replicationfile = str(Path(context.config.userdata['REPLICATION_SCRIPT']).resolve())
+    spec = importlib.util.spec_from_loader('osm2pgsql_replication',
+                                           SourceFileLoader('osm2pgsql_replication',
+                                                            replicationfile))
+    assert spec, f"File not found: {replicationfile}"
+    context.osm2pgsql_replication = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(context.osm2pgsql_replication)
+
 
 def before_scenario(context, scenario):
     """ Set up a fresh, empty test database.
@@ -101,6 +127,16 @@ def before_scenario(context, scenario):
     context.osm2pgsql_params = []
     context.workdir = use_fixture(working_directory, context)
     context.geometry_factory = GeometryFactory()
+    context.osm2pgsql_replication.ReplicationServer = ReplicationServerMock()
+    context.urlrequest_responses = {}
+
+    def _mock_urlopen(request):
+        if not request.full_url in context.urlrequest_responses:
+            raise urllib.error.URLError('Unknown URL')
+
+        return closing(io.BytesIO(context.urlrequest_responses[request.full_url].encode('utf-8')))
+
+    context.osm2pgsql_replication.urlrequest.urlopen = _mock_urlopen
 
 
 @fixture
@@ -109,7 +145,6 @@ def test_db(context, **kwargs):
     _drop_db(context, dbname, recreate_immediately=True)
 
     with _connect_db(context, dbname) as conn:
-        conn.autocommit = True
 
         with conn.cursor() as cur:
             cur.execute('CREATE EXTENSION postgis')
@@ -125,3 +160,10 @@ def test_db(context, **kwargs):
 def working_directory(context, **kwargs):
     with tempfile.TemporaryDirectory() as tmpdir:
         yield Path(tmpdir)
+
+
+def before_tag(context, tag):
+    if tag == 'needs-pg-index-includes':
+        if context.config.userdata['PG_VERSION'] < 110000:
+            context.scenario.skip("No index includes in PostgreSQL < 11")
+

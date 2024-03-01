@@ -6,10 +6,11 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
+#include <osmium/index/id_set.hpp>
 #include <osmium/memory/buffer.hpp>
 #include <osmium/osm/entity_bits.hpp>
 
@@ -18,7 +19,7 @@
 #include "osmtypes.hpp"
 #include "thread-pool.hpp"
 
-class options_t;
+struct options_t;
 struct output_requirements;
 
 /**
@@ -26,7 +27,14 @@ struct output_requirements;
  */
 struct middle_query_t : std::enable_shared_from_this<middle_query_t>
 {
+    middle_query_t() noexcept = default;
+
     virtual ~middle_query_t() = 0;
+
+    middle_query_t(middle_query_t const &) = delete;
+    middle_query_t &operator=(middle_query_t const &) = delete;
+    middle_query_t(middle_query_t &&) = delete;
+    middle_query_t &operator=(middle_query_t &&) = delete;
 
     /**
      * Retrieves node location for the given id.
@@ -95,6 +103,11 @@ public:
 
     virtual ~middle_t() = 0;
 
+    middle_t(middle_t const &) = delete;
+    middle_t &operator=(middle_t const &) = delete;
+    middle_t(middle_t &&) = delete;
+    middle_t &operator=(middle_t &&) = delete;
+
     virtual void start() = 0;
     virtual void stop() = 0;
 
@@ -110,17 +123,44 @@ public:
     virtual void relation(osmium::Relation const &relation) = 0;
 
     /// Called after all nodes from the input file(s) have been processed.
-    virtual void after_nodes() {}
+    virtual void after_nodes()
+    {
+        assert(m_middle_state == middle_state::node);
+#ifndef NDEBUG
+        m_middle_state = middle_state::way;
+#endif
+    }
 
     /// Called after all ways from the input file(s) have been processed.
-    virtual void after_ways() {}
+    virtual void after_ways()
+    {
+        assert(m_middle_state == middle_state::way);
+#ifndef NDEBUG
+        m_middle_state = middle_state::relation;
+#endif
+    }
 
     /// Called after all relations from the input file(s) have been processed.
-    virtual void after_relations() {}
+    virtual void after_relations()
+    {
+        assert(m_middle_state == middle_state::relation);
+#ifndef NDEBUG
+        m_middle_state = middle_state::done;
+#endif
+    }
 
-    virtual idlist_t get_ways_by_node(osmid_t) { return {}; }
-    virtual idlist_t get_rels_by_node(osmid_t) { return {}; }
-    virtual idlist_t get_rels_by_way(osmid_t) { return {}; }
+    virtual void get_node_parents(
+        osmium::index::IdSetSmall<osmid_t> const & /*changed_nodes*/,
+        osmium::index::IdSetSmall<osmid_t> * /*parent_ways*/,
+        osmium::index::IdSetSmall<osmid_t> * /*parent_relations*/) const
+    {
+    }
+
+    virtual void get_way_parents(
+        osmium::index::IdSetSmall<osmid_t> const & /*changed_ways*/,
+        osmium::index::IdSetSmall<osmid_t> * /*parent_relations*/) const
+    {
+    }
 
     virtual std::shared_ptr<middle_query_t> get_query_instance() = 0;
 
@@ -132,6 +172,21 @@ protected:
         assert(m_thread_pool);
         return *m_thread_pool;
     }
+
+#ifndef NDEBUG
+    enum class middle_state
+    {
+        constructed,
+        started,
+        node,
+        way,
+        relation,
+        done
+    };
+
+    // NOLINTNEXTLINE(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
+    middle_state m_middle_state = middle_state::constructed;
+#endif
 
 private:
     std::shared_ptr<thread_pool_t> m_thread_pool;

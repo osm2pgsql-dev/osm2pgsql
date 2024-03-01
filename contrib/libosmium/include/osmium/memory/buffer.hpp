@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2022 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2023 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -87,12 +87,6 @@ namespace osmium {
          * the buffer isn't used any more. If you don't have memory already, you can
          * create a Buffer object and have it manage the memory internally. It will
          * dynamically allocate memory and free it again after use.
-         *
-         * By default, if a buffer gets full it will throw a buffer_is_full exception.
-         * You can use the set_full_callback() method to set a callback functor
-         * which will be called instead of throwing an exception. The full
-         * callback functionality is deprecated and will be removed in the
-         * future. See the documentation for set_full_callback() for alternatives.
          */
         class Buffer {
 
@@ -119,7 +113,6 @@ namespace osmium {
             uint8_t m_builder_count = 0;
 #endif
             auto_grow m_auto_grow{auto_grow::no};
-            std::function<void(Buffer&)> m_full;
 
             static std::size_t calculate_capacity(std::size_t capacity) noexcept {
                 enum {
@@ -275,8 +268,7 @@ namespace osmium {
 #ifndef NDEBUG
                 m_builder_count(other.m_builder_count),
 #endif
-                m_auto_grow(other.m_auto_grow),
-                m_full(std::move(other.m_full)) {
+                m_auto_grow(other.m_auto_grow) {
                 other.m_data = nullptr;
                 other.m_capacity = 0;
                 other.m_written = 0;
@@ -297,7 +289,6 @@ namespace osmium {
                 m_builder_count = other.m_builder_count;
 #endif
                 m_auto_grow = other.m_auto_grow;
-                m_full = std::move(other.m_full);
                 other.m_data = nullptr;
                 other.m_capacity = 0;
                 other.m_written = 0;
@@ -369,26 +360,6 @@ namespace osmium {
             bool is_aligned() const noexcept {
                 assert(m_data && "This must be a valid buffer");
                 return (m_written % align_bytes == 0) && (m_committed % align_bytes == 0);
-            }
-
-            /**
-             * Set functor to be called whenever the buffer is full
-             * instead of throwing buffer_is_full.
-             *
-             * The behaviour is undefined if you call this on an invalid
-             * buffer.
-             *
-             * @pre The buffer must be valid.
-             *
-             * @deprecated
-             * Callback functionality will be removed in the future. Either
-             * detect the buffer_is_full exception or use a buffer with
-             * auto_grow::yes. If you want to avoid growing buffers, check
-             * the CallbackBuffer class.
-             */
-            OSMIUM_DEPRECATED void set_full_callback(const std::function<void(Buffer&)>& full) {
-                assert(m_data && "This must be a valid buffer");
-                m_full = full;
             }
 
             /**
@@ -523,18 +494,11 @@ namespace osmium {
              * Note that you have to eventually call commit() to actually
              * commit this data.
              *
-             * If there isn't enough space in the buffer, one of three things
+             * If there isn't enough space in the buffer, one of two things
              * can happen:
              *
-             * * If you have set a callback with set_full_callback(), it is
-             *   called. After the call returns, you must have either grown
-             *   the buffer or cleared it by calling buffer.clear(). (Usage
-             *   of the full callback is deprecated and this functionality
-             *   will be removed in the future. See the documentation for
-             *   set_full_callback() for alternatives.
-             * * If no callback is defined and this buffer uses internal
-             *   memory management, the buffers capacity is grown, so that
-             *   the new data will fit.
+             * * If this buffer uses internal memory management, the buffers
+             *   capacity is grown, so that the new data will fit.
              * * Else the buffer_is_full exception is thrown.
              *
              * @pre The buffer must be valid.
@@ -550,10 +514,6 @@ namespace osmium {
              */
             unsigned char* reserve_space(const std::size_t size) {
                 assert(m_data && "This must be a valid buffer");
-                // try to flush the buffer empty first.
-                if (m_written + size > m_capacity && m_full) {
-                    m_full(*this);
-                }
                 // if there's still not enough space, then try growing the buffer.
                 if (m_written + size > m_capacity) {
                     if (!m_memory || m_auto_grow == auto_grow::no) {
@@ -825,7 +785,6 @@ namespace osmium {
                 swap(m_written, other.m_written);
                 swap(m_committed, other.m_committed);
                 swap(m_auto_grow, other.m_auto_grow);
-                swap(m_full, other.m_full);
             }
 
             /**

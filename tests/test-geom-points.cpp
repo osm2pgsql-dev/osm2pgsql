@@ -3,7 +3,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -13,6 +13,7 @@
 
 #include "geom-from-osm.hpp"
 #include "geom-functions.hpp"
+#include "geom-output.hpp"
 #include "geom.hpp"
 
 TEST_CASE("geom::point_t", "[NoDB]")
@@ -50,12 +51,32 @@ TEST_CASE("create_point from OSM data", "[NoDB]")
 
     REQUIRE(geom.is_point());
     REQUIRE(geometry_type(geom) == "POINT");
+    REQUIRE(dimension(geom) == 0);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(0.0));
+    REQUIRE(length(geom) == Approx(0.0));
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{1.1, 2.2}});
     REQUIRE(geometry_n(geom, 1) == geom);
     REQUIRE(reverse(geom) == geom);
     REQUIRE(geom.get<geom::point_t>() == geom::point_t{1.1, 2.2});
+}
+
+TEST_CASE("point order", "[NoDB]")
+{
+    geom::point_t const p{10, 10};
+    REQUIRE_FALSE(p < p);
+    REQUIRE_FALSE(p > p);
+
+    std::vector<geom::point_t> points = {
+        {10, 10}, {20, 10}, {13, 14}, {13, 10}
+    };
+
+    std::sort(points.begin(), points.end());
+
+    REQUIRE(points[0] == geom::point_t(10, 10));
+    REQUIRE(points[1] == geom::point_t(13, 10));
+    REQUIRE(points[2] == geom::point_t(13, 14));
+    REQUIRE(points[3] == geom::point_t(20, 10));
 }
 
 TEST_CASE("geom::distance", "[NoDB]")

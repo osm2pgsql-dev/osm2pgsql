@@ -7,7 +7,7 @@ local polygons = osm2pgsql.define_table{
     }
 }
 
-function is_empty(some_table)
+local function is_empty(some_table)
     return next(some_table) == nil
 end
 

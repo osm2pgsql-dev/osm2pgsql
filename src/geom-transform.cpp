@@ -3,7 +3,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -11,6 +11,7 @@
 #include "geom-functions.hpp"
 #include "geom-transform.hpp"
 #include "logging.hpp"
+#include "lua-utils.hpp"
 
 #include <osmium/osm.hpp>
 
@@ -102,8 +103,9 @@ bool geom_transform_area_t::set_param(char const *name, lua_State *lua_state)
         return true;
     }
 
-    throw std::runtime_error{"Unknown value for 'split_at' field in a geometry"
-                             " transformation: '{}'"_format(val)};
+    throw fmt_error("Unknown value for 'split_at' field in a geometry"
+                    " transformation: '{}'",
+                    val);
 }
 
 bool geom_transform_area_t::is_compatible_with(
@@ -142,8 +144,7 @@ std::unique_ptr<geom_transform_t> create_geom_transform(char const *type)
         return std::make_unique<geom_transform_area_t>();
     }
 
-    throw std::runtime_error{
-        "Unknown geometry transformation '{}'."_format(type)};
+    throw fmt_error("Unknown geometry transformation '{}'.", type);
 }
 
 void init_geom_transform(geom_transform_t *transform, lua_State *lua_state)
@@ -153,8 +154,7 @@ void init_geom_transform(geom_transform_t *transform, lua_State *lua_state)
     assert(transform);
     assert(lua_state);
 
-    lua_pushnil(lua_state);
-    while (lua_next(lua_state, -2) != 0) {
+    luaX_for_each(lua_state, [&]() {
         char const *const field = lua_tostring(lua_state, -2);
         if (field == nullptr) {
             throw std::runtime_error{"All fields in geometry transformation "
@@ -169,7 +169,79 @@ void init_geom_transform(geom_transform_t *transform, lua_State *lua_state)
                 show_warning = false;
             }
         }
+    });
+}
 
-        lua_pop(lua_state, 1);
+std::unique_ptr<geom_transform_t>
+get_transform(lua_State *lua_state, flex_table_column_t const &column)
+{
+    assert(lua_state);
+    assert(lua_gettop(lua_state) == 1);
+
+    std::unique_ptr<geom_transform_t> transform{};
+
+    lua_getfield(lua_state, -1, column.name().c_str());
+    int const ltype = lua_type(lua_state, -1);
+
+    // Field not set, return null transform
+    if (ltype == LUA_TNIL) {
+        lua_pop(lua_state, 1); // geom field
+        return transform;
     }
+
+    // Field set to anything but a Lua table is not allowed
+    if (ltype != LUA_TTABLE) {
+        lua_pop(lua_state, 1); // geom field
+        throw fmt_error("Invalid geometry transformation for column '{}'.",
+                        column.name());
+    }
+
+    lua_getfield(lua_state, -1, "create");
+    char const *create_type = lua_tostring(lua_state, -1);
+    if (create_type == nullptr) {
+        throw fmt_error("Missing geometry transformation for column '{}'.",
+                        column.name());
+    }
+
+    transform = create_geom_transform(create_type);
+    lua_pop(lua_state, 1); // 'create' field
+    init_geom_transform(transform.get(), lua_state);
+    if (!transform->is_compatible_with(column.type())) {
+        throw fmt_error("Geometry transformation is not compatible"
+                        " with column type '{}'.",
+                        column.type_name());
+    }
+
+    lua_pop(lua_state, 1); // geom field
+
+    return transform;
+}
+
+geom_transform_t const *get_default_transform(flex_table_column_t const &column,
+                                              osmium::item_type object_type)
+{
+    static geom_transform_point_t const default_transform_node_to_point{};
+    static geom_transform_line_t const default_transform_way_to_line{};
+    static geom_transform_area_t const default_transform_way_to_area{};
+
+    switch (object_type) {
+    case osmium::item_type::node:
+        if (column.type() == table_column_type::point) {
+            return &default_transform_node_to_point;
+        }
+        break;
+    case osmium::item_type::way:
+        if (column.type() == table_column_type::linestring) {
+            return &default_transform_way_to_line;
+        }
+        if (column.type() == table_column_type::polygon) {
+            return &default_transform_way_to_area;
+        }
+        break;
+    default:
+        break;
+    }
+
+    throw fmt_error("Missing geometry transformation for column '{}'.",
+                    column.name());
 }

@@ -32,7 +32,7 @@ function osm2pgsql.process_way(object)
     local d = w2r[object.id]
     if d then
         local refs = {}
-        for rel_id, rel_ref in pairs(d) do
+        for _, rel_ref in pairs(d) do
             refs[#refs + 1] = rel_ref
         end
         table.sort(refs)

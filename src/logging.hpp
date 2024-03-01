@@ -6,7 +6,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -17,10 +17,9 @@
 #include <fmt/chrono.h>
 #include <fmt/color.h>
 
+#include <atomic>
 #include <cstdio>
 #include <utility>
-
-extern thread_local unsigned int this_thread_num;
 
 enum class log_level
 {
@@ -36,9 +35,6 @@ enum class log_level
  */
 class logger
 {
-    std::string generate_common_prefix(fmt::text_style const &ts,
-                                       char const *prefix);
-
 public:
     template <typename S, typename... TArgs>
     void log(log_level with_level, char const *prefix,
@@ -50,12 +46,21 @@ public:
 
         auto const &ts = m_use_color ? style : fmt::text_style{};
 
-        auto str = generate_common_prefix(ts, prefix);
+        std::string str;
+
+        if (m_needs_leading_return) {
+            m_needs_leading_return = false;
+            str += '\n';
+        }
+
+        generate_common_prefix(&str, ts, prefix);
 
         str += fmt::format(ts, format_str, std::forward<TArgs>(args)...);
         str += '\n';
 
-        std::fputs(str.c_str(), stderr);
+        if (std::fputs(str.c_str(), stderr) < 0) {
+            throw std::runtime_error{"Can not write to log"};
+        }
     }
 
     bool log_sql() const noexcept { return m_log_sql; }
@@ -63,6 +68,11 @@ public:
     bool log_sql_data() const noexcept { return m_log_sql_data; }
 
     void set_level(log_level level) noexcept { m_current_level = level; }
+
+    bool debug_enabled() const noexcept
+    {
+        return m_current_level == log_level::debug;
+    }
 
     void enable_sql() noexcept { m_log_sql = true; }
 
@@ -77,12 +87,17 @@ public:
     void needs_leading_return() noexcept { m_needs_leading_return = true; }
     void no_leading_return() noexcept { m_needs_leading_return = false; }
 
+    static void init_thread(unsigned int num);
+
 private:
+    void generate_common_prefix(std::string *str, fmt::text_style const &ts,
+                                char const *prefix) const;
+
     log_level m_current_level = log_level::info;
     bool m_log_sql = false;
     bool m_log_sql_data = false;
     bool m_show_progress = true;
-    bool m_needs_leading_return = false;
+    std::atomic<bool> m_needs_leading_return = false;
 
 #ifdef _WIN32
     bool m_use_color = false;

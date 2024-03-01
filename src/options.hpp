@@ -6,9 +6,11 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
+
+#include "pgsql-params.hpp"
 
 #include <osmium/osm/box.hpp>
 
@@ -18,6 +20,13 @@
 #include <vector>
 
 class reprojection;
+
+enum class command_t
+{
+    help,
+    version,
+    process
+};
 
 /// Variants for generation of hstore column
 enum class hstore_column : char
@@ -31,71 +40,17 @@ enum class hstore_column : char
 };
 
 /**
- * Database options, not specific to a table
- */
-struct database_options_t
-{
-    std::string db;
-    std::string username;
-    std::string host;
-    std::string password;
-    std::string port;
-
-    std::string conninfo() const;
-};
-
-/**
- * Outputs can signal their requirements to the middle by setting these fields.
- */
-struct output_requirements
-{
-    /**
-     * Need full node objects with tags, attributes (only if --extra-attributes
-     * is set) and locations. If false, only node locations are needed.
-     */
-    bool full_nodes = false;
-
-    /**
-     * Need full way objects with tags, attributes (only if --extra-attributes
-     * is set) and way nodes. If false, only way nodes are needed.
-     */
-    bool full_ways = false;
-
-    /**
-     * Need full relation objects with tags, attributes (only if
-     * --extra-attributes is set) and members. If false, no data from relations
-     * is needed.
-     */
-    bool full_relations = false;
-};
-
-/**
  * Structure for storing command-line and other options
  */
-class options_t
+struct options_t
 {
-public:
-    /**
-     * Constructor setting default values for all options. Used for testing.
-     */
-    options_t();
+    command_t command = command_t::process;
 
-    /**
-     * Constructor parsing the options from the command line.
-     */
-    options_t(int argc, char *argv[]);
-
-    /**
-     * Return true if the main program should end directly after the option
-     * parsing. This is true when a help text was printed.
-     */
-    bool early_return() const noexcept {
-        return m_print_help;
-    }
-
-    database_options_t database_options;
+    /// Parameters for initializing database connections
+    connection_params_t connection_params;
 
     std::string prefix{"planet_osm"};         ///< prefix for table names
+    bool prefix_is_set = false;
 
     /// Pg Tablespace to store indexes on main tables (no default TABLESPACE)
     std::string tblsmain_index{};
@@ -109,13 +64,16 @@ public:
     /// Pg Tablespace to store slim tables (no default TABLESPACE)
     std::string tblsslim_data{};
 
-    /// Pg schema to store middle tables in, default none
+    /// Default Pg schema.
+    std::string dbschema{"public"};
+
+    /// Pg schema to store middle tables in.
     std::string middle_dbschema{};
 
-    /// Pg schema to store output tables in, default none
+    /// Pg schema to store output tables in.
     std::string output_dbschema{};
 
-    std::string style{DEFAULT_STYLE}; ///< style file to use
+    std::string style{}; ///< style file to use
 
     /// Name of the flat node file used. Empty if flat node file is not enabled.
     std::string flat_node_file{};
@@ -125,7 +83,7 @@ public:
     /// File name to output expired tiles list to
     std::string expire_tiles_filename{"dirty_tiles"};
 
-    std::string output_backend{"pgsql"};
+    std::string output_backend;
     std::string input_format; ///< input file format (default: autodetect)
 
     osmium::Box bbox;
@@ -147,7 +105,7 @@ public:
 
     int cache = 800; ///< Memory usable for cache in MB
 
-    unsigned int num_procs;
+    unsigned int num_procs = 1;
 
     /**
      * How many bits should the node id be shifted for the way node index?
@@ -156,6 +114,21 @@ public:
      * Use 0 to use a classic loss-less GIN index.
      */
     uint8_t way_node_index_id_shift = 5;
+
+    /**
+     * Middle database format:
+     * 0 = non-slim mode, no database middle (ram middle)
+     * 1 = slim mode, legacy database format
+     * 2 = slim mode, new database format
+     */
+    uint8_t middle_database_format = 0;
+
+    /**
+     * Should nodes (with tags) be stored in the middle? If no flat node file
+     * is used, nodes will always be stored. (Only works with the new middle
+     * database format.)
+     */
+    bool middle_with_nodes = false;
 
     /// add an additional hstore column with objects key/value pairs, and what type of hstore column
     hstore_column hstore_mode = hstore_column::none;
@@ -185,15 +158,6 @@ public:
     bool parallel_indexing = true;
     bool create = false;
     bool pass_prompt = false;
-
-private:
-
-    bool m_print_help = false;
-
-    /**
-     * Check input options for sanity
-     */
-    void check_options();
-};
+}; // struct options_t
 
 #endif // OSM2PGSQL_OPTIONS_HPP

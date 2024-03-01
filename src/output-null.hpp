@@ -6,7 +6,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -21,6 +21,12 @@ public:
     output_null_t(std::shared_ptr<middle_query_t> const &mid,
                   std::shared_ptr<thread_pool_t> thread_pool,
                   options_t const &options);
+
+    output_null_t(output_null_t const &) = default;
+    output_null_t &operator=(output_null_t const &) = default;
+
+    output_null_t(output_null_t &&) = default;
+    output_null_t &operator=(output_null_t &&) = default;
 
     ~output_null_t() override;
 

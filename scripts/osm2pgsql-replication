@@ -4,7 +4,7 @@
 #
 # This file is part of osm2pgsql (https://osm2pgsql.org/).
 #
-# Copyright (C) 2006-2022 by the osm2pgsql developer community.
+# Copyright (C) 2006-2024 by the osm2pgsql developer community.
 # For a full list of authors see the git log.
 
 """
@@ -51,121 +51,286 @@ except ImportError:
 
 LOG = logging.getLogger()
 
-# Will be replaced when installed via CMake.
-INSTALL_PREFIX = '@OSM2PGSQL_BINDIR@/'
-if INSTALL_PREFIX.startswith('@'):
-    INSTALL_PREFIX = ''
+OSM2PGSQL_PATH = Path(__file__).parent.resolve() / 'osm2pgsql'
 
 def pretty_format_timedelta(seconds):
-    minutes = int(seconds/60)
+    seconds = int(seconds)
+    (minutes, seconds) = divmod(seconds, 60)
     (hours, minutes) = divmod(minutes, 60)
     (days, hours) = divmod(hours, 24)
     (weeks, days) = divmod(days, 7)
 
-    if 0 < seconds < 60:
-        output = "<1 minute"
-    else:
-        output = []
-        # If weeks > 1 but hours == 0, we still want to show "0 hours"
-        if weeks > 0:
-            output.append("{} week(s)".format(weeks))
-        if days > 0 or weeks > 0:
-            output.append("{} day(s)".format(days))
-        if hours > 0 or days > 0 or weeks > 0:
-            output.append("{} hour(s)".format(hours))
-
+    output = []
+    # If weeks > 1 but hours == 0, we still want to show "0 hours"
+    if weeks > 0:
+        output.append("{} week(s)".format(weeks))
+    if days > 0 or weeks > 0:
+        output.append("{} day(s)".format(days))
+    if hours > 0 or days > 0 or weeks > 0:
+        output.append("{} hour(s)".format(hours))
+    if minutes > 0 or hours > 0 or days > 0 or weeks > 0:
         output.append("{} minute(s)".format(minutes))
-        output = " ".join(output)
+
+    output.append("{} second(s)".format(seconds))
+
+    output = " ".join(output)
     return output
 
-def connect(args):
-    """ Create a connection from the given command line arguments.
-    """
-    # If dbname looks like a conninfo string use it as such
-    if args.database and any(part in args.database for part in ['=', '://']):
-        return psycopg.connect(args.database)
 
-    return psycopg.connect(dbname=args.database, user=args.username,
-                           host=args.host, port=args.port)
+def osm_date(date):
+    return date.strftime('%Y-%m-%dT%H:%M:%SZ')
 
 
-def table_exists(conn, table_name):
-    with conn.cursor() as cur:
-        cur.execute('SELECT * FROM pg_tables where tablename = %s', (table_name, ))
-        return cur.rowcount > 0
+def from_osm_date(datestr):
+    return dt.datetime.strptime(datestr, '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=dt.timezone.utc)
 
 
-def compute_database_date(conn, prefix):
-    """ Determine the date of the database from the newest object in the
-        database.
-    """
-    # First, find the way with the highest ID in the database
-    # Using nodes would be more reliable but those are not cached by osm2pgsql.
-    with conn.cursor() as cur:
-        table = sql.Identifier(f'{prefix}_ways')
-        cur.execute(sql.SQL("SELECT max(id) FROM {}").format(table))
-        osmid = cur.fetchone()[0] if cur.rowcount == 1 else None
+def start_point(param):
+    if param.isdigit():
+        return int(param)
 
-        if osmid is None:
-            LOG.fatal("No data found in the database.")
-            return None
+    if sys.version_info >= (3, 7):
+        try:
+            date = dt.datetime.fromisoformat(param)
+            if date.tzinfo is None:
+                date = date.replace(tzinfo=dt.timezone.utc)
+            return date
+        except ValueError:
+            pass
 
-    LOG.debug("Using way id %d for timestamp lookup", osmid)
-    # Get the way from the API to find the timestamp when it was created.
-    url = 'https://www.openstreetmap.org/api/0.6/way/{}/1'.format(osmid)
-    headers = {"User-Agent" : "osm2pgsql-update",
-               "Accept" : "application/json"}
-    with urlrequest.urlopen(urlrequest.Request(url, headers=headers)) as response:
-        data = json.loads(response.read().decode('utf-8'))
-
-    if not data.get('elements') or not 'timestamp' in data['elements'][0]:
-        LOG.fatal("The way data downloaded from the API does not contain valid data.\n"
-                  "URL used: %s", url)
-        return None
-
-    date = data['elements'][0]['timestamp']
-    LOG.debug("Found timestamp %s", date)
-
-    try:
-        date = dt.datetime.strptime(date, '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=dt.timezone.utc)
-    except ValueError:
-        LOG.fatal("Cannot parse timestamp '%s'", date)
-        return None
-
-    return date.replace(tzinfo=dt.timezone.utc)
+    return from_osm_date(param)
 
 
-def setup_replication_state(conn, table, base_url, seq, date):
-    """ (Re)create the table for the replication state and fill it with
-        the given state.
-    """
-    with conn.cursor() as cur:
-        cur.execute(sql.SQL('DROP TABLE IF EXISTS {}').format(table))
-        cur.execute(sql.SQL("""CREATE TABLE {}
-                               (url TEXT,
-                                sequence INTEGER,
-                                importdate TIMESTAMP WITH TIME ZONE)
-                            """).format(table))
-        cur.execute(sql.SQL('INSERT INTO {} VALUES(%s, %s, %s)').format(table),
-                    (base_url, seq, date))
-    conn.commit()
+class DBError(Exception):
+
+    def __init__(self, errno, msg):
+        self.errno = errno
+        self.msg = msg
 
 
-def update_replication_state(conn, table, seq, date):
-    """ Update sequence and date in the replication state table.
-        The table is assumed to exist.
-    """
-    with conn.cursor() as cur:
-        if date is not None:
-            cur.execute(sql.SQL('UPDATE {} SET sequence=%s, importdate=%s').format(table),
-                        (seq, date))
+class DBConnection:
+
+    def __init__(self, args):
+        self.schema = args.middle_schema
+
+        # If dbname looks like a conninfo string use it as such
+        if args.database and any(part in args.database for part in ['=', '://']):
+            self.conn = psycopg.connect(args.database,
+                                        fallback_application_name="osm2pgsql-replication")
         else:
-            cur.execute(sql.SQL('UPDATE {} SET sequence=%s').format(table),
-                        (seq,))
+            self.conn = psycopg.connect(dbname=args.database, user=args.username,
+                                        host=args.host, port=args.port,
+                                        fallback_application_name="osm2pgsql-replication")
 
-    conn.commit()
+        self.name = self.conn.info.dbname
 
-def status(conn, args):
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self.conn is not None:
+            self.conn.close()
+
+    def table_exists(self, table_name):
+        with self.conn.cursor() as cur:
+            cur.execute('SELECT * FROM pg_tables WHERE tablename = %s and schemaname = %s ',
+                        (table_name, self.schema))
+            return cur.rowcount > 0
+
+    def table_id(self, name):
+        return sql.Identifier(self.schema, name)
+
+
+class Osm2pgsqlProperties:
+    PROP_TABLE_NAME = 'osm2pgsql_properties'
+
+    def __init__(self, db):
+        self.db = db
+        self.is_updatable = self._get_prop('updatable') == 'true'
+
+    def _get_prop(self, name):
+        with self.db.conn.cursor() as cur:
+            cur.execute(sql.SQL("SELECT value FROM {} WHERE property = %s")
+                           .format(self.db.table_id(self.PROP_TABLE_NAME)),
+                        (name, ))
+            return cur.fetchone()[0] if cur.rowcount == 1 else None
+
+    def _set_prop(self, name, value):
+        with self.db.conn.cursor() as cur:
+            cur.execute(sql.SQL("""INSERT INTO {} (property, value) VALUES (%s, %s)
+                                   ON CONFLICT (property)
+                                   DO UPDATE SET value = EXCLUDED.value""")
+                           .format(self.db.table_id(self.PROP_TABLE_NAME)),
+                        (name, value))
+
+    def get_replication_base(self, server, start_at):
+        seq, date = None, None
+        if server is None:
+            server = self._get_prop('replication_base_url')
+            if server:
+                seq = self._get_prop('replication_sequence_number')
+                date = self._get_prop('replication_timestamp')
+                if date is not None:
+                    date = from_osm_date(date)
+            else:
+                server = 'https://planet.openstreetmap.org/replication/minute'
+
+        if isinstance(start_at, dt.datetime):
+            return server, None, start_at
+
+        if seq is None or isinstance(start_at, int):
+            date = self._get_prop('current_timestamp')
+            if date is None:
+                raise DBError(1, "Cannot get timestamp from database. "
+                                 "Use --start-at to set an explicit date.")
+
+            date = from_osm_date(date)
+            date -= dt.timedelta(minutes=start_at or 180)
+            seq = None
+        else:
+            seq = int(seq)
+
+        return server, seq, date
+
+    def get_replication_state(self):
+        if not self.db.table_exists(self.PROP_TABLE_NAME):
+            raise DBError(1, "Cannot find replication status table. Run 'osm2pgsql-replication init' first.")
+
+        base_url = self._get_prop('replication_base_url')
+        seq = self._get_prop('replication_sequence_number')
+        date = self._get_prop('replication_timestamp')
+
+        if base_url is None or seq is None or date is None:
+            raise DBError(2, "Updates not set up correctly. Run 'osm2pgsql-replication init' first.")
+
+        return base_url, int(seq), from_osm_date(date)
+
+    def write_replication_state(self, base_url, seq, date):
+        self._set_prop('replication_base_url', base_url)
+        self._set_prop('replication_sequence_number', seq)
+        self._set_prop('replication_timestamp', osm_date(date))
+        self.db.conn.commit()
+
+
+class LegacyProperties:
+
+    def __init__(self, db, prefix):
+        self.db = db
+        self.prop_table = f'{prefix}_replication_status'
+        self.way_table = f'{prefix}_ways'
+        self.is_updatable = db.table_exists(self.way_table)
+
+    def get_replication_base(self, server, start_at):
+        """ Determine the date of the database from the newest object in the
+            database.
+        """
+        if server is None:
+            server = 'https://planet.openstreetmap.org/replication/minute'
+
+        if isinstance(start_at, dt.datetime):
+            return server, None, start_at
+
+        # First, find the way with the highest ID in the database
+        # Using nodes would be more reliable but those are not cached by osm2pgsql.
+        with self.db.conn.cursor() as cur:
+            cur.execute(sql.SQL("SELECT max(id) FROM {}")
+                           .format(self.db.table_id(self.way_table)))
+            osmid = cur.fetchone()[0] if cur.rowcount == 1 else None
+
+            if osmid is None:
+                raise DBError(1, "No data found in the database.")
+
+        LOG.debug("Using way id %d for timestamp lookup", osmid)
+        # Get the way from the API to find the timestamp when it was created.
+        url = 'https://www.openstreetmap.org/api/0.6/way/{}/1'.format(osmid)
+        headers = {"User-Agent" : "osm2pgsql-replication",
+                   "Accept" : "application/json"}
+        with urlrequest.urlopen(urlrequest.Request(url, headers=headers)) as response:
+            data = json.loads(response.read().decode('utf-8'))
+
+        if not data.get('elements') or not 'timestamp' in data['elements'][0]:
+            raise DBError(1, "The way data downloaded from the API does not contain valid data.\n"
+                             f"URL used: {url}")
+
+        date = data['elements'][0]['timestamp']
+        LOG.debug("Found timestamp %s", date)
+
+        try:
+            date = from_osm_date(date)
+        except ValueError:
+            raise DBError(1, f"Cannot parse timestamp '{date}'")
+
+        date -= dt.timedelta(minutes=start_at or 180)
+
+        return server, None, date
+
+    def get_replication_state(self):
+        if not self.db.table_exists(self.prop_table):
+            raise DBError(1, "Cannot find replication status table. Run 'osm2pgsql-replication init' first.")
+
+        with self.db.conn.cursor() as cur:
+            cur.execute(sql.SQL('SELECT * FROM {}').format(self.db.table_id(self.prop_table)))
+            if cur.rowcount != 1:
+                raise DBError(2, "Updates not set up correctly. Run 'osm2pgsql-replication init' first.")
+
+            base_url, seq, date = cur.fetchone()
+
+        if base_url is None or seq is None or date is None:
+            raise DBError(2, "Updates not set up correctly. Run 'osm2pgsql-replication init' first.")
+
+        return base_url, seq, date
+
+    def write_replication_state(self, base_url, seq, date):
+        table = self.db.table_id(self.prop_table)
+        with self.db.conn.cursor() as cur:
+            if not self.db.table_exists(self.prop_table):
+                cur.execute(sql.SQL("""CREATE TABLE {}
+                                       (url TEXT,
+                                        sequence INTEGER,
+                                        importdate TIMESTAMP WITH TIME ZONE)
+                                    """).format(table))
+            cur.execute(sql.SQL('TRUNCATE {}').format(table))
+            if date:
+                cur.execute(sql.SQL('INSERT INTO {} VALUES(%s, %s, %s)').format(table),
+                            (base_url, seq, date))
+            else:
+                cur.execute(sql.SQL('INSERT INTO {} VALUES(%s, %s)').format(table),
+                            (base_url, seq))
+        self.db.conn.commit()
+
+
+def get_status_info(props, args):
+    results = {'status': 0}
+
+    base_url, db_seq, db_ts = props.get_replication_state()
+
+    db_ts = db_ts.astimezone(dt.timezone.utc)
+    results['server'] = {'base_url': base_url}
+    results['local'] = {'sequence': db_seq, 'timestamp': osm_date(db_ts)}
+
+    repl = ReplicationServer(base_url)
+    state_info = repl.get_state_info()
+    if state_info is None:
+        # PyOsmium was unable to download the state information
+        results['status'] = 3
+        results['error'] = "Unable to download the state information from {}".format(base_url)
+    else:
+        results['status'] = 0
+        now = dt.datetime.now(dt.timezone.utc)
+
+        server_seq, server_ts = state_info
+        server_ts = server_ts.astimezone(dt.timezone.utc)
+
+        results['server']['sequence'] = server_seq
+        results['server']['timestamp'] = osm_date(server_ts)
+        results['server']['age_sec'] = int((now-server_ts).total_seconds())
+
+        results['local']['age_sec'] = int((now - db_ts).total_seconds())
+
+    return results
+
+
+def status(props, args):
     """\
     Print information about the current replication status, optionally as JSON.
 
@@ -206,47 +371,10 @@ def status(conn, args):
 
     `local` is the status of your server.
     """
-
-    results = {}
-
-    if not table_exists(conn, args.table_name):
-        results['status'] = 1
-        results['error'] = "Cannot find replication status table. Run 'osm2pgsql-replication init' first."
-    else:
-        with conn.cursor() as cur:
-            cur.execute(sql.SQL('SELECT * FROM {}').format(args.table))
-            if cur.rowcount != 1:
-                results['status'] = 2
-                results['error'] = "Updates not set up correctly. Run 'osm2pgsql-updates init' first."
-            else:
-
-                base_url, db_seq, db_ts = cur.fetchone()
-                db_ts = db_ts.astimezone(dt.timezone.utc)
-                results['server'] = {}
-                results['local'] = {}
-                results['server']['base_url'] = base_url
-                results['local']['sequence'] = db_seq
-                results['local']['timestamp'] = db_ts.strftime("%Y-%m-%dT%H:%M:%SZ")
-
-
-                repl = ReplicationServer(base_url)
-                state_info = repl.get_state_info()
-                if state_info is None:
-                    # PyOsmium was unable to download the state information
-                    results['status'] = 3
-                    results['error'] = "Unable to download the state information from {}".format(base_url)
-                else:
-                    results['status'] = 0
-                    now = dt.datetime.now(dt.timezone.utc)
-
-                    server_seq, server_ts = state_info
-                    server_ts = server_ts.astimezone(dt.timezone.utc)
-
-                    results['server']['sequence'] = server_seq
-                    results['server']['timestamp'] = server_ts.strftime("%Y-%m-%dT%H:%M:%SZ")
-                    results['server']['age_sec'] = int((now-server_ts).total_seconds())
-
-                    results['local']['age_sec'] = int((now - db_ts).total_seconds())
+    try:
+        results = get_status_info(props, args)
+    except DBError as err:
+        results = {'status': err.errno, 'error': err.msg}
 
     if args.json:
         print(json.dumps(results))
@@ -268,66 +396,73 @@ def status(conn, args):
 
             print("Local database's most recent data is {} old".format(pretty_format_timedelta(results['local']['age_sec'])))
 
-
     return results['status']
 
 
-def init(conn, args):
+def init(props, args):
     """\
     Initialise the replication process.
 
-    There are two ways to initialise the replication process: if you have imported
-    from a file that contains replication source information, then the
-    initialisation process can use this and set up replication from there.
-    Use the command `%(prog)s --osm-file <filename>` for this.
+    This function sets the replication service to use and determines from
+    which date to apply updates. You must call this function at least once
+    to set up the replication process. It can safely be called again later
+    to change the replication servers or to roll back the update process and
+    reapply updates.
 
-    If the file has no replication information or you don't have the initial
-    import file anymore then replication can be set up according to
-    the data found in the database. It checks the planet_osm_way table for the
-    newest way in the database and then queries the OSM API when the way was
-    created. The date is used as the start date for replication. In this mode
-    the minutely diffs from the OSM servers are used as a source. You can change
-    this with the `--server` parameter.
+    There are different methods available for initialisation. When no
+    additional parameters are given, the data is initialised from the data
+    in the database. If the data was imported from a file with replication
+    information and the properties table is available (for osm2pgsql >= 1.9)
+    then the replication from the file is used. Otherwise the minutely
+    update service from openstreetmap.org is used as the default replication
+    service. The start date is either taken from the database timestamp
+    (for osm2pgsql >= 1.9) or determined from the newest way in the database
+    by querying the OSM API about its creation date.
+
+    The replication service can be changed with the `--server` parameter.
+    To use a different start date, add `--start-at` with an absolute
+    ISO timestamp (e.g. 2007-08-20T12:21:53Z). When the program determines the
+    start date from the database timestamp or way creation date, then it
+    subtracts another 3 hours by default to ensure that all new changes are
+    available. To change this rollback period, use `--start-at` with the
+    number of minutes to rollback. This rollback mode can also be used to
+    force initialisation to use the database date and ignore the date
+    from the replication information in the file.
+
+    The initialisation process can also use replication information from
+    an OSM file directly and ignore all other date information.
+    Use the command `%(prog)s --osm-file <filename>` for this.
     """
     if args.osm_file is None:
-        date = compute_database_date(conn, args.prefix)
-        if date is None:
-            return 1
-
-        date = date - dt.timedelta(hours=3)
-        base_url = args.server
-        seq = None
+        base_url, seq, date = props.get_replication_base(args.server, args.start_at)
     else:
         base_url, seq, date = get_replication_header(args.osm_file)
         if base_url is None or (seq is None and date is None):
-            LOG.fatal("File '%s' has no usable replication headers. Use '--server' instead.")
-            return 1
+            raise DBError(1, f"File '{args.osm_file}' has no usable replication headers. Use '--server' instead.")
 
     repl = ReplicationServer(base_url)
     if seq is None:
         seq = repl.timestamp_to_sequence(date)
-
         if seq is None:
-            LOG.fatal("Cannot reach the configured replication service '%s'.\n"
-                      "Does the URL point to a directory containing OSM update data?",
-                      base_url)
-            return 1
+            raise DBError(1, f"Cannot reach the configured replication service '{base_url}'.\n"
+                             "Does the URL point to a directory containing OSM update data?")
 
     if date is None:
         state = repl.get_state_info(seq)
         if state is None:
-            LOG.fatal("Cannot reach the configured replication service '%s'.\n"
-                      "Does the URL point to a directory containing OSM update data?",
-                      base_url)
+            raise DBError(1, f"Cannot reach the configured replication service '{base_url}'.\n"
+                             "Does the URL point to a directory containing OSM update data?")
+        date = from_osm_date(state.timestamp)
 
-    setup_replication_state(conn, args.table, base_url, seq, date)
+    props.write_replication_state(base_url, seq, date)
 
     LOG.info("Initialised updates for service '%s'.", base_url)
-    LOG.info("Starting at sequence %d (%s).", seq, date)
+    LOG.info("Starting at sequence %d (%s).", seq, osm_date(date))
 
     return 0
 
-def update(conn, args):
+
+def update(props, args):
     """\
     Download newly available data and apply it to the database.
 
@@ -353,27 +488,32 @@ def update(conn, args):
     may be missing in the rare case that the replication service stops responding
     after the updates have been downloaded.
     """
-    if not table_exists(conn, args.table_name):
-        LOG.fatal("Cannot find replication status table. "
-                  "Run 'osm2pgsql-replication init' first.")
-        return 1
+    base_url, seq, ts = props.get_replication_state()
 
-    with conn.cursor() as cur:
-        cur.execute(sql.SQL('SELECT * FROM {}').format(args.table))
-        if cur.rowcount != 1:
-            LOG.fatal("Updates not set up correctly. Run 'osm2pgsql-updates init' first.")
-            return 1
-
-        base_url, seq, ts = cur.fetchone()
-        LOG.info("Using replication service '%s'. Current sequence %d (%s).",
-                 base_url, seq, ts)
+    initial_local_timestamp = ts
+    LOG.info("Using replication service '%s'.", base_url)
+    local_db_age_sec = int((dt.datetime.now(dt.timezone.utc) - ts).total_seconds())
 
     repl = ReplicationServer(base_url)
     current = repl.get_state_info()
+    if current is None:
+        raise DBError(1, f"Cannot reach the configured replication service '{base_url}'.\n"
+                         "Does the URL point to a directory containing OSM update data?")
 
     if seq >= current.sequence:
         LOG.info("Database already up-to-date.")
         return 0
+
+    remote_server_age_sec = int((dt.datetime.now(dt.timezone.utc) - current.timestamp).total_seconds())
+    LOG.debug("Applying %d sequence(s) (%d → %d), covering %s (%s sec) of changes (%s → %s)",
+        current.sequence - seq, current.sequence, seq,
+        pretty_format_timedelta((current.timestamp - ts).total_seconds()),
+        int((current.timestamp - ts).total_seconds()),
+        osm_date(ts.astimezone(dt.timezone.utc)),
+        osm_date(current.timestamp.astimezone(dt.timezone.utc))
+    )
+
+    update_started = dt.datetime.now(dt.timezone.utc)
 
     if args.diff_file is not None:
         outfile = Path(args.diff_file)
@@ -383,6 +523,8 @@ def update(conn, args):
 
     osm2pgsql = [args.osm2pgsql_cmd, '--append', '--slim', '--prefix', args.prefix]
     osm2pgsql.extend(args.extra_params)
+    if args.middle_schema != 'public':
+        osm2pgsql.extend(('--middle-schema', args.middle_schema))
     if args.database:
         osm2pgsql.extend(('-d', args.database))
     if args.username:
@@ -418,18 +560,29 @@ def update(conn, args):
             LOG.debug('Calling post-processing script: %s', ' '.join(cmd))
             subprocess.run(cmd, check=True)
 
-        update_replication_state(conn, args.table, seq,
-                                 nextstate.timestamp if nextstate else None)
+        props.write_replication_state(base_url, seq, nextstate.timestamp if nextstate else None)
 
         if nextstate is not None:
             LOG.info("Data imported until %s. Backlog remaining: %s",
-                     nextstate.timestamp,
-                     dt.datetime.now(dt.timezone.utc) - nextstate.timestamp)
+                osm_date(nextstate.timestamp.astimezone(dt.timezone.utc)),
+                pretty_format_timedelta((dt.datetime.now(dt.timezone.utc) - nextstate.timestamp).total_seconds()),
+            )
 
         if args.once:
             break
 
+    update_duration_sec = (dt.datetime.now(dt.timezone.utc) - update_started).total_seconds()
+    _base_url, _seq, current_local_timestamp = props.get_replication_state()
+
+    total_applied_changes_duration_sec = (current_local_timestamp - initial_local_timestamp).total_seconds()
+    LOG.debug("It took %s (%d sec) to apply %s (%d sec) of changes. This is a speed of ×%.1f.",
+            pretty_format_timedelta(update_duration_sec), int(update_duration_sec),
+            pretty_format_timedelta(total_applied_changes_duration_sec), int(total_applied_changes_duration_sec),
+            total_applied_changes_duration_sec / update_duration_sec
+        )
+
     return 0
+
 
 def get_parser():
     parser = ArgumentParser(description=__doc__,
@@ -462,6 +615,10 @@ def get_parser():
                        help='Database server port')
     group.add_argument('-p', '--prefix', metavar='PREFIX', default='planet_osm',
                        help="Prefix for table names (default 'planet_osm')")
+    group.add_argument('--middle-schema', metavar='SCHEMA', default=None,
+                    help='Name of the schema to store the table for the replication state in')
+    group.add_argument('--schema', metavar='SCHEMA', default=None,
+                    help='Name of the schema for the database')
 
     # Arguments for init
     cmd = subs.add_parser('init', parents=[default_args],
@@ -474,8 +631,13 @@ def get_parser():
     srcgrp.add_argument('--osm-file', metavar='FILE',
                         help='Get replication information from the given file.')
     srcgrp.add_argument('--server', metavar='URL',
-                        default='https://planet.openstreetmap.org/replication/minute',
-                        help='Use replication server at the given URL (default: %(default)s)')
+                        help='Use replication server at the given URL')
+    grp.add_argument('--start-at', metavar='TIME', type=start_point,
+                     help='Time when to start replication. When an absolute timestamp '
+                          '(in ISO format) is given, it will be used. If a number '
+                          'is given, then replication starts the number of minutes '
+                          'before the known date of the database.')
+
     cmd.set_defaults(handler=init)
 
     # Arguments for update
@@ -493,8 +655,8 @@ def get_parser():
                      help='File to save changes before they are applied to osm2pgsql.')
     cmd.add_argument('--max-diff-size', type=int, default=500,
                      help='Maximum data to load in MB (default: 500MB)')
-    cmd.add_argument('--osm2pgsql-cmd', default=INSTALL_PREFIX + 'osm2pgsql',
-                     help=f'Path to osm2pgsql command (default: {INSTALL_PREFIX}osm2pgsql)')
+    cmd.add_argument('--osm2pgsql-cmd', default=str(OSM2PGSQL_PATH),
+                     help=f'Path to osm2pgsql command (default: {OSM2PGSQL_PATH})')
     cmd.add_argument('--once', action='store_true',
                      help='Run updates only once, even when more data is available.')
     cmd.add_argument('--post-processing', metavar='SCRIPT',
@@ -509,12 +671,15 @@ def get_parser():
     cmd.add_argument('--json', action="store_true", default=False, help="Output status as json.")
     cmd.set_defaults(handler=status)
 
-
     return parser
 
-def main():
+
+def main(prog_args=None):
     parser = get_parser()
-    args = parser.parse_args()
+    try:
+        args = parser.parse_args(args=prog_args)
+    except SystemExit:
+        return 1
 
     if missing_modules:
         LOG.fatal("Missing required Python libraries %(mods)s.\n\n"
@@ -534,20 +699,25 @@ def main():
                         datefmt='%Y-%m-%d %H:%M:%S',
                         level=max(4 - args.verbose, 1) * 10)
 
-    args.table_name = f'{args.prefix}_replication_status'
-    args.table = sql.Identifier(args.table_name)
+    args.middle_schema = args.middle_schema or args.schema or 'public'
 
-    conn = connect(args)
+    with DBConnection(args) as db:
+        if db.table_exists(Osm2pgsqlProperties.PROP_TABLE_NAME):
+            props = Osm2pgsqlProperties(db)
+        else:
+            props = LegacyProperties(db, args.prefix)
 
-    try:
-        if not table_exists(conn, f'{args.prefix}_ways'):
-            LOG.fatal(f'osm2pgsql middle table "{args.prefix}_ways" not found in database "{args.database}". '
+        if not props.is_updatable:
+            LOG.fatal(f'osm2pgsql middle table "{args.middle_schema}.{args.prefix}_ways" not found in database "{db.name}". '
                        'Database needs to be imported in --slim mode.')
             return 1
 
-        return args.handler(conn, args)
-    finally:
-        conn.close()
+        try:
+            return args.handler(props, args)
+        except DBError as err:
+            LOG.fatal(err.msg)
+
+    return 1
 
 
 if __name__ == '__main__':

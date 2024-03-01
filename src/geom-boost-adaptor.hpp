@@ -6,7 +6,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -29,9 +29,7 @@ BOOST_GEOMETRY_REGISTER_MULTI_POINT(geom::multipoint_t)
 BOOST_GEOMETRY_REGISTER_MULTI_LINESTRING(geom::multilinestring_t)
 BOOST_GEOMETRY_REGISTER_MULTI_POLYGON(geom::multipolygon_t)
 
-namespace boost {
-namespace geometry {
-namespace traits {
+namespace boost::geometry::traits {
 template <>
 struct point_order<::geom::ring_t>
 {
@@ -79,8 +77,6 @@ struct interior_rings<::geom::polygon_t>
     static auto get(::geom::polygon_t &p) { return p.inners(); }
     static auto get(::geom::polygon_t const &p) { return p.inners(); }
 };
-} // namespace traits
-} // namespace geometry
-} // namespace boost
+} // namespace boost::geometry::traits
 
 #endif // OSM2PGSQL_GEOM_BOOST_ADAPTOR_HPP

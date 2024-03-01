@@ -6,7 +6,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -24,7 +24,6 @@
 #include <string>
 #include <utility>
 
-class options_t;
 class thread_pool_t;
 
 /**
@@ -47,7 +46,14 @@ public:
 
     ~middle_ram_t() noexcept override = default;
 
-    void start() override {}
+    void start() override
+    {
+        assert(m_middle_state == middle_state::constructed);
+#ifndef NDEBUG
+        m_middle_state = middle_state::node;
+#endif
+    }
+
     void stop() override;
 
     void node(osmium::Node const &node) override;
@@ -89,7 +95,7 @@ private:
         // Store ways (with tags, attributes, and way nodes) in object store.
         bool ways = false;
 
-        // Store relations (with tags, attribtes, and members) in object store.
+        // Store relations (with tags, attributes, and members) in object store.
         bool relations = false;
     };
 
@@ -109,7 +115,7 @@ private:
 
     /// Buffer for all OSM objects we store.
     osmium::memory::Buffer m_object_buffer{
-        1024 * 1024, osmium::memory::Buffer::auto_grow::yes};
+        1024UL * 1024UL, osmium::memory::Buffer::auto_grow::yes};
 
     /// Indexes into object buffer.
     osmium::nwr_array<ordered_index_t> m_object_index;

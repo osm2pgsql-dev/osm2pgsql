@@ -13,13 +13,15 @@ tables.t2 = osm2pgsql.define_node_table('osm2pgsql_test_t2', {
 
 function osm2pgsql.process_node(object)
     if object.tags.t1 then
-        tables.t1:add_row({
-            tags = object.tags
+        tables.t1:insert({
+            tags = object.tags,
+            geom = object:as_point()
         })
     end
     if object.tags.t2 then
-        tables.t2:add_row({
-            tags = object.tags
+        tables.t2:insert({
+            tags = object.tags,
+            geom = object:as_point()
         })
     end
 end

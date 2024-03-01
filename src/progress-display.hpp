@@ -6,19 +6,18 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
 /**
  * \file
  *
- * This file is part of osm2pgsql (https://github.com/openstreetmap/osm2pgsql).
- *
  * It contains the progress_display_t class.
  */
 
 #include <cstddef>
+#include <cstdint>
 #include <ctime>
 
 #include <osmium/handler.hpp>

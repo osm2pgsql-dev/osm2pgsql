@@ -6,7 +6,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -38,6 +38,7 @@ public:
 
     box_t &extend(point_t const &point) noexcept;
     void extend(point_list_t const &list) noexcept;
+    void extend(box_t const &box) noexcept;
 
     constexpr double min_x() const noexcept { return m_min_x; }
     constexpr double min_y() const noexcept { return m_min_y; }
@@ -46,6 +47,14 @@ public:
 
     constexpr double width() const noexcept { return m_max_x - m_min_x; }
     constexpr double height() const noexcept { return m_max_y - m_min_y; }
+
+    constexpr point_t center() const noexcept
+    {
+        return {m_min_x + width() / 2.0, m_min_y + height() / 2.0};
+    }
+
+    constexpr point_t min() const noexcept { return {m_min_x, m_min_y}; }
+    constexpr point_t max() const noexcept { return {m_max_x, m_max_y}; }
 
     constexpr friend bool operator==(box_t const &a, box_t const &b)
     {
@@ -65,6 +74,15 @@ private:
     double m_max_y = std::numeric_limits<double>::lowest();
 
 }; // class box_t
+
+box_t envelope(geom::nullgeom_t const & /*geom*/);
+box_t envelope(geom::point_t const &geom);
+box_t envelope(geom::linestring_t const &geom);
+box_t envelope(geom::polygon_t const &geom);
+box_t envelope(geom::multipoint_t const &geom);
+box_t envelope(geom::multilinestring_t const &geom);
+box_t envelope(geom::multipolygon_t const &geom);
+box_t envelope(geom::collection_t const &geom);
 
 /**
  * Calculate the envelope of a geometry.

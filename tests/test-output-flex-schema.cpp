@@ -3,7 +3,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -23,20 +23,23 @@ TEST_CASE("config with schema should work")
 
     auto conn = db.db().connect();
     conn.exec("CREATE SCHEMA IF NOT EXISTS myschema;");
+    init_database_capabilities(conn);
 
     REQUIRE_NOTHROW(db.run_file(options, data_file));
 
-    REQUIRE(1 == conn.get_count("pg_namespace", "nspname = 'myschema'"));
-    REQUIRE(1 == conn.get_count("pg_tables", "schemaname = 'myschema'"));
+    REQUIRE(1 ==
+            conn.get_count("pg_catalog.pg_namespace", "nspname = 'myschema'"));
+    REQUIRE(1 ==
+            conn.get_count("pg_catalog.pg_tables", "schemaname = 'myschema'"));
 
     REQUIRE(7103 == conn.get_count("myschema.osm2pgsql_test_line"));
 
     REQUIRE(1 ==
-            conn.get_count("pg_proc",
+            conn.get_count("pg_catalog.pg_proc",
                            "proname = 'osm2pgsql_test_line_osm2pgsql_valid'"));
 
-    REQUIRE(1 == conn.get_count("pg_trigger"));
+    REQUIRE(1 == conn.get_count("pg_catalog.pg_trigger"));
     REQUIRE(1 ==
-            conn.get_count("pg_trigger",
+            conn.get_count("pg_catalog.pg_trigger",
                            "tgname = 'osm2pgsql_test_line_osm2pgsql_valid'"));
 }

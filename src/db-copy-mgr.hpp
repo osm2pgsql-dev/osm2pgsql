@@ -6,7 +6,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -80,17 +80,10 @@ public:
      *
      * See add_column().
      */
-    template <typename T, typename... ARGS>
-    void add_columns(T value, ARGS &&... args)
+    template <typename... ARGS>
+    void add_columns(ARGS &&...args)
     {
-        add_column(value);
-        add_columns(std::forward<ARGS>(args)...);
-    }
-
-    template <typename T>
-    void add_columns(T value)
-    {
-        add_column(value);
+        (add_column(std::forward<ARGS>(args)), ...);
     }
 
     /**
@@ -258,7 +251,7 @@ public:
         char const *const lookup_hex = "0123456789ABCDEF";
 
         for (auto c : wkb) {
-            auto const num = static_cast<unsigned int>(c);
+            unsigned int const num = static_cast<unsigned char>(c);
             m_current->buffer += lookup_hex[(num >> 4U) & 0xfU];
             m_current->buffer += lookup_hex[num & 0xfU];
         }
@@ -278,6 +271,14 @@ public:
         m_current->add_deletable(std::forward<ARGS>(args)...);
     }
 
+    void flush()
+    {
+        // finish any ongoing copy operations
+        if (m_current) {
+            m_processor->add_buffer(std::move(m_current));
+        }
+    }
+
     /**
      * Synchronize with worker.
      *
@@ -285,11 +286,7 @@ public:
      */
     void sync()
     {
-        // finish any ongoing copy operations
-        if (m_current) {
-            m_processor->add_buffer(std::move(m_current));
-        }
-
+        flush();
         m_processor->sync_and_wait();
     }
 
@@ -297,13 +294,7 @@ private:
     template <typename T>
     void add_value(T value)
     {
-        m_current->buffer += std::to_string(value);
-    }
-
-    void add_value(double value)
-    {
-        util::double_to_buffer tmp{value};
-        m_current->buffer += tmp.c_str();
+        m_current->buffer += fmt::to_string(value);
     }
 
     void add_value(std::string const &s) { add_value(s.c_str()); }

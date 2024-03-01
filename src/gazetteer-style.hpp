@@ -6,10 +6,11 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <tuple>
@@ -85,8 +86,10 @@ public:
     explicit gazetteer_copy_mgr_t(
         std::shared_ptr<db_copy_thread_t> const &processor)
     : db_copy_mgr_t<db_deleter_place_t>(processor),
-      m_table(std::make_shared<db_target_descr_t>("place", "place_id"))
-    {}
+      m_table(
+          std::make_shared<db_target_descr_t>("public", "place", "place_id"))
+    {
+    }
 
     void prepare() { new_line(m_table); }
 

@@ -3,7 +3,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -13,15 +13,20 @@
 
 #include "geom-from-osm.hpp"
 #include "geom-functions.hpp"
+#include "geom-output.hpp"
 #include "geom.hpp"
 
 TEST_CASE("polygon geometry without inner", "[NoDB]")
 {
+    // POLYGON((0 0, 0 1, 1 1, 1 0, 0 0))
     geom::geometry_t const geom{
         geom::polygon_t{geom::ring_t{{0, 0}, {0, 1}, {1, 1}, {1, 0}, {0, 0}}}};
 
+    REQUIRE(dimension(geom) == 2);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(1.0));
+    REQUIRE(spherical_area(geom) == Approx(12364031798.5));
+    REQUIRE(length(geom) == Approx(0.0));
     REQUIRE(geometry_type(geom) == "POLYGON");
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{0.5, 0.5}});
     REQUIRE(geometry_n(geom, 1) == geom);
@@ -29,11 +34,15 @@ TEST_CASE("polygon geometry without inner", "[NoDB]")
 
 TEST_CASE("polygon geometry without inner (reverse)", "[NoDB]")
 {
+    // POLYGON((0 0, 1 0, 1 1, 0 1, 0 0))
     geom::geometry_t const geom{
         geom::polygon_t{geom::ring_t{{0, 0}, {1, 0}, {1, 1}, {0, 1}, {0, 0}}}};
 
+    REQUIRE(dimension(geom) == 2);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(1.0));
+    REQUIRE(spherical_area(geom) == Approx(12364031798.5));
+    REQUIRE(length(geom) == Approx(0.0));
     REQUIRE(geometry_type(geom) == "POLYGON");
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{0.5, 0.5}});
 }
@@ -43,6 +52,8 @@ TEST_CASE("geom::polygon_t", "[NoDB]")
     geom::polygon_t polygon;
 
     REQUIRE(polygon.outer().empty());
+
+    // POLYGON((0 0, 0 3, 3 3, 3 0, 0 0), (1 1, 2 1, 2 2, 1 2, 1 1))
     polygon.outer() = geom::ring_t{{0, 0}, {0, 3}, {3, 3}, {3, 0}, {0, 0}};
     polygon.inners().emplace_back(
         geom::ring_t{{1, 1}, {2, 1}, {2, 2}, {1, 2}, {1, 1}});
@@ -50,9 +61,12 @@ TEST_CASE("geom::polygon_t", "[NoDB]")
     REQUIRE(polygon.num_geometries() == 1);
     REQUIRE(polygon.inners().size() == 1);
 
-    geom::geometry_t geom{std::move(polygon)};
+    geom::geometry_t const geom{std::move(polygon)};
+    REQUIRE(dimension(geom) == 2);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(8.0));
+    REQUIRE(spherical_area(geom) == Approx(98893356298.4));
+    REQUIRE(length(geom) == Approx(0.0));
     REQUIRE(geometry_type(geom) == "POLYGON");
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{1.5, 1.5}});
 
@@ -75,8 +89,10 @@ TEST_CASE("create_polygon from OSM data", "[NoDB]")
 
     REQUIRE(geom.is_polygon());
     REQUIRE(geometry_type(geom) == "POLYGON");
+    REQUIRE(dimension(geom) == 2);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(1.0));
+    REQUIRE(length(geom) == Approx(0.0));
     REQUIRE(
         geom.get<geom::polygon_t>() ==
         geom::polygon_t{geom::ring_t{{1, 1}, {2, 1}, {2, 2}, {1, 2}, {1, 1}}});
@@ -94,6 +110,7 @@ TEST_CASE("create_polygon from OSM data (reverse)", "[NoDB]")
     REQUIRE(geometry_type(geom) == "POLYGON");
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(1.0));
+    REQUIRE(length(geom) == Approx(0.0));
     REQUIRE(
         geom.get<geom::polygon_t>() ==
         geom::polygon_t{geom::ring_t{{1, 1}, {2, 1}, {2, 2}, {1, 2}, {1, 1}}});

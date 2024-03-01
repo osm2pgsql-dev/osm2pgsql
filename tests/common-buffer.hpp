@@ -6,7 +6,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -44,12 +44,12 @@ public:
         std::string nodes;
 
         for (auto const id : ids) {
-            nodes += "n{},"_format(id);
+            nodes += fmt::format("n{},", id);
         }
 
         nodes.resize(nodes.size() - 1);
 
-        return add_way("w{} N{}"_format(wid, nodes));
+        return add_way(fmt::format("w{} N{}", wid, nodes));
     }
 
     osmium::Relation const &add_relation(std::string const &data)

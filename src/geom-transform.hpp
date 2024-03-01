@@ -6,7 +6,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -17,10 +17,7 @@
 #include <osmium/fwd.hpp>
 #include <osmium/memory/buffer.hpp>
 
-extern "C"
-{
-#include <lua.h>
-}
+#include <lua.hpp>
 
 #include <memory>
 
@@ -121,5 +118,11 @@ private:
 std::unique_ptr<geom_transform_t> create_geom_transform(char const *type);
 
 void init_geom_transform(geom_transform_t *transform, lua_State *lua_state);
+
+std::unique_ptr<geom_transform_t>
+get_transform(lua_State *lua_state, flex_table_column_t const &column);
+
+geom_transform_t const *get_default_transform(flex_table_column_t const &column,
+                                              osmium::item_type object_type);
 
 #endif // OSM2PGSQL_GEOM_TRANSFORM_HPP

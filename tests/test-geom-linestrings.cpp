@@ -3,7 +3,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -13,6 +13,7 @@
 
 #include "geom-from-osm.hpp"
 #include "geom-functions.hpp"
+#include "geom-output.hpp"
 #include "geom.hpp"
 
 #include <array>
@@ -38,12 +39,23 @@ TEST_CASE("geom::linestring_t", "[NoDB]")
     REQUIRE(ls1.num_geometries() == 1);
 }
 
+TEST_CASE("remove duplicate points in linestring", "[NoDB]")
+{
+    geom::linestring_t ls{{1, 1}, {1, 2}, {1, 2}, {2, 2}};
+    REQUIRE(ls.size() == 4);
+    ls.remove_duplicates();
+    REQUIRE(ls.size() == 3);
+    REQUIRE(ls == geom::linestring_t{{1, 1}, {1, 2}, {2, 2}});
+}
+
 TEST_CASE("line geometry", "[NoDB]")
 {
     geom::geometry_t const geom{geom::linestring_t{{1, 1}, {2, 2}}};
 
+    REQUIRE(dimension(geom) == 1);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(0.0));
+    REQUIRE(length(geom) == Approx(1.41421));
     REQUIRE(geometry_type(geom) == "LINESTRING");
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{1.5, 1.5}});
     REQUIRE(geometry_n(geom, 1) == geom);
@@ -72,8 +84,10 @@ TEST_CASE("create_linestring from OSM data", "[NoDB]")
 
     REQUIRE(geom.is_linestring());
     REQUIRE(geometry_type(geom) == "LINESTRING");
+    REQUIRE(dimension(geom) == 1);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(0.0));
+    REQUIRE(length(geom) == Approx(1.41421));
     REQUIRE(geom.get<geom::linestring_t>() ==
             geom::linestring_t{{1, 1}, {2, 2}});
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{1.5, 1.5}});
@@ -271,5 +285,32 @@ TEST_CASE("geom::simplify of a loop", "[NoDB]")
         auto const geom = geom::simplify(input, 10.0);
 
         REQUIRE(geom.is_null());
+    }
+}
+
+TEST_CASE("geom::simplify of straight line", "[NoDB]")
+{
+    geom::geometry_t const input{geom::linestring_t{{1, 1}, {1, 2}, {1, 3}}};
+
+    SECTION("small tolerance simplifies linestring")
+    {
+        auto const geom = geom::simplify(input, 0.5);
+
+        REQUIRE(geom.is_linestring());
+        auto const &l = geom.get<geom::linestring_t>();
+        REQUIRE(l.size() == 2);
+        REQUIRE(l[0] == input.get<geom::linestring_t>()[0]);
+        REQUIRE(l[1] == input.get<geom::linestring_t>()[2]);
+    }
+
+    SECTION("large tolerance also simplifies linestring")
+    {
+        auto const geom = geom::simplify(input, 10.0);
+
+        REQUIRE(geom.is_linestring());
+        auto const &l = geom.get<geom::linestring_t>();
+        REQUIRE(l.size() == 2);
+        REQUIRE(l[0] == input.get<geom::linestring_t>()[0]);
+        REQUIRE(l[1] == input.get<geom::linestring_t>()[2]);
     }
 }

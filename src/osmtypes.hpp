@@ -6,14 +6,12 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
 /**
  * \file
- *
- * This file is part of osm2pgsql (https://github.com/openstreetmap/osm2pgsql).
  *
  * In this file some basic (OSM) data types are defined.
  */
@@ -189,9 +187,10 @@ public:
     }
 
     /// Add tag to list without checking for duplicates
-    void add_tag(char const *key, char const *value)
+    template <typename T>
+    void add_tag(char const *key, T&& value)
     {
-        m_tags.emplace_back(key, value);
+        m_tags.emplace_back(key, std::forward<T>(value));
     }
 
     /// Add tag to list if there is no tag with that key yet

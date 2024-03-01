@@ -2,7 +2,7 @@
 #
 # This file is part of osm2pgsql (https://osm2pgsql.org/).
 #
-# Copyright (C) 2022 by the osm2pgsql developer community.
+# Copyright (C) 2006-2024 by the osm2pgsql developer community.
 # For a full list of authors see the git log.
 """
 Steps that query the database.
@@ -11,23 +11,29 @@ import math
 import re
 from typing import Iterable
 
-from psycopg2 import sql
+try:
+    from psycopg2 import sql
+except ImportError:
+    from psycopg import sql
+
 
 @given("the database schema (?P<schema>.+)")
 def create_db_schema(context, schema):
     with context.db.cursor() as cur:
         cur.execute("CREATE SCHEMA " + schema)
 
-@then("table (?P<table>.+) has (?P<row_num>\d+) rows?(?P<has_where> with condition)?")
+
+@when("deleting table (?P<table>.+)")
+def delete_table(context, table):
+    with context.db.cursor() as cur:
+        cur.execute("DROP TABLE " + table)
+
+
+@then(r"table (?P<table>.+) has (?P<row_num>\d+) rows?(?P<has_where> with condition)?")
 def db_table_row_count(context, table, row_num, has_where):
     assert table_exists(context.db, table)
 
-    if '.' in table:
-        schema, tablename = table.split('.', 2)
-        query = sql.SQL("SELECT count(*) FROM {}.{}")\
-                   .format(sql.Identifier(schema), sql.Identifier(tablename))
-    else:
-        query = sql.SQL("SELECT count(*) FROM {}").format(sql.Identifier(table))
+    query = sql.SQL("SELECT count(*) FROM {}").format(sql.Identifier(*table.split('.', 2)))
 
     if has_where:
         query = sql.SQL("{} WHERE {}").format(query, sql.SQL(context.text))
@@ -38,12 +44,12 @@ def db_table_row_count(context, table, row_num, has_where):
            f"Table {table}: expected {row_num} rows, got {actual}"
 
 
-@then("the sum of '(?P<formula>.+)' in table (?P<table>.+) is (?P<result>\d+)(?P<has_where> with condition)?")
+@then(r"the sum of '(?P<formula>.+)' in table (?P<table>.+) is (?P<result>\d+)(?P<has_where> with condition)?")
 def db_table_sum_up(context, table, formula, result, has_where):
     assert table_exists(context.db, table)
 
     query = sql.SQL("SELECT round(sum({})) FROM {}")\
-               .format(sql.SQL(formula), sql.Identifier(table))
+               .format(sql.SQL(formula), sql.Identifier(*table.split('.', 2)))
 
     if has_where:
         query = sql.SQL("{} WHERE {}").format(query, sql.SQL(context.text))
@@ -72,7 +78,8 @@ def db_check_table_content(context, table, exact):
     rows = sql.SQL(', '.join(h.rsplit('@')[0] for h in context.table.headings))
 
     with context.db.cursor() as cur:
-        cur.execute(sql.SQL("SELECT {} FROM {}").format(rows, sql.Identifier(table)))
+        cur.execute(sql.SQL("SELECT {} FROM {}")
+                       .format(rows, sql.Identifier(*table.split('.', 2))))
 
         actuals = list(DBRow(r, context.table.headings, context.geometry_factory) for r in cur)
 
@@ -120,6 +127,12 @@ def table_exists(conn, table):
 
     num = scalar(conn, """SELECT count(*) FROM pg_tables
                           WHERE tablename = %s AND schemaname = %s""",
+                (tablename, schema))
+    if num == 1:
+        return True
+
+    num = scalar(conn, """SELECT count(*) FROM pg_views
+                          WHERE viewname = %s AND schemaname = %s""",
                 (tablename, schema))
     return num == 1
 

@@ -3,7 +3,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -19,10 +19,10 @@ static double count_per_second(std::size_t count, uint64_t elapsed) noexcept
     }
 
     if (elapsed == 0) {
-        return count;
+        return static_cast<double>(count);
     }
 
-    return static_cast<double>(count) / elapsed;
+    return static_cast<double>(count) / static_cast<double>(elapsed);
 }
 
 static std::string cps_display(std::size_t count, uint64_t elapsed)
@@ -30,9 +30,9 @@ static std::string cps_display(std::size_t count, uint64_t elapsed)
     double const cps = count_per_second(count, elapsed);
 
     if (cps >= 1000.0) {
-        return "{:.0f}k/s"_format(cps / 1000);
+        return fmt::format("{:.0f}k/s", cps / 1000);
     }
-    return "{:.0f}/s"_format(cps);
+    return fmt::format("{:.0f}/s", cps);
 }
 
 void progress_display_t::print_summary() const
@@ -115,4 +115,3 @@ uint64_t progress_display_t::overall_time(std::time_t now) const noexcept
 {
     return static_cast<uint64_t>(now - m_node.start);
 }
-

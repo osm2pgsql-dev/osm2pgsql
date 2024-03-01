@@ -3,25 +3,23 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
 #include "thread-pool.hpp"
 
-#include <osmium/thread/util.hpp>
-
 #include <cassert>
 #include <string>
 
-std::chrono::milliseconds task_result_t::wait()
+std::chrono::microseconds task_result_t::wait()
 {
     if (m_future.valid()) {
         m_result = m_future.get();
 
         // Make sure the result is not 0 so it is different than
         // "no result yet".
-        if (m_result == std::chrono::milliseconds::zero()) {
+        if (m_result == std::chrono::microseconds::zero()) {
             ++m_result;
         }
     }
@@ -52,10 +50,7 @@ void thread_pool_t::shutdown_all_workers()
 
 void thread_pool_t::worker_thread(unsigned int thread_num)
 {
-    std::string name{"_osm2pgsql_worker_"};
-    name.append(std::to_string(thread_num));
-    osmium::thread::set_thread_name(name.c_str());
-    this_thread_num = thread_num + 1;
+    logger::init_thread(thread_num + 1);
 
     while (true) {
         osmium::thread::function_wrapper task;

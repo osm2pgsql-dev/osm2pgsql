@@ -3,16 +3,19 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
-#include "geom-boost-adaptor.hpp"
 #include "geom-functions.hpp"
+
+#include "geom-boost-adaptor.hpp"
+#include "overloaded.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <iterator>
+#include <numeric>
 #include <tuple>
 #include <utility>
 
@@ -30,6 +33,8 @@ point_t interpolate(point_t p1, point_t p2, double frac) noexcept
     return point_t{frac * (p1.x() - p2.x()) + p2.x(),
                    frac * (p1.y() - p2.y()) + p2.y()};
 }
+
+/****************************************************************************/
 
 std::string_view geometry_type(geometry_t const &geom)
 {
@@ -51,11 +56,15 @@ std::string_view geometry_type(geometry_t const &geom)
         }});
 }
 
+/****************************************************************************/
+
 std::size_t num_geometries(geometry_t const &geom)
 {
     return geom.visit(
-        overloaded{[&](auto const &input) { return input.num_geometries(); }});
+        [&](auto const &input) { return input.num_geometries(); });
 }
+
+/****************************************************************************/
 
 namespace {
 
@@ -65,8 +74,6 @@ public:
     geometry_n_visitor(geometry_t *output, std::size_t n)
     : m_output(output), m_n(n)
     {}
-
-    void operator()(nullgeom_t const & /*input*/) const { m_output->reset(); }
 
     void operator()(geom::collection_t const &input) const
     {
@@ -112,11 +119,13 @@ geometry_t geometry_n(geometry_t const &input, std::size_t n)
     return output;
 }
 
+/****************************************************************************/
+
 namespace {
 
 void set_to_same_type(geometry_t *output, geometry_t const &input)
 {
-    input.visit(overloaded{[&](auto in) { output->set<decltype(in)>(); }});
+    input.visit([&](auto in) { output->set<decltype(in)>(); });
 }
 
 class transform_visitor
@@ -232,6 +241,8 @@ geometry_t transform(geometry_t const &input, reprojection const &reprojection)
     return output;
 }
 
+/****************************************************************************/
+
 namespace {
 
 /**
@@ -334,49 +345,80 @@ geometry_t segmentize(geometry_t const &input, double max_segment_length)
     return output;
 }
 
-static double get_ring_area(ring_t const &ring) noexcept
-{
-    assert(ring.size() > 3);
-
-    double total = 0.0;
-    auto it = ring.begin();
-    auto prev = *it++;
-
-    while (it != ring.end()) {
-        auto const cur = *it;
-        total += prev.x() * cur.y() - cur.x() * prev.y();
-        prev = cur;
-        ++it;
-    }
-
-    return total;
-}
-
-static double get_polygon_area(polygon_t const &polygon)
-{
-    double total = get_ring_area(polygon.outer());
-
-    for (auto const &ring : polygon.inners()) {
-        total += get_ring_area(ring);
-    }
-
-    return total * 0.5;
-}
+/****************************************************************************/
 
 double area(geometry_t const &geom)
 {
-    double total = 0.0;
-
-    if (geom.is_polygon()) {
-        total = get_polygon_area(geom.get<polygon_t>());
-    } else if (geom.is_multipolygon()) {
-        for (auto const &polygon : geom.get<multipolygon_t>()) {
-            total += get_polygon_area(polygon);
-        }
-    }
-
-    return std::abs(total);
+    return std::abs(geom.visit(
+        overloaded{[&](geom::nullgeom_t const & /*input*/) { return 0.0; },
+                   [&](geom::collection_t const &input) {
+                       return std::accumulate(input.cbegin(), input.cend(), 0.0,
+                                              [](double sum, auto const &geom) {
+                                                  return sum + area(geom);
+                                              });
+                   },
+                   [&](auto const &input) {
+                       return static_cast<double>(boost::geometry::area(input));
+                   }}));
 }
+
+/****************************************************************************/
+
+static double spherical_area(polygon_t const &geom)
+{
+    boost::geometry::strategy::area::spherical<> const spherical_earth{
+        6371008.8};
+
+    using sph_point = boost::geometry::model::point<
+        double, 2,
+        boost::geometry::cs::spherical_equatorial<boost::geometry::degree>>;
+
+    boost::geometry::model::polygon<sph_point> sph_geom;
+    boost::geometry::convert(geom, sph_geom);
+    return boost::geometry::area(sph_geom, spherical_earth);
+}
+
+double spherical_area(geometry_t const &geom)
+{
+    assert(geom.srid() == 4326);
+
+    return std::abs(geom.visit(overloaded{
+        [&](geom::nullgeom_t const & /*input*/) { return 0.0; },
+        [&](geom::collection_t const &input) {
+            return std::accumulate(input.cbegin(), input.cend(), 0.0,
+                                   [](double sum, auto const &geom) {
+                                       return sum + spherical_area(geom);
+                                   });
+        },
+        [&](geom::polygon_t const &input) { return spherical_area(input); },
+        [&](geom::multipolygon_t const &input) {
+            return std::accumulate(input.cbegin(), input.cend(), 0.0,
+                                   [&](double sum, auto const &geom) {
+                                       return sum + spherical_area(geom);
+                                   });
+        },
+        [&](auto const & /*input*/) { return 0.0; }}));
+}
+
+/****************************************************************************/
+
+double length(geometry_t const &geom)
+{
+    return geom.visit(overloaded{
+        [&](geom::nullgeom_t const & /*input*/) { return 0.0; },
+        [&](geom::collection_t const &input) {
+            double total = 0.0;
+            for (auto const &item : input) {
+                total += length(item);
+            }
+            return total;
+        },
+        [&](auto const &input) {
+            return static_cast<double>(boost::geometry::length(input));
+        }});
+}
+
+/****************************************************************************/
 
 namespace {
 
@@ -414,7 +456,7 @@ private:
 
 } // anonymous namespace
 
-std::vector<geometry_t> split_multi(geometry_t&& geom, bool split_multi)
+std::vector<geometry_t> split_multi(geometry_t &&geom, bool split_multi)
 {
     std::vector<geometry_t> output;
 
@@ -425,25 +467,6 @@ std::vector<geometry_t> split_multi(geometry_t&& geom, bool split_multi)
     }
 
     return output;
-}
-
-/**
- * Add points specified by iterators to the linestring. If linestring is not
- * empty, do not add the first point returned by *it.
- */
-template <typename ITERATOR>
-static void add_nodes_to_linestring(linestring_t *linestring, ITERATOR it,
-                                    ITERATOR end)
-{
-    if (!linestring->empty()) {
-        assert(it != end);
-        ++it;
-    }
-
-    while (it != end) {
-        linestring->push_back(*it);
-        ++it;
-    }
 }
 
 /****************************************************************************/
@@ -502,6 +525,25 @@ geometry_t reverse(geometry_t const &input)
 
 /****************************************************************************/
 
+/**
+ * Add points specified by iterators to the linestring. If linestring is not
+ * empty, do not add the first point returned by *it.
+ */
+template <typename ITERATOR>
+static void add_nodes_to_linestring(linestring_t *linestring, ITERATOR it,
+                                    ITERATOR end)
+{
+    if (!linestring->empty()) {
+        assert(it != end);
+        ++it;
+    }
+
+    while (it != end) {
+        linestring->push_back(*it);
+        ++it;
+    }
+}
+
 void line_merge(geometry_t *output, geometry_t const &input)
 {
     if (input.is_linestring()) {
@@ -546,7 +588,7 @@ void line_merge(geometry_t *output, geometry_t const &input)
     std::vector<endpoint_t> endpoints;
 
     // ...and a list of connections.
-    constexpr std::size_t const NOCONN = -1UL;
+    constexpr auto const NOCONN = std::numeric_limits<std::size_t>::max();
 
     struct connection_t
     {
@@ -684,6 +726,38 @@ geometry_t line_merge(geometry_t const &input)
     return output;
 }
 
+/****************************************************************************/
+
+/**
+ * This helper function is used to calculate centroids of geometry collections.
+ * It first creates a multi geometry that only contains the geometries of
+ * dimension N from the input collection. This is done by copying the geometry,
+ * which isn't very efficient, but hopefully the centroid of a geometry
+ * collection isn't used very often. This can be optimized if needed.
+ *
+ * Then the centroid of this new collection is calculated.
+ *
+ * Nested geometry collections are not allowed.
+ */
+template <std::size_t N, typename T>
+static void filtered_centroid(collection_t const &collection, point_t *center)
+{
+    multigeometry_t<T> multi;
+    for (auto const &geom : collection) {
+        assert(!geom.is_collection());
+        if (!geom.is_null() && dimension(geom) == N) {
+            if (geom.is_multi()) {
+                for (auto const &sgeom : geom.get<multigeometry_t<T>>()) {
+                    multi.add_geometry() = sgeom;
+                }
+            } else {
+                multi.add_geometry() = geom.get<T>();
+            }
+        }
+    }
+    boost::geometry::centroid(multi, *center);
+}
+
 geometry_t centroid(geometry_t const &geom)
 {
     geom::geometry_t output{point_t{}, geom.srid()};
@@ -691,33 +765,70 @@ geometry_t centroid(geometry_t const &geom)
 
     geom.visit(overloaded{
         [&](geom::nullgeom_t const & /*input*/) { output.reset(); },
-        [&](geom::collection_t const & /*input*/) {
-            throw std::runtime_error{
-                "Centroid of geometry collection not implemented yet"};
+        [&](geom::collection_t const &input) {
+            switch (dimension(input)) {
+            case 0:
+                filtered_centroid<0, point_t>(input, &center);
+                break;
+            case 1:
+                filtered_centroid<1, linestring_t>(input, &center);
+                break;
+            default: // 2
+                filtered_centroid<2, polygon_t>(input, &center);
+                break;
+            }
         },
         [&](auto const &input) { boost::geometry::centroid(input, center); }});
 
     return output;
 }
 
+/****************************************************************************/
+
+static bool simplify(linestring_t *output, linestring_t const &input,
+                     double tolerance)
+{
+    boost::geometry::simplify(input, *output, tolerance);
+
+    // Linestrings with less then 2 points are invalid. Older boost::geometry
+    // versions will generate a "line" with two identical points. We are
+    // paranoid here and remove all duplicate points and then check that we
+    // have at least 2 points.
+    output->remove_duplicates();
+    return output->size() > 1;
+}
+
+static bool simplify(multilinestring_t *output, multilinestring_t const &input,
+                     double tolerance)
+{
+    for (auto const &ls : input) {
+        linestring_t simplified_ls;
+        if (simplify(&simplified_ls, ls, tolerance)) {
+            output->add_geometry(std::move(simplified_ls));
+        }
+    }
+    return output->num_geometries() > 0;
+}
+
+template <typename T>
+static bool simplify(T * /*output*/, T const & /*input*/, double /*tolerance*/)
+{
+    return false;
+}
+
 void simplify(geometry_t *output, geometry_t const &input, double tolerance)
 {
-    if (!input.is_linestring()) {
-        output->reset();
-        return;
-    }
-
-    auto &ls = output->set<linestring_t>();
     output->set_srid(input.srid());
 
-    boost::geometry::simplify(input.get<linestring_t>(), ls, tolerance);
+    input.visit([&](auto const &input) {
+        using inner_type =
+            std::remove_const_t<std::remove_reference_t<decltype(input)>>;
+        auto &out = output->set<inner_type>();
 
-    // Linestrings with less then 2 nodes are invalid. Older boost::geometry
-    // versions will generate a "line" with two identical points which the
-    // second check finds.
-    if (ls.size() < 2 || ls[0] == ls[1]) {
-        output->reset();
-    }
+        if (!simplify(&out, input, tolerance)) {
+            output->reset();
+        }
+    });
 }
 
 geometry_t simplify(geometry_t const &input, double tolerance)

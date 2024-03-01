@@ -8,13 +8,13 @@
 
 local dtable = osm2pgsql.define_way_table('data', {
         { column = 'tags',  type = 'jsonb' },
-        { column = 'geom',  type = 'geometry' },
+        { column = 'geom',  type = 'linestring' },
     }, { schema = 'myschema' })
 
 function osm2pgsql.process_way(object)
-    dtable:add_row({
+    dtable:insert({
         tags = object.tags,
-        geom = { create = 'line' }
+        geom = object:as_linestring()
     })
 end
 

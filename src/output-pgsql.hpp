@@ -6,7 +6,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -27,10 +27,6 @@
 
 class output_pgsql_t : public output_t
 {
-    output_pgsql_t(output_pgsql_t const *other,
-                   std::shared_ptr<middle_query_t> const &mid,
-                   std::shared_ptr<db_copy_thread_t> const &copy_thread);
-
 public:
     enum table_id
     {
@@ -41,10 +37,21 @@ public:
         t_MAX
     };
 
+    /// Constructor for new objects
     output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
                    std::shared_ptr<thread_pool_t> thread_pool,
-                   options_t const &options,
+                   options_t const &options);
+
+    /// Constructor for cloned objects
+    output_pgsql_t(output_pgsql_t const *other,
+                   std::shared_ptr<middle_query_t> const &mid,
                    std::shared_ptr<db_copy_thread_t> const &copy_thread);
+
+    output_pgsql_t(output_pgsql_t const &) = delete;
+    output_pgsql_t &operator=(output_pgsql_t const &) = delete;
+
+    output_pgsql_t(output_pgsql_t &&) = delete;
+    output_pgsql_t &operator=(output_pgsql_t &&) = delete;
 
     ~output_pgsql_t() override;
 
@@ -75,10 +82,17 @@ public:
 
     void merge_expire_trees(output_t *other) override;
 
-protected:
+private:
     void pgsql_out_way(osmium::Way const &way, taglist_t *tags, bool polygon,
                        bool roads);
     void pgsql_process_relation(osmium::Relation const &rel);
+
+    /**
+     * Delete all objects with specified id from all output tables and mark
+     * their geometries for expire.
+     */
+    void delete_from_output_and_expire(osmid_t id);
+
     void pgsql_delete_way_from_output(osmid_t osm_id);
     void pgsql_delete_relation_from_output(osmid_t osm_id);
 
@@ -90,6 +104,7 @@ protected:
     std::array<std::unique_ptr<table_t>, t_MAX> m_tables;
 
     std::shared_ptr<reprojection> m_proj;
+    expire_config_t m_expire_config;
     expire_tiles m_expire;
 
     osmium::memory::Buffer m_buffer;

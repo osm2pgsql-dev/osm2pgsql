@@ -8,7 +8,7 @@ function osm2pgsql.select_relation_members(relation)
 end
 
 function osm2pgsql.process_relation(object)
-    rel_table:add_row({
+    rel_table:insert({
         tags = object.tags
     })
 end

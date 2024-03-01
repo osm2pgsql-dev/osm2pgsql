@@ -6,13 +6,18 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
+#include <cstdint>
 #include <memory>
+#include <string_view>
 #include <unordered_set>
+#include <utility>
+#include <vector>
 
+#include "expire-config.hpp"
 #include "geom.hpp"
 #include "geom-box.hpp"
 #include "logging.hpp"
@@ -22,115 +27,67 @@
 
 class reprojection;
 
-/**
- * Implementation of the output of the tile expiry list to a file.
- */
-class tile_output_t
-{
-    FILE *outfile;
-
-public:
-    explicit tile_output_t(char const *filename);
-
-    ~tile_output_t();
-
-    /**
-     * Output dirty tile.
-     *
-     * \param tile The tile to write out.
-     */
-    void output_dirty_tile(tile_t const &tile);
-};
-
 class expire_tiles
 {
 public:
-    expire_tiles(uint32_t max_zoom, double max_bbox,
-                 std::shared_ptr<reprojection> projection);
+    expire_tiles(uint32_t max_zoom, std::shared_ptr<reprojection> projection);
+
+    bool empty() const noexcept { return m_dirty_tiles.empty(); }
 
     bool enabled() const noexcept { return m_maxzoom != 0; }
 
-    void from_geometry(geom::geometry_t const &geom, osmid_t osm_id);
+    void from_polygon_boundary(geom::polygon_t const &geom,
+                               expire_config_t const &expire_config);
 
-    int from_bbox(geom::box_t const &box);
+    void from_polygon_boundary(geom::multipolygon_t const &geom,
+                               expire_config_t const &expire_config);
 
-    /**
-     * Expire tiles based on an osm id.
-     *
-     * \param result Result of a database query into some table returning the
-     *               geometries. (This is usally done using the "get_wkb"
-     *               prepared statement.)
-     * \param osm_id The OSM id to look for.
-     * \return The number of elements that refer to the osm_id or -1 if
-     *         expire is disabled.
-     */
-    int from_result(pg_result_t const &result, osmid_t osm_id);
+    void from_geometry(geom::nullgeom_t const & /*geom*/,
+                       expire_config_t const & /*expire_config*/)
+    {}
 
-    /**
-     * Write the list of expired tiles to a file.
-     *
-     * You will probably use tile_output_t as template argument for production code
-     * and another class which does not write to a file for unit tests.
-     *
-     * \param filename name of the file
-     * \param minzoom minimum zoom level
-     */
-    void output_and_destroy(char const *filename, uint32_t minzoom);
+    void from_geometry(geom::point_t const &geom,
+                       expire_config_t const &expire_config);
 
-    /**
-     * Output expired tiles on all requested zoom levels.
-     *
-     * \tparam TILE_WRITER class which implements the method
-     * output_dirty_tile(tile_t const &tile) which usually writes the tile ID
-     * to a file (production code) or does something else (usually unit tests).
-     *
-     * \param minzoom minimum zoom level
-     */
-    template <class TILE_WRITER>
-    void output_and_destroy(TILE_WRITER &output_writer, uint32_t minzoom)
+    void from_geometry(geom::linestring_t const &geom,
+                       expire_config_t const &expire_config);
+
+    void from_geometry(geom::polygon_t const &geom,
+                       expire_config_t const &expire_config);
+
+    void from_geometry(geom::multipolygon_t const &geom,
+                       expire_config_t const &expire_config);
+
+    template <typename T>
+    void from_geometry(geom::multigeometry_t<T> const &geom,
+                       expire_config_t const &expire_config)
     {
-        assert(minzoom <= m_maxzoom);
-        // build a sorted vector of all expired tiles
-        std::vector<uint64_t> tiles_maxzoom(m_dirty_tiles.begin(),
-                                            m_dirty_tiles.end());
-        std::sort(tiles_maxzoom.begin(), tiles_maxzoom.end());
-        /* Loop over all requested zoom levels (from maximum down to the minimum zoom level).
-         * Tile IDs of the tiles enclosing this tile at lower zoom levels are calculated using
-         * bit shifts.
-         *
-         * last_quadkey is initialized with a value which is not expected to exist
-         * (larger than largest possible quadkey). */
-        uint64_t last_quadkey = 1ULL << (2 * m_maxzoom);
-        std::size_t count = 0;
-        for (auto const quadkey : tiles_maxzoom) {
-            for (uint32_t dz = 0; dz <= m_maxzoom - minzoom; ++dz) {
-                // scale down to the current zoom level
-                uint64_t qt_current = quadkey >> (dz * 2);
-                /* If dz > 0, there are propably multiple elements whose quadkey
-                 * is equal because they are all sub-tiles of the same tile at the current
-                 * zoom level. We skip all of them after we have written the first sibling.
-                 */
-                if (qt_current == last_quadkey >> (dz * 2)) {
-                    continue;
-                }
-                auto const tile =
-                    tile_t::from_quadkey(qt_current, m_maxzoom - dz);
-                output_writer.output_dirty_tile(tile);
-                ++count;
-            }
-            last_quadkey = quadkey;
+        for (auto const &sgeom : geom) {
+            from_geometry(sgeom, expire_config);
         }
-        log_info("Wrote {} entries to expired tiles list", count);
     }
 
+    void from_geometry(geom::geometry_t const &geom,
+                       expire_config_t const &expire_config);
+
+    void from_geometry_if_3857(geom::geometry_t const &geom,
+                               expire_config_t const &expire_config);
+
+    int from_bbox(geom::box_t const &box, expire_config_t const &expire_config);
+
     /**
-    * merge the list of expired tiles in the other object into this
-    * object, destroying the list in the other object.
-    */
+     * Get tiles as a vector of quadkeys and remove them from the expire_tiles
+     * object.
+     */
+    quadkey_list_t get_tiles();
+
+    /**
+     * Merge the list of expired tiles in the other object into this
+     * object, destroying the list in the other object.
+     */
     void merge_and_destroy(expire_tiles *other);
 
 private:
-
     /**
      * Converts from target coordinates to tile coordinates.
      */
@@ -143,22 +100,39 @@ private:
      * \param y y index of the tile to be expired.
      */
     void expire_tile(uint32_t x, uint32_t y);
-    uint32_t normalise_tile_x_coord(int x) const;
-    void from_line(geom::point_t const &a, geom::point_t const &b);
 
-    void from_point_list(geom::point_list_t const &list);
+    uint32_t normalise_tile_x_coord(int x) const;
+
+    void from_line_segment(geom::point_t const &a, geom::point_t const &b,
+                           expire_config_t const &expire_config);
+
+    void from_point_list(geom::point_list_t const &list,
+                         expire_config_t const &expire_config);
 
     /// This is where we collect all the expired tiles.
-    std::unordered_set<uint64_t> m_dirty_tiles;
+    std::unordered_set<quadkey_t> m_dirty_tiles;
 
     /// The tile which has been added last to the unordered set.
     tile_t m_prev_tile;
 
     std::shared_ptr<reprojection> m_projection;
 
-    double m_max_bbox;
     uint32_t m_maxzoom;
     int m_map_width;
-};
+
+}; // class expire_tiles
+
+/**
+ * Expire tiles based on an osm id.
+ *
+ * \param expire Where to mark expired tiles.
+ * \param result Result of a database query into some table returning the
+ *               geometries. (This is usually done using the "get_wkb"
+ *               prepared statement.)
+ * \param expire_config Configuration for expiry.
+ * \return The number of tuples in the result or -1 if expire is disabled.
+ */
+int expire_from_result(expire_tiles *expire, pg_result_t const &result,
+                       expire_config_t const &expire_config);
 
 #endif // OSM2PGSQL_EXPIRE_TILES_HPP

@@ -3,7 +3,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -64,7 +64,8 @@ TEST_CASE("node locations in more than one block", "[NoDB]")
     }
 
     for (osmid_t id = 1; id <= max_id; ++id) {
-        nl.set(id, {id + 0.1, id + 0.2});
+        nl.set(id,
+               {static_cast<double>(id) + 0.1, static_cast<double>(id) + 0.2});
     }
 
     REQUIRE(static_cast<osmid_t>(nl.size()) == max_id);

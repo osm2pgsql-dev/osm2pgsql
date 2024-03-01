@@ -22,7 +22,6 @@ tables.lines = osm2pgsql.define_way_table('lines', {
 tables.polygons = osm2pgsql.define_area_table('polygons', {
     { column = 'tags', type = 'jsonb' },
     { column = 'geom', type = 'geometry', projection = srid, not_null = true },
-    { column = 'area', type = 'area' },
 })
 
 tables.routes = osm2pgsql.define_relation_table('routes', {
@@ -183,7 +182,7 @@ local clean_tags = osm2pgsql.make_clean_tags_func(delete_keys)
 
 -- Helper function that looks at the tags and decides if this is possibly
 -- an area.
-function has_area_tags(tags)
+local function has_area_tags(tags)
     if tags.area == 'yes' then
         return true
     end

@@ -3,7 +3,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -30,7 +30,7 @@ osmdata_t::osmdata_t(std::unique_ptr<dependency_manager_t> dependency_manager,
                      std::shared_ptr<middle_t> mid,
                      std::shared_ptr<output_t> output, options_t const &options)
 : m_dependency_manager(std::move(dependency_manager)), m_mid(std::move(mid)),
-  m_output(std::move(output)), m_conninfo(options.database_options.conninfo()),
+  m_output(std::move(output)), m_connection_params(options.connection_params),
   m_bbox(options.bbox), m_num_procs(options.num_procs),
   m_append(options.append), m_droptemp(options.droptemp),
   m_with_extra_attrs(options.extra_attributes),
@@ -57,34 +57,62 @@ void osmdata_t::node(osmium::Node const &node)
     m_mid->node(node);
 
     if (node.deleted()) {
-        node_delete(node.id());
-    } else {
-        if (m_append) {
-            node_modify(node);
+        m_output->node_delete(node.id());
+        return;
+    }
+
+    bool const has_tags_or_attrs = m_with_extra_attrs || !node.tags().empty();
+    if (m_append) {
+        if (has_tags_or_attrs) {
+            m_output->node_modify(node);
         } else {
-            node_add(node);
+            m_output->node_delete(node.id());
         }
+        m_dependency_manager->node_changed(node.id());
+    } else if (has_tags_or_attrs) {
+        m_output->node_add(node);
     }
 }
 
-void osmdata_t::after_nodes() { m_mid->after_nodes(); }
+void osmdata_t::after_nodes()
+{
+    m_mid->after_nodes();
+    m_output->after_nodes();
+    if (m_append) {
+        m_dependency_manager->after_nodes();
+    }
+}
 
 void osmdata_t::way(osmium::Way &way)
 {
     m_mid->way(way);
 
     if (way.deleted()) {
-        way_delete(way.id());
-    } else {
-        if (m_append) {
-            way_modify(&way);
+        m_output->way_delete(way.id());
+        return;
+    }
+
+    bool const has_tags_or_attrs = m_with_extra_attrs || !way.tags().empty();
+    if (m_append) {
+        if (has_tags_or_attrs) {
+            m_output->way_modify(&way);
         } else {
-            way_add(&way);
+            m_output->way_delete(way.id());
         }
+        m_dependency_manager->way_changed(way.id());
+    } else if (has_tags_or_attrs) {
+        m_output->way_add(&way);
     }
 }
 
-void osmdata_t::after_ways() { m_mid->after_ways(); }
+void osmdata_t::after_ways()
+{
+    m_mid->after_ways();
+    m_output->after_ways();
+    if (m_append) {
+        m_dependency_manager->after_ways();
+    }
+}
 
 void osmdata_t::relation(osmium::Relation const &rel)
 {
@@ -102,69 +130,29 @@ void osmdata_t::relation(osmium::Relation const &rel)
     m_mid->relation(rel);
 
     if (rel.deleted()) {
-        relation_delete(rel.id());
-    } else {
-        if (m_append) {
-            relation_modify(rel);
+        m_output->relation_delete(rel.id());
+        return;
+    }
+
+    bool const has_tags_or_attrs = m_with_extra_attrs || !rel.tags().empty();
+    if (m_append) {
+        if (has_tags_or_attrs) {
+            m_output->relation_modify(rel);
         } else {
-            relation_add(rel);
+            m_output->relation_delete(rel.id());
         }
-    }
-}
-
-void osmdata_t::after_relations() { m_mid->after_relations(); }
-
-void osmdata_t::node_add(osmium::Node const &node) const
-{
-    if (m_with_extra_attrs || !node.tags().empty()) {
-        m_output->node_add(node);
-    }
-}
-
-void osmdata_t::way_add(osmium::Way *way) const
-{
-    if (m_with_extra_attrs || !way->tags().empty()) {
-        m_output->way_add(way);
-    }
-}
-
-void osmdata_t::relation_add(osmium::Relation const &rel) const
-{
-    if (m_with_extra_attrs || !rel.tags().empty()) {
+        m_dependency_manager->relation_changed(rel.id());
+    } else if (has_tags_or_attrs) {
         m_output->relation_add(rel);
     }
 }
 
-void osmdata_t::node_modify(osmium::Node const &node) const
+void osmdata_t::after_relations()
 {
-    m_output->node_modify(node);
-    m_dependency_manager->node_changed(node.id());
-}
-
-void osmdata_t::way_modify(osmium::Way *way) const
-{
-    m_output->way_modify(way);
-    m_dependency_manager->way_changed(way->id());
-}
-
-void osmdata_t::relation_modify(osmium::Relation const &rel) const
-{
-    m_output->relation_modify(rel);
-}
-
-void osmdata_t::node_delete(osmid_t id) const
-{
-    m_output->node_delete(id);
-}
-
-void osmdata_t::way_delete(osmid_t id) const
-{
-    m_output->way_delete(id);
-}
-
-void osmdata_t::relation_delete(osmid_t id) const
-{
-    m_output->relation_delete(id);
+    m_mid->after_relations();
+    if (m_append) {
+        m_dependency_manager->after_relations();
+    }
 }
 
 void osmdata_t::start() const
@@ -183,7 +171,7 @@ namespace {
 class multithreaded_processor
 {
 public:
-    multithreaded_processor(std::string const &conninfo,
+    multithreaded_processor(connection_params_t const &connection_params,
                             std::shared_ptr<middle_t> const &mid,
                             std::shared_ptr<output_t> output,
                             std::size_t thread_count)
@@ -195,7 +183,8 @@ public:
         // For each thread we create a clone of the output.
         for (std::size_t i = 0; i < thread_count; ++i) {
             auto const midq = mid->get_query_instance();
-            auto copy_thread = std::make_shared<db_copy_thread_t>(conninfo);
+            auto copy_thread =
+                std::make_shared<db_copy_thread_t>(connection_params);
             m_clones.push_back(m_output->clone(midq, copy_thread));
         }
     }
@@ -298,37 +287,49 @@ private:
     {
         auto const ids_queued = list.size();
 
-        log_info("Going over {} pending {}s (using {} threads)"_format(
-            ids_queued, type, m_clones.size()));
-
         util::timer_t timer;
-        std::vector<std::future<void>> workers;
 
-        for (auto const &clone : m_clones) {
-            workers.push_back(std::async(std::launch::async, run,
-                                         std::cref(clone), &list, &m_mutex,
-                                         function));
-        }
-        workers.push_back(
-            std::async(std::launch::async, print_stats, &list, &m_mutex));
+        if (ids_queued < 100) {
+            // Worker startup is quite expensive. Run the processing directly
+            // when only few items need to be processed.
+            log_info("Going over {} pending {}s", ids_queued, type);
 
-        for (auto &worker : workers) {
-            try {
-                worker.get();
-            } catch (...) {
-                // Drain the queue, so that the other workers finish early.
-                m_mutex.lock();
-                list.clear();
-                m_mutex.unlock();
-                throw;
+            for (auto const oid : list) {
+                (m_clones[0].get()->*function)(oid);
+            }
+            m_clones[0]->sync();
+        } else {
+            log_info("Going over {} pending {}s (using {} threads)", ids_queued,
+                     type, m_clones.size());
+
+            std::vector<std::future<void>> workers;
+            workers.reserve(m_clones.size() + 1);
+            for (auto const &clone : m_clones) {
+                workers.push_back(std::async(std::launch::async, run,
+                                             std::cref(clone), &list, &m_mutex,
+                                             function));
+            }
+            workers.push_back(
+                std::async(std::launch::async, print_stats, &list, &m_mutex));
+
+            for (auto &worker : workers) {
+                try {
+                    worker.get();
+                } catch (...) {
+                    // Drain the queue, so that the other workers finish early.
+                    m_mutex.lock();
+                    list.clear();
+                    m_mutex.unlock();
+                    throw;
+                }
+            }
+
+            if (get_logger().show_progress()) {
+                fmt::print(stderr, "\rLeft to process: 0.\n");
             }
         }
 
         timer.stop();
-
-        if (get_logger().show_progress()) {
-            fmt::print(stderr, "\rLeft to process: 0.\n");
-        }
 
         log_info("Processing {} pending {}s took {} at a rate of {:.2f}/s",
                  ids_queued, type,
@@ -350,7 +351,8 @@ private:
 
 void osmdata_t::process_dependents() const
 {
-    multithreaded_processor proc{m_conninfo, m_mid, m_output, m_num_procs};
+    multithreaded_processor proc{m_connection_params, m_mid, m_output,
+                                 m_num_procs};
 
     // stage 1b processing: process parents of changed objects
     if (m_dependency_manager->has_pending()) {
@@ -361,9 +363,12 @@ void osmdata_t::process_dependents() const
     }
 
     // stage 1c processing: mark parent relations of marked objects as changed
-    for (auto const id : m_output->get_marked_way_ids()) {
-        m_dependency_manager->way_changed(id);
+    auto marked_ways = m_output->get_marked_way_ids();
+    if (marked_ways.empty()) {
+        return;
     }
+
+    m_dependency_manager->mark_parent_relations_as_pending(marked_ways);
 
     // process parent relations of marked ways
     if (m_dependency_manager->has_pending()) {

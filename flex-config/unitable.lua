@@ -25,7 +25,7 @@ local dtable = osm2pgsql.define_table{
 
 -- Helper function to remove some of the tags we usually are not interested in.
 -- Returns true if there are no tags left.
-function clean_tags(tags)
+local function clean_tags(tags)
     tags.odbl = nil
     tags.created_by = nil
     tags.source = nil
@@ -34,7 +34,7 @@ function clean_tags(tags)
     return next(tags) == nil
 end
 
-function process(object, geometry)
+local function process(object, geometry)
     if clean_tags(object.tags) then
         return
     end

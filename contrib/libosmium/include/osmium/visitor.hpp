@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2022 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2023 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -202,7 +202,7 @@ namespace osmium {
         template <typename TFunc>
         struct wrapper_handler : TFunc {
 
-            template<typename T>
+            template <typename T>
             explicit wrapper_handler(T&& func) : TFunc(std::forward<T>(func)) { // NOLINT(bugprone-forwarding-reference-overload)
             }
 

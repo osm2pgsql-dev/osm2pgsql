@@ -6,43 +6,48 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
-/* Common output layer interface */
-
-/* Each output layer must provide methods for
- * storing:
- * - Nodes (Points of interest etc)
- * - Way geometries
- * Associated tags: name, type etc.
-*/
+/**
+ * \file
+ *
+ * Common output layer interface.
+ */
 
 #include <osmium/index/id_set.hpp>
 
-#include "options.hpp"
 #include "osmtypes.hpp"
+#include "output-requirements.hpp"
 
 class db_copy_thread_t;
 class thread_pool_t;
 
 struct middle_query_t;
+struct options_t;
 
 class output_t
 {
 public:
+    /// Factory method for creating instances of classes derived from output_t.
     static std::shared_ptr<output_t>
     create_output(std::shared_ptr<middle_query_t> const &mid,
                   std::shared_ptr<thread_pool_t> thread_pool,
                   options_t const &options);
 
-    output_t(std::shared_ptr<middle_query_t> mid,
-             std::shared_ptr<thread_pool_t> thread_pool,
-             options_t const &options);
+    output_t(output_t const &) = default;
+    output_t &operator=(output_t const &) = default;
+
+    output_t(output_t &&) = default;
+    output_t &operator=(output_t &&) = default;
 
     virtual ~output_t();
 
+    /**
+     * This function clones instances of derived classes of output_t, it must
+     * be implemented in derived classes.
+     */
     virtual std::shared_ptr<output_t>
     clone(std::shared_ptr<middle_query_t> const &mid,
           std::shared_ptr<db_copy_thread_t> const &copy_thread) const = 0;
@@ -57,6 +62,9 @@ public:
     virtual void start() = 0;
     virtual void stop() = 0;
     virtual void sync() = 0;
+
+    virtual void after_nodes() {}
+    virtual void after_ways() {}
 
     virtual void wait() {}
 
@@ -86,18 +94,28 @@ public:
     virtual void way_delete(osmid_t id) = 0;
     virtual void relation_delete(osmid_t id) = 0;
 
-    virtual void merge_expire_trees(output_t *other);
+    virtual void merge_expire_trees(output_t * /*other*/) {}
 
-    struct output_requirements const &get_requirements() const noexcept
+    output_requirements const &get_requirements() const noexcept
     {
         return m_output_requirements;
     }
 
-private:
-    std::shared_ptr<middle_query_t> m_mid;
-    options_t const *m_options;
-
 protected:
+    /**
+     * Constructor used for creating a new object using the create_output()
+     * function.
+     */
+    output_t(std::shared_ptr<middle_query_t> mid,
+             std::shared_ptr<thread_pool_t> thread_pool,
+             options_t const &options);
+
+    /**
+     * Constructor used for cloning an existing output using clone(). It gets
+     * a new middle query pointer, everything else is copied over.
+     */
+    output_t(output_t const *other, std::shared_ptr<middle_query_t> mid);
+
     thread_pool_t &thread_pool() const noexcept
     {
         assert(m_thread_pool);
@@ -110,8 +128,16 @@ protected:
         return *m_mid;
     }
 
-    const options_t *get_options() const noexcept { return m_options; };
+    output_requirements &access_requirements() noexcept
+    {
+        return m_output_requirements;
+    }
 
+    options_t const *get_options() const noexcept { return m_options; };
+
+private:
+    std::shared_ptr<middle_query_t> m_mid;
+    options_t const *m_options;
     std::shared_ptr<thread_pool_t> m_thread_pool;
     output_requirements m_output_requirements{};
 };

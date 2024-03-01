@@ -6,7 +6,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -16,8 +16,7 @@
 
 #include <boost/filesystem.hpp>
 
-namespace testing {
-namespace cleanup {
+namespace testing::cleanup {
 
 /**
  * RAII structure to remove a file upon destruction.
@@ -56,7 +55,6 @@ private:
     std::string m_filename;
 };
 
-} // namespace cleanup
-} // namespace testing
+} // namespace testing::cleanup
 
 #endif // OSM2PGSQL_TESTS_COMMON_CLEANUP_HPP

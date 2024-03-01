@@ -3,7 +3,7 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
@@ -27,10 +27,13 @@ TEST_CASE("compute Z order")
         "motorway", "trunk", "primary", "secondary", "tertiary"};
 
     for (unsigned i = 0; i < 5; ++i) {
-        auto const sql = "SELECT highway FROM osm2pgsql_test_line"
-                         " WHERE layer IS NULL ORDER BY z_order DESC"
-                         " LIMIT 1 OFFSET {}"_format(i);
-        REQUIRE(expected[i] == conn.result_as_string(sql));
+        auto const sql = fmt::format("SELECT highway"
+                                     " FROM osm2pgsql_test_line"
+                                     " WHERE layer IS NULL"
+                                     " ORDER BY z_order DESC"
+                                     " LIMIT 1 OFFSET {}",
+                                     i);
+        REQUIRE(expected.at(i) == conn.result_as_string(sql));
     }
 
     REQUIRE("residential" ==

@@ -3,17 +3,13 @@
  *
  * This file is part of osm2pgsql (https://osm2pgsql.org/).
  *
- * Copyright (C) 2006-2022 by the osm2pgsql developer community.
+ * Copyright (C) 2006-2024 by the osm2pgsql developer community.
  * For a full list of authors see the git log.
  */
 
 #include "lua-utils.hpp"
-#include "format.hpp"
 
-extern "C"
-{
-#include <lauxlib.h>
-}
+#include "format.hpp"
 
 #include <cassert>
 #include <stdexcept>
@@ -119,8 +115,7 @@ char const *luaX_get_table_string(lua_State *lua_state, char const *key,
     assert(error_msg);
     lua_getfield(lua_state, table_index, key);
     if (!lua_isstring(lua_state, -1)) {
-        throw std::runtime_error{
-            "{} must contain a '{}' string field."_format(error_msg, key)};
+        throw fmt_error("{} must contain a '{}' string field.", error_msg, key);
     }
     return lua_tostring(lua_state, -1);
 }
@@ -137,8 +132,9 @@ char const *luaX_get_table_string(lua_State *lua_state, char const *key,
         return default_value;
     }
     if (ltype != LUA_TSTRING) {
-        throw std::runtime_error{
-            "{} must contain a '{}' string field."_format(error_msg, key)};
+        throw fmt_error("{} field must contain a '{}' string field "
+                        "(or nil for default: '{}').",
+                        error_msg, key, default_value);
     }
     return lua_tostring(lua_state, -1);
 }
@@ -160,10 +156,32 @@ bool luaX_get_table_bool(lua_State *lua_state, char const *key, int table_index,
         return lua_toboolean(lua_state, -1);
     }
 
-    throw std::runtime_error{
-        "{} must contain a '{}' boolean field."_format(error_msg, key)};
+    throw fmt_error("{} field '{}' must be a boolean field.", error_msg, key);
 }
 
+uint32_t luaX_get_table_optional_uint32(lua_State *lua_state, char const *key,
+                                        int table_index, char const *error_msg,
+                                        uint32_t min, uint32_t max,
+                                        char const *range)
+{
+    assert(lua_state);
+    assert(key);
+    assert(error_msg);
+    lua_getfield(lua_state, table_index, key);
+    if (lua_isnil(lua_state, -1)) {
+        return 0;
+    }
+    if (!lua_isnumber(lua_state, -1)) {
+        throw fmt_error("{} must contain an integer.", error_msg);
+    }
+
+    auto const num = lua_tonumber(lua_state, -1);
+    if (num < static_cast<double>(min) || num > static_cast<double>(max)) {
+        throw fmt_error("{} must be between {}.", error_msg, range);
+    }
+
+    return static_cast<uint32_t>(num);
+}
 
 // Lua 5.1 doesn't support luaL_traceback, unless LuaJIT is used
 #if LUA_VERSION_NUM < 502 && !defined(HAVE_LUAJIT)
@@ -204,3 +222,34 @@ int luaX_pcall(lua_State *lua_state, int narg, int nres)
 }
 
 #endif
+
+bool luaX_is_empty_table(lua_State *lua_state)
+{
+    assert(lua_istable(lua_state, -1));
+    lua_pushnil(lua_state);
+    if (lua_next(lua_state, -2) == 0) {
+        return true;
+    }
+    lua_pop(lua_state, 2);
+    return false;
+}
+
+bool luaX_is_array(lua_State *lua_state)
+{
+    // Checking that a Lua table is an array is surprisingly difficult.
+    // This code is based on:
+    // https://web.archive.org/web/20140227143701/http://ericjmritz.name/2014/02/26/lua-is_array/
+    assert(lua_istable(lua_state, -1));
+    int i = 0;
+    lua_pushnil(lua_state);
+    while (lua_next(lua_state, -2) != 0) {
+        ++i;
+        lua_rawgeti(lua_state, -3, i);
+        if (lua_isnil(lua_state, -1)) {
+            lua_pop(lua_state, 3);
+            return false;
+        }
+        lua_pop(lua_state, 2);
+    }
+    return true;
+}
