@@ -47,6 +47,43 @@ TEST_CASE("projection 3857", "[NoDB]")
     REQUIRE(ct.y() == Approx(6982997.92));
 }
 
+TEST_CASE("projection 3857 bounds", "[NoDB]")
+{
+    osmium::Location const loc1{0.0, 0.0};
+    osmium::Location const loc2{-180.0, -85.0511288};
+    osmium::Location const loc3{180.0, 85.0511288};
+    int const srs = 3857;
+    auto const reprojection = reprojection::create_projection(srs);
+
+    {
+        auto const c = reprojection->reproject(geom::point_t{loc1});
+        REQUIRE(c.x() == Approx(0.0));
+        REQUIRE(c.y() == Approx(0.0));
+
+        auto const ct = reprojection->target_to_tile(c);
+        REQUIRE(ct.x() == Approx(0.0));
+        REQUIRE(ct.y() == Approx(0.0));
+    }
+    {
+        auto const c = reprojection->reproject(geom::point_t{loc2});
+        REQUIRE(c.x() == Approx(-20037508.34));
+        REQUIRE(c.y() == Approx(-20037508.34));
+
+        auto const ct = reprojection->target_to_tile(c);
+        REQUIRE(ct.x() == Approx(-20037508.34));
+        REQUIRE(ct.y() == Approx(-20037508.34));
+    }
+    {
+        auto const c = reprojection->reproject(geom::point_t{loc3});
+        REQUIRE(c.x() == Approx(20037508.34));
+        REQUIRE(c.y() == Approx(20037508.34));
+
+        auto const ct = reprojection->target_to_tile(c);
+        REQUIRE(ct.x() == Approx(20037508.34));
+        REQUIRE(ct.y() == Approx(20037508.34));
+    }
+}
+
 #ifdef HAVE_GENERIC_PROJ
 TEST_CASE("projection 5651", "[NoDB]")
 {

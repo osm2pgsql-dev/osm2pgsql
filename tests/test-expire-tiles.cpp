@@ -144,6 +144,70 @@ TEST_CASE("simple expire z18", "[NoDB]")
     CHECK(*(itr++) == tile_t(18, 131072, 131072));
 }
 
+TEST_CASE("simple expire z10 bounds 0, 0", "[NoDB]")
+{
+    uint32_t const minzoom = 10;
+    uint32_t const maxzoom = 10;
+    expire_tiles et{minzoom, defproj};
+
+    et.from_geometry(geom::point_t{-20037508.34, 20037508.34},
+                     expire_config_t{});
+
+    auto const tiles = get_tiles_ordered(&et, minzoom, maxzoom);
+    CHECK(tiles.size() == 1);
+
+    auto itr = tiles.begin();
+    CHECK(*(itr++) == tile_t(10, 0, 0));
+}
+
+TEST_CASE("simple expire z10 bounds 0, 1023", "[NoDB]")
+{
+    uint32_t const minzoom = 10;
+    uint32_t const maxzoom = 10;
+    expire_tiles et{minzoom, defproj};
+
+    et.from_geometry(geom::point_t{-20037508.34, -20037508.34},
+                     expire_config_t{});
+
+    auto const tiles = get_tiles_ordered(&et, minzoom, maxzoom);
+    CHECK(tiles.size() == 1);
+
+    auto itr = tiles.begin();
+    CHECK(*(itr++) == tile_t(10, 0, 1023));
+}
+
+TEST_CASE("simple expire z10 bounds 1023, 0", "[NoDB]")
+{
+    uint32_t const minzoom = 10;
+    uint32_t const maxzoom = 10;
+    expire_tiles et{minzoom, defproj};
+
+    et.from_geometry(geom::point_t{20037508.34, 20037508.34},
+                     expire_config_t{});
+
+    auto const tiles = get_tiles_ordered(&et, minzoom, maxzoom);
+    CHECK(tiles.size() == 1);
+
+    auto itr = tiles.begin();
+    CHECK(*(itr++) == tile_t(10, 1023, 0));
+}
+
+TEST_CASE("simple expire z10 bounds 1023, 1023", "[NoDB]")
+{
+    uint32_t const minzoom = 10;
+    uint32_t const maxzoom = 10;
+    expire_tiles et{minzoom, defproj};
+
+    et.from_geometry(geom::point_t{20037508.34, -20037508.34},
+                     expire_config_t{});
+
+    auto const tiles = get_tiles_ordered(&et, minzoom, maxzoom);
+    CHECK(tiles.size() == 1);
+
+    auto itr = tiles.begin();
+    CHECK(*(itr++) == tile_t(10, 1023, 1023));
+}
+
 TEST_CASE("expire a simple line", "[NoDB]")
 {
     uint32_t const zoom = 18;
