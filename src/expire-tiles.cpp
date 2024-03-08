@@ -243,15 +243,15 @@ int expire_tiles::from_bbox(geom::box_t const &box,
     /* Convert the box's Mercator coordinates into tile coordinates */
     auto const tmp_min = coords_to_tile({box.min_x(), box.max_y()});
     int const min_tile_x =
-        std::clamp(int(tmp_min.x() - expire_config.buffer), 0, m_map_width);
+        std::clamp(int(tmp_min.x() - expire_config.buffer), 0, m_map_width - 1);
     int const min_tile_y =
-        std::clamp(int(tmp_min.y() - expire_config.buffer), 0, m_map_width);
+        std::clamp(int(tmp_min.y() - expire_config.buffer), 0, m_map_width - 1);
 
     auto const tmp_max = coords_to_tile({box.max_x(), box.min_y()});
     int const max_tile_x =
-        std::clamp(int(tmp_max.x() + expire_config.buffer), 0, m_map_width);
+        std::clamp(int(tmp_max.x() + expire_config.buffer), 0, m_map_width - 1);
     int const max_tile_y =
-        std::clamp(int(tmp_max.y() + expire_config.buffer), 0, m_map_width);
+        std::clamp(int(tmp_max.y() + expire_config.buffer), 0, m_map_width - 1);
 
     for (int iterator_x = min_tile_x; iterator_x <= max_tile_x; ++iterator_x) {
         uint32_t const norm_x = normalise_tile_x_coord(iterator_x);
