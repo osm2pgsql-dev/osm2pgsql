@@ -13,7 +13,6 @@ target_sources(osm2pgsql_lib PRIVATE
   dependency-manager.cpp
   expire-tiles.cpp
   expire-output.cpp
-  gazetteer-style.cpp
   geom.cpp
   geom-box.cpp
   geom-from-osm.cpp
@@ -29,7 +28,6 @@ target_sources(osm2pgsql_lib PRIVATE
   node-persistent-cache.cpp
   ordered-index.cpp
   osmdata.cpp
-  output-gazetteer.cpp
   output-null.cpp
   output-pgsql.cpp
   output.cpp

@@ -42,28 +42,3 @@ Feature: Test forward propagation of changes
         Then table planet_osm_roads has 1 row
         Then table planet_osm_polygon has 1 row
 
-
-    Scenario: Node changes are not forwarded when forwarding is disabled
-        When running osm2pgsql pgsql with parameters
-            | --slim | --latlong |
-        Given the OSM data
-            """
-            n13 v2 x3.1 y3.0
-            w23 v2 Nn16,n17
-            """
-        When running osm2pgsql pgsql with parameters
-            | --slim | -a | --latlong | --with-forward-dependencies=false |
-
-        Then table planet_osm_point has 1 row
-        Then table planet_osm_line has 1 row
-        Then table planet_osm_line has 1 row with condition
-            """
-            abs(ST_X(ST_StartPoint(way)) - 3.0) < 0.0001
-            """
-        Then table planet_osm_line has 0 rows with condition
-            """
-            abs(ST_X(ST_StartPoint(way)) - 3.1) < 0.0001
-            """
-        Then table planet_osm_roads has 1 row
-        Then table planet_osm_polygon has 2 rows
-

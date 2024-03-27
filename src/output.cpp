@@ -12,7 +12,6 @@
 #include "db-copy.hpp"
 #include "format.hpp"
 #include "options.hpp"
-#include "output-gazetteer.hpp"
 #include "output-null.hpp"
 #include "output-pgsql.hpp"
 
@@ -44,18 +43,13 @@ output_t::create_output(std::shared_ptr<middle_query_t> const &mid,
     }
 #endif
 
-    if (options.output_backend == "gazetteer") {
-        return std::make_shared<output_gazetteer_t>(mid, std::move(thread_pool),
-                                                    options);
-    }
-
     if (options.output_backend == "null") {
         return std::make_shared<output_null_t>(mid, std::move(thread_pool),
                                                options);
     }
 
     throw fmt_error("Output backend '{}' not recognised. Should be one of"
-                    " [pgsql, {}gazetteer, null].",
+                    " [pgsql, {}null].",
                     options.output_backend, flex_backend);
 }
 

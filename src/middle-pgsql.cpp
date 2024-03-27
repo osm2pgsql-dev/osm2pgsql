@@ -134,9 +134,7 @@ middle_pgsql_t::table_desc::table_desc(options_t const &options,
   m_copy_target(std::make_shared<db_target_descr_t>(
       options.middle_dbschema, build_sql(options, ts.name), "id"))
 {
-    if (options.with_forward_dependencies) {
-        m_create_fw_dep_indexes = build_sql(options, ts.create_fw_dep_indexes);
-    }
+    m_create_fw_dep_indexes = build_sql(options, ts.create_fw_dep_indexes);
 }
 
 void middle_query_pgsql_t::exec_sql(std::string const &sql_cmd) const
@@ -1681,8 +1679,7 @@ middle_pgsql_t::middle_pgsql_t(std::shared_ptr<thread_pool_t> thread_pool,
     bool const has_bucket_index =
         check_bucket_index(&m_db_connection, options->prefix);
 
-    if (!has_bucket_index && options->append &&
-        options->with_forward_dependencies) {
+    if (!has_bucket_index && options->append) {
         log_debug("You don't have a bucket index. See manual for details.");
     }
 

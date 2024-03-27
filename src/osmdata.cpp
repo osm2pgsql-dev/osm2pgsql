@@ -33,8 +33,7 @@ osmdata_t::osmdata_t(std::unique_ptr<dependency_manager_t> dependency_manager,
   m_output(std::move(output)), m_connection_params(options.connection_params),
   m_bbox(options.bbox), m_num_procs(options.num_procs),
   m_append(options.append), m_droptemp(options.droptemp),
-  m_with_extra_attrs(options.extra_attributes),
-  m_with_forward_dependencies(options.with_forward_dependencies)
+  m_with_extra_attrs(options.extra_attributes)
 {
     assert(m_dependency_manager);
     assert(m_mid);
@@ -407,7 +406,7 @@ void osmdata_t::postprocess_database() const
 
 void osmdata_t::stop() const
 {
-    if (m_append && m_with_forward_dependencies) {
+    if (m_append) {
         process_dependents();
     }
 

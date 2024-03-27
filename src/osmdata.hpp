@@ -91,7 +91,6 @@ private:
     bool m_append;
     bool m_droptemp;
     bool m_with_extra_attrs;
-    bool m_with_forward_dependencies;
 };
 
 #endif // OSM2PGSQL_OSMDATA_HPP

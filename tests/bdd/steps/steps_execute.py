@@ -38,7 +38,7 @@ def get_import_file(context):
 
 
 def run_osm2pgsql(context, output):
-    assert output in ('flex', 'pgsql', 'gazetteer', 'null', 'nooutput')
+    assert output in ('flex', 'pgsql', 'null', 'nooutput')
 
     cmdline = [str(Path(context.config.userdata['BINARY']).resolve())]
 

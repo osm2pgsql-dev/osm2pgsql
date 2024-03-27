@@ -224,14 +224,12 @@ too.
 .TP
 -O, --output=OUTPUT
 Specifies the output to use.
-Currently osm2pgsql supports \f[B]pgsql\f[R], \f[B]flex\f[R],
-\f[B]gazetteer\f[R] and \f[B]null\f[R].
+Currently osm2pgsql supports \f[B]pgsql\f[R], \f[B]flex\f[R], and
+\f[B]null\f[R].
 \f[B]pgsql\f[R] is the default output still available for backwards
 compatibility.
 New setups should use the \f[B]flex\f[R] output which allows for a much
 more flexible configuration.
-The \f[B]gazetteer\f[R] output is intended for geocoding with Nominatim
-only.
 The \f[B]null\f[R] output does not write anything and is only useful for
 testing or with \f[B]--slim\f[R] for creating slim tables.
 .TP
@@ -346,11 +344,6 @@ index after the other.
 .TP
 --number-processes=THREADS
 Specifies the number of parallel threads used for certain operations.
-.TP
---with-forward-dependencies=BOOL
-Propagate changes from nodes to ways and node/way members to relations
-(Default: \f[V]true\f[R]).
-This option is deprecated.
 .SH SEE ALSO
 .IP \[bu] 2
 osm2pgsql website (https://osm2pgsql.org)
