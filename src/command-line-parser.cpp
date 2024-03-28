@@ -208,11 +208,6 @@ static void check_options_output_pgsql(CLI::App const &app, options_t *options)
 
 static void check_options(options_t *options)
 {
-    if (options->append && options->create) {
-        throw std::runtime_error{"--append and --create options can not be "
-                                 "used at the same time!"};
-    }
-
     if (options->append && !options->slim) {
         throw std::runtime_error{"--append can only be used with slim mode!"};
     }
@@ -291,7 +286,7 @@ options_t parse_command_line(int argc, char *argv[])
         ->description("Update existing osm2pgsql database (needs --slim).");
 
     // --create
-    app.add_flag("-c,--create", options.create)
+    app.add_flag("-c,--create")
         ->description("Import OSM data from file into database. This is the "
                       "default if --append is not used.");
 
@@ -685,6 +680,11 @@ options_t parse_command_line(int argc, char *argv[])
     if (app.want_version()) {
         options.command = command_t::version;
         return options;
+    }
+
+    if (options.append && app.count("--create")) {
+        throw std::runtime_error{"--append and --create options can not be "
+                                 "used at the same time!"};
     }
 
     check_options(&options);
