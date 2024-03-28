@@ -1266,8 +1266,8 @@ output_flex_t::output_flex_t(output_flex_t const *other,
   m_select_relation_members(other->m_select_relation_members)
 {
     for (auto &table : *m_tables) {
-        auto &tc = m_table_connections.emplace_back(&table, m_copy_thread);
-        tc.prepare(m_db_connection);
+        table.prepare(m_db_connection);
+        m_table_connections.emplace_back(&table, m_copy_thread);
     }
 
     for (auto &expire_output : *m_expire_outputs) {
@@ -1514,7 +1514,7 @@ void output_flex_t::reprocess_marked()
         for (auto &table : m_table_connections) {
             if (table.table().matches_type(osmium::item_type::way) &&
                 table.table().has_id_column()) {
-                table.analyze(m_db_connection);
+                table.table().analyze(m_db_connection);
                 table.create_id_index(m_db_connection);
             }
         }

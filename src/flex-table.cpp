@@ -242,6 +242,18 @@ bool flex_table_t::has_columns_with_expire() const noexcept
                        [](auto const &column) { return column.has_expire(); });
 }
 
+void flex_table_t::prepare(pg_conn_t const &db_connection) const
+{
+    if (has_id_column() && has_columns_with_expire()) {
+        db_connection.exec(build_sql_prepare_get_wkb());
+    }
+}
+
+void flex_table_t::analyze(pg_conn_t const &db_connection) const
+{
+    analyze_table(db_connection, schema(), name());
+}
+
 static void enable_check_trigger(pg_conn_t const &db_connection,
                                  flex_table_t const &table)
 {
@@ -285,7 +297,7 @@ void table_connection_t::start(pg_conn_t const &db_connection, bool append)
         enable_check_trigger(db_connection, table());
     }
 
-    prepare(db_connection);
+    table().prepare(db_connection);
 }
 
 void table_connection_t::stop(pg_conn_t const &db_connection, bool updateable,
@@ -368,19 +380,7 @@ void table_connection_t::stop(pg_conn_t const &db_connection, bool updateable,
     }
 
     log_info("Analyzing table '{}'...", table().name());
-    analyze(db_connection);
-}
-
-void table_connection_t::prepare(pg_conn_t const &db_connection)
-{
-    if (table().has_id_column() && table().has_columns_with_expire()) {
-        db_connection.exec(table().build_sql_prepare_get_wkb());
-    }
-}
-
-void table_connection_t::analyze(pg_conn_t const &db_connection)
-{
-    analyze_table(db_connection, table().schema(), table().name());
+    table().analyze(db_connection);
 }
 
 void table_connection_t::create_id_index(pg_conn_t const &db_connection)

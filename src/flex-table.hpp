@@ -199,6 +199,10 @@ public:
 
     std::size_t num() const noexcept { return m_table_num; }
 
+    void prepare(pg_conn_t const &db_connection) const;
+
+    void analyze(pg_conn_t const &db_connection) const;
+
 private:
     /// The schema this table is in
     std::string m_schema;
@@ -269,10 +273,6 @@ public:
     void stop(pg_conn_t const &db_connection, bool updateable, bool append);
 
     flex_table_t const &table() const noexcept { return *m_table; }
-
-    void prepare(pg_conn_t const &db_connection);
-
-    void analyze(pg_conn_t const &db_connection);
 
     void create_id_index(pg_conn_t const &db_connection);
 
