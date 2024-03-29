@@ -176,6 +176,14 @@ void middle_pgsql_t::table_desc::build_index(
     }
 }
 
+void middle_pgsql_t::table_desc::create_table(
+    pg_conn_t const &db_connection) const
+{
+    if (!m_create_table.empty()) {
+        db_connection.exec(m_create_table);
+    }
+}
+
 void middle_pgsql_t::table_desc::init_max_id(pg_conn_t const &db_connection)
 {
     auto const qual_name = qualified_name(schema(), name());
@@ -1315,9 +1323,7 @@ static void table_setup(pg_conn_t const &db_connection,
     log_debug("Setting up table '{}'", table.name());
     auto const qual_name = qualified_name(table.schema(), table.name());
     db_connection.exec("DROP TABLE IF EXISTS {} CASCADE", qual_name);
-    if (!table.m_create_table.empty()) {
-        db_connection.exec(table.m_create_table);
-    }
+    table.create_table(db_connection);
 }
 
 void middle_pgsql_t::start()
@@ -1730,7 +1736,7 @@ middle_pgsql_t::get_query_instance()
 
     // We use a connection per table to enable the use of COPY
     for (auto &table : m_tables) {
-        for (auto const &query : table.m_prepare_queries) {
+        for (auto const &query : table.prepare_queries()) {
             mid->exec_sql(query);
         }
     }

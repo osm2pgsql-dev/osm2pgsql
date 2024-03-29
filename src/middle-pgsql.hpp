@@ -153,10 +153,6 @@ struct middle_pgsql_t : public middle_t
         ///< Open a new database connection and build index on this table.
         void build_index(connection_params_t const &connection_params) const;
 
-        std::string m_create_table;
-        std::vector<std::string> m_prepare_queries;
-        std::vector<std::string> m_create_fw_dep_indexes;
-
         void task_set(std::future<std::chrono::microseconds> &&future)
         {
             m_task_result.set(std::move(future));
@@ -164,11 +160,21 @@ struct middle_pgsql_t : public middle_t
 
         std::chrono::microseconds task_wait() { return m_task_result.wait(); }
 
+        void create_table(pg_conn_t const &db_connection) const;
+
         void init_max_id(pg_conn_t const &db_connection);
 
         osmid_t max_id() const noexcept { return m_max_id; }
 
+        std::vector<std::string> const &prepare_queries() const noexcept
+        {
+            return m_prepare_queries;
+        }
+
     private:
+        std::string m_create_table;
+        std::vector<std::string> m_create_fw_dep_indexes;
+        std::vector<std::string> m_prepare_queries;
         std::shared_ptr<db_target_descr_t> m_copy_target;
         task_result_t m_task_result;
 
