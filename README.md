@@ -171,21 +171,9 @@ Note that `Debug` builds will be much slower than release build. For production
 ### Using the PROJ library
 
 Osm2pgsql has builtin support for the Latlong (WGS84, EPSG:4326) and the
-WebMercator (EPSG:3857) projection. If you need other projections you have to
-compile with the PROJ library.
-
-Both the older API (PROJ version 4) and the newer API (PROJ version 6.1 and
-above) are supported. Usually the CMake configuration will find a suitable
-version and use it automatically, but you can set the `USE_PROJ_LIB` CMake
-cache variable to choose between the following behaviours:
-
-* `4`: Look for PROJ library with API version 4. If it is not found, stop with
-  error.
-* `6`: Look for PROJ library with API version 6. If it is not found, stop with
-  error.
-* `off`: Build without PROJ library.
-* `auto`: Choose API 4 if available, otherwise API 6. If both are not available
-  build without PROJ library. (This is the default.)
+WebMercator (EPSG:3857) projection. Other projections are supported through
+the [Proj library](https://proj.org/) which is used by default. Set the CMake
+option `WITH_PROJ` to `OFF` to disable use of that library.
 
 ## Using LuaJIT
 

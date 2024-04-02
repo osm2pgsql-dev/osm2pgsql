@@ -119,6 +119,6 @@ std::shared_ptr<reprojection> reprojection::make_generic_projection(int srs)
 
 std::string get_proj_version()
 {
-    return fmt::format("[API 6] {}", proj_info().version);
+    return fmt::format("{}", proj_info().version);
 }
 

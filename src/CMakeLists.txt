@@ -72,13 +72,7 @@ endif()
 
 target_sources(osm2pgsql_lib PRIVATE ${PROJECT_BINARY_DIR}/src/version.cpp)
 
-if (HAVE_PROJ4)
-    target_sources(osm2pgsql_lib PRIVATE reprojection-generic-proj4.cpp)
-    if (NOT MSVC)
-        set_source_files_properties(reprojection-generic-proj4.cpp
-            PROPERTIES COMPILE_FLAGS -Wno-deprecated-declarations)
-    endif()
-elseif(HAVE_PROJ6)
+if (HAVE_PROJ6)
     target_sources(osm2pgsql_lib PRIVATE reprojection-generic-proj6.cpp)
 else()
     target_sources(osm2pgsql_lib PRIVATE reprojection-generic-none.cpp)
