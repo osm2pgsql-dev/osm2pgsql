@@ -76,7 +76,7 @@ public:
     /**
      * Create table for tiles.
      */
-    void create_output_table(pg_conn_t const &connection) const;
+    void create_output_table(pg_conn_t const &db_connection) const;
 
 private:
     /// The filename (if any) for output

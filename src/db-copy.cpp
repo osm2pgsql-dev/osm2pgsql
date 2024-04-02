@@ -15,7 +15,8 @@
 #include "pgsql.hpp"
 
 void db_deleter_by_id_t::delete_rows(std::string const &table,
-                                     std::string const &column, pg_conn_t *conn)
+                                     std::string const &column,
+                                     pg_conn_t const &db_connection)
 {
     fmt::memory_buffer sql;
     // Each deletable contributes an OSM ID and a comma. The highest node ID
@@ -32,12 +33,12 @@ void db_deleter_by_id_t::delete_rows(std::string const &table,
     sql[sql.size() - 1] = ')';
 
     sql.push_back('\0');
-    conn->exec(sql.data());
+    db_connection.exec(sql.data());
 }
 
 void db_deleter_by_type_and_id_t::delete_rows(std::string const &table,
                                               std::string const &column,
-                                              pg_conn_t *conn)
+                                              pg_conn_t const &db_connection)
 {
     assert(!m_deletables.empty());
 
@@ -78,7 +79,7 @@ void db_deleter_by_type_and_id_t::delete_rows(std::string const &table,
     }
 
     sql.push_back('\0');
-    conn->exec(sql.data());
+    db_connection.exec(sql.data());
 }
 
 db_copy_thread_t::db_copy_thread_t(connection_params_t const &connection_params)
@@ -182,7 +183,7 @@ void db_copy_thread_t::thread_t::write_to_db(db_cmd_copy_t *buffer)
         finish_copy();
     }
 
-    buffer->delete_data(m_db_connection.get());
+    buffer->delete_data(*m_db_connection);
 
     if (!m_inflight) {
         start_copy(buffer->target);
