@@ -85,7 +85,7 @@ private:
     std::size_t get_way_node_locations_flatnodes(osmium::WayNodeList *nodes) const;
     std::size_t get_way_node_locations_db(osmium::WayNodeList *nodes) const;
 
-    pg_conn_t m_sql_conn;
+    pg_conn_t m_db_connection;
     std::shared_ptr<node_locations_t> m_cache;
     std::shared_ptr<node_persistent_cache> m_persistent_cache;
 

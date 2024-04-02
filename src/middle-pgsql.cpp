@@ -141,7 +141,7 @@ middle_pgsql_t::table_desc::table_desc(options_t const &options,
 
 void middle_query_pgsql_t::exec_sql(std::string const &sql_cmd) const
 {
-    m_sql_conn.exec(sql_cmd);
+    m_db_connection.exec(sql_cmd);
 }
 
 void middle_pgsql_t::table_desc::drop_table(
@@ -665,7 +665,7 @@ std::size_t middle_query_pgsql_t::get_way_node_locations_db(
 
     // get any remaining nodes from the DB
     // Nodes must have been written back at this point.
-    auto const res = m_sql_conn.exec_prepared("get_node_list", id_list());
+    auto const res = m_db_connection.exec_prepared("get_node_list", id_list());
     std::unordered_map<osmid_t, osmium::Location> locs;
     for (int i = 0; i < res.num_tuples(); ++i) {
         locs.emplace(osmium::string_to_object_id(res.get_value(i, 0)),
@@ -776,7 +776,7 @@ std::size_t middle_query_pgsql_t::get_way_node_locations_flatnodes(
 
 osmium::Location middle_query_pgsql_t::get_node_location_db(osmid_t id) const
 {
-    auto const res = m_sql_conn.exec_prepared("get_node", id);
+    auto const res = m_db_connection.exec_prepared("get_node", id);
     if (res.num_tuples() == 0) {
         return osmium::Location{};
     }
@@ -1026,7 +1026,7 @@ bool middle_query_pgsql_t::way_get(osmid_t id,
 {
     assert(buffer);
 
-    auto const res = m_sql_conn.exec_prepared("get_way", id);
+    auto const res = m_db_connection.exec_prepared("get_way", id);
 
     if (res.num_tuples() != 1) {
         return false;
@@ -1061,7 +1061,7 @@ middle_query_pgsql_t::rel_members_get(osmium::Relation const &rel,
 
         // ...and get those ways from database
         if (!way_ids.empty()) {
-            res = m_sql_conn.exec_prepared("get_way_list", way_ids());
+            res = m_db_connection.exec_prepared("get_way_list", way_ids());
             wayidspg = get_ids_from_result(res);
         }
     }
@@ -1178,7 +1178,7 @@ bool middle_query_pgsql_t::relation_get_format1(
 {
     assert(buffer);
 
-    auto const res = m_sql_conn.exec_prepared("get_rel", id);
+    auto const res = m_db_connection.exec_prepared("get_rel", id);
     if (res.num_tuples() != 1) {
         return false;
     }
@@ -1205,7 +1205,7 @@ bool middle_query_pgsql_t::relation_get_format2(
 {
     assert(buffer);
 
-    auto const res = m_sql_conn.exec_prepared("get_rel", id);
+    auto const res = m_db_connection.exec_prepared("get_rel", id);
 
     if (res.num_tuples() == 0) {
         return false;
@@ -1305,13 +1305,13 @@ middle_query_pgsql_t::middle_query_pgsql_t(
     std::shared_ptr<node_locations_t> cache,
     std::shared_ptr<node_persistent_cache> persistent_cache,
     middle_pgsql_options const &options)
-: m_sql_conn(connection_params, "middle.query"), m_cache(std::move(cache)),
+: m_db_connection(connection_params, "middle.query"), m_cache(std::move(cache)),
   m_persistent_cache(std::move(persistent_cache)), m_store_options(options)
 {
     // Disable JIT and parallel workers as they are known to cause
     // problems when accessing the intarrays.
-    m_sql_conn.set_config("jit_above_cost", "-1");
-    m_sql_conn.set_config("max_parallel_workers_per_gather", "0");
+    m_db_connection.set_config("jit_above_cost", "-1");
+    m_db_connection.set_config("max_parallel_workers_per_gather", "0");
 }
 
 static void table_setup(pg_conn_t const &db_connection,
