@@ -10,9 +10,8 @@
  * For a full list of authors see the git log.
  */
 
+#include "idlist.hpp"
 #include "osmtypes.hpp"
-
-#include <osmium/index/id_set.hpp>
 
 #include <cassert>
 #include <memory>
@@ -58,8 +57,7 @@ public:
     virtual void after_ways() {}
     virtual void after_relations() {}
 
-    virtual void mark_parent_relations_as_pending(
-        osmium::index::IdSetSmall<osmid_t> const & /*way_ids*/)
+    virtual void mark_parent_relations_as_pending(idlist_t const & /*way_ids*/)
     {
     }
 
@@ -111,24 +109,29 @@ public:
     void after_ways() override;
     void after_relations() override;
 
-    void mark_parent_relations_as_pending(
-        osmium::index::IdSetSmall<osmid_t> const &ids) override;
+    void mark_parent_relations_as_pending(idlist_t const &ids) override;
 
     bool has_pending() const noexcept override;
 
     idlist_t get_pending_way_ids() override
     {
-        return get_ids(&m_ways_pending_tracker);
+        idlist_t list;
+        using std::swap;
+        swap(list, m_ways_pending_tracker);
+        list.sort_unique();
+        return list;
     }
 
     idlist_t get_pending_relation_ids() override
     {
-        return get_ids(&m_rels_pending_tracker);
+        idlist_t list;
+        using std::swap;
+        swap(list, m_rels_pending_tracker);
+        list.sort_unique();
+        return list;
     }
 
 private:
-    static idlist_t get_ids(osmium::index::IdSetSmall<osmid_t> *tracker);
-
     std::shared_ptr<middle_t> m_object_store;
 
     /**
@@ -139,7 +142,7 @@ private:
      * the change file, too, and so we don't have to find out which ones they
      * are.
      */
-    osmium::index::IdSetSmall<osmid_t> m_changed_nodes;
+    idlist_t m_changed_nodes;
 
     /**
      * In append mode all new and changed ways will be added to this. After
@@ -148,17 +151,17 @@ private:
      * relations that referenced deleted ways must be in the change file, too,
      * and so we don't have to find out which ones they are.
      */
-    osmium::index::IdSetSmall<osmid_t> m_changed_ways;
+    idlist_t m_changed_ways;
 
     /**
      * In append mode all new and changed relations will be added to this.
      * This is then used to remove already processed relations from the
      * pending list.
      */
-    osmium::index::IdSetSmall<osmid_t> m_changed_relations;
+    idlist_t m_changed_relations;
 
-    osmium::index::IdSetSmall<osmid_t> m_ways_pending_tracker;
-    osmium::index::IdSetSmall<osmid_t> m_rels_pending_tracker;
+    idlist_t m_ways_pending_tracker;
+    idlist_t m_rels_pending_tracker;
 };
 
 #endif // OSM2PGSQL_DEPENDENCY_MANAGER_HPP

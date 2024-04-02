@@ -16,8 +16,8 @@
  * Common output layer interface.
  */
 
-#include <osmium/index/id_set.hpp>
-
+#include "idlist.hpp"
+#include "options.hpp"
 #include "osmtypes.hpp"
 #include "output-requirements.hpp"
 
@@ -68,9 +68,9 @@ public:
 
     virtual void wait() {}
 
-    virtual osmium::index::IdSetSmall<osmid_t> const &get_marked_way_ids()
+    virtual idlist_t const &get_marked_way_ids()
     {
-        static osmium::index::IdSetSmall<osmid_t> const ids{};
+        static idlist_t const ids{};
         return ids;
     }
 

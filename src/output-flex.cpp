@@ -998,7 +998,7 @@ void output_flex_t::select_relation_members()
                     "integer way ids."};
             }
 
-            m_stage2_way_ids->set(id);
+            m_stage2_way_ids->push_back(id);
         });
 
     lua_pop(lua_state(), 2); // return value (a table), ways field (a table)
@@ -1486,7 +1486,7 @@ void output_flex_t::init_lua(std::string const &filename)
     lua_remove(lua_state(), 1); // global "osm2pgsql"
 }
 
-idset_t const &output_flex_t::get_marked_way_ids()
+idlist_t const &output_flex_t::get_marked_way_ids()
 {
     if (m_stage2_way_ids->empty()) {
         log_info("Skipping stage 1c (no marked ways).");
