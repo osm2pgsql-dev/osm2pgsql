@@ -13,7 +13,7 @@
 
 #include <lua.hpp>
 
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 void setup_lua_environment(lua_State *lua_state, std::string const &filename,
                            bool append_mode)
@@ -29,9 +29,9 @@ void setup_lua_environment(lua_State *lua_state, std::string const &filename,
     luaX_add_table_str(lua_state, "version", get_osm2pgsql_short_version());
 
     std::string dir_path =
-        boost::filesystem::path{filename}.parent_path().string();
+        std::filesystem::path{filename}.parent_path().string();
     if (!dir_path.empty()) {
-        dir_path += boost::filesystem::path::preferred_separator;
+        dir_path += std::filesystem::path::preferred_separator;
     }
     luaX_add_table_str(lua_state, "config_dir", dir_path.c_str());
 

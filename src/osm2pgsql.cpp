@@ -24,9 +24,8 @@
 
 #include <osmium/util/memory.hpp>
 
-#include <boost/filesystem.hpp>
-
 #include <exception>
+#include <filesystem>
 #include <memory>
 #include <utility>
 
@@ -104,10 +103,9 @@ static void store_properties(properties_t *properties, options_t const &options)
         properties->set_string("flat_node_file", "");
     } else {
         properties->set_string(
-            "flat_node_file",
-            boost::filesystem::absolute(
-                boost::filesystem::path{options.flat_node_file})
-                .string());
+            "flat_node_file", std::filesystem::absolute(
+                                  std::filesystem::path{options.flat_node_file})
+                                  .string());
     }
 
     properties->set_string("prefix", options.prefix);
@@ -121,7 +119,7 @@ static void store_properties(properties_t *properties, options_t const &options)
     } else {
         properties->set_string(
             "style",
-            boost::filesystem::absolute(boost::filesystem::path{options.style})
+            std::filesystem::absolute(std::filesystem::path{options.style})
                 .string());
     }
 
@@ -192,8 +190,8 @@ static void check_and_update_flat_node_file(properties_t *properties,
         }
     } else {
         const auto absolute_path =
-            boost::filesystem::absolute(
-                boost::filesystem::path{options->flat_node_file})
+            std::filesystem::absolute(
+                std::filesystem::path{options->flat_node_file})
                 .string();
 
         if (flat_node_file_from_import.empty()) {
@@ -288,7 +286,7 @@ static void check_and_update_style_file(properties_t *properties,
     }
 
     const auto absolute_path =
-        boost::filesystem::absolute(boost::filesystem::path{options->style})
+        std::filesystem::absolute(std::filesystem::path{options->style})
             .string();
 
     if (absolute_path == style_file_from_import) {

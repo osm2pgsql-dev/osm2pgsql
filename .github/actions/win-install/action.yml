@@ -7,10 +7,8 @@ runs:
     - name: Install packages
       run: |
         vcpkg install \
-          boost-filesystem:x64-windows \
           boost-geometry:x64-windows \
           boost-property-tree:x64-windows \
-          boost-system:x64-windows \
           bzip2:x64-windows \
           expat:x64-windows \
           libpq:x64-windows \
