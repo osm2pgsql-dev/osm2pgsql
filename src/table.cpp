@@ -54,25 +54,26 @@ table_t::table_t(table_t const &other,
     // if the other table has already started, then we want to execute
     // the same stuff to get into the same state. but if it hasn't, then
     // this would be premature.
-    if (other.m_sql_conn) {
+    if (other.m_db_connection) {
         connect();
         prepare();
     }
 }
 
-void table_t::teardown() { m_sql_conn.reset(); }
+void table_t::teardown() { m_db_connection.reset(); }
 
 void table_t::sync() { m_copy.sync(); }
 
 void table_t::connect()
 {
-    m_sql_conn = std::make_unique<pg_conn_t>(m_connection_params, "out.pgsql");
+    m_db_connection =
+        std::make_unique<pg_conn_t>(m_connection_params, "out.pgsql");
 }
 
 void table_t::start(connection_params_t const &connection_params,
                     std::string const &table_space)
 {
-    if (m_sql_conn) {
+    if (m_db_connection) {
         throw fmt_error("{} cannot start, its already started.",
                         m_target->name());
     }
@@ -88,11 +89,11 @@ void table_t::start(connection_params_t const &connection_params,
 
     // we are making a new table
     if (!m_append) {
-        m_sql_conn->exec("DROP TABLE IF EXISTS {} CASCADE", qual_name);
+        m_db_connection->exec("DROP TABLE IF EXISTS {} CASCADE", qual_name);
     }
 
     // These _tmp tables can be left behind if we run out of disk space.
-    m_sql_conn->exec("DROP TABLE IF EXISTS {}", qual_tmp_name);
+    m_db_connection->exec("DROP TABLE IF EXISTS {}", qual_tmp_name);
 
     //making a new table
     if (!m_append) {
@@ -128,10 +129,10 @@ void table_t::start(connection_params_t const &connection_params,
         sql += m_table_space;
 
         //create the table
-        m_sql_conn->exec(sql);
+        m_db_connection->exec(sql);
 
         if (m_srid != "4326") {
-            create_geom_check_trigger(*m_sql_conn, m_target->schema(),
+            create_geom_check_trigger(*m_db_connection, m_target->schema(),
                                       m_target->name(), "ST_IsValid(NEW.way)");
         }
     }
@@ -143,9 +144,9 @@ void table_t::prepare()
 {
     //let postgres cache this query as it will presumably happen a lot
     auto const qual_name = qualified_name(m_target->schema(), m_target->name());
-    m_sql_conn->exec("PREPARE get_wkb(int8) AS"
-                     " SELECT way FROM {} WHERE osm_id = $1",
-                     qual_name);
+    m_db_connection->exec("PREPARE get_wkb(int8) AS"
+                          " SELECT way FROM {} WHERE osm_id = $1",
+                          qual_name);
 }
 
 void table_t::generate_copy_column_list()
@@ -187,7 +188,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
 
     if (!m_append) {
         if (m_srid != "4326") {
-            drop_geom_check_trigger(*m_sql_conn, m_target->schema(),
+            drop_geom_check_trigger(*m_db_connection, m_target->schema(),
                                     m_target->name());
         }
 
@@ -216,27 +217,29 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
             sql += "way";
         }
 
-        m_sql_conn->exec(sql);
+        m_db_connection->exec(sql);
 
-        m_sql_conn->exec("DROP TABLE {}", qual_name);
-        m_sql_conn->exec(R"(ALTER TABLE {} RENAME TO "{}")", qual_tmp_name,
-                         m_target->name());
+        m_db_connection->exec("DROP TABLE {}", qual_name);
+        m_db_connection->exec(R"(ALTER TABLE {} RENAME TO "{}")", qual_tmp_name,
+                              m_target->name());
 
         log_info("Creating geometry index on table '{}'...", m_target->name());
 
         // Use fillfactor 100 for un-updatable imports
-        m_sql_conn->exec("CREATE INDEX ON {} USING GIST (way) {} {}", qual_name,
-                         (updateable ? "" : "WITH (fillfactor = 100)"),
-                         tablespace_clause(table_space_index));
+        m_db_connection->exec("CREATE INDEX ON {} USING GIST (way) {} {}",
+                              qual_name,
+                              (updateable ? "" : "WITH (fillfactor = 100)"),
+                              tablespace_clause(table_space_index));
 
         /* slim mode needs this to be able to apply diffs */
         if (updateable) {
             log_info("Creating osm_id index on table '{}'...",
                      m_target->name());
-            m_sql_conn->exec("CREATE INDEX ON {} USING BTREE (osm_id) {}",
-                             qual_name, tablespace_clause(table_space_index));
+            m_db_connection->exec("CREATE INDEX ON {} USING BTREE (osm_id) {}",
+                                  qual_name,
+                                  tablespace_clause(table_space_index));
             if (m_srid != "4326") {
-                create_geom_check_trigger(*m_sql_conn, m_target->schema(),
+                create_geom_check_trigger(*m_db_connection, m_target->schema(),
                                           m_target->name(),
                                           "ST_IsValid(NEW.way)");
             }
@@ -247,18 +250,18 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
             log_info("Creating hstore indexes on table '{}'...",
                      m_target->name());
             if (m_hstore_mode != hstore_column::none) {
-                m_sql_conn->exec("CREATE INDEX ON {} USING GIN (tags) {}",
-                                 qual_name,
-                                 tablespace_clause(table_space_index));
+                m_db_connection->exec("CREATE INDEX ON {} USING GIN (tags) {}",
+                                      qual_name,
+                                      tablespace_clause(table_space_index));
             }
             for (auto const &hcolumn : m_hstore_columns) {
-                m_sql_conn->exec(R"(CREATE INDEX ON {} USING GIN ("{}") {})",
-                                 qual_name, hcolumn,
-                                 tablespace_clause(table_space_index));
+                m_db_connection->exec(
+                    R"(CREATE INDEX ON {} USING GIN ("{}") {})", qual_name,
+                    hcolumn, tablespace_clause(table_space_index));
             }
         }
         log_info("Analyzing table '{}'...", m_target->name());
-        analyze_table(*m_sql_conn, m_target->schema(), m_target->name());
+        analyze_table(*m_db_connection, m_target->schema(), m_target->name());
     }
     teardown();
 }
@@ -444,6 +447,6 @@ void table_t::escape_type(std::string const &value, ColumnType flags)
 
 pg_result_t table_t::get_wkb(osmid_t id)
 {
-    return m_sql_conn->exec_prepared_as_binary("get_wkb", id);
+    return m_db_connection->exec_prepared_as_binary("get_wkb", id);
 }
 
