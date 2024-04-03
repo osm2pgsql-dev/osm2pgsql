@@ -1258,6 +1258,8 @@ void middle_pgsql_t::after_nodes()
         auto const &table = m_tables.nodes();
         analyze_table(m_db_connection, table.schema(), table.name());
     }
+
+    m_cache->log_stats();
 }
 
 void middle_pgsql_t::after_ways()

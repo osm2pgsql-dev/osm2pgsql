@@ -9,6 +9,8 @@
 
 #include "node-locations.hpp"
 
+#include "logging.hpp"
+
 // Workaround: This must be included before buffer_string.hpp due to a missing
 // include in the upstream code. https://github.com/mapbox/protozero/pull/104
 #include <protozero/config.hpp>
@@ -77,6 +79,17 @@ osmium::Location node_locations_t::get(osmid_t id) const
         }
     }
     return osmium::Location{};
+}
+
+void node_locations_t::log_stats()
+{
+    constexpr auto const mbyte = 1024 * 1024;
+    log_debug("Node locations cache:");
+    log_debug("  num locations stored: {}", m_count);
+    log_debug("  bytes overall: {}MB", used_memory() / mbyte);
+    log_debug("  data capacity: {}MB", m_data.capacity() / mbyte);
+    log_debug("  data size: {}MB", m_data.size() / mbyte);
+    log_debug("  index used memory: {}MB", m_index.used_memory() / mbyte);
 }
 
 void node_locations_t::clear()
