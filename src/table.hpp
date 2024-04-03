@@ -73,7 +73,7 @@ private:
     connection_params_t m_connection_params;
     std::shared_ptr<db_target_descr_t> m_target;
     std::string m_type;
-    std::unique_ptr<pg_conn_t> m_sql_conn;
+    std::unique_ptr<pg_conn_t> m_db_connection;
     std::string m_srid;
     bool m_append;
     hstore_column m_hstore_mode;

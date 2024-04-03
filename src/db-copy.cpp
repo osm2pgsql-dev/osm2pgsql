@@ -128,7 +128,8 @@ db_copy_thread_t::thread_t::thread_t(connection_params_t connection_params,
 void db_copy_thread_t::thread_t::operator()()
 {
     try {
-        m_conn = std::make_unique<pg_conn_t>(m_connection_params, "copy");
+        m_db_connection =
+            std::make_unique<pg_conn_t>(m_connection_params, "copy");
 
         // Disable sequential scan on database tables in the copy threads.
         // The copy threads only do COPYs (which are unaffected by this
@@ -136,7 +137,7 @@ void db_copy_thread_t::thread_t::operator()()
         // some reason PostgreSQL chooses in some cases not to use that index,
         // possibly because the DELETEs get a large list of ids to delete of
         // which many are not in the table which confuses the query planner.
-        m_conn->exec("SET enable_seqscan = off");
+        m_db_connection->exec("SET enable_seqscan = off");
 
         bool done = false;
         while (!done) {
@@ -167,7 +168,7 @@ void db_copy_thread_t::thread_t::operator()()
 
         finish_copy();
 
-        m_conn.reset();
+        m_db_connection.reset();
     } catch (std::runtime_error const &e) {
         log_error("DB copy thread failed: {}", e.what());
         std::exit(2); // NOLINT(concurrency-mt-unsafe)
@@ -181,13 +182,13 @@ void db_copy_thread_t::thread_t::write_to_db(db_cmd_copy_t *buffer)
         finish_copy();
     }
 
-    buffer->delete_data(m_conn.get());
+    buffer->delete_data(m_db_connection.get());
 
     if (!m_inflight) {
         start_copy(buffer->target);
     }
 
-    m_conn->copy_send(buffer->buffer, buffer->target->name());
+    m_db_connection->copy_send(buffer->buffer, buffer->target->name());
 }
 
 void db_copy_thread_t::thread_t::start_copy(
@@ -208,7 +209,7 @@ void db_copy_thread_t::thread_t::start_copy(
     }
 
     sql.push_back('\0');
-    m_conn->copy_start(sql.data());
+    m_db_connection->copy_start(sql.data());
 
     m_inflight = target;
 }
@@ -216,7 +217,7 @@ void db_copy_thread_t::thread_t::start_copy(
 void db_copy_thread_t::thread_t::finish_copy()
 {
     if (m_inflight) {
-        m_conn->copy_end(m_inflight->name());
+        m_db_connection->copy_end(m_inflight->name());
         m_inflight.reset();
     }
 }
