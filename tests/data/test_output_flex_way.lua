@@ -3,19 +3,19 @@ local tables = {}
 
 tables.t1 = osm2pgsql.define_way_table('osm2pgsql_test_t1', {
     { column = 'tags', type = 'hstore' },
-    { column = 'geom', type = 'linestring' },
+    { column = 'geom', type = 'linestring', not_null = true },
 })
 
 tables.t2 = osm2pgsql.define_way_table('osm2pgsql_test_t2', {
     { column = 'tags', type = 'hstore' },
     { column = 'rel_ids', type = 'text' },
-    { column = 'geom', type = 'linestring' },
+    { column = 'geom', type = 'linestring', not_null = true },
 })
 
 tables.tboth = osm2pgsql.define_way_table('osm2pgsql_test_tboth', {
     { column = 'tags', type = 'hstore' },
     { column = 'rel_ids', type = 'text' },
-    { column = 'geom', type = 'linestring' },
+    { column = 'geom', type = 'linestring', not_null = true },
 })
 
 local w2r = {}
@@ -33,28 +33,28 @@ end
 
 function osm2pgsql.process_way(object)
     if object.tags.t1 then
-        tables.t1:add_row{
+        tables.t1:insert{
             tags = object.tags,
-            geom = { create = 'line' }
+            geom = object:as_linestring()
         }
     end
 
     if osm2pgsql.stage == 2 and object.tags.t2 then
         local ids = get_ids(w2r[object.id])
         if ids then
-            tables.t2:add_row{
+            tables.t2:insert{
                 rel_ids = ids,
-                geom = { create = 'line' }
+                geom = object:as_linestring()
             }
         end
     end
 
     if object.tags.tboth then
         local ids = get_ids(w2r[object.id])
-        tables.tboth:add_row{
+        tables.tboth:insert{
             tags = object.tags,
             rel_ids = ids,
-            geom = { create = 'line' }
+            geom = object:as_linestring()
         }
     end
 end

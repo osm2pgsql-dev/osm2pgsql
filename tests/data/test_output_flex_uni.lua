@@ -6,7 +6,7 @@ local table1idcol = osm2pgsql.define_table{
     columns = {
         { column = 'orig_id', type = 'int8' },
         { column = 'tags', type = 'hstore' },
-        { column = 'geom', type = 'geometry' },
+        { column = 'geom', type = 'geometry', not_null = true },
     }
 }
 
@@ -16,7 +16,7 @@ local table2idcol = osm2pgsql.define_table{
     ids = { type = 'any', type_column = 'x_type', id_column = 'x_id' },
     columns = {
         { column = 'tags', type = 'hstore' },
-        { column = 'geom', type = 'geometry' },
+        { column = 'geom', type = 'geometry', not_null = true },
     }
 }
 
@@ -29,14 +29,14 @@ function osm2pgsql.process_node(object)
         return
     end
 
-    table1idcol:add_row({
+    table1idcol:insert({
         orig_id = object.id,
         tags = object.tags,
-        geom = { create = 'point' }
+        geom = object:as_point()
     })
-    table2idcol:add_row({
+    table2idcol:insert({
         tags = object.tags,
-        geom = { create = 'point' }
+        geom = object:as_point()
     })
 end
 
@@ -46,40 +46,42 @@ function osm2pgsql.process_way(object)
     end
 
     if object.tags.building then
-        table1idcol:add_row({
+        table1idcol:insert({
             orig_id = object.id,
             tags = object.tags,
-            geom = { create = 'area' }
+            geom = object:as_polygon()
         })
-        table2idcol:add_row({
+        table2idcol:insert({
             tags = object.tags,
-            geom = { create = 'area' }
+            geom = object:as_polygon()
         })
     else
-        table1idcol:add_row({
+        table1idcol:insert({
             orig_id = object.id,
             tags = object.tags,
-            geom = { create = 'line' }
+            geom = object:as_linestring()
         })
-        table2idcol:add_row({
+        table2idcol:insert({
             tags = object.tags,
-            geom = { create = 'line' }
+            geom = object:as_linestring()
         })
     end
 end
 
 function osm2pgsql.process_relation(object)
     if object.tags.type == 'multipolygon' then
-        table1idcol:add_row({
-            orig_id = object.id,
-            tags = object.tags,
-            geom = { create = 'area', split_at = 'multi' }
-        })
-        table2idcol:add_row({
-            tags = object.tags,
-            geom = { create = 'area', split_at = 'multi' }
-        })
-        return
+        local mgeom = object:as_multipolygon()
+        for sgeom in mgeom:geometries() do
+            table1idcol:insert({
+                orig_id = object.id,
+                tags = object.tags,
+                geom = sgeom
+            })
+            table2idcol:insert({
+                tags = object.tags,
+                geom = sgeom
+            })
+        end
     end
 end
 

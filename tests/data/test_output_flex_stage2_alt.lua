@@ -30,7 +30,7 @@ function osm2pgsql.process_way(object)
 
     local row = {
         tags = object.tags,
-        geom = { create = 'line' }
+        geom = object:as_linestring()
     }
 
     local d = w2r[object.id]
@@ -44,7 +44,7 @@ function osm2pgsql.process_way(object)
         row.refs = table.concat(refs, ',')
     end
 
-    tables.highways:add_row(row)
+    tables.highways:insert(row)
 end
 
 function osm2pgsql.select_relation_members(relation)
@@ -69,10 +69,10 @@ function osm2pgsql.process_relation(object)
         end
     end
 
-    tables.routes:add_row({
+    tables.routes:insert({
         tags = object.tags,
         members = table.concat(mlist, ','),
-        geom = { create = 'line' }
+        geom = object:as_multilinestring()
     })
 end
 

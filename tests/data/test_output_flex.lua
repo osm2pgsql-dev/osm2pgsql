@@ -3,7 +3,7 @@ local tables = {}
 
 tables.point = osm2pgsql.define_node_table('osm2pgsql_test_point', {
     { column = 'tags', type = 'hstore' },
-    { column = 'geom', type = 'point' },
+    { column = 'geom', type = 'point', not_null = true },
 })
 
 tables.line = osm2pgsql.define_table{
@@ -12,7 +12,7 @@ tables.line = osm2pgsql.define_table{
     columns = {
         { column = 'tags', type = 'hstore' },
         { column = 'name', type = 'text' },
-        { column = 'geom', type = 'linestring' },
+        { column = 'geom', type = 'linestring', not_null = true },
     },
     cluster = 'auto'
 }
@@ -23,8 +23,8 @@ tables.polygon = osm2pgsql.define_table{
     columns = {
         { column = 'tags', type = 'hstore' },
         { column = 'name', type = 'text' },
-        { column = 'geom', type = 'geometry' },
-        { column = 'area', type = 'area' },
+        { column = 'geom', type = 'geometry', not_null = true },
+        { column = 'area', type = 'real' },
     }
 }
 
@@ -33,7 +33,7 @@ tables.route = osm2pgsql.define_table{
     ids = { type = 'relation', id_column = 'osm_id' },
     columns = {
         { column = 'tags', type = 'hstore' },
-        { column = 'geom', type = 'multilinestring' },
+        { column = 'geom', type = 'multilinestring', not_null = true },
     }
 }
 
@@ -85,8 +85,9 @@ function osm2pgsql.process_node(object)
         return
     end
 
-    tables.point:add_row({
-        tags = object.tags
+    tables.point:insert({
+        tags = object.tags,
+        geom = object:as_point()
     })
 end
 
@@ -96,15 +97,18 @@ function osm2pgsql.process_way(object)
     end
 
     if is_polygon(object.tags) then
-        tables.polygon:add_row({
+        local geom = object:as_polygon()
+        tables.polygon:insert({
             tags = object.tags,
             name = object.tags.name,
-            geom = { create = 'area' }
+            geom = geom,
+            area = geom:area()
         })
     else
-        tables.line:add_row({
+        tables.line:insert({
             tags = object.tags,
-            name = object.tags.name
+            name = object.tags.name,
+            geom = object:as_linestring()
         })
     end
 end
@@ -115,18 +119,22 @@ function osm2pgsql.process_relation(object)
     end
 
     if object.tags.type == 'multipolygon' or object.tags.type == 'boundary' then
-        tables.polygon:add_row({
-            tags = object.tags,
-            name = object.tags.name,
-            geom = { create = 'area', split_at = 'multi' }
-        })
+        local mgeom = object:as_multipolygon()
+        for sgeom in mgeom:geometries() do
+            tables.polygon:insert({
+                tags = object.tags,
+                name = object.tags.name,
+                geom = sgeom,
+                area = sgeom:area()
+            })
+        end
         return
     end
 
     if object.tags.type == 'route' then
-        tables.route:add_row({
+        tables.route:insert({
             tags = object.tags,
-            geom = { create = 'line' }
+            geom = object:as_multilinestring()
         })
     end
 end
