@@ -499,10 +499,39 @@ void output_flex_t::way_cache_t::init(osmium::Way *way)
     m_way = way;
 }
 
+static std::size_t get_nodes(middle_query_t const &middle, osmium::Way *way)
+{
+    constexpr std::size_t const max_missing_nodes = 100;
+    static std::size_t count_missing_nodes = 0;
+
+    auto const count = middle.nodes_get_list(&way->nodes());
+
+    if (count_missing_nodes <= max_missing_nodes &&
+        count != way->nodes().size()) {
+        util::string_joiner_t id_list{','};
+        for (auto const &nr : way->nodes()) {
+            if (!nr.location().valid()) {
+                id_list.add(fmt::to_string(nr.ref()));
+                ++count_missing_nodes;
+            }
+        }
+
+        log_debug("Missing nodes in way {}: {}", way->id(), id_list());
+
+        if (count_missing_nodes > max_missing_nodes) {
+            log_debug("Reported more than {} missing nodes, no further missing "
+                      "nodes will be reported!",
+                      max_missing_nodes);
+        }
+    }
+
+    return count;
+}
+
 std::size_t output_flex_t::way_cache_t::add_nodes(middle_query_t const &middle)
 {
     if (m_num_way_nodes == std::numeric_limits<std::size_t>::max()) {
-        m_num_way_nodes = middle.nodes_get_list(&m_way->nodes());
+        m_num_way_nodes = get_nodes(middle, m_way);
     }
 
     return m_num_way_nodes;
@@ -547,7 +576,7 @@ bool output_flex_t::relation_cache_t::add_members(middle_query_t const &middle)
         }
 
         for (auto &way : m_members_buffer.select<osmium::Way>()) {
-            middle.nodes_get_list(&(way.nodes()));
+            get_nodes(middle, &way);
         }
     }
 
