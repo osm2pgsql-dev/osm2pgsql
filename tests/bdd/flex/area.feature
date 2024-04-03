@@ -21,22 +21,27 @@ Feature: Tests for area column type
                 columns = {
                     { column = 'name', type = 'text' },
                     { column = 'geom', type = 'geometry', projection = <geom proj> },
-                    { column = 'area', type = 'area', projection = <area proj> },
+                    { column = 'area', type = 'real' },
                 }
             }
 
             function osm2pgsql.process_way(object)
-                polygons:add_row({
+                local geom = object:as_polygon()
+                polygons:insert({
                     name = object.tags.name,
-                    geom = { create = 'area' }
+                    geom = geom,
+                    area = geom:transform(<area proj>):area()
                 })
             end
 
             function osm2pgsql.process_relation(object)
-                polygons:add_row({
-                    name = object.tags.name,
-                    geom = { create = 'area', split_at = 'multi' }
-                })
+                for sgeom in object:as_multipolygon():geometries() do
+                    polygons:insert({
+                        name = object.tags.name,
+                        geom = sgeom,
+                        area = sgeom:transform(<area proj>):area()
+                    })
+                end
             end
             """
         When running osm2pgsql flex

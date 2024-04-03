@@ -12,13 +12,13 @@ Feature: Test get_bbox() function
                 { column = 'min_y', type = 'real' },
                 { column = 'max_x', type = 'real' },
                 { column = 'max_y', type = 'real' },
-                { column = 'geom',  type = 'point', projection = <projection> },
+                { column = 'geom',  type = 'point', projection = <projection>, not_null = true },
             })
 
             function osm2pgsql.process_node(object)
-                local row = {}
+                local row = { geom = object:as_point() }
                 row.min_x, row.min_y, row.max_x, row.max_y = object:get_bbox()
-                points:add_row(row)
+                points:insert(row)
             end
             """
         When running osm2pgsql flex
@@ -47,13 +47,13 @@ Feature: Test get_bbox() function
                 { column = 'min_y', type = 'real' },
                 { column = 'max_x', type = 'real' },
                 { column = 'max_y', type = 'real' },
-                { column = 'geom',  type = 'linestring', projection = <projection> },
+                { column = 'geom',  type = 'linestring', projection = <projection>, not_null = true },
             })
 
             function osm2pgsql.process_way(object)
-                local row = { geom = { create = 'line' } }
+                local row = { geom = object:as_linestring() }
                 row.min_x, row.min_y, row.max_x, row.max_y = object:get_bbox()
-                highways:add_row(row)
+                highways:insert(row)
             end
             """
         When running osm2pgsql flex
@@ -85,13 +85,16 @@ Feature: Test get_bbox() function
                 { column = 'min_y', type = 'real' },
                 { column = 'max_x', type = 'real' },
                 { column = 'max_y', type = 'real' },
-                { column = 'geom',  type = 'linestring', projection = <projection> },
+                { column = 'geom',  type = 'linestring', projection = <projection>, not_null = true },
             })
 
             function osm2pgsql.process_relation(object)
-                local row = { geom = { create = 'line' } }
+                local row = {}
                 row.min_x, row.min_y, row.max_x, row.max_y = object:get_bbox()
-                rels:add_row(row)
+                for sgeom in object:as_multilinestring():line_merge():geometries() do
+                    row.geom = sgeom
+                    rels:insert(row)
+                end
             end
             """
         When running osm2pgsql flex

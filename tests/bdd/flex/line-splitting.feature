@@ -7,23 +7,25 @@ Feature: Test splitting of lines
 
             tables.line = osm2pgsql.define_way_table('osm2pgsql_test_line', {
                 { column = 'tags', type = 'hstore' },
-                { column = 'geom', type = 'linestring', projection = 4326 }
+                { column = 'geom', type = 'linestring', projection = 4326, not_null = true }
             })
 
             tables.split = osm2pgsql.define_way_table('osm2pgsql_test_split', {
                 { column = 'tags', type = 'hstore' },
-                { column = 'geom', type = 'linestring', projection = 4326 }
+                { column = 'geom', type = 'linestring', projection = 4326, not_null = true }
             })
 
             function osm2pgsql.process_way(object)
-                tables.line:add_row({
+                tables.line:insert({
                     tags = object.tags,
-                    geom = { create = 'line' }
+                    geom = object:as_linestring()
                 })
-                tables.split:add_row({
-                    tags = object.tags,
-                    geom = { create = 'line', split_at = 1.0 }
-                })
+                for sgeom in object:as_linestring():segmentize(1.0):geometries() do
+                    tables.split:insert({
+                        tags = object.tags,
+                        geom = sgeom
+                    })
+                end
             end
             """
 

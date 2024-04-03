@@ -14,13 +14,13 @@ Feature: Tests for including extra attributes
                     { column = 'timestamp', type = 'int4' },
                     { column = 'uid', type = 'int4' },
                     { column = 'user', type = 'text' },
-                    { column = 'geom', type = 'linestring' },
+                    { column = 'geom', type = 'linestring', not_null = true },
                 }
             }
 
             function osm2pgsql.process_way(object)
-                object.geom = { create = 'line' }
-                attr_table:add_row(object)
+                object.geom = object:as_linestring()
+                attr_table:insert(object)
             end
             """
 

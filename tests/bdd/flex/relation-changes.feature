@@ -5,14 +5,14 @@ Feature: Handling changes to relations
             """
             local rel_table = osm2pgsql.define_area_table('osm2pgsql_test_relations', {
                 { column = 'tags', type = 'hstore' },
-                { column = 'geom', type = 'geometry' }
+                { column = 'geom', type = 'geometry', not_null = true }
             })
 
             function osm2pgsql.process_relation(object)
                 if object.tags.type == 'multipolygon' then
-                    rel_table:add_row{
+                    rel_table:insert{
                         tags = object.tags,
-                        geom = { create = 'area' }
+                        geom = object:as_multipolygon()
                     }
                 end
             end
