@@ -56,13 +56,6 @@ public:
         return *this;
     }
 
-    opt_t &gazetteer()
-    {
-        m_opt.output_backend = "gazetteer";
-        m_opt.style = TESTDATA_DIR "gazetteer-test.style";
-        return *this;
-    }
-
     opt_t &flex(char const *style)
     {
         m_opt.output_backend = "flex";

@@ -146,9 +146,7 @@ public:
         middle->set_requirements(output->get_requirements());
 
         auto dependency_manager =
-            options.with_forward_dependencies
-                ? std::make_unique<full_dependency_manager_t>(middle)
-                : std::make_unique<dependency_manager_t>();
+            std::make_unique<full_dependency_manager_t>(middle);
 
         osmdata_t osmdata{std::move(dependency_manager), middle, output,
                           options};

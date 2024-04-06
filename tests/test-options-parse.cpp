@@ -193,19 +193,3 @@ TEST_CASE("Parsing log-progress fails for unknown value", "[NoDB]")
     bad_opt({"--log-progress", "foo"},
             "Unknown value for --log-progress option: ");
 }
-
-TEST_CASE("Parsing with-forward-dependencies", "[NoDB]")
-{
-    auto const opt1 = opt({"--with-forward-dependencies", "true"});
-    CHECK(opt1.with_forward_dependencies);
-
-    auto const opt2 = opt({"--with-forward-dependencies", "false"});
-    CHECK_FALSE(opt2.with_forward_dependencies);
-}
-
-TEST_CASE("Parsing with-forward-dependencies fails for unknown value", "[NoDB]")
-{
-    bad_opt({"--with-forward-dependencies", "foo"},
-            "Unknown value for"
-            " --with-forward-dependencies option: ");
-}

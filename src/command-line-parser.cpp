@@ -333,8 +333,7 @@ options_t parse_command_line(int argc, char *argv[])
 
     // --output
     app.add_option("-O,--output", options.output_backend)
-        ->description("Set output ('pgsql' (default), 'flex', 'gazetteer' "
-                      "(deprecated), 'null').")
+        ->description("Set output ('pgsql' (default), 'flex', 'null').")
         ->type_name("OUTPUT")
         ->group("Output options");
 
@@ -635,29 +634,6 @@ options_t parse_command_line(int argc, char *argv[])
         ->option_text("TYPE")
         ->group("Deprecated options");
 
-    // --with-forward-dependencies
-    app.add_option_function<std::string>(
-           "--with-forward-dependencies",
-           [&](std::string const &arg) {
-               log_warn("The option --with-forward-dependencies is deprecated "
-                        "and will soon be removed.");
-               if (arg == "false") {
-                   options.with_forward_dependencies = false;
-                   return;
-               }
-               if (arg == "true") {
-                   options.with_forward_dependencies = true;
-                   return;
-               }
-               throw fmt_error(
-                   "Unknown value for --with-forward-dependencies option: {}",
-                   arg);
-           })
-        ->description("Propagate changes from nodes to ways and node/way "
-                      "members to relations (default: true).")
-        ->option_text("BOOL")
-        ->group("Deprecated options");
-
     try {
         app.parse(argc, argv);
     } catch (...) {
@@ -718,9 +694,6 @@ options_t parse_command_line(int argc, char *argv[])
 
     if (options.output_backend == "flex") {
         check_options_output_flex(app);
-    } else if (options.output_backend == "gazetteer") {
-        log_warn(
-            "The 'gazetteer' output is deprecated and will soon be removed.");
     } else if (options.output_backend == "null") {
         check_options_output_null(app);
     } else if (options.output_backend == "pgsql" ||
