@@ -7,12 +7,13 @@ Feature: Test flex config without clustering
             """
             local dtable = osm2pgsql.define_node_table('osm2pgsql_test_point', {
                 { column = 'tags', type = 'hstore' },
-                { column = 'geom', type = 'point' },
+                { column = 'geom', type = 'point', not_null = true },
             }, { cluster = 'no' })
 
             function osm2pgsql.process_node(data)
-                dtable:add_row({
-                    tags = data.tags
+                dtable:insert({
+                    tags = data.tags,
+                    geom = data:as_point()
                 })
             end
             """

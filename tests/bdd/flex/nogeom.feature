@@ -13,7 +13,7 @@ Feature: Handling of tables without geometry
             })
 
             function osm2pgsql.process_node(object)
-                pois:add_row{ tags = object.tags }
+                pois:insert{ tags = object.tags }
             end
             """
         When running osm2pgsql flex with parameters

@@ -16,14 +16,17 @@ function osm2pgsql.process_way(object)
         return
     end
 
-    polygons:add_row({
-        geom = { create = 'area' }
+    polygons:insert({
+        geom = object:as_polygon()
     })
 end
 
 function osm2pgsql.process_relation(object)
-    polygons:add_row({
-        geom = { create = 'area', split_at='multi' }
-    })
+    local mgeom = object:as_multipolygon()
+    for sgeom in mgeom:geometries() do
+        polygons:insert({
+            geom = sgeom
+        })
+    end
 end
 

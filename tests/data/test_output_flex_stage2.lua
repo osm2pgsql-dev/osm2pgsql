@@ -7,7 +7,7 @@ tables.highways = osm2pgsql.define_table{
     columns = {
         { column = 'tags',  type = 'hstore' },
         { column = 'refs',  type = 'text' },
-        { column = 'geom',  type = 'linestring', projection = 4326 },
+        { column = 'geom',  type = 'linestring', projection = 4326, not_null = true },
     }
 }
 
@@ -17,7 +17,7 @@ tables.routes = osm2pgsql.define_table{
     columns = {
         { column = 'tags',    type = 'hstore' },
         { column = 'members', type = 'text' },
-        { column = 'geom',    type = 'multilinestring', projection = 4326 },
+        { column = 'geom',    type = 'multilinestring', projection = 4326, not_null = true },
     }
 }
 
@@ -26,7 +26,7 @@ local w2r = {}
 function osm2pgsql.process_way(object)
     local row = {
         tags = object.tags,
-        geom = { create = 'line' }
+        geom = object:as_linestring()
     }
 
     local d = w2r[object.id]
@@ -40,7 +40,7 @@ function osm2pgsql.process_way(object)
         row.refs = table.concat(refs, ',')
     end
 
-    tables.highways:add_row(row)
+    tables.highways:insert(row)
 end
 
 function osm2pgsql.select_relation_members(relation)
@@ -65,10 +65,10 @@ function osm2pgsql.process_relation(object)
         end
     end
 
-    tables.routes:add_row({
+    tables.routes:insert({
         tags = object.tags,
         members = table.concat(mlist, ','),
-        geom = { create = 'line' }
+        geom = object:as_multilinestring()
     })
 end
 

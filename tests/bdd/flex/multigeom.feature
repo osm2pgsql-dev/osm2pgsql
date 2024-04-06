@@ -26,16 +26,16 @@ Feature: Handling of multiple geometries
             }
 
             function osm2pgsql.process_way(object)
-                polygons:add_row({
+                polygons:insert({
                     name = object.tags.name,
-                    geom = { create = 'area' }
+                    geom = object:as_polygon()
                 })
             end
 
             function osm2pgsql.process_relation(object)
-                polygons:add_row({
+                polygons:insert({
                     name = object.tags.name,
-                    geom = { create = 'area' }
+                    geom = object:as_multipolygon()
                 })
             end
             """
@@ -61,17 +61,19 @@ Feature: Handling of multiple geometries
             }
 
             function osm2pgsql.process_way(object)
-                polygons:add_row({
+                polygons:insert({
                     name = object.tags.name,
-                    geom = { create = 'area' }
+                    geom = object:as_polygon()
                 })
             end
 
             function osm2pgsql.process_relation(object)
-                polygons:add_row({
-                    name = object.tags.name,
-                    geom = { create = 'area', split_at = 'multi' }
-                })
+                for sgeom in object:as_multipolygon():geometries() do
+                    polygons:insert({
+                        name = object.tags.name,
+                        geom = sgeom
+                    })
+                end
             end
             """
         When running osm2pgsql flex
@@ -102,16 +104,16 @@ Feature: Handling of multiple geometries
             }
 
             function osm2pgsql.process_way(object)
-                polygons:add_row({
+                polygons:insert({
                     name = object.tags.name,
-                    geom = { create = 'area' }
+                    geom = object:as_polygon()
                 })
             end
 
             function osm2pgsql.process_relation(object)
-                polygons:add_row({
+                polygons:insert({
                     name = object.tags.name,
-                    geom = { create = 'area' }
+                    geom = object:as_multipolygon()
                 })
             end
             """
@@ -137,17 +139,19 @@ Feature: Handling of multiple geometries
             }
 
             function osm2pgsql.process_way(object)
-                polygons:add_row({
+                polygons:insert({
                     name = object.tags.name,
-                    geom = { create = 'area' }
+                    geom = object:as_polygon()
                 })
             end
 
             function osm2pgsql.process_relation(object)
-                polygons:add_row({
-                    name = object.tags.name,
-                    geom = { create = 'area', split_at = 'multi' }
-                })
+                for sgeom in object:as_multipolygon():geometries() do
+                    polygons:insert({
+                        name = object.tags.name,
+                        geom = sgeom
+                    })
+                end
             end
             """
         When running osm2pgsql flex
