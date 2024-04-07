@@ -62,7 +62,6 @@ if (WITH_LUA)
         flex-lua-index.cpp
         flex-lua-table.cpp
         flex-write.cpp
-        geom-transform.cpp
         lua-setup.cpp
         lua-utils.cpp
         output-flex.cpp

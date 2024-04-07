@@ -51,7 +51,6 @@ static std::array<column_type_lookup, 26> const column_types = {
      {"multilinestring", table_column_type::multilinestring},
      {"multipolygon", table_column_type::multipolygon},
      {"geometrycollection", table_column_type::geometrycollection},
-     {"area", table_column_type::area},
      {"id_type", table_column_type::id_type},
      {"id_num", table_column_type::id_num}}};
 
@@ -60,12 +59,6 @@ static table_column_type get_column_type_from_string(std::string const &type)
     auto const *column_type = util::find_by_name(column_types, type);
     if (!column_type) {
         throw fmt_error("Unknown column type '{}'.", type);
-    }
-
-    if (column_type->type == table_column_type::area) {
-        log_warn("The 'area' column type is deprecated. Please read");
-        log_warn("https://osm2pgsql.org/doc/tutorials/"
-                 "switching-from-add-row-to-insert/");
     }
 
     return column_type->type;
@@ -167,8 +160,6 @@ std::string flex_table_column_t::sql_type_name() const
         return fmt::format("Geometry(MULTIPOLYGON, {})", m_srid);
     case table_column_type::geometrycollection:
         return fmt::format("Geometry(GEOMETRYCOLLECTION, {})", m_srid);
-    case table_column_type::area:
-        return "real";
     case table_column_type::id_type:
         return "char(1)";
     case table_column_type::id_num:
