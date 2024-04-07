@@ -108,6 +108,9 @@ static void parse_create_index(lua_State *lua_state, flex_table_t *table)
     lua_pop(lua_state, 1); // "create_index"
     if (create_index == "always") {
         table->set_always_build_id_index();
+    } else if (create_index == "unique") {
+        table->set_always_build_id_index();
+        table->set_build_unique_id_index();
     } else if (create_index != "auto") {
         throw fmt_error("Unknown value '{}' for 'create_index' field of ids",
                         create_index);
