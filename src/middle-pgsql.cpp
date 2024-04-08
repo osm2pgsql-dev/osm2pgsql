@@ -148,10 +148,7 @@ void middle_pgsql_t::table_desc::drop_table(
     util::timer_t timer;
 
     log_info("Dropping table '{}'", name());
-
-    auto const qual_name = qualified_name(schema(), name());
-    db_connection.exec("DROP TABLE IF EXISTS {}", qual_name);
-
+    drop_table_if_exists(db_connection, schema(), name());
     log_info("Table '{}' dropped in {}", name(),
              util::human_readable_duration(timer.stop()));
 }
@@ -1318,8 +1315,7 @@ static void table_setup(pg_conn_t const &db_connection,
                         middle_pgsql_t::table_desc const &table)
 {
     log_debug("Setting up table '{}'", table.name());
-    auto const qual_name = qualified_name(table.schema(), table.name());
-    db_connection.exec("DROP TABLE IF EXISTS {} CASCADE", qual_name);
+    drop_table_if_exists(db_connection, table.schema(), table.name());
     table.create_table(db_connection);
 }
 

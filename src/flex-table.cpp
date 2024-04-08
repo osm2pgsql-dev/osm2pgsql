@@ -281,12 +281,12 @@ static void enable_check_trigger(pg_conn_t const &db_connection,
 void table_connection_t::start(pg_conn_t const &db_connection, bool append)
 {
     if (!append) {
-        db_connection.exec("DROP TABLE IF EXISTS {} CASCADE",
-                           table().full_name());
+        drop_table_if_exists(db_connection, table().schema(), table().name());
     }
 
     // These _tmp tables can be left behind if we run out of disk space.
-    db_connection.exec("DROP TABLE IF EXISTS {}", table().full_tmp_name());
+    drop_table_if_exists(db_connection, table().schema(),
+                         table().name() + "_tmp");
 
     if (!append) {
         db_connection.exec(table().build_sql_create_table(

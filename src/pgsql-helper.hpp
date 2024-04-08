@@ -40,4 +40,7 @@ void drop_geom_check_trigger(pg_conn_t const &db_connection,
 void analyze_table(pg_conn_t const &db_connection, std::string const &schema,
                    std::string const &name);
 
+void drop_table_if_exists(pg_conn_t const &db_connection,
+                          std::string const &schema, std::string const &name);
+
 #endif // OSM2PGSQL_PGSQL_HELPER_HPP
