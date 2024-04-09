@@ -584,13 +584,6 @@ options_t parse_command_line(int argc, char *argv[])
     // Tablespace options
     // ----------------------------------------------------------------------
 
-    std::string tablespace_index;
-    app.add_option("-i,--tablespace-index", tablespace_index)
-        ->description("Tablespace for indexes (sets default for "
-                      "--tablespace-(main|slim)-index).")
-        ->option_text("TBLSPC")
-        ->group("Tablespace options");
-
     app.add_option("--tablespace-main-data", options.tblsmain_data)
         ->description("Tablespace for main tables.")
         ->option_text("TBLSPC")
@@ -659,18 +652,6 @@ options_t parse_command_line(int argc, char *argv[])
 
     if (options.input_format == "auto") {
         options.input_format.clear();
-    }
-
-    if (!tablespace_index.empty()) {
-        log_warn(
-            "The option -i, --tablespace-index is deprecated. Use "
-            "--tablespace-slim-index and/or --tablespace-main-index instead.");
-        if (options.tblsmain_index.empty()) {
-            options.tblsmain_index = tablespace_index;
-        }
-        if (options.tblsslim_index.empty()) {
-            options.tblsslim_index = tablespace_index;
-        }
     }
 
     if (options.dbschema.empty()) {
