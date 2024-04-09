@@ -231,17 +231,7 @@ static void check_db_format(properties_t const &properties, options_t *options)
 {
     auto const format = properties.get_int("db_format", -1);
 
-    if (format == -1) {
-        // db_format not set, so this is a legacy import
-        return;
-    }
-
-    if (format == 0) {
-        throw std::runtime_error{
-            "This database is not updatable (db_format=0)."};
-    }
-
-    if (format < -1 || format > 2) {
+    if (format != 2) {
         throw fmt_error("Unknown db_format '{}' in properties.", format);
     }
 

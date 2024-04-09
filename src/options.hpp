@@ -118,7 +118,7 @@ struct options_t
     /**
      * Middle database format:
      * 0 = non-slim mode, no database middle (ram middle)
-     * 1 = slim mode, legacy database format
+     * 1 = slim mode, legacy database format (not used any more)
      * 2 = slim mode, new database format
      */
     uint8_t middle_database_format = 0;

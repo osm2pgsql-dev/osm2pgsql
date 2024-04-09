@@ -44,9 +44,8 @@ void add_row(copy_mgr_t *mgr, std::shared_ptr<db_target_descr_t> const &t,
     mgr->sync();
 }
 
-template <typename T>
 void add_array(copy_mgr_t *mgr, std::shared_ptr<db_target_descr_t> const &t,
-               int id, std::vector<T> const &values)
+               int id, std::vector<int> const &values)
 {
     mgr->new_line(t);
     mgr->add_column(id);
@@ -154,31 +153,8 @@ TEST_CASE("copy_mgr_t: Insert int arrays")
 
     auto const t = setup_table("a int[]");
 
-    add_array<int>(&mgr, t, -9000, {45, -2, 0, 56});
+    add_array(&mgr, t, -9000, {45, -2, 0, 56});
     check_row({"-9000", "{45,-2,0,56}"});
-}
-
-TEST_CASE("copy_mgr_t: Insert string arrays")
-{
-    copy_mgr_t mgr{std::make_shared<db_copy_thread_t>(db.connection_params())};
-
-    auto const t = setup_table("a text[]");
-
-    add_array<std::string>(&mgr, t, 3,
-                           {"foo", "", "with space", "with \"quote\"", "the\t",
-                            "line\nbreak", "rr\rrr", "s\\l"});
-    check_row({"3", "{foo,\"\",\"with space\",\"with "
-                    "\\\"quote\\\"\",\"the\t\",\"line\nbreak\","
-                    "\"rr\rrr\",\"s\\\\l\"}"});
-
-    auto const c = db.connect();
-    CHECK(c.result_as_string("SELECT a[4] FROM test_copy_mgr") ==
-          "with \"quote\"");
-    CHECK(c.result_as_string("SELECT a[5] FROM test_copy_mgr") == "the\t");
-    CHECK(c.result_as_string("SELECT a[6] FROM test_copy_mgr") ==
-          "line\nbreak");
-    CHECK(c.result_as_string("SELECT a[7] FROM test_copy_mgr") == "rr\rrr");
-    CHECK(c.result_as_string("SELECT a[8] FROM test_copy_mgr") == "s\\l");
 }
 
 TEST_CASE("copy_mgr_t: Insert hashes")

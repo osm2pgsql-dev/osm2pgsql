@@ -121,21 +121,10 @@ public:
      * Adds the value in the format appropriate for an array and a value
      * separator.
      */
-    template <typename T>
-    void add_array_elem(T value)
+    void add_array_elem(osmid_t value)
     {
         add_value(value);
         m_current->buffer += ',';
-    }
-
-    void add_array_elem(std::string const &s) { add_array_elem(s.c_str()); }
-
-    void add_array_elem(char const *s)
-    {
-        assert(m_current);
-        m_current->buffer += '"';
-        add_escaped_string(s);
-        m_current->buffer += "\",";
     }
 
     /**
