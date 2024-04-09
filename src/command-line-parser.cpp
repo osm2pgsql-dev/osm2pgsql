@@ -619,21 +619,6 @@ options_t parse_command_line(int argc, char *argv[])
         ->option_text("TBLSPC")
         ->group("Tablespace options");
 
-    // ----------------------------------------------------------------------
-    // Deprecated options
-    // ----------------------------------------------------------------------
-
-    // --cache-strategy
-    app.add_option_function<std::string>(
-           "--cache-strategy",
-           [&](std::string const &) {
-               log_warn("Deprecated option --cache-strategy ignored");
-           })
-        ->description(
-            "The option has been removed and only a warning is printed.")
-        ->option_text("TYPE")
-        ->group("Deprecated options");
-
     try {
         app.parse(argc, argv);
     } catch (...) {

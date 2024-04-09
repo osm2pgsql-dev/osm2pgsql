@@ -149,9 +149,6 @@ mandatory for short options too.
     It needs at least the amount of `shared_buffers` given in its configuration.
     Defaults to 800.
 
-\--cache-strategy=STRATEGY
-:   This deprecated option will be ignored.
-
 -x, \--extra-attributes
 :   Include attributes of each object in the middle tables and make them
     available to the outputs. Attributes are: user name, user id, changeset id,
