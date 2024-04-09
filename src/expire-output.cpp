@@ -58,38 +58,38 @@ std::size_t expire_output_t::output_tiles_to_table(
 {
     auto const qn = qualified_name(m_schema, m_table);
 
-    pg_conn_t connection{connection_params, "expire"};
+    pg_conn_t const db_connection{connection_params, "expire"};
 
-    auto const result = connection.exec("SELECT * FROM {} LIMIT 1", qn);
+    auto const result = db_connection.exec("SELECT * FROM {} LIMIT 1", qn);
 
     if (result.num_fields() == 3) {
         // old format with fields: zoom, x, y
-        connection.exec("PREPARE insert_tiles(int4, int4, int4) AS"
-                        " INSERT INTO {} (zoom, x, y) VALUES ($1, $2, $3)"
-                        " ON CONFLICT DO NOTHING",
-                        qn);
+        db_connection.exec("PREPARE insert_tiles(int4, int4, int4) AS"
+                           " INSERT INTO {} (zoom, x, y) VALUES ($1, $2, $3)"
+                           " ON CONFLICT DO NOTHING",
+                           qn);
     } else {
         // new format with fields: zoom, x, y, first, last
-        connection.exec("PREPARE insert_tiles(int4, int4, int4) AS"
-                        " INSERT INTO {} (zoom, x, y) VALUES ($1, $2, $3)"
-                        " ON CONFLICT (zoom, x, y)"
-                        " DO UPDATE SET last = CURRENT_TIMESTAMP(0)",
-                        qn);
+        db_connection.exec("PREPARE insert_tiles(int4, int4, int4) AS"
+                           " INSERT INTO {} (zoom, x, y) VALUES ($1, $2, $3)"
+                           " ON CONFLICT (zoom, x, y)"
+                           " DO UPDATE SET last = CURRENT_TIMESTAMP(0)",
+                           qn);
     }
 
     auto const count = for_each_tile(
         tiles_at_maxzoom, m_minzoom, m_maxzoom, [&](tile_t const &tile) {
-            connection.exec_prepared("insert_tiles", tile.zoom(), tile.x(),
-                                     tile.y());
+            db_connection.exec_prepared("insert_tiles", tile.zoom(), tile.x(),
+                                        tile.y());
         });
 
     return count;
 }
 
-void expire_output_t::create_output_table(pg_conn_t const &connection) const
+void expire_output_t::create_output_table(pg_conn_t const &db_connection) const
 {
     auto const qn = qualified_name(m_schema, m_table);
-    connection.exec(
+    db_connection.exec(
         "CREATE TABLE IF NOT EXISTS {} ("
         " zoom int4 NOT NULL,"
         " x int4 NOT NULL,"

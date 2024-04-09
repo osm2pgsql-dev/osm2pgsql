@@ -85,7 +85,7 @@ public:
     void add(osmid_t osm_id) { m_deletables.push_back(osm_id); }
 
     void delete_rows(std::string const &table, std::string const &column,
-                     pg_conn_t *conn);
+                     pg_conn_t const &db_connection);
 
     bool is_full() const noexcept { return m_deletables.size() > Max_entries; }
 
@@ -126,7 +126,7 @@ public:
     }
 
     void delete_rows(std::string const &table, std::string const &column,
-                     pg_conn_t *conn);
+                     pg_conn_t const &db_connection);
 
     bool is_full() const noexcept { return m_deletables.size() > Max_entries; }
 
@@ -183,7 +183,7 @@ struct db_cmd_copy_t : public db_cmd_t
     std::string buffer;
 
     virtual bool has_deletables() const noexcept = 0;
-    virtual void delete_data(pg_conn_t *conn) = 0;
+    virtual void delete_data(pg_conn_t const &db_connection) = 0;
 
     explicit db_cmd_copy_t(std::shared_ptr<db_target_descr_t> t)
     : db_cmd_t(db_cmd_t::Cmd_copy), target(std::move(t))
@@ -209,12 +209,12 @@ public:
         return m_deleter.has_data();
     }
 
-    void delete_data(pg_conn_t *conn) override
+    void delete_data(pg_conn_t const &db_connection) override
     {
         if (m_deleter.has_data()) {
             m_deleter.delete_rows(
                 qualified_name(target->schema(), target->name()), target->id(),
-                conn);
+                db_connection);
         }
     }
 
