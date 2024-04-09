@@ -142,31 +142,31 @@ static void check_options_non_slim(CLI::App const &app)
 
     for (auto const &opt : slim_options) {
         if (app.count(opt) > 0) {
-            log_warn("Ignoring option {}. Can only be used in --slim mode.",
-                     app.get_option(opt)->get_name(false, true));
+            throw fmt_error("Option {} can only be used in --slim mode.",
+                            app.get_option(opt)->get_name(false, true));
         }
     }
 }
 
 static void check_options_output_flex(CLI::App const &app)
 {
-    auto const ignored_options = app.get_options([](CLI::Option const *option) {
+    auto const bad_options = app.get_options([](CLI::Option const *option) {
         return option->get_group() == "Pgsql output options" ||
                option->get_name() == "--tablespace-main-data" ||
                option->get_name() == "--tablespace-main-index";
     });
 
-    for (auto const *opt : ignored_options) {
+    for (auto const *opt : bad_options) {
         if (opt->count()) {
-            log_warn("Ignoring option {} for 'flex' output",
-                     opt->get_name(false, true));
+            throw fmt_error("Option {} does not work with 'flex' output",
+                            opt->get_name(false, true));
         }
     }
 }
 
 static void check_options_output_null(CLI::App const &app)
 {
-    auto const ignored_options = app.get_options([](CLI::Option const *option) {
+    auto const bad_options = app.get_options([](CLI::Option const *option) {
         return option->get_group() == "Pgsql output options" ||
                option->get_group() == "Expire options" ||
                option->get_name() == "--style" ||
@@ -174,10 +174,10 @@ static void check_options_output_null(CLI::App const &app)
                option->get_name() == "--number-processes";
     });
 
-    for (auto const *opt : ignored_options) {
+    for (auto const *opt : bad_options) {
         if (opt->count()) {
-            log_warn("Ignoring option {} for 'null' output",
-                     opt->get_name(false, true));
+            throw fmt_error("Option {} does not work with 'null' output",
+                            opt->get_name(false, true));
         }
     }
 }
@@ -217,8 +217,8 @@ static void check_options(options_t *options)
     }
 
     if (options->cache < 0) {
-        options->cache = 0;
-        log_warn("RAM cache cannot be negative. Using 0 instead.");
+        throw std::runtime_error{
+            "RAM cache cannot be negative. Using 0 instead."};
     }
 
     if (options->cache == 0) {
@@ -250,9 +250,9 @@ static void check_options_expire(options_t *options) {
 
     if (options->expire_tiles_zoom != 0 &&
         options->projection->target_srs() != 3857) {
-        log_warn("Expire has been enabled (with -e or --expire-tiles) but "
-                 "target SRS is not Mercator (EPSG:3857). Expire disabled!");
-        options->expire_tiles_zoom = 0;
+        throw std::runtime_error{
+            "Expire has been enabled (with -e or --expire-tiles) but target "
+            "SRS is not Mercator (EPSG:3857)"};
     }
 }
 
