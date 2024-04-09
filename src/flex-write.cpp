@@ -257,14 +257,6 @@ void flex_write_column(lua_State *lua_state,
                        flex_table_column_t const &column,
                        std::vector<expire_tiles> *expire)
 {
-    // If there is nothing on the Lua stack, then the Lua function add_row()
-    // was called without a table parameter. In that case this column will
-    // be set to NULL.
-    if (lua_gettop(lua_state) == 0) {
-        write_null(copy_mgr, column);
-        return;
-    }
-
     lua_getfield(lua_state, -1, column.name().c_str());
     int const ltype = lua_type(lua_state, -1);
 
@@ -414,9 +406,6 @@ void flex_write_column(lua_State *lua_state,
                             lua_typename(lua_state, ltype));
         }
     } else if (column.is_geometry_column()) {
-        // If this is a geometry column, the Lua function 'insert()' was
-        // called, because for 'add_row()' geometry columns are handled
-        // earlier and 'write_column()' is not called.
         if (ltype == LUA_TUSERDATA) {
             auto const *const geom = unpack_geometry(lua_state, -1);
             if (geom && !geom->is_null()) {
@@ -446,71 +435,10 @@ void flex_write_column(lua_State *lua_state,
             throw fmt_error("Need geometry data for geometry column '{}'.",
                             column.name());
         }
-    } else if (column.type() == table_column_type::area) {
-        // If this is an area column, the Lua function 'insert()' was
-        // called, because for 'add_row()' area columns are handled
-        // earlier and 'write_column()' is not called.
-        throw std::runtime_error{"Column type 'area' not allowed with "
-                                 "'insert()'. Maybe use 'real'?"};
     } else {
         throw fmt_error("Column type {} not implemented.",
                         static_cast<uint8_t>(column.type()));
     }
 
     lua_pop(lua_state, 1);
-}
-
-void flex_write_row(lua_State *lua_state, table_connection_t *table_connection,
-                    osmium::item_type id_type, osmid_t id,
-                    geom::geometry_t const &geom, int srid,
-                    std::vector<expire_tiles> *expire)
-{
-    assert(table_connection);
-    table_connection->new_line();
-    auto *copy_mgr = table_connection->copy_mgr();
-
-    geom::geometry_t projected_geom;
-    geom::geometry_t const *output_geom = &geom;
-    if (srid && geom.srid() != srid) {
-        projected_geom = geom::transform(geom, get_projection(srid));
-        output_geom = &projected_geom;
-    }
-
-    for (auto const &column : table_connection->table()) {
-        if (column.create_only()) {
-            continue;
-        }
-        if (column.type() == table_column_type::id_type) {
-            copy_mgr->add_column(type_to_char(id_type));
-        } else if (column.type() == table_column_type::id_num) {
-            copy_mgr->add_column(id);
-        } else if (column.is_geometry_column()) {
-            assert(!geom.is_null());
-            auto const type = column.type();
-            bool const wrap_multi =
-                (type == table_column_type::multilinestring ||
-                 type == table_column_type::multipolygon);
-            copy_mgr->add_hex_geom(geom_to_ewkb(*output_geom, wrap_multi));
-        } else if (column.type() == table_column_type::area) {
-            if (geom.is_null()) {
-                write_null(copy_mgr, column);
-            } else {
-                // if srid of the area column is the same as for the geom column
-                double area = 0;
-                if (column.srid() == 4326) {
-                    area = geom::area(geom);
-                } else if (column.srid() == srid) {
-                    area = geom::area(projected_geom);
-                } else {
-                    auto const &mproj = get_projection(column.srid());
-                    area = geom::area(geom::transform(geom, mproj));
-                }
-                copy_mgr->add_column(area);
-            }
-        } else {
-            flex_write_column(lua_state, copy_mgr, column, expire);
-        }
-    }
-
-    copy_mgr->finish_line();
 }

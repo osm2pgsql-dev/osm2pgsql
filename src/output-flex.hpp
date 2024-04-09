@@ -163,7 +163,6 @@ public:
     int app_mark_way();
 
     int table_tostring();
-    int table_add_row();
     int table_insert();
     int table_name();
     int table_schema();
@@ -205,21 +204,6 @@ private:
 
     osmium::OSMObject const &
     check_and_get_context_object(flex_table_t const &table);
-
-    geom::geometry_t run_transform(reprojection const &proj,
-                                   geom_transform_t const *transform,
-                                   osmium::Node const &node);
-
-    geom::geometry_t run_transform(reprojection const &proj,
-                                   geom_transform_t const *transform,
-                                   osmium::Way const &way);
-
-    geom::geometry_t run_transform(reprojection const &proj,
-                                   geom_transform_t const *transform,
-                                   osmium::Relation const &relation);
-
-    template <typename OBJECT>
-    void add_row(table_connection_t *table_connection, OBJECT const &object);
 
     void delete_from_table(table_connection_t *table_connection,
                            pg_conn_t const &db_connection,
@@ -316,11 +300,9 @@ private:
 
     /**
      * This is set before calling stage1c process_relation() to disable the
-     * add_row() command.
+     * insert() command.
      */
-    bool m_disable_add_row = false;
-
-    bool m_add_row_has_never_been_called = true;
+    bool m_disable_insert = false;
 };
 
 #endif // OSM2PGSQL_OUTPUT_FLEX_HPP

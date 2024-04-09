@@ -20,7 +20,6 @@
 #include "format.hpp"
 #include "geom-from-osm.hpp"
 #include "geom-functions.hpp"
-#include "geom-transform.hpp"
 #include "logging.hpp"
 #include "lua-init.hpp"
 #include "lua-setup.hpp"
@@ -86,7 +85,6 @@ TRAMPOLINE(app_as_geometrycollection, as_geometrycollection)
 TRAMPOLINE(table_name, name)
 TRAMPOLINE(table_schema, schema)
 TRAMPOLINE(table_cluster, cluster)
-TRAMPOLINE(table_add_row, add_row)
 TRAMPOLINE(table_insert, insert)
 TRAMPOLINE(table_columns, columns)
 TRAMPOLINE(table_tostring, __tostring)
@@ -583,67 +581,6 @@ bool output_flex_t::relation_cache_t::add_members(middle_query_t const &middle)
     return true;
 }
 
-int output_flex_t::table_add_row()
-{
-    if (m_disable_add_row) {
-        return 0;
-    }
-
-    if (m_calling_context != calling_context::process_node &&
-        m_calling_context != calling_context::process_way &&
-        m_calling_context != calling_context::process_relation) {
-        throw std::runtime_error{
-            "The function add_row() can only be called from the "
-            "process_node/way/relation() functions."};
-    }
-
-    // Params are the table object and an optional Lua table with the contents
-    // for the fields.
-    auto const num_params = lua_gettop(lua_state());
-    if (num_params < 1 || num_params > 2) {
-        throw std::runtime_error{
-            "Need two parameters: The osm2pgsql.Table and the row data."};
-    }
-
-    auto &table_connection = m_table_connections.at(
-        idx_from_param(lua_state(), osm2pgsql_table_name));
-
-    auto const &table = table_connection.table();
-
-    // If there is a second parameter, it must be a Lua table.
-    if (num_params == 2) {
-        luaL_checktype(lua_state(), 2, LUA_TTABLE);
-    }
-    lua_remove(lua_state(), 1);
-
-    if (m_add_row_has_never_been_called) {
-        m_add_row_has_never_been_called = false;
-        log_warn("The add_row() function is deprecated. Please read");
-        log_warn("https://osm2pgsql.org/doc/tutorials/"
-                 "switching-from-add-row-to-insert/");
-    }
-
-    if (m_calling_context == calling_context::process_node) {
-        if (!table.matches_type(osmium::item_type::node)) {
-            throw fmt_error("Trying to add node to table '{}'.", table.name());
-        }
-        add_row(&table_connection, *m_context_node);
-    } else if (m_calling_context == calling_context::process_way) {
-        if (!table.matches_type(osmium::item_type::way)) {
-            throw fmt_error("Trying to add way to table '{}'.", table.name());
-        }
-        add_row(&table_connection, m_way_cache.get());
-    } else if (m_calling_context == calling_context::process_relation) {
-        if (!table.matches_type(osmium::item_type::relation)) {
-            throw fmt_error("Trying to add relation to table '{}'.",
-                            table.name());
-        }
-        add_row(&table_connection, m_relation_cache.get());
-    }
-
-    return 0;
-}
-
 osmium::OSMObject const &
 output_flex_t::check_and_get_context_object(flex_table_t const &table)
 {
@@ -671,7 +608,7 @@ output_flex_t::check_and_get_context_object(flex_table_t const &table)
 
 int output_flex_t::table_insert()
 {
-    if (m_disable_add_row) {
+    if (m_disable_insert) {
         return 0;
     }
 
@@ -781,99 +718,6 @@ int output_flex_t::table_cluster()
     auto const &table = get_table_from_param();
     lua_pushboolean(lua_state(), table.cluster_by_geom());
     return 1;
-}
-
-geom::geometry_t output_flex_t::run_transform(reprojection const &proj,
-                                              geom_transform_t const *transform,
-                                              osmium::Node const &node)
-{
-    return transform->convert(proj, node);
-}
-
-geom::geometry_t output_flex_t::run_transform(reprojection const &proj,
-                                              geom_transform_t const *transform,
-                                              osmium::Way const & /*way*/)
-{
-    if (m_way_cache.add_nodes(middle()) <= 1U) {
-        return {};
-    }
-
-    return transform->convert(proj, m_way_cache.get());
-}
-
-geom::geometry_t output_flex_t::run_transform(reprojection const &proj,
-                                              geom_transform_t const *transform,
-                                              osmium::Relation const &relation)
-{
-    if (!m_relation_cache.add_members(middle())) {
-        return {};
-    }
-
-    return transform->convert(proj, relation,
-                              m_relation_cache.members_buffer());
-}
-
-template <typename OBJECT>
-void output_flex_t::add_row(table_connection_t *table_connection,
-                            OBJECT const &object)
-{
-    assert(table_connection);
-    auto const &table = table_connection->table();
-
-    if (table.has_multiple_geom_columns()) {
-        throw fmt_error("Table '{}' has more than one geometry column."
-                        " This is not allowed with 'add_row()'."
-                        " Maybe use 'insert()' instead?",
-                        table.name());
-    }
-
-    osmid_t const id = table.map_id(object.type(), object.id());
-
-    if (!table.has_geom_column()) {
-        flex_write_row(lua_state(), table_connection, object.type(), id, {}, 0,
-                       &m_expire_tiles);
-        return;
-    }
-
-    // From here we are handling the case where the table has a geometry
-    // column. In this case the second parameter to the Lua function add_row()
-    // must be present.
-    if (lua_gettop(lua_state()) == 0) {
-        throw std::runtime_error{
-            "Need two parameters: The osm2pgsql.Table and the row data."};
-    }
-
-    auto const &proj = table_connection->proj();
-    auto const type = table.geom_column().type();
-
-    auto const geom_transform = get_transform(lua_state(), table.geom_column());
-    assert(lua_gettop(lua_state()) == 1);
-
-    geom_transform_t const *transform = geom_transform.get();
-    if (!transform) {
-        transform = get_default_transform(table.geom_column(), object.type());
-    }
-
-    // The geometry returned by run_transform() is in 4326 if it is a
-    // (multi)polygon. If it is a point or linestring, it is already in the
-    // target geometry.
-    auto geom = run_transform(proj, transform, object);
-
-    // We need to split a multi geometry into its parts if the geometry
-    // column can only take non-multi geometries or if the transform
-    // explicitly asked us to split, which is the case when an area
-    // transform explicitly set `split_at = 'multi'`.
-    bool const split_multi = type == table_column_type::linestring ||
-                             type == table_column_type::polygon ||
-                             transform->split();
-
-    auto const geoms = geom::split_multi(std::move(geom), split_multi);
-    for (auto const &sgeom : geoms) {
-        table.geom_column().do_expire(sgeom, &m_expire_tiles);
-        flex_write_row(lua_state(), table_connection, object.type(), id, sgeom,
-                       table.geom_column().srid(), &m_expire_tiles);
-        table_connection->increment_insert_counter();
-    }
 }
 
 int output_flex_t::expire_output_tostring()
@@ -1075,9 +919,9 @@ void output_flex_t::pending_relation_stage1c(osmid_t id)
         return;
     }
 
-    m_disable_add_row = true;
+    m_disable_insert = true;
     get_mutex_and_call_lua_function(m_process_relation, m_relation_cache.get());
-    m_disable_add_row = false;
+    m_disable_insert = false;
 }
 
 void output_flex_t::sync()
@@ -1387,7 +1231,6 @@ static void init_table_class(lua_State *lua_state)
     lua_pushvalue(lua_state, -1);
     lua_setfield(lua_state, -2, "__index");
     luaX_add_table_func(lua_state, "__tostring", lua_trampoline_table_tostring);
-    luaX_add_table_func(lua_state, "add_row", lua_trampoline_table_add_row);
     luaX_add_table_func(lua_state, "insert", lua_trampoline_table_insert);
     luaX_add_table_func(lua_state, "name", lua_trampoline_table_name);
     luaX_add_table_func(lua_state, "schema", lua_trampoline_table_schema);

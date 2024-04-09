@@ -342,12 +342,11 @@ setup_flex_table_columns(lua_State *lua_state, flex_table_t *table,
 
         lua_getfield(lua_state, -1, "projection");
         if (!lua_isnil(lua_state, -1)) {
-            if (column.is_geometry_column() ||
-                column.type() == table_column_type::area) {
+            if (column.is_geometry_column()) {
                 column.set_projection(lua_tostring(lua_state, -1));
             } else {
                 throw std::runtime_error{"Projection can only be set on "
-                                         "geometry and area columns."};
+                                         "geometry columns."};
             }
         }
         lua_pop(lua_state, 1); // "projection"

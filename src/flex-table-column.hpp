@@ -46,8 +46,6 @@ enum class table_column_type : uint8_t
     multipolygon,
     geometrycollection,
 
-    area,
-
     id_type,
     id_num
 };
@@ -158,8 +156,7 @@ private:
     table_column_type m_type;
 
     /**
-     * For geometry and area columns only: The projection SRID. Default is
-     * web mercator.
+     * For geometry columns only: The projection SRID. Default is web mercator.
      */
     int m_srid = 3857;
 

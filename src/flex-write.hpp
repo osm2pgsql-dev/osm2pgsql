@@ -36,9 +36,4 @@ void flex_write_column(lua_State *lua_state,
                        flex_table_column_t const &column,
                        std::vector<expire_tiles> *expire);
 
-void flex_write_row(lua_State *lua_state, table_connection_t *table_connection,
-                    osmium::item_type id_type, osmid_t id,
-                    geom::geometry_t const &geom, int srid,
-                    std::vector<expire_tiles> *expire);
-
 #endif // OSM2PGSQL_FLEX_WRITE_HPP
