@@ -281,7 +281,7 @@ public:
     {
     }
 
-    void start(pg_conn_t const &db_connection, bool append);
+    void start(pg_conn_t const &db_connection, bool append) const;
 
     void stop(pg_conn_t const &db_connection, bool updateable, bool append);
 
