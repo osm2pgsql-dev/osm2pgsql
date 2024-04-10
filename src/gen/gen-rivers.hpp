@@ -37,7 +37,6 @@ private:
 
     std::size_t m_num_waterways = 0;
     std::size_t m_num_points = 0;
-    bool m_delete_existing;
 };
 
 #endif // OSM2PGSQL_GEN_RIVERS_HPP

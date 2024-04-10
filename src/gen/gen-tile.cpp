@@ -22,8 +22,7 @@ gen_tile_t::gen_tile_t(pg_conn_t *connection, bool append, params_t *params)
 {
     m_with_group_by = !get_params().get_identifier("group_by_column").empty();
 
-    if (get_params().get_bool("delete_existing")) {
-        m_delete_existing = true;
+    if (append_mode()) {
         dbexec("PREPARE del_geoms (int, int) AS"
                " DELETE FROM {dest} WHERE x=$1 AND y=$2");
     }
@@ -55,7 +54,7 @@ uint32_t gen_tile_t::parse_zoom()
 
 void gen_tile_t::delete_existing(tile_t const &tile)
 {
-    if (!m_delete_existing) {
+    if (!append_mode()) {
         return;
     }
 

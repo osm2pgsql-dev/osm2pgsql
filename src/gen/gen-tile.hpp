@@ -34,7 +34,6 @@ protected:
 private:
     std::size_t m_timer_delete;
     uint32_t m_zoom;
-    bool m_delete_existing = false;
     bool m_with_group_by = false;
 };
 

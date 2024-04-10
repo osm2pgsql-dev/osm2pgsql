@@ -27,8 +27,7 @@ gen_rivers_t::gen_rivers_t(pg_conn_t *connection, bool append, params_t *params)
   m_timer_prep(add_timer("prep")), m_timer_get(add_timer("get")),
   m_timer_sort(add_timer("sort")), m_timer_net(add_timer("net")),
   m_timer_remove(add_timer("remove")), m_timer_width(add_timer("width")),
-  m_timer_write(add_timer("write")),
-  m_delete_existing(params->has("delete_existing"))
+  m_timer_write(add_timer("write"))
 {
     check_src_dest_table_params_exist();
 
@@ -327,7 +326,7 @@ SELECT "{id_column}", "{width_column}", "{name_column}", "{geom_column}"
     }
     timer(m_timer_width).stop();
 
-    if (m_delete_existing) {
+    if (append_mode()) {
         dbexec("TRUNCATE {dest}");
     }
 
