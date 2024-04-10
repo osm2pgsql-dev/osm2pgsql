@@ -195,6 +195,16 @@ public:
         return m_always_build_id_index;
     }
 
+    void set_build_unique_id_index() noexcept
+    {
+        m_build_unique_id_index = true;
+    }
+
+    bool build_unique_id_index() const noexcept
+    {
+        return m_build_unique_id_index;
+    }
+
     bool has_columns_with_expire() const noexcept;
 
     std::size_t num() const noexcept { return m_table_num; }
@@ -252,6 +262,9 @@ private:
 
     /// Always build the id index, not only when it is needed for updates?
     bool m_always_build_id_index = false;
+
+    /// Build the index as a unique index.
+    bool m_build_unique_id_index = false;
 
 }; // class flex_table_t
 
