@@ -26,8 +26,9 @@ static std::size_t round_up(std::size_t value, std::size_t multiple) noexcept
     return ((value + multiple - 1U) / multiple) * multiple;
 }
 
-gen_tile_builtup_t::gen_tile_builtup_t(pg_conn_t *connection, params_t *params)
-: gen_tile_t(connection, params), m_timer_draw(add_timer("draw")),
+gen_tile_builtup_t::gen_tile_builtup_t(pg_conn_t *connection, bool append,
+                                       params_t *params)
+: gen_tile_t(connection, append, params), m_timer_draw(add_timer("draw")),
   m_timer_simplify(add_timer("simplify")),
   m_timer_vectorize(add_timer("vectorize")), m_timer_write(add_timer("write"))
 {

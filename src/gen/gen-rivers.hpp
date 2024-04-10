@@ -17,7 +17,7 @@
 class gen_rivers_t : public gen_base_t
 {
 public:
-    gen_rivers_t(pg_conn_t *connection, params_t *params);
+    gen_rivers_t(pg_conn_t *connection, bool append, params_t *params);
 
     void process() override;
 

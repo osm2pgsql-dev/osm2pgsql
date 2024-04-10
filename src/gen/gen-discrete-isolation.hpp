@@ -17,7 +17,7 @@
 class gen_di_t : public gen_base_t
 {
 public:
-    gen_di_t(pg_conn_t *connection, params_t *params);
+    gen_di_t(pg_conn_t *connection, bool append, params_t *params);
 
     void process() override;
 

@@ -21,6 +21,6 @@ class pg_conn_t;
 /// Instantiate a generalizer for the specified strategy.
 std::unique_ptr<gen_base_t> create_generalizer(std::string const &strategy,
                                                pg_conn_t *connection,
-                                               params_t *params);
+                                               bool append, params_t *params);
 
 #endif // OSM2PGSQL_GEN_CREATE_HPP

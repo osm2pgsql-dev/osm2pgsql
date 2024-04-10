@@ -22,8 +22,8 @@
 #include <unordered_map>
 #include <vector>
 
-gen_rivers_t::gen_rivers_t(pg_conn_t *connection, params_t *params)
-: gen_base_t(connection, params), m_timer_area(add_timer("area")),
+gen_rivers_t::gen_rivers_t(pg_conn_t *connection, bool append, params_t *params)
+: gen_base_t(connection, append, params), m_timer_area(add_timer("area")),
   m_timer_prep(add_timer("prep")), m_timer_get(add_timer("get")),
   m_timer_sort(add_timer("sort")), m_timer_net(add_timer("net")),
   m_timer_remove(add_timer("remove")), m_timer_width(add_timer("width")),

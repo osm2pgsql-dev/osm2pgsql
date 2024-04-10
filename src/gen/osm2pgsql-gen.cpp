@@ -207,7 +207,8 @@ void run_tile_gen(connection_params_t const &connection_params,
               master_generalizer->strategy());
     pg_conn_t db_connection{connection_params, "gen.tile"};
     std::string const strategy{master_generalizer->strategy()};
-    auto generalizer = create_generalizer(strategy, &db_connection, &params);
+    auto generalizer = create_generalizer(
+        strategy, &db_connection, master_generalizer->append_mode(), &params);
 
     while (true) {
         std::pair<uint32_t, uint32_t> p;
@@ -290,7 +291,7 @@ public:
 
         log_debug("Creating generalizer...");
         auto generalizer =
-            create_generalizer(strategy, &db_connection, &params);
+            create_generalizer(strategy, &db_connection, m_append, &params);
 
         log_info("Running generalizer '{}' ({})...", generalizer->name(),
                  generalizer->strategy());

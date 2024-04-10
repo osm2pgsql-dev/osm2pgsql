@@ -16,8 +16,8 @@
 
 #include <cstdlib>
 
-gen_tile_t::gen_tile_t(pg_conn_t *connection, params_t *params)
-: gen_base_t(connection, params), m_timer_delete(add_timer("delete")),
+gen_tile_t::gen_tile_t(pg_conn_t *connection, bool append, params_t *params)
+: gen_base_t(connection, append, params), m_timer_delete(add_timer("delete")),
   m_zoom(parse_zoom())
 {
     m_with_group_by = !get_params().get_identifier("group_by_column").empty();

@@ -18,7 +18,8 @@
 class gen_tile_raster_union_t final : public gen_tile_t
 {
 public:
-    gen_tile_raster_union_t(pg_conn_t *connection, params_t *params);
+    gen_tile_raster_union_t(pg_conn_t *connection, bool append,
+                            params_t *params);
 
     ~gen_tile_raster_union_t() override = default;
 

@@ -17,8 +17,8 @@
 #include <algorithm>
 #include <vector>
 
-gen_di_t::gen_di_t(pg_conn_t *connection, params_t *params)
-: gen_base_t(connection, params), m_timer_get(add_timer("get")),
+gen_di_t::gen_di_t(pg_conn_t *connection, bool append, params_t *params)
+: gen_base_t(connection, append, params), m_timer_get(add_timer("get")),
   m_timer_sort(add_timer("sort")), m_timer_di(add_timer("di")),
   m_timer_reorder(add_timer("reorder")), m_timer_write(add_timer("write"))
 {
