@@ -143,7 +143,9 @@ FROM {src} WHERE {importance_column} > 0
     connection().exec("COMMIT");
     timer(m_timer_write).stop();
 
-    dbexec("ANALYZE {src}");
+    if (!append_mode()) {
+        dbexec("ANALYZE {src}");
+    }
 
     log_gen("Done.");
 }

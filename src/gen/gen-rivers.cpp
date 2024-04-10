@@ -197,7 +197,11 @@ void gen_rivers_t::process()
     dbexec(R"(UPDATE {qualified_src_areas} SET width =)"
            R"( (ST_MaximumInscribedCircle("{geom_column}")).radius * 2)"
            R"( WHERE width IS NULL)");
-    dbexec("ANALYZE {qualified_src_areas}");
+
+    if (!append_mode()) {
+        dbexec("ANALYZE {qualified_src_areas}");
+    }
+
     timer(m_timer_area).stop();
 
     log_gen("Get 'width' from areas onto lines...");
@@ -343,7 +347,9 @@ SELECT "{id_column}", "{width_column}", "{name_column}", "{geom_column}"
     connection().exec("COMMIT");
     timer(m_timer_write).stop();
 
-    dbexec("ANALYZE {dest}");
+    if (!append_mode()) {
+        dbexec("ANALYZE {dest}");
+    }
 
     log_gen("Done.");
 }

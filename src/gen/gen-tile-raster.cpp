@@ -256,5 +256,8 @@ void gen_tile_raster_union_t::post()
                 fmt::format("{}_{}", m_image_table, variant));
         }
     }
-    dbexec("ANALYZE {dest}");
+
+    if (!append_mode()) {
+        dbexec("ANALYZE {dest}");
+    }
 }

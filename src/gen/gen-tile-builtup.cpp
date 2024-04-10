@@ -279,5 +279,8 @@ void gen_tile_builtup_t::post()
             }
         }
     }
-    dbexec("ANALYZE {dest}");
+
+    if (!append_mode()) {
+        dbexec("ANALYZE {dest}");
+    }
 }

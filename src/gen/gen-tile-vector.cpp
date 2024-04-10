@@ -96,4 +96,9 @@ void gen_tile_vector_union_t::process(tile_t const &tile)
     log_gen("Inserted {} generalized polygons", result.affected_rows());
 }
 
-void gen_tile_vector_union_t::post() { dbexec("ANALYZE {dest}"); }
+void gen_tile_vector_union_t::post()
+{
+    if (!append_mode()) {
+        dbexec("ANALYZE {dest}");
+    }
+}
