@@ -279,7 +279,8 @@ static void enable_check_trigger(pg_conn_t const &db_connection,
                               checks);
 }
 
-void table_connection_t::start(pg_conn_t const &db_connection, bool append)
+void table_connection_t::start(pg_conn_t const &db_connection,
+                               bool append) const
 {
     if (!append) {
         drop_table_if_exists(db_connection, table().schema(), table().name());

@@ -75,7 +75,7 @@ Feature: Test get_bbox() function
             """
             w20 v1 dV Nn10,n11
             w21 v1 dV Nn11,n12
-            r30 v1 dV Ttype=route,route=bus Mw20@@
+            r30 v1 dV Ttype=route,route=bus Mw20@
             r31 v1 dV Ttype=route,route=bus Mw20@,w21@
             """
         And the lua style
