@@ -231,6 +231,12 @@ static void check_db_format(properties_t const &properties, options_t *options)
 {
     auto const format = properties.get_int("db_format", -1);
 
+    if (format == 1) {
+        throw std::runtime_error{
+            "Old database format detected. This version of osm2pgsql can not "
+            "read this any more. Downgrade osm2pgsql or reimport database."};
+    }
+
     if (format != 2) {
         throw fmt_error("Unknown db_format '{}' in properties.", format);
     }
@@ -303,23 +309,6 @@ static void check_and_update_properties(properties_t *properties,
     check_and_update_style_file(properties, options);
 }
 
-// If we are in append mode and the middle nodes table isn't there, it probably
-// means we used a flat node store when we created this database. Check for
-// that and stop if it looks like we are missing the node location store
-// option. (This function is only used in legacy systems which don't have the
-// properties stored in the database.)
-static void check_for_nodes_table(options_t const &options)
-{
-    if (!options.flat_node_file.empty()) {
-        return;
-    }
-
-    if (!has_table(options.middle_dbschema, options.prefix + "_nodes")) {
-        throw std::runtime_error{"You seem to not have a nodes table. Did "
-                                 "you forget the --flat-nodes option?"};
-    }
-}
-
 static void set_option_defaults(options_t *options)
 {
     if (options->output_backend.empty()) {
@@ -360,12 +349,13 @@ int main(int argc, char *argv[])
         properties_t properties{options.connection_params,
                                 options.middle_dbschema};
         if (options.append) {
-            if (properties.load()) {
-                check_and_update_properties(&properties, &options);
-            } else {
-                set_option_defaults(&options);
-                check_for_nodes_table(options);
+            if (!properties.load()) {
+                throw std::runtime_error{
+                    "Did not find table 'osm2pgsql_properties' in database. "
+                    "Database too old? Wrong schema?"};
             }
+
+            check_and_update_properties(&properties, &options);
 
             auto const finfo = run(options);
 
