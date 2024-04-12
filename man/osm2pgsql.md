@@ -198,11 +198,6 @@ mandatory for short options too.
 
 # PGSQL OUTPUT OPTIONS
 
--i, \--tablespace-index=TABLESPC
-:   Store all indexes in the PostgreSQL tablespace `TABLESPC`. This option
-    also affects the middle tables. This option is deprecated. Use the
-    \--tablespace-slim-index and/or \--tablespace-main-index options instead.
-
 \--tablespace-main-data=TABLESPC
 :   Store the data tables in the PostgreSQL tablespace `TABLESPC`.
 
