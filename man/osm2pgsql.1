@@ -203,16 +203,6 @@ Set ID shift for way node bucket index in middle.
 Experts only.
 See documentation for details.
 .TP
---middle-database-format=FORMAT
-Set the database format for the middle tables to FORMAT.
-Allowed formats are \f[B]new\f[R] (default) and \f[B]legacy\f[R] .
-The \f[B]legacy\f[R] format is deprecated and will be removed in version
-2.0.0.
-See the manual for details on these formats.
-(Only works with \f[B]--slim\f[R].
-In append mode osm2pgsql will automatically detect the database format,
-so don\[cq]t use this with \f[B]-a, --append\f[R].)
-.TP
 --middle-with-nodes
 Used together with the \f[B]new\f[R] middle database format when a flat
 nodes file is used to force storing nodes with tags in the database,

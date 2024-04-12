@@ -42,9 +42,6 @@ struct middle_pgsql_options
     // Bit shift used in way node index
     uint8_t way_node_index_id_shift = 5;
 
-    // Database format (legacy = 1, new = 2)
-    uint8_t db_format = 1;
-
     // Use a flat node file
     bool use_flat_node_file = false;
 
@@ -70,9 +67,6 @@ public:
     size_t rel_members_get(osmium::Relation const &rel,
                            osmium::memory::Buffer *buffer,
                            osmium::osm_entity_bits::type types) const override;
-
-    bool relation_get_format1(osmid_t id, osmium::memory::Buffer *buffer) const;
-    bool relation_get_format2(osmid_t id, osmium::memory::Buffer *buffer) const;
 
     bool relation_get(osmid_t id,
                       osmium::memory::Buffer *buffer) const override;
@@ -191,13 +185,8 @@ private:
     void way_set(osmium::Way const &way);
     void way_delete(osmid_t id);
 
-    void relation_set_format1(osmium::Relation const &rel);
-    void relation_set_format2(osmium::Relation const &rel);
-
     void relation_set(osmium::Relation const &rel);
     void relation_delete(osmid_t id);
-
-    void buffer_store_tags(osmium::OSMObject const &obj, bool attrs);
 
     void copy_attributes(osmium::OSMObject const &obj);
     void copy_tags(osmium::OSMObject const &obj);

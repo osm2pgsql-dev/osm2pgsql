@@ -131,9 +131,8 @@ void print_version()
 
 static void check_options_non_slim(CLI::App const &app)
 {
-    std::array<std::string, 7> const slim_options = {
+    std::array<std::string, 6> const slim_options = {
         "--flat-nodes",
-        "--middle-database-format",
         "--middle-schema",
         "--middle-with-nodes",
         "--middle-way-node-index-id-shift",
@@ -525,13 +524,6 @@ options_t parse_command_line(int argc, char *argv[])
         ->type_name("SCHEMA")
         ->group("Middle options");
 
-    std::string middle_database_format_raw;
-    // --middle-database-format
-    app.add_option("--middle-database-format", middle_database_format_raw)
-        ->description("Set middle db format ('legacy', 'new' (default)).")
-        ->type_name("FORMAT")
-        ->group("Middle options");
-
     // --middle-with-nodes
     app.add_flag("--middle-with-nodes", options.middle_with_nodes)
         ->description("Store tagged nodes in db (new middle db format only).")
@@ -651,28 +643,7 @@ options_t parse_command_line(int argc, char *argv[])
     check_options(&options);
 
     if (options.slim) { // slim mode, use database middle
-        if (middle_database_format_raw.empty()) {
-            // Database format not set on the command line, use defaults. For
-            // append mode we keep old default for backwards compatibility, for
-            // create mode the new format is the default. (These will possibly
-            // be overwritten later by properties setting if it exists.)
-            options.middle_database_format = options.append ? 1 : 2;
-        } else if (options.append) {
-            // Database format set on command line in append mode.
-            throw std::runtime_error{
-                "Do not use --middle-database-format with --append."};
-        } else {
-            // Database format set on the command line in create mode.
-            if (middle_database_format_raw == "legacy") {
-                options.middle_database_format = 1;
-            } else if (middle_database_format_raw == "new") {
-                options.middle_database_format = 2;
-            } else {
-                throw std::runtime_error{
-                    "Unknown value for --middle-database-format"
-                    " (Use 'legacy' or 'new')."};
-            }
-        }
+        options.middle_database_format = 2;
     } else { // non-slim mode, use ram middle
         check_options_non_slim(app);
     }

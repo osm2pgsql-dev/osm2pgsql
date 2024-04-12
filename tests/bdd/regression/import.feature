@@ -149,12 +149,11 @@ Feature: Imports of the test database
             | --tablespace-slim-index| tablespacetest |        |
 
 
-    Scenario Outline: Import slim with hstore and extra tags
+    Scenario: Import slim with hstore and extra tags
         When running osm2pgsql pgsql with parameters
             | --slim |
             | -j |
             | -x |
-            | <middle_format> |
 
         Then table planet_osm_point has 1360 rows with condition
             """
@@ -184,9 +183,4 @@ Feature: Imports of the test database
             tags ? 'osm_uid' AND
             tags ? 'osm_changeset'
             """
-
-        Examples: Middle database format
-            | middle_format |
-            | --middle-database-format=legacy |
-            | --middle-database-format=new |
 
