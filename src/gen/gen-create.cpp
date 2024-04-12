@@ -18,24 +18,25 @@
 
 std::unique_ptr<gen_base_t> create_generalizer(std::string const &strategy,
                                                pg_conn_t *connection,
-                                               params_t *params)
+                                               bool append, params_t *params)
 {
     auto generalizer = [&]() -> std::unique_ptr<gen_base_t> {
         if (strategy == "builtup") {
-            return std::make_unique<gen_tile_builtup_t>(connection, params);
+            return std::make_unique<gen_tile_builtup_t>(connection, append,
+                                                        params);
         }
         if (strategy == "discrete-isolation") {
-            return std::make_unique<gen_di_t>(connection, params);
+            return std::make_unique<gen_di_t>(connection, append, params);
         }
         if (strategy == "raster-union") {
-            return std::make_unique<gen_tile_raster_union_t>(connection,
+            return std::make_unique<gen_tile_raster_union_t>(connection, append,
                                                              params);
         }
         if (strategy == "rivers") {
-            return std::make_unique<gen_rivers_t>(connection, params);
+            return std::make_unique<gen_rivers_t>(connection, append, params);
         }
         if (strategy == "vector-union") {
-            return std::make_unique<gen_tile_vector_union_t>(connection,
+            return std::make_unique<gen_tile_vector_union_t>(connection, append,
                                                              params);
         }
         throw fmt_error("Unknown generalization strategy '{}'.", strategy);

@@ -15,8 +15,9 @@
 #include "tile.hpp"
 
 gen_tile_vector_union_t::gen_tile_vector_union_t(pg_conn_t *connection,
-                                                 params_t *params)
-: gen_tile_t(connection, params), m_timer_simplify(add_timer("simplify"))
+                                                 bool append, params_t *params)
+: gen_tile_t(connection, append, params),
+  m_timer_simplify(add_timer("simplify"))
 {
     check_src_dest_table_params_exist();
 
@@ -95,4 +96,9 @@ void gen_tile_vector_union_t::process(tile_t const &tile)
     log_gen("Inserted {} generalized polygons", result.affected_rows());
 }
 
-void gen_tile_vector_union_t::post() { dbexec("ANALYZE {dest}"); }
+void gen_tile_vector_union_t::post()
+{
+    if (!append_mode()) {
+        dbexec("ANALYZE {dest}");
+    }
+}

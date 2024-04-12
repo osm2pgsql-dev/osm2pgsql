@@ -23,7 +23,7 @@ public:
     uint32_t get_zoom() const noexcept override { return m_zoom; }
 
 protected:
-    gen_tile_t(pg_conn_t *connection, params_t *params);
+    gen_tile_t(pg_conn_t *connection, bool append, params_t *params);
 
     uint32_t parse_zoom();
 
@@ -34,7 +34,6 @@ protected:
 private:
     std::size_t m_timer_delete;
     uint32_t m_zoom;
-    bool m_delete_existing = false;
     bool m_with_group_by = false;
 };
 

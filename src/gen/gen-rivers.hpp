@@ -17,7 +17,7 @@
 class gen_rivers_t : public gen_base_t
 {
 public:
-    gen_rivers_t(pg_conn_t *connection, params_t *params);
+    gen_rivers_t(pg_conn_t *connection, bool append, params_t *params);
 
     void process() override;
 
@@ -37,7 +37,6 @@ private:
 
     std::size_t m_num_waterways = 0;
     std::size_t m_num_points = 0;
-    bool m_delete_existing;
 };
 
 #endif // OSM2PGSQL_GEN_RIVERS_HPP

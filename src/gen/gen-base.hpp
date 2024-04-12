@@ -67,8 +67,10 @@ public:
         }
     }
 
+    bool append_mode() const noexcept { return m_append; }
+
 protected:
-    gen_base_t(pg_conn_t *connection, params_t *params);
+    gen_base_t(pg_conn_t *connection, bool append, params_t *params);
 
     /**
      * Check that the 'src_table' and 'dest_table' parameters exist and that
@@ -106,6 +108,7 @@ private:
     std::vector<util::timer_t> m_timers;
     pg_conn_t *m_connection;
     params_t *m_params;
+    bool m_append;
     bool m_debug = false;
 }; // class gen_base_t
 
