@@ -269,6 +269,7 @@ else()
                     src/gen/gen-rivers.cpp
                     src/gen/gen-tile-builtup.cpp
                     src/gen/gen-tile-raster.cpp
+                    src/gen/gen-tile-sql.cpp
                     src/gen/gen-tile-vector.cpp
                     src/gen/gen-tile.cpp
                     src/gen/params.cpp
