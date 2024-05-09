@@ -20,7 +20,7 @@ static void check_and_add_column(flex_table_t const &table,
                                  std::vector<std::string> *columns,
                                  char const *column_name)
 {
-    auto const *column = util::find_by_name(table, column_name);
+    auto const *column = util::find_by_name(table.columns(), column_name);
     if (!column) {
         throw fmt_error("Unknown column '{}' in table '{}'.", column_name,
                         table.name());

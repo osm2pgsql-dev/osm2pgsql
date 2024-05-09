@@ -643,7 +643,7 @@ int output_flex_t::table_insert()
     auto *copy_mgr = table_connection.copy_mgr();
 
     try {
-        for (auto const &column : table_connection.table()) {
+        for (auto const &column : table_connection.table().columns()) {
             if (column.create_only()) {
                 continue;
             }
@@ -681,7 +681,7 @@ int output_flex_t::table_columns()
     lua_createtable(lua_state(), (int)table.num_columns(), 0);
 
     int n = 0;
-    for (auto const &column : table) {
+    for (auto const &column : table.columns()) {
         lua_pushinteger(lua_state(), ++n);
         lua_newtable(lua_state());
 
@@ -1039,7 +1039,7 @@ void output_flex_t::delete_from_table(table_connection_t *table_connection,
         auto const num_tuples = result.num_tuples();
         if (num_tuples > 0) {
             int col = 0;
-            for (auto const &column : table_connection->table()) {
+            for (auto const &column : table_connection->table().columns()) {
                 if (column.has_expire()) {
                     for (int i = 0; i < num_tuples; ++i) {
                         auto const geom = ewkb_to_geom(result.get(i, col));

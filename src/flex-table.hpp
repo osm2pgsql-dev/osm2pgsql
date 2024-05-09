@@ -111,14 +111,9 @@ public:
 
     std::size_t num_columns() const noexcept { return m_columns.size(); }
 
-    std::vector<flex_table_column_t>::const_iterator begin() const noexcept
+    std::vector<flex_table_column_t> const &columns() const noexcept
     {
-        return m_columns.begin();
-    }
-
-    std::vector<flex_table_column_t>::const_iterator end() const noexcept
-    {
-        return m_columns.end();
+        return m_columns;
     }
 
     flex_table_column_t *find_column_by_name(std::string const &name)
