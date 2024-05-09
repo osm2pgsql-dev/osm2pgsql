@@ -260,7 +260,7 @@ static void enable_check_trigger(pg_conn_t const &db_connection,
 {
     std::string checks;
 
-    for (auto const &column : table) {
+    for (auto const &column : table.columns()) {
         if (column.is_geometry_column() && column.needs_isvalid()) {
             checks.append(fmt::format(
                 R"((NEW."{0}" IS NULL OR ST_IsValid(NEW."{0}")) AND )",
