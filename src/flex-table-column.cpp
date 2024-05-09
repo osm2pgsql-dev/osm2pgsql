@@ -13,11 +13,11 @@
 #include "util.hpp"
 
 #include <algorithm>
-#include <array>
 #include <cctype>
 #include <cstdlib>
 #include <stdexcept>
 #include <utility>
+#include <vector>
 
 struct column_type_lookup
 {
@@ -27,7 +27,7 @@ struct column_type_lookup
     char const *name() const noexcept { return m_name; }
 };
 
-static std::array<column_type_lookup, 25> const column_types = {
+static std::vector<column_type_lookup> const column_types = {
     {{"text", table_column_type::text},
      {"boolean", table_column_type::boolean},
      {"bool", table_column_type::boolean},

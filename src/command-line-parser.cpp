@@ -27,11 +27,11 @@
 #endif
 
 #include <algorithm>
-#include <array>
 #include <cstdio>
 #include <cstring>
 #include <stdexcept>
 #include <thread> // for number of threads
+#include <vector>
 
 static osmium::Box parse_bbox_param(std::string const &arg)
 {
@@ -131,13 +131,10 @@ void print_version()
 
 static void check_options_non_slim(CLI::App const &app)
 {
-    std::array<std::string, 6> const slim_options = {
-        "--flat-nodes",
-        "--middle-schema",
-        "--middle-with-nodes",
-        "--middle-way-node-index-id-shift",
-        "--tablespace-slim-data",
-        "--tablespace-slim-index"};
+    std::vector<std::string> const slim_options = {
+        "--flat-nodes",           "--middle-schema",
+        "--middle-with-nodes",    "--middle-way-node-index-id-shift",
+        "--tablespace-slim-data", "--tablespace-slim-index"};
 
     for (auto const &opt : slim_options) {
         if (app.count(opt) > 0) {
