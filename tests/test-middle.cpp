@@ -1065,7 +1065,8 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
         check_way(mid, way21);
         check_way_nodes(mid, way21.id(), {&node11, &node12});
 
-        REQUIRE_FALSE(osmdata.has_pending());
+        REQUIRE(osmdata.get_pending_way_ids().empty());
+        REQUIRE(osmdata.get_pending_relation_ids().empty());
 
         osmdata.stop();
     }
@@ -1088,9 +1089,10 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
         osmdata.after_ways();
         osmdata.after_relations();
 
-        REQUIRE(osmdata.has_pending());
-        idlist_t const way_ids = osmdata.get_pending_way_ids();
+        idlist_t const &way_ids = osmdata.get_pending_way_ids();
         REQUIRE(way_ids == idlist_t{20});
+
+        REQUIRE(osmdata.get_pending_relation_ids().empty());
 
         check_way(mid, way20);
         check_way_nodes(mid, way20.id(), {&node10a, &node11});
@@ -1123,9 +1125,10 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
             osmdata.after_ways();
             osmdata.after_relations();
 
-            REQUIRE(osmdata.has_pending());
-            idlist_t const way_ids = osmdata.get_pending_way_ids();
+            idlist_t const &way_ids = osmdata.get_pending_way_ids();
             REQUIRE(way_ids == idlist_t{20, 22});
+
+            REQUIRE(osmdata.get_pending_relation_ids().empty());
 
             check_way(mid, way20);
             check_way_nodes(mid, way20.id(), {&node10a, &node11});
@@ -1168,7 +1171,8 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
             osmdata.after_ways();
             osmdata.after_relations();
 
-            REQUIRE_FALSE(osmdata.has_pending());
+            REQUIRE(osmdata.get_pending_way_ids().empty());
+            REQUIRE(osmdata.get_pending_relation_ids().empty());
         }
     }
 }
@@ -1237,10 +1241,10 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
         osmdata.after_ways();
         osmdata.after_relations();
 
-        REQUIRE(osmdata.has_pending());
-        idlist_t const rel_ids = osmdata.get_pending_relation_ids();
-
+        REQUIRE(osmdata.get_pending_way_ids().empty());
+        idlist_t const &rel_ids = osmdata.get_pending_relation_ids();
         REQUIRE(rel_ids == idlist_t{30});
+
         check_relation(mid, rel30);
     }
 
@@ -1259,10 +1263,9 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
         osmdata.after_ways();
         osmdata.after_relations();
 
-        REQUIRE(osmdata.has_pending());
-        idlist_t const way_ids = osmdata.get_pending_way_ids();
+        idlist_t const &way_ids = osmdata.get_pending_way_ids();
         REQUIRE(way_ids == idlist_t{20});
-        idlist_t const rel_ids = osmdata.get_pending_relation_ids();
+        idlist_t const &rel_ids = osmdata.get_pending_relation_ids();
         REQUIRE(rel_ids == idlist_t{31});
         check_relation(mid, rel31);
     }

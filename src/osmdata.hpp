@@ -58,11 +58,16 @@ public:
      */
     void stop();
 
-    bool has_pending() const noexcept;
+    // These getters are needed only for tests
+    idlist_t const &get_pending_way_ids() const noexcept
+    {
+        return m_ways_pending_tracker;
+    }
 
-    idlist_t get_pending_way_ids();
-
-    idlist_t get_pending_relation_ids();
+    idlist_t const &get_pending_relation_ids() const noexcept
+    {
+        return m_rels_pending_tracker;
+    }
 
 private:
     /**

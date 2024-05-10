@@ -383,9 +383,15 @@ void osmdata_t::process_dependents()
                                  m_num_procs};
 
     // stage 1b processing: process parents of changed objects
-    if (has_pending()) {
-        proc.process_ways(get_pending_way_ids());
-        proc.process_relations(get_pending_relation_ids());
+    if (!m_ways_pending_tracker.empty() || !m_rels_pending_tracker.empty()) {
+        if (!m_ways_pending_tracker.empty()) {
+            m_ways_pending_tracker.sort_unique();
+            proc.process_ways(std::move(m_ways_pending_tracker));
+        }
+        if (!m_rels_pending_tracker.empty()) {
+            m_rels_pending_tracker.sort_unique();
+            proc.process_relations(std::move(m_rels_pending_tracker));
+        }
         proc.merge_expire_trees();
     }
 
@@ -395,14 +401,16 @@ void osmdata_t::process_dependents()
         return;
     }
 
-    assert(m_rels_pending_tracker.empty());
-    m_mid->get_way_parents(marked_ways, &m_rels_pending_tracker);
-
     // process parent relations of marked ways
-    if (has_pending()) {
-        proc.process_relations_stage1c(
-            get_pending_relation_ids());
+    idlist_t rels_pending_tracker{};
+    m_mid->get_way_parents(marked_ways, &rels_pending_tracker);
+
+    if (rels_pending_tracker.empty()) {
+        return;
     }
+
+    rels_pending_tracker.sort_unique();
+    proc.process_relations_stage1c(std::move(rels_pending_tracker));
 }
 
 void osmdata_t::reprocess_marked() const { m_output->reprocess_marked(); }
@@ -441,27 +449,4 @@ void osmdata_t::stop()
     reprocess_marked();
 
     postprocess_database();
-}
-
-bool osmdata_t::has_pending() const noexcept
-{
-    return !m_ways_pending_tracker.empty() || !m_rels_pending_tracker.empty();
-}
-
-idlist_t osmdata_t::get_pending_way_ids()
-{
-    idlist_t list;
-    using std::swap;
-    swap(list, m_ways_pending_tracker);
-    list.sort_unique();
-    return list;
-}
-
-idlist_t osmdata_t::get_pending_relation_ids()
-{
-    idlist_t list;
-    using std::swap;
-    swap(list, m_rels_pending_tracker);
-    list.sort_unique();
-    return list;
 }
