@@ -35,6 +35,7 @@ osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid,
 {
     assert(m_mid);
     assert(m_output);
+    m_output->start();
 }
 
 void osmdata_t::node(osmium::Node const &node)
@@ -186,11 +187,6 @@ void osmdata_t::after_relations()
     }
 
     m_output->sync();
-}
-
-void osmdata_t::start() const
-{
-    m_output->start();
 }
 
 namespace {

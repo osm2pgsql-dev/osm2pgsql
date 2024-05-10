@@ -1048,8 +1048,6 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
                                                       thread_pool, options);
         osmdata_t osmdata{mid, output, options};
 
-        osmdata.start();
-
         osmdata.node(node10);
         osmdata.node(node11);
         osmdata.node(node12);
@@ -1084,7 +1082,6 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
                                                       thread_pool, options);
         osmdata_t osmdata{mid, output, options};
 
-        osmdata.start();
         osmdata.node(node10d);
         osmdata.node(node10a);
         osmdata.after_nodes();
@@ -1119,7 +1116,6 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
             auto output = std::make_shared<output_null_t>(
                 mid->get_query_instance(), thread_pool, options);
             osmdata_t osmdata{mid, output, options};
-            osmdata.start();
 
             osmdata.node(node10d);
             osmdata.node(node10a);
@@ -1147,7 +1143,6 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
             auto output = std::make_shared<output_null_t>(
                 mid->get_query_instance(), thread_pool, options);
             osmdata_t osmdata{mid, output, options};
-            osmdata.start();
 
             osmdata.after_nodes();
             osmdata.way(way20d);
@@ -1166,7 +1161,6 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
             auto output = std::make_shared<output_null_t>(
                 mid->get_query_instance(), thread_pool, options);
             osmdata_t osmdata{mid, output, options};
-            osmdata.start();
 
             osmdata.node(node10d);
             osmdata.node(node10a);
@@ -1236,7 +1230,6 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
         auto output = std::make_shared<output_null_t>(mid->get_query_instance(),
                                                       thread_pool, options);
         osmdata_t osmdata{mid, output, options};
-        osmdata.start();
 
         osmdata.node(node10d);
         osmdata.node(node10a);
@@ -1259,7 +1252,6 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
         auto output = std::make_shared<output_null_t>(mid->get_query_instance(),
                                                       thread_pool, options);
         osmdata_t osmdata{mid, output, options};
-        osmdata.start();
 
         osmdata.node(node11d);
         osmdata.node(node11a);

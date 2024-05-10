@@ -44,8 +44,6 @@ public:
     osmdata_t(std::shared_ptr<middle_t> mid, std::shared_ptr<output_t> output,
               options_t const &options);
 
-    void start() const;
-
     void node(osmium::Node const &node);
     void way(osmium::Way &way);
     void relation(osmium::Relation const &rel);

@@ -61,8 +61,6 @@ static file_info run(options_t const &options)
 
     osmdata_t osmdata{middle, output, options};
 
-    osmdata.start();
-
     // Processing: In this phase the input file(s) are read and parsed,
     // populating some of the tables.
     auto finfo = process_files(files, &osmdata, options.append,

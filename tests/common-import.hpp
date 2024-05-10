@@ -40,8 +40,6 @@ inline void parse_file(options_t const &options,
 {
     osmdata_t osmdata{mid, output, options};
 
-    osmdata.start();
-
     std::string filepath{TESTDATA_DIR};
     if (filename) {
         filepath += filename;
@@ -144,8 +142,6 @@ public:
         middle->set_requirements(output->get_requirements());
 
         osmdata_t osmdata{middle, output, options};
-
-        osmdata.start();
 
         std::vector<osmium::io::File> files;
         for (auto const &data : input_data) {
