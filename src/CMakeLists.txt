@@ -10,7 +10,6 @@ target_sources(osm2pgsql_lib PRIVATE
   command-line-parser.cpp
   db-copy.cpp
   debug-output.cpp
-  dependency-manager.cpp
   expire-tiles.cpp
   expire-output.cpp
   geom.cpp

@@ -17,7 +17,6 @@
 #include <osmium/osm/types_from_string.hpp>
 #include <osmium/visitor.hpp>
 
-#include "dependency-manager.hpp"
 #include "input.hpp"
 #include "middle-pgsql.hpp"
 #include "middle-ram.hpp"
@@ -35,12 +34,11 @@
 namespace testing {
 
 inline void parse_file(options_t const &options,
-                       std::unique_ptr<dependency_manager_t> dependency_manager,
                        std::shared_ptr<middle_t> const &mid,
                        std::shared_ptr<output_t> const &output,
                        char const *filename = nullptr, bool do_stop = true)
 {
-    osmdata_t osmdata{std::move(dependency_manager), mid, output, options};
+    osmdata_t osmdata{mid, output, options};
 
     osmdata.start();
 
@@ -145,11 +143,7 @@ public:
 
         middle->set_requirements(output->get_requirements());
 
-        auto dependency_manager =
-            std::make_unique<full_dependency_manager_t>(middle);
-
-        osmdata_t osmdata{std::move(dependency_manager), middle, output,
-                          options};
+        osmdata_t osmdata{middle, output, options};
 
         osmdata.start();
 
@@ -182,11 +176,7 @@ public:
 
         middle->set_requirements(output->get_requirements());
 
-        auto dependency_manager =
-            std::make_unique<full_dependency_manager_t>(middle);
-
-        parse_file(options, std::move(dependency_manager), middle, output,
-                   file);
+        parse_file(options, middle, output, file);
 
         middle->wait();
         output->wait();

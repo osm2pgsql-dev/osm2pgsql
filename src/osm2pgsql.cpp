@@ -8,7 +8,6 @@
  */
 
 #include "command-line-parser.hpp"
-#include "dependency-manager.hpp"
 #include "input.hpp"
 #include "logging.hpp"
 #include "middle.hpp"
@@ -60,10 +59,7 @@ static file_info run(options_t const &options)
 
     middle->set_requirements(output->get_requirements());
 
-    auto dependency_manager =
-        std::make_unique<full_dependency_manager_t>(middle);
-
-    osmdata_t osmdata{std::move(dependency_manager), middle, output, options};
+    osmdata_t osmdata{middle, output, options};
 
     osmdata.start();
 
