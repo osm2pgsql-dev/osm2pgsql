@@ -13,6 +13,7 @@
 #include "gen-rivers.hpp"
 #include "gen-tile-builtup.hpp"
 #include "gen-tile-raster.hpp"
+#include "gen-tile-sql.hpp"
 #include "gen-tile-vector.hpp"
 #include "params.hpp"
 
@@ -34,6 +35,9 @@ std::unique_ptr<gen_base_t> create_generalizer(std::string const &strategy,
         }
         if (strategy == "rivers") {
             return std::make_unique<gen_rivers_t>(connection, append, params);
+        }
+        if (strategy == "tile-sql") {
+            return std::make_unique<gen_tile_sql_t>(connection, append, params);
         }
         if (strategy == "vector-union") {
             return std::make_unique<gen_tile_vector_union_t>(connection, append,
