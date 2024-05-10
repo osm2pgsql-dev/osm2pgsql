@@ -102,16 +102,22 @@ bool table_is_empty(pg_conn_t const &db_connection, std::string const &schema,
 tile_extent get_extent_from_db(pg_conn_t const &db_connection,
                                std::string const &schema,
                                std::string const &table,
-                               std::string const &column, uint32_t zoom)
+                               std::string const &column, bool raster,
+                               uint32_t zoom)
 {
     if (table_is_empty(db_connection, schema, table)) {
         return {};
     }
 
-    auto const result = db_connection.exec(
-        "SELECT ST_XMin(e), ST_YMin(e), ST_XMax(e), ST_YMax(e)"
-        " FROM ST_EstimatedExtent('{}', '{}', '{}') AS e",
-        schema, table, column);
+    std::string const sql =
+        raster ? "SELECT ST_XMin(extent), ST_YMin(extent),"
+                 " ST_XMax(extent), ST_YMax(extent)"
+                 " FROM raster_columns WHERE r_table_schema='{}'"
+                 " AND r_table_name='{}' AND r_raster_column = '{}'"
+               : "SELECT ST_XMin(e), ST_YMin(e), ST_XMax(e), ST_YMax(e)"
+                 " FROM ST_EstimatedExtent('{}', '{}', '{}') AS e";
+
+    auto const result = db_connection.exec(sql, schema, table, column);
 
     if (result.num_tuples() == 0 || result.is_null(0, 0)) {
         return {};
@@ -135,6 +141,7 @@ tile_extent get_extent_from_db(pg_conn_t const &db_connection,
                                params_t const &params, uint32_t zoom)
 {
     auto const schema = params.get_string("schema", default_schema);
+
     std::string table;
     if (params.has("src_table")) {
         table = params.get_string("src_table");
@@ -147,8 +154,15 @@ tile_extent get_extent_from_db(pg_conn_t const &db_connection,
     } else {
         throw std::runtime_error{"Need 'src_table' or 'src_tables' param."};
     }
+
     auto const geom_column = params.get_string("geom_column", "geom");
-    return get_extent_from_db(db_connection, schema, table, geom_column, zoom);
+    auto const raster_column = params.get_string("raster_column", "");
+
+    bool const is_raster = raster_column != "";
+
+    return get_extent_from_db(db_connection, schema, table,
+                              is_raster ? raster_column : geom_column,
+                              is_raster, zoom);
 }
 
 void get_tiles_from_table(pg_conn_t const &connection, std::string const &table,
