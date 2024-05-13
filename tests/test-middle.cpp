@@ -15,9 +15,10 @@
 #include <osmium/osm/crc.hpp>
 #include <osmium/osm/crc_zlib.hpp>
 
-#include "dependency-manager.hpp"
 #include "middle-pgsql.hpp"
 #include "middle-ram.hpp"
+#include "osmdata.hpp"
+#include "output-null.hpp"
 #include "output-requirements.hpp"
 
 #include "common-buffer.hpp"
@@ -580,13 +581,13 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
 
     auto const &way22 = buffer.add_way("w22 Nn12,n10 Tpower=line");
 
-    auto const &way20a =
+    auto &way20a =
         buffer.add_way("w20 Nn10,n12 Thighway=primary,name=High_Street");
 
     auto const &way5d = buffer.add_way("w5 dD");
-    auto const &way20d = buffer.add_way("w20 dD");
-    auto const &way22d = buffer.add_way("w22 dD");
-    auto const &way42d = buffer.add_way("w42 dD");
+    auto &way20d = buffer.add_way("w20 dD");
+    auto &way22d = buffer.add_way("w22 dD");
+    auto &way42d = buffer.add_way("w42 dD");
 
     // Set up middle in "create" mode to get a cleanly initialized database and
     // add some ways. Does this in its own scope so that the mid is closed
@@ -1029,29 +1030,32 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
 
     auto const &node10d = buffer.add_node("n10 dD");
 
-    auto const &way20 = buffer.add_way("w20 Nn10,n11");
-    auto const &way21 = buffer.add_way("w21 Nn11,n12");
-    auto const &way22 = buffer.add_way("w22 Nn12,n10");
-    auto const &way20a = buffer.add_way("w20 Nn11,n12");
+    auto &way20 = buffer.add_way("w20 Nn10,n11");
+    auto &way21 = buffer.add_way("w21 Nn11,n12");
+    auto &way22 = buffer.add_way("w22 Nn12,n10");
+    auto &way20a = buffer.add_way("w20 Nn11,n12");
 
-    auto const &way20d = buffer.add_way("w20 dD");
+    auto &way20d = buffer.add_way("w20 dD");
 
     // Set up middle in "create" mode to get a cleanly initialized database and
     // add some nodes and ways. Does this in its own scope so that the mid is
     // closed properly.
     {
         auto mid = std::make_shared<middle_pgsql_t>(thread_pool, &options);
-        full_dependency_manager_t const dependency_manager{mid};
         mid->start();
 
-        mid->node(node10);
-        mid->node(node11);
-        mid->node(node12);
-        mid->after_nodes();
-        mid->way(way20);
-        mid->way(way21);
-        mid->after_ways();
-        mid->after_relations();
+        auto output = std::make_shared<output_null_t>(mid->get_query_instance(),
+                                                      thread_pool, options);
+        osmdata_t osmdata{mid, output, options};
+
+        osmdata.node(node10);
+        osmdata.node(node11);
+        osmdata.node(node12);
+        osmdata.after_nodes();
+        osmdata.way(way20);
+        osmdata.way(way21);
+        osmdata.after_ways();
+        osmdata.after_relations();
 
         check_node(mid, node10);
         check_node(mid, node11);
@@ -1061,10 +1065,10 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
         check_way(mid, way21);
         check_way_nodes(mid, way21.id(), {&node11, &node12});
 
-        REQUIRE_FALSE(dependency_manager.has_pending());
+        REQUIRE(osmdata.get_pending_way_ids().empty());
+        REQUIRE(osmdata.get_pending_relation_ids().empty());
 
-        mid->stop();
-        mid->wait();
+        osmdata.stop();
     }
 
     // From now on use append mode to not destroy the data we just added.
@@ -1073,21 +1077,22 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
     SECTION("Single way affected")
     {
         auto mid = std::make_shared<middle_pgsql_t>(thread_pool, &options);
-        full_dependency_manager_t dependency_manager{mid};
         mid->start();
 
-        mid->node(node10d);
-        mid->node(node10a);
-        dependency_manager.node_changed(10);
-        mid->after_nodes();
-        dependency_manager.after_nodes();
-        mid->after_ways();
-        dependency_manager.after_ways();
-        mid->after_relations();
+        auto output = std::make_shared<output_null_t>(mid->get_query_instance(),
+                                                      thread_pool, options);
+        osmdata_t osmdata{mid, output, options};
 
-        REQUIRE(dependency_manager.has_pending());
-        idlist_t const way_ids = dependency_manager.get_pending_way_ids();
+        osmdata.node(node10d);
+        osmdata.node(node10a);
+        osmdata.after_nodes();
+        osmdata.after_ways();
+        osmdata.after_relations();
+
+        idlist_t const &way_ids = osmdata.get_pending_way_ids();
         REQUIRE(way_ids == idlist_t{20});
+
+        REQUIRE(osmdata.get_pending_relation_ids().empty());
 
         check_way(mid, way20);
         check_way_nodes(mid, way20.id(), {&node10a, &node11});
@@ -1108,21 +1113,22 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
         }
         {
             auto mid = std::make_shared<middle_pgsql_t>(thread_pool, &options);
-            full_dependency_manager_t dependency_manager{mid};
             mid->start();
 
-            mid->node(node10d);
-            mid->node(node10a);
-            dependency_manager.node_changed(10);
-            mid->after_nodes();
-            dependency_manager.after_nodes();
-            mid->after_ways();
-            dependency_manager.after_ways();
-            mid->after_relations();
+            auto output = std::make_shared<output_null_t>(
+                mid->get_query_instance(), thread_pool, options);
+            osmdata_t osmdata{mid, output, options};
 
-            REQUIRE(dependency_manager.has_pending());
-            idlist_t const way_ids = dependency_manager.get_pending_way_ids();
+            osmdata.node(node10d);
+            osmdata.node(node10a);
+            osmdata.after_nodes();
+            osmdata.after_ways();
+            osmdata.after_relations();
+
+            idlist_t const &way_ids = osmdata.get_pending_way_ids();
             REQUIRE(way_ids == idlist_t{20, 22});
+
+            REQUIRE(osmdata.get_pending_relation_ids().empty());
 
             check_way(mid, way20);
             check_way_nodes(mid, way20.id(), {&node10a, &node11});
@@ -1137,11 +1143,15 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
             auto mid = std::make_shared<middle_pgsql_t>(thread_pool, &options);
             mid->start();
 
-            mid->after_nodes();
-            mid->way(way20d);
-            mid->way(way20a);
-            mid->after_ways();
-            mid->after_relations();
+            auto output = std::make_shared<output_null_t>(
+                mid->get_query_instance(), thread_pool, options);
+            osmdata_t osmdata{mid, output, options};
+
+            osmdata.after_nodes();
+            osmdata.way(way20d);
+            osmdata.way(way20a);
+            osmdata.after_ways();
+            osmdata.after_relations();
 
             check_way(mid, way20a);
             check_way_nodes(mid, way20.id(), {&node11, &node12});
@@ -1149,19 +1159,20 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
 
         {
             auto mid = std::make_shared<middle_pgsql_t>(thread_pool, &options);
-            full_dependency_manager_t dependency_manager{mid};
             mid->start();
 
-            mid->node(node10d);
-            mid->node(node10a);
-            dependency_manager.node_changed(10);
-            mid->after_nodes();
-            dependency_manager.after_nodes();
-            mid->after_ways();
-            dependency_manager.after_ways();
-            mid->after_relations();
+            auto output = std::make_shared<output_null_t>(
+                mid->get_query_instance(), thread_pool, options);
+            osmdata_t osmdata{mid, output, options};
 
-            REQUIRE_FALSE(dependency_manager.has_pending());
+            osmdata.node(node10d);
+            osmdata.node(node10a);
+            osmdata.after_nodes();
+            osmdata.after_ways();
+            osmdata.after_relations();
+
+            REQUIRE(osmdata.get_pending_way_ids().empty());
+            REQUIRE(osmdata.get_pending_relation_ids().empty());
         }
     }
 }
@@ -1218,44 +1229,43 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
     SECTION("Single relation directly affected")
     {
         auto mid = std::make_shared<middle_pgsql_t>(thread_pool, &options);
-        full_dependency_manager_t dependency_manager{mid};
         mid->start();
 
-        mid->node(node10d);
-        mid->node(node10a);
-        dependency_manager.node_changed(10);
-        mid->after_nodes();
-        dependency_manager.after_nodes();
-        mid->after_ways();
-        dependency_manager.after_ways();
-        mid->after_relations();
+        auto output = std::make_shared<output_null_t>(mid->get_query_instance(),
+                                                      thread_pool, options);
+        osmdata_t osmdata{mid, output, options};
 
-        REQUIRE(dependency_manager.has_pending());
-        idlist_t const rel_ids = dependency_manager.get_pending_relation_ids();
+        osmdata.node(node10d);
+        osmdata.node(node10a);
+        osmdata.after_nodes();
+        osmdata.after_ways();
+        osmdata.after_relations();
 
+        REQUIRE(osmdata.get_pending_way_ids().empty());
+        idlist_t const &rel_ids = osmdata.get_pending_relation_ids();
         REQUIRE(rel_ids == idlist_t{30});
+
         check_relation(mid, rel30);
     }
 
     SECTION("Single relation indirectly affected (through way)")
     {
         auto mid = std::make_shared<middle_pgsql_t>(thread_pool, &options);
-        full_dependency_manager_t dependency_manager{mid};
         mid->start();
 
-        mid->node(node11d);
-        mid->node(node11a);
-        dependency_manager.node_changed(11);
-        mid->after_nodes();
-        dependency_manager.after_nodes();
-        mid->after_ways();
-        dependency_manager.after_ways();
-        mid->after_relations();
+        auto output = std::make_shared<output_null_t>(mid->get_query_instance(),
+                                                      thread_pool, options);
+        osmdata_t osmdata{mid, output, options};
 
-        REQUIRE(dependency_manager.has_pending());
-        idlist_t const way_ids = dependency_manager.get_pending_way_ids();
+        osmdata.node(node11d);
+        osmdata.node(node11a);
+        osmdata.after_nodes();
+        osmdata.after_ways();
+        osmdata.after_relations();
+
+        idlist_t const &way_ids = osmdata.get_pending_way_ids();
         REQUIRE(way_ids == idlist_t{20});
-        idlist_t const rel_ids = dependency_manager.get_pending_relation_ids();
+        idlist_t const &rel_ids = osmdata.get_pending_relation_ids();
         REQUIRE(rel_ids == idlist_t{31});
         check_relation(mid, rel31);
     }

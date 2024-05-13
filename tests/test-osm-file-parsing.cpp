@@ -142,29 +142,6 @@ struct counting_output_t : public output_null_t
     std::size_t sum_members = 0;
 };
 
-struct counts_t {
-    std::size_t nodes_changed = 0;
-    std::size_t ways_changed = 0;
-};
-
-/**
- * This pseudo-dependency manager is just used for testing. It counts how
- * often the *_changed() member functions are called.
- */
-class counting_dependency_manager_t : public dependency_manager_t
-{
-public:
-    explicit counting_dependency_manager_t(std::shared_ptr<counts_t> counts)
-    : m_counts(std::move(counts))
-    {}
-
-    void node_changed(osmid_t) override { ++m_counts->nodes_changed; }
-    void way_changed(osmid_t) override { ++m_counts->ways_changed; }
-
-private:
-    std::shared_ptr<counts_t> m_counts;
-};
-
 TEST_CASE("parse xml file")
 {
     options_t const options = testing::opt_t().slim();
@@ -174,12 +151,8 @@ TEST_CASE("parse xml file")
 
     auto const output = std::make_shared<counting_output_t>(options);
 
-    auto counts = std::make_shared<counts_t>();
-    auto dependency_manager =
-        std::make_unique<counting_dependency_manager_t>(counts);
-
-    testing::parse_file(options, std::move(dependency_manager), middle,
-                        output, "test_multipolygon.osm", false);
+    testing::parse_file(options, middle, output, "test_multipolygon.osm",
+                        false);
 
     REQUIRE(output->sum_ids == 4728);
     REQUIRE(output->sum_nds == 186);
@@ -201,9 +174,6 @@ TEST_CASE("parse xml file")
     REQUIRE(mid_test->way_count.deleted == 0);
     REQUIRE(mid_test->relation_count.added == 40);
     REQUIRE(mid_test->relation_count.deleted == 0);
-
-    REQUIRE(counts->nodes_changed == 0);
-    REQUIRE(counts->ways_changed == 0);
 }
 
 TEST_CASE("parse diff file")
@@ -215,12 +185,7 @@ TEST_CASE("parse diff file")
 
     auto const output = std::make_shared<counting_output_t>(options);
 
-    auto counts = std::make_shared<counts_t>();
-    auto dependency_manager =
-        std::make_unique<counting_dependency_manager_t>(counts);
-
-    testing::parse_file(options, std::move(dependency_manager), middle,
-                        output, "008-ch.osc.gz", false);
+    testing::parse_file(options, middle, output, "008-ch.osc.gz", false);
 
     REQUIRE(output->node.added == 0);
     REQUIRE(output->node.modified == 153);
@@ -239,9 +204,6 @@ TEST_CASE("parse diff file")
     REQUIRE(mid_test->way_count.deleted == 165);
     REQUIRE(mid_test->relation_count.added == 11);
     REQUIRE(mid_test->relation_count.deleted == 12);
-
-    REQUIRE(counts->nodes_changed == 1176);
-    REQUIRE(counts->ways_changed == 161);
 }
 
 TEST_CASE("parse xml file with extra args")
@@ -254,12 +216,8 @@ TEST_CASE("parse xml file with extra args")
 
     auto const output = std::make_shared<counting_output_t>(options);
 
-    auto counts = std::make_shared<counts_t>();
-    auto dependency_manager =
-        std::make_unique<counting_dependency_manager_t>(counts);
-
-    testing::parse_file(options, std::move(dependency_manager), middle,
-                        output, "test_multipolygon.osm", false);
+    testing::parse_file(options, middle, output, "test_multipolygon.osm",
+                        false);
 
     REQUIRE(output->sum_ids == 73514);
     REQUIRE(output->sum_nds == 495);
@@ -281,9 +239,6 @@ TEST_CASE("parse xml file with extra args")
     REQUIRE(mid_test->way_count.deleted == 0);
     REQUIRE(mid_test->relation_count.added == 40);
     REQUIRE(mid_test->relation_count.deleted == 0);
-
-    REQUIRE(counts->nodes_changed == 0);
-    REQUIRE(counts->ways_changed == 0);
 }
 
 TEST_CASE("invalid location")
@@ -295,15 +250,10 @@ TEST_CASE("invalid location")
 
     auto const output = std::make_shared<counting_output_t>(options);
 
-    auto counts = std::make_shared<counts_t>();
-    auto dependency_manager =
-        std::make_unique<counting_dependency_manager_t>(counts);
-
-    testing::parse_file(options, std::move(dependency_manager), middle,
-                        output, "test_invalid_location.osm", false);
+    testing::parse_file(options, middle, output, "test_invalid_location.osm",
+                        false);
 
     REQUIRE(output->node.added == 0);
     REQUIRE(output->way.added == 0);
     REQUIRE(output->relation.added == 0);
 }
-

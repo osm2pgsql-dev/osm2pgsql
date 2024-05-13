@@ -26,18 +26,16 @@
 #include "output.hpp"
 #include "util.hpp"
 
-osmdata_t::osmdata_t(std::unique_ptr<dependency_manager_t> dependency_manager,
-                     std::shared_ptr<middle_t> mid,
+osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid,
                      std::shared_ptr<output_t> output, options_t const &options)
-: m_dependency_manager(std::move(dependency_manager)), m_mid(std::move(mid)),
-  m_output(std::move(output)), m_connection_params(options.connection_params),
-  m_bbox(options.bbox), m_num_procs(options.num_procs),
-  m_append(options.append), m_droptemp(options.droptemp),
-  m_with_extra_attrs(options.extra_attributes)
+: m_mid(std::move(mid)), m_output(std::move(output)),
+  m_connection_params(options.connection_params), m_bbox(options.bbox),
+  m_num_procs(options.num_procs), m_append(options.append),
+  m_droptemp(options.droptemp), m_with_extra_attrs(options.extra_attributes)
 {
-    assert(m_dependency_manager);
     assert(m_mid);
     assert(m_output);
+    m_output->start();
 }
 
 void osmdata_t::node(osmium::Node const &node)
@@ -67,7 +65,7 @@ void osmdata_t::node(osmium::Node const &node)
         } else {
             m_output->node_delete(node.id());
         }
-        m_dependency_manager->node_changed(node.id());
+        m_changed_nodes.push_back(node.id());
     } else if (has_tags_or_attrs) {
         m_output->node_add(node);
     }
@@ -77,8 +75,15 @@ void osmdata_t::after_nodes()
 {
     m_mid->after_nodes();
     m_output->after_nodes();
-    if (m_append) {
-        m_dependency_manager->after_nodes();
+
+    if (!m_append) {
+        return;
+    }
+
+    if (!m_changed_nodes.empty()) {
+        m_mid->get_node_parents(m_changed_nodes, &m_ways_pending_tracker,
+                                &m_rels_pending_tracker);
+        m_changed_nodes.clear();
     }
 }
 
@@ -98,7 +103,7 @@ void osmdata_t::way(osmium::Way &way)
         } else {
             m_output->way_delete(way.id());
         }
-        m_dependency_manager->way_changed(way.id());
+        m_changed_ways.push_back(way.id());
     } else if (has_tags_or_attrs) {
         m_output->way_add(&way);
     }
@@ -108,8 +113,31 @@ void osmdata_t::after_ways()
 {
     m_mid->after_ways();
     m_output->after_ways();
-    if (m_append) {
-        m_dependency_manager->after_ways();
+
+    if (!m_append) {
+        return;
+    }
+
+    if (!m_changed_ways.empty()) {
+        if (!m_ways_pending_tracker.empty()) {
+            // Remove ids from changed ways in the input data from
+            // m_ways_pending_tracker, because they have already been
+            // processed.
+            m_ways_pending_tracker.remove_ids_if_in(m_changed_ways);
+
+            // Add the list of pending way ids to the list of changed ways,
+            // because we need the parents for them, too.
+            m_changed_ways.merge_sorted(m_ways_pending_tracker);
+        }
+
+        m_mid->get_way_parents(m_changed_ways, &m_rels_pending_tracker);
+
+        m_changed_ways.clear();
+        return;
+    }
+
+    if (!m_ways_pending_tracker.empty()) {
+        m_mid->get_way_parents(m_ways_pending_tracker, &m_rels_pending_tracker);
     }
 }
 
@@ -140,7 +168,7 @@ void osmdata_t::relation(osmium::Relation const &rel)
         } else {
             m_output->relation_delete(rel.id());
         }
-        m_dependency_manager->relation_changed(rel.id());
+        m_changed_relations.push_back(rel.id());
     } else if (has_tags_or_attrs) {
         m_output->relation_add(rel);
     }
@@ -149,16 +177,16 @@ void osmdata_t::relation(osmium::Relation const &rel)
 void osmdata_t::after_relations()
 {
     m_mid->after_relations();
+
     if (m_append) {
-        m_dependency_manager->after_relations();
+        // Remove ids from changed relations in the input data from
+        // m_rels_pending_tracker, because they have already been processed.
+        m_rels_pending_tracker.remove_ids_if_in(m_changed_relations);
+
+        m_changed_relations.clear();
     }
 
     m_output->sync();
-}
-
-void osmdata_t::start() const
-{
-    m_output->start();
 }
 
 namespace {
@@ -349,16 +377,21 @@ private:
 
 } // anonymous namespace
 
-void osmdata_t::process_dependents() const
+void osmdata_t::process_dependents()
 {
     multithreaded_processor proc{m_connection_params, m_mid, m_output,
                                  m_num_procs};
 
     // stage 1b processing: process parents of changed objects
-    if (m_dependency_manager->has_pending()) {
-        proc.process_ways(m_dependency_manager->get_pending_way_ids());
-        proc.process_relations(
-            m_dependency_manager->get_pending_relation_ids());
+    if (!m_ways_pending_tracker.empty() || !m_rels_pending_tracker.empty()) {
+        if (!m_ways_pending_tracker.empty()) {
+            m_ways_pending_tracker.sort_unique();
+            proc.process_ways(std::move(m_ways_pending_tracker));
+        }
+        if (!m_rels_pending_tracker.empty()) {
+            m_rels_pending_tracker.sort_unique();
+            proc.process_relations(std::move(m_rels_pending_tracker));
+        }
         proc.merge_expire_trees();
     }
 
@@ -368,13 +401,16 @@ void osmdata_t::process_dependents() const
         return;
     }
 
-    m_dependency_manager->mark_parent_relations_as_pending(marked_ways);
-
     // process parent relations of marked ways
-    if (m_dependency_manager->has_pending()) {
-        proc.process_relations_stage1c(
-            m_dependency_manager->get_pending_relation_ids());
+    idlist_t rels_pending_tracker{};
+    m_mid->get_way_parents(marked_ways, &rels_pending_tracker);
+
+    if (rels_pending_tracker.empty()) {
+        return;
     }
+
+    rels_pending_tracker.sort_unique();
+    proc.process_relations_stage1c(std::move(rels_pending_tracker));
 }
 
 void osmdata_t::reprocess_marked() const { m_output->reprocess_marked(); }
@@ -404,7 +440,7 @@ void osmdata_t::postprocess_database() const
     m_output->wait();
 }
 
-void osmdata_t::stop() const
+void osmdata_t::stop()
 {
     if (m_append) {
         process_dependents();
