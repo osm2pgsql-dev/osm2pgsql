@@ -65,7 +65,14 @@ void osmdata_t::node(osmium::Node const &node)
         } else {
             m_output->node_delete(node.id());
         }
-        m_changed_nodes.push_back(node.id());
+
+        // Version 1 means this is a new node, so there can't be an existing
+        // way or relation referencing it, so we don't have to add that node
+        // to the list of changed nodes. If the input data doesn't contain
+        // object versions this will still work, because then the version is 0.
+        if (node.version() != 1) {
+            m_changed_nodes.push_back(node.id());
+        }
     } else if (has_tags_or_attrs) {
         m_output->node_add(node);
     }
@@ -103,7 +110,14 @@ void osmdata_t::way(osmium::Way &way)
         } else {
             m_output->way_delete(way.id());
         }
-        m_changed_ways.push_back(way.id());
+
+        // Version 1 means this is a new way, so there can't be an existing
+        // relation referencing it, so we don't have to add that way to the
+        // list of changed ways. If the input data doesn't contain object
+        // versions this will still work, because then the version is 0.
+        if (way.version() != 1) {
+            m_changed_ways.push_back(way.id());
+        }
     } else if (has_tags_or_attrs) {
         m_output->way_add(&way);
     }

@@ -10,11 +10,11 @@ Feature: Changing ways in a flex database
     Scenario Outline:
         Given the OSM data:
             """
+            w10 v1 dV Tt1=yes Nn10,n11
             w11 v1 dV Tt1=yes Nn12,n13
             w12 v1 dV Tt2=yes Nn14,n15
             w13 v1 dV Ttboth=yes Nn16,n17
             w14 v1 dV Ttboth=yes Nn18,n19
-            w10 v1 dV Tt1=yes Nn10,n11
             r30 v1 dV Tt=ag Mw10@mark,w11@,w12@mark,w13@,w14@mark
             """
         When running osm2pgsql flex with parameters
@@ -56,18 +56,18 @@ Feature: Changing ways in a flex database
 
         Examples:
             | input                             | num_w10 |
-            | w10 v1 dV Tt2=yes Nn10,n11        | 0       |
-            | w10 v1 dV Tt1=yes,t2=yes Nn10,n11 | 1       |
+            | w10 v2 dV Tt2=yes Nn10,n11        | 0       |
+            | w10 v2 dV Tt1=yes,t2=yes Nn10,n11 | 1       |
 
 
     Scenario Outline: change way from t2
         Given the OSM data
             """
+            w10 v1 dV Tt2=yes Nn10,n11
             w11 v1 dV Tt1=yes Nn12,n13
             w12 v1 dV Tt2=yes Nn14,n15
             w13 v1 dV Ttboth=yes Nn16,n17
             w14 v1 dV Ttboth=yes Nn18,n19
-            w10 v1 dV Tt2=yes Nn10,n11
             r30 v1 dV Tt=ag Mw10@mark,w11@,w12@mark,w13@,w14@mark
             """
         When running osm2pgsql flex with parameters
@@ -109,18 +109,18 @@ Feature: Changing ways in a flex database
 
         Examples:
             | input                             | num_w10 |
-            | w10 v1 dV Tt1=yes Nn10,n11        | 0       |
-            | w10 v1 dV Tt1=yes,t2=yes Nn10,n11 | 1       |
+            | w10 v2 dV Tt1=yes Nn10,n11        | 0       |
+            | w10 v2 dV Tt1=yes,t2=yes Nn10,n11 | 1       |
 
 
     Scenario Outline: change way from t1 and t2
         Given the OSM data
             """
+            w10 v1 dV Tt1=yes,t2=yes Nn10,n11
             w11 v1 dV Tt1=yes Nn12,n13
             w12 v1 dV Tt2=yes Nn14,n15
             w13 v1 dV Ttboth=yes Nn16,n17
             w14 v1 dV Ttboth=yes Nn18,n19
-            w10 v1 dV Tt1=yes,t2=yes Nn10,n11
             r30 v1 dV Tt=ag Mw10@mark,w11@,w12@mark,w13@,w14@mark
             """
         When running osm2pgsql flex with parameters
@@ -166,18 +166,18 @@ Feature: Changing ways in a flex database
 
         Examples:
             | input                      | num_t1 | num_t2 |
-            | w10 v1 dV Tt1=yes Nn10,n11 | 1      | 0      |
-            | w10 v1 dV Tt2=yes Nn10,n11 | 0      | 1      |
+            | w10 v2 dV Tt1=yes Nn10,n11 | 1      | 0      |
+            | w10 v2 dV Tt2=yes Nn10,n11 | 0      | 1      |
 
 
     Scenario Outline: change valid geom to invalid geom
         Given the OSM data
             """
+            w10 v1 dV Tt1=yes,t2=yes,tboth=yes Nn10,n11
             w11 v1 dV Tt1=yes Nn12,n13
             w12 v1 dV Tt2=yes Nn14,n15
             w13 v1 dV Ttboth=yes Nn16,n17
             w14 v1 dV Ttboth=yes Nn18,n19
-            w10 v1 dV Tt1=yes,t2=yes,tboth=yes Nn10,n11
             r30 v1 dV Tt=ag Mw10@mark,w11@,w12@mark,w13@,w14@mark
             """
         When running osm2pgsql flex with parameters
@@ -223,11 +223,11 @@ Feature: Changing ways in a flex database
     Scenario: change invalid geom to valid geom
         Given the OSM data
             """
+            w10 v1 dV Tt1=yes,t2=yes,tboth=yes Nn10
             w11 v1 dV Tt1=yes Nn12,n13
             w12 v1 dV Tt2=yes Nn14,n15
             w13 v1 dV Ttboth=yes Nn16,n17
             w14 v1 dV Ttboth=yes Nn18,n19
-            w10 v1 dV Tt1=yes,t2=yes,tboth=yes Nn10
             r30 v1 dV Tt=ag Mw10@mark,w11@,w12@mark,w13@,w14@mark
             """
         When running osm2pgsql flex with parameters
