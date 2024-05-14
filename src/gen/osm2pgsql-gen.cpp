@@ -46,6 +46,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cassert>
 #include <chrono>
 #include <cstdint>
@@ -195,39 +196,49 @@ private:
     std::size_t m_num_tiles;
 };
 
-void run_tile_gen(connection_params_t const &connection_params,
+void run_tile_gen(std::atomic_flag *error_flag,
+                  connection_params_t const &connection_params,
                   gen_base_t *master_generalizer, params_t params,
                   uint32_t zoom,
                   std::vector<std::pair<uint32_t, uint32_t>> *queue,
                   std::mutex *mut, unsigned int n)
 {
-    logger::init_thread(n);
+    try {
+        logger::init_thread(n);
 
-    log_debug("Started generalizer thread for '{}'.",
-              master_generalizer->strategy());
-    pg_conn_t db_connection{connection_params, "gen.tile"};
-    std::string const strategy{master_generalizer->strategy()};
-    auto generalizer = create_generalizer(
-        strategy, &db_connection, master_generalizer->append_mode(), &params);
+        log_debug("Started generalizer thread for '{}'.",
+                  master_generalizer->strategy());
+        pg_conn_t db_connection{connection_params, "gen.tile"};
+        std::string const strategy{master_generalizer->strategy()};
+        auto generalizer =
+            create_generalizer(strategy, &db_connection,
+                               master_generalizer->append_mode(), &params);
 
-    while (true) {
-        std::pair<uint32_t, uint32_t> p;
-        {
-            std::lock_guard<std::mutex> const guard{*mut};
-            if (queue->empty()) {
-                master_generalizer->merge_timers(*generalizer);
-                break;
+        while (true) {
+            std::pair<uint32_t, uint32_t> p;
+            {
+                std::lock_guard<std::mutex> const guard{*mut};
+                if (queue->empty()) {
+                    master_generalizer->merge_timers(*generalizer);
+                    break;
+                }
+                p = queue->back();
+                queue->pop_back();
             }
-            p = queue->back();
-            queue->pop_back();
-        }
 
-        tile_t const tile{zoom, p.first, p.second};
-        log_debug("Processing tile {}/{}/{}...", tile.zoom(), tile.x(),
-                  tile.y());
-        generalizer->process(tile);
+            tile_t const tile{zoom, p.first, p.second};
+            log_debug("Processing tile {}/{}/{}...", tile.zoom(), tile.x(),
+                      tile.y());
+            generalizer->process(tile);
+        }
+        log_debug("Shutting down generalizer thread.");
+    } catch (std::exception const &e) {
+        log_error("{}", e.what());
+        error_flag->test_and_set();
+    } catch (...) {
+        log_error("Unknown exception in generalizer thread.");
+        error_flag->test_and_set();
     }
-    log_debug("Shutting down generalizer thread.");
 }
 
 class genproc_t
@@ -490,15 +501,20 @@ private:
             log_debug("Running in multi-threaded mode.");
             std::mutex mut;
             std::vector<std::thread> threads;
+            std::atomic_flag error_flag = ATOMIC_FLAG_INIT;
             for (unsigned int n = 1;
                  n <= std::min(m_jobs, static_cast<uint32_t>(tile_list.size()));
                  ++n) {
-                threads.emplace_back(run_tile_gen, m_connection_params,
-                                     generalizer, params, zoom, &tile_list,
-                                     &mut, n);
+                threads.emplace_back(run_tile_gen, &error_flag,
+                                     m_connection_params, generalizer, params,
+                                     zoom, &tile_list, &mut, n);
             }
             for (auto &t : threads) {
                 t.join();
+            }
+            if (error_flag.test_and_set()) {
+                throw std::runtime_error{
+                    "Error in generalizer thread. Stopping."};
             }
         }
     }
