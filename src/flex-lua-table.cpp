@@ -271,6 +271,15 @@ static void parse_and_set_expire_options(lua_State *lua_state,
             throw fmt_error("Unknown expire mode '{}'.", mode);
         }
 
+        lua_getfield(lua_state, -1, "line_segment_limit");
+        if (lua_isnumber(lua_state, -1)) {
+            config.line_segment_limit = lua_tonumber(lua_state, -1);
+        } else if (!lua_isnil(lua_state, -1)) {
+            throw std::runtime_error{"Optional expire field 'line_segment_limit' "
+                                     "must contain a number."};
+        }
+        lua_pop(lua_state, 1); // ""line_segment_limit"
+
         lua_getfield(lua_state, -1, "full_area_limit");
         if (lua_isnumber(lua_state, -1)) {
             if (config.mode != expire_mode::hybrid) {

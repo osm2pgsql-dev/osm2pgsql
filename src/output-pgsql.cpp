@@ -438,6 +438,7 @@ output_pgsql_t::output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
   m_buffer(32768, osmium::memory::Buffer::auto_grow::yes),
   m_rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
 {
+    m_expire_config.line_segment_limit = get_options()->expire_tiles_max_segment;
     m_expire_config.full_area_limit = get_options()->expire_tiles_max_bbox;
     if (get_options()->expire_tiles_max_bbox > 0.0) {
         m_expire_config.mode = expire_mode::hybrid;

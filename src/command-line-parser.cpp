@@ -460,6 +460,12 @@ options_t parse_command_line(int argc, char *argv[])
     // Expire options
     // ----------------------------------------------------------------------
 
+    // --expire-segment-length
+    app.add_option("--expire-segment-length", options.expire_tiles_max_segment)
+        ->description("Max length for a line segment to be expired (default: no limit).")
+        ->type_name("SIZE")
+        ->group("Expire options");
+
     // --expire-bbox-size
     app.add_option("--expire-bbox-size", options.expire_tiles_max_bbox)
         ->description("Max size for a polygon to expire the whole polygon, not "
