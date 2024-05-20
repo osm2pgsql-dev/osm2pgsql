@@ -65,6 +65,7 @@ public:
 
     virtual void after_nodes() {}
     virtual void after_ways() {}
+    virtual void after_relations() {}
 
     virtual void wait() {}
 

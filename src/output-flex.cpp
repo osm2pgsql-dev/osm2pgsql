@@ -931,19 +931,18 @@ void output_flex_t::sync()
     }
 }
 
-void output_flex_t::after_nodes()
+static void flush_tables(std::vector<table_connection_t> &table_connections)
 {
-    for (auto &table : m_table_connections) {
+    for (auto &table : table_connections) {
         table.flush();
     }
 }
 
-void output_flex_t::after_ways()
-{
-    for (auto &table : m_table_connections) {
-        table.flush();
-    }
-}
+void output_flex_t::after_nodes() { flush_tables(m_table_connections); }
+
+void output_flex_t::after_ways() { flush_tables(m_table_connections); }
+
+void output_flex_t::after_relations() { flush_tables(m_table_connections); }
 
 void output_flex_t::stop()
 {

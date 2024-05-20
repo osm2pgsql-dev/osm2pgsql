@@ -144,8 +144,9 @@ class db_cmd_t
 public:
     enum cmd_t
     {
-        Cmd_copy, ///< Copy buffer content into given target.
-        Cmd_sync, ///< Synchronize with parent.
+        Cmd_copy,     ///< Copy buffer content into given target.
+        Cmd_end_copy, ///< End COPY command.
+        Cmd_sync,     ///< Synchronize with parent.
         Cmd_finish
     };
 
@@ -229,6 +230,11 @@ private:
     DELETER m_deleter;
 };
 
+struct db_cmd_end_copy_t : public db_cmd_t
+{
+    db_cmd_end_copy_t() : db_cmd_t(db_cmd_t::Cmd_end_copy) {}
+};
+
 struct db_cmd_sync_t : public db_cmd_t
 {
     std::promise<void> barrier;
@@ -263,6 +269,9 @@ public:
      * Add another command for the worker.
      */
     void add_buffer(std::unique_ptr<db_cmd_t> &&buffer);
+
+    /// Close COPY if one is open
+    void end_copy();
 
     /**
      * Send sync command and wait for the notification.

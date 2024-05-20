@@ -105,6 +105,11 @@ void db_copy_thread_t::add_buffer(std::unique_ptr<db_cmd_t> &&buffer)
     m_shared.queue_cond.notify_one();
 }
 
+void db_copy_thread_t::end_copy()
+{
+    add_buffer(std::make_unique<db_cmd_end_copy_t>());
+}
+
 void db_copy_thread_t::sync_and_wait()
 {
     std::promise<void> barrier;
@@ -156,6 +161,9 @@ void db_copy_thread_t::thread_t::operator()()
             switch (item->type) {
             case db_cmd_t::Cmd_copy:
                 write_to_db(static_cast<db_cmd_copy_t *>(item.get()));
+                break;
+            case db_cmd_t::Cmd_end_copy:
+                finish_copy();
                 break;
             case db_cmd_t::Cmd_sync:
                 finish_copy();

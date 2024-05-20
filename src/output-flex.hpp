@@ -123,6 +123,7 @@ public:
 
     void after_nodes() override;
     void after_ways() override;
+    void after_relations() override;
 
     void wait() override;
 
