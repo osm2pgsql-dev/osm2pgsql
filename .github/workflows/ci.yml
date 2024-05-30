@@ -374,6 +374,24 @@ jobs:
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
+  ubuntu24-pg16-gcc14:
+    runs-on: ubuntu-24.04
+
+    env:
+      CC: gcc-14
+      CXX: g++-14
+      LUA_VERSION: 5.4
+      LUAJIT_OPTION: OFF
+      POSTGRESQL_VERSION: 16
+      POSTGIS_VERSION: 3
+      BUILD_TYPE: Debug
+      PSYCOPG: 3
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/build-and-test
+
   windows:
     strategy:
       fail-fast: false
