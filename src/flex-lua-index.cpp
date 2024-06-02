@@ -78,6 +78,12 @@ void flex_lua_setup_index(lua_State *lua_state, flex_table_t *table)
     }
     lua_pop(lua_state, 1);
 
+    // get name
+    std::string const name =
+        luaX_get_table_string(lua_state, "name", -1, "Index definition", "");
+    lua_pop(lua_state, 1);
+    index.set_name(name);
+
     // get expression
     std::string const expression = luaX_get_table_string(
         lua_state, "expression", -1, "Index definition", "");

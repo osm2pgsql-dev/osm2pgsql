@@ -30,7 +30,13 @@ flex_index_t::create_index(std::string const &qualified_table_name) const
         joiner.add("UNIQUE");
     }
 
-    joiner.add("INDEX ON");
+    joiner.add("INDEX");
+
+    if (!m_name.empty()) {
+        joiner.add(fmt::format(R"("{}")", m_name));
+    }
+
+    joiner.add("ON");
     joiner.add(qualified_table_name);
 
     joiner.add("USING");

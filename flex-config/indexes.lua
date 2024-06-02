@@ -62,11 +62,14 @@ tables.roads = osm2pgsql.define_way_table('roads', {
 }})
 
 -- Instead of on a column (or columns) you can define an index on an expression.
+-- Indexes can be named (the default name is the one that PostgreSQL creates).
 tables.postboxes = osm2pgsql.define_node_table('postboxes', {
     { column = 'operator', type = 'text' },
     { column = 'geom', type = 'point', not_null = true },
 }, { indexes = {
-    { expression = 'lower(operator)', method = 'btree' },
+    { expression = 'lower(operator)',
+      method = 'btree',
+      name = 'postbox_operator_idx' },
 }})
 
 -- Helper function that looks at the tags and decides if this is possibly
