@@ -215,22 +215,6 @@ jobs:
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/build-and-test
 
-  ubuntu20-pg13-gcc10-release-nolua:
-    runs-on: ubuntu-20.04
-
-    env:
-      CC: gcc-10
-      CXX: g++-10
-      POSTGRESQL_VERSION: 13
-      POSTGIS_VERSION: 2.5
-      BUILD_TYPE: Release
-      PSYCOPG: 2
-
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/ubuntu-prerequisites
-      - uses: ./.github/actions/build-and-test
-
   ubuntu22-pg16-clang14-jit:
     runs-on: ubuntu-22.04
 
@@ -313,23 +297,6 @@ jobs:
       EXTRA_FLAGS: -Wno-stringop-overread
       LUA_VERSION: 5.4
       LUAJIT_OPTION: ON
-      POSTGRESQL_VERSION: 16
-      POSTGIS_VERSION: 3
-      BUILD_TYPE: Release
-      PSYCOPG: 2
-
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/ubuntu-prerequisites
-      - uses: ./.github/actions/build-and-test
-
-  ubuntu22-pg16-gcc12-release-nolua:
-    runs-on: ubuntu-22.04
-
-    env:
-      CC: gcc-12
-      CXX: g++-12
-      EXTRA_FLAGS: -Wno-stringop-overread
       POSTGRESQL_VERSION: 16
       POSTGIS_VERSION: 3
       BUILD_TYPE: Release

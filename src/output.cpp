@@ -12,15 +12,9 @@
 #include "db-copy.hpp"
 #include "format.hpp"
 #include "options.hpp"
+#include "output-flex.hpp"
 #include "output-null.hpp"
 #include "output-pgsql.hpp"
-
-#ifdef HAVE_LUA
-# include "output-flex.hpp"
-static constexpr char const *const flex_backend = "flex, ";
-#else
-static constexpr char const *const flex_backend = "";
-#endif
 
 #include <stdexcept>
 #include <string>
@@ -36,12 +30,10 @@ output_t::create_output(std::shared_ptr<middle_query_t> const &mid,
                                                 options);
     }
 
-#ifdef HAVE_LUA
     if (options.output_backend == "flex") {
         return std::make_shared<output_flex_t>(mid, std::move(thread_pool),
                                                options);
     }
-#endif
 
     if (options.output_backend == "null") {
         return std::make_shared<output_null_t>(mid, std::move(thread_pool),
@@ -49,8 +41,8 @@ output_t::create_output(std::shared_ptr<middle_query_t> const &mid,
     }
 
     throw fmt_error("Output backend '{}' not recognised. Should be one of"
-                    " [pgsql, {}null].",
-                    options.output_backend, flex_backend);
+                    " [pgsql, flex, null].",
+                    options.output_backend);
 }
 
 output_t::output_t(std::shared_ptr<middle_query_t> mid,
