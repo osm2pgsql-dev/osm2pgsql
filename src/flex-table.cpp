@@ -323,34 +323,14 @@ void table_connection_t::stop(pg_conn_t const &db_connection, bool updateable,
             flex_table_t::table_type::permanent, table().full_tmp_name()));
 
         std::string const columns = table().build_sql_column_list();
-        std::string sql = fmt::format("INSERT INTO {} ({}) SELECT {} FROM {}",
-                                      table().full_tmp_name(), columns, columns,
-                                      table().full_name());
-
-        auto const postgis_version = get_postgis_version();
 
         auto const geom_column_name =
             "\"" + table().geom_column().name() + "\"";
 
-        sql += " ORDER BY ";
-        if (postgis_version.major == 2 && postgis_version.minor < 4) {
-            log_debug("Using GeoHash for clustering table '{}'",
-                      table().name());
-            if (table().geom_column().srid() == 4326) {
-                sql += fmt::format("ST_GeoHash({},10)", geom_column_name);
-            } else {
-                sql += fmt::format(
-                    "ST_GeoHash(ST_Transform(ST_Envelope({}),4326),10)",
-                    geom_column_name);
-            }
-            sql += " COLLATE \"C\"";
-        } else {
-            log_debug("Using native order for clustering table '{}'",
-                      table().name());
-            // Since Postgis 2.4 the order function for geometries gives
-            // useful results.
-            sql += geom_column_name;
-        }
+        std::string const sql =
+            fmt::format("INSERT INTO {} ({}) SELECT {} FROM {} ORDER BY {}",
+                        table().full_tmp_name(), columns, columns,
+                        table().full_name(), geom_column_name);
 
         db_connection.exec(sql);
 

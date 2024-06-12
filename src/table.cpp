@@ -195,28 +195,9 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
 
         log_info("Clustering table '{}' by geometry...", m_target->name());
 
-        std::string sql = fmt::format("CREATE TABLE {} {} AS SELECT * FROM {}",
-                                      qual_tmp_name, m_table_space, qual_name);
-
-        auto const postgis_version = get_postgis_version();
-
-        sql += " ORDER BY ";
-        if (postgis_version.major == 2 && postgis_version.minor < 4) {
-            log_debug("Using GeoHash for clustering table '{}'",
-                      m_target->name());
-            if (m_srid == "4326") {
-                sql += "ST_GeoHash(way,10)";
-            } else {
-                sql += "ST_GeoHash(ST_Transform(ST_Envelope(way),4326),10)";
-            }
-            sql += " COLLATE \"C\"";
-        } else {
-            log_debug("Using native order for clustering table '{}'",
-                      m_target->name());
-            // Since Postgis 2.4 the order function for geometries gives
-            // useful results.
-            sql += "way";
-        }
+        std::string const sql =
+            fmt::format("CREATE TABLE {} {} AS SELECT * FROM {} ORDER BY way",
+                        qual_tmp_name, m_table_space, qual_name);
 
         m_db_connection->exec(sql);
 
