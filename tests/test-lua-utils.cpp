@@ -89,7 +89,7 @@ TEST_CASE("luaX_for_each should call function n times", "[NoDB]")
         luaL_newstate(), [](lua_State *state) { lua_close(state); }};
 
     test_lua(lua_state.get(), "return { 3, 4, 5 }", [&](){
-        int sum = 0;
+        lua_Number sum = 0;
         luaX_for_each(lua_state.get(), [&]() {
             sum += lua_tonumber(lua_state.get(), -1);
         });

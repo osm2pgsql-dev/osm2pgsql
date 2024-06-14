@@ -262,10 +262,10 @@ private:
         if constexpr (std::is_same_v<T, char const *>) {
             return param;
         } else if constexpr (std::is_same_v<T, std::string>) {
-            *length = param.size();
+            *length = static_cast<int>(param.size());
             return param.c_str();
         } else if constexpr (std::is_same_v<T, binary_param>) {
-            *length = param.size();
+            *length = static_cast<int>(param.size());
             *bin = 1;
             return param.data();
         }

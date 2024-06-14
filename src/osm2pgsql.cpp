@@ -240,7 +240,7 @@ static void check_db_format(properties_t const &properties, options_t *options)
         throw fmt_error("Unknown db_format '{}' in properties.", format);
     }
 
-    options->middle_database_format = format;
+    options->middle_database_format = static_cast<uint8_t>(format);
 }
 
 static void check_output(properties_t const &properties, options_t *options)
