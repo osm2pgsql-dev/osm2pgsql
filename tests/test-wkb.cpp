@@ -215,7 +215,7 @@ TEST_CASE("wkb hex decode of valid hex string")
                               static_cast<char>(0x99),
                               static_cast<char>(0xff)};
 
-    auto const result = decode_hex(hex.c_str());
+    auto const result = decode_hex(hex);
     REQUIRE(result.size() == hex.size() / 2);
     REQUIRE(result == data);
 }
@@ -223,7 +223,7 @@ TEST_CASE("wkb hex decode of valid hex string")
 TEST_CASE("wkb hex decode of empty string is okay")
 {
     std::string const hex{};
-    REQUIRE(decode_hex(hex.c_str()).empty());
+    REQUIRE(decode_hex(hex).empty());
 }
 
 TEST_CASE("wkb hex decode of string with odd number of characters fails")
