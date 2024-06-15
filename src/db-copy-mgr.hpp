@@ -262,10 +262,12 @@ public:
 
     void flush()
     {
-        // finish any ongoing copy operations
+        // flush current buffer if there is one
         if (m_current) {
             m_processor->add_buffer(std::move(m_current));
         }
+        // close any ongoing copy operations
+        m_processor->end_copy();
     }
 
     /**

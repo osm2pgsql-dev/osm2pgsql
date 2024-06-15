@@ -191,6 +191,7 @@ void osmdata_t::relation(osmium::Relation const &rel)
 void osmdata_t::after_relations()
 {
     m_mid->after_relations();
+    m_output->after_relations();
 
     if (m_append) {
         // Remove ids from changed relations in the input data from
