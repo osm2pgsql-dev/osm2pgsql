@@ -122,9 +122,11 @@ prepared_lua_function_t::prepared_lua_function_t(lua_State *lua_state,
     throw fmt_error("osm2pgsql.{} must be a function.", name);
 }
 
-static void push_osm_object_to_lua_stack(lua_State *lua_state,
-                                         osmium::OSMObject const &object,
-                                         bool with_attributes)
+namespace {
+
+void push_osm_object_to_lua_stack(lua_State *lua_state,
+                                  osmium::OSMObject const &object,
+                                  bool with_attributes)
 {
     assert(lua_state);
 
@@ -200,12 +202,102 @@ static void push_osm_object_to_lua_stack(lua_State *lua_state,
  * Helper function to push the lon/lat of the specified location onto the
  * Lua stack
  */
-static void push_location(lua_State *lua_state,
-                          osmium::Location location) noexcept
+void push_location(lua_State *lua_state, osmium::Location location) noexcept
 {
     lua_pushnumber(lua_state, location.lon());
     lua_pushnumber(lua_state, location.lat());
 }
+
+// Check that the first element on the Lua stack is a "type_name"
+// parameter and return its internal index.
+std::size_t idx_from_param(lua_State *lua_state, char const *type_name)
+{
+    assert(lua_gettop(lua_state) >= 1);
+
+    void const *const user_data = lua_touserdata(lua_state, 1);
+
+    if (user_data == nullptr || !lua_getmetatable(lua_state, 1)) {
+        throw fmt_error("First parameter must be of type {}.", type_name);
+    }
+
+    luaL_getmetatable(lua_state, type_name);
+    if (!lua_rawequal(lua_state, -1, -2)) {
+        throw fmt_error("First parameter must be of type {}.", type_name);
+    }
+    lua_pop(lua_state, 2); // remove the two metatables
+
+    return *static_cast<std::size_t const *>(user_data);
+}
+
+template <typename CONTAINER>
+typename CONTAINER::value_type const &get_from_idx_param(lua_State *lua_state,
+                                                         CONTAINER *container,
+                                                         char const *type_name)
+{
+    if (lua_gettop(lua_state) != 1) {
+        throw fmt_error("Need exactly one parameter of type {}.", type_name);
+    }
+
+    auto const &item = container->at(idx_from_param(lua_state, type_name));
+    lua_remove(lua_state, 1);
+    return item;
+}
+
+std::size_t get_nodes(middle_query_t const &middle, osmium::Way *way)
+{
+    constexpr std::size_t const max_missing_nodes = 100;
+    static std::size_t count_missing_nodes = 0;
+
+    auto const count = middle.nodes_get_list(&way->nodes());
+
+    if (count_missing_nodes <= max_missing_nodes &&
+        count != way->nodes().size()) {
+        util::string_joiner_t id_list{','};
+        for (auto const &nr : way->nodes()) {
+            if (!nr.location().valid()) {
+                id_list.add(fmt::to_string(nr.ref()));
+                ++count_missing_nodes;
+            }
+        }
+
+        log_debug("Missing nodes in way {}: {}", way->id(), id_list());
+
+        if (count_missing_nodes > max_missing_nodes) {
+            log_debug("Reported more than {} missing nodes, no further missing "
+                      "nodes will be reported!",
+                      max_missing_nodes);
+        }
+    }
+
+    return count;
+}
+
+void flush_tables(std::vector<table_connection_t> &table_connections)
+{
+    for (auto &table : table_connections) {
+        table.flush();
+    }
+}
+
+void create_expire_tables(std::vector<expire_output_t> const &expire_outputs,
+                          connection_params_t const &connection_params)
+{
+    if (std::all_of(expire_outputs.begin(), expire_outputs.end(),
+                    [](auto const &expire_output) {
+                        return expire_output.table().empty();
+                    })) {
+        return;
+    }
+
+    pg_conn_t const connection{connection_params, "out.flex.expire"};
+    for (auto const &expire_output : expire_outputs) {
+        if (!expire_output.table().empty()) {
+            expire_output.create_output_table(connection);
+        }
+    }
+}
+
+} // anonymous namespace
 
 /**
  * Helper function checking that Lua function "name" is called in the correct
@@ -420,41 +512,6 @@ int output_flex_t::app_define_expire_output()
                                     m_expire_outputs.get());
 }
 
-// Check that the first element on the Lua stack is a "type_name"
-// parameter and return its internal index.
-static std::size_t idx_from_param(lua_State *lua_state, char const *type_name)
-{
-    assert(lua_gettop(lua_state) >= 1);
-
-    void const *const user_data = lua_touserdata(lua_state, 1);
-
-    if (user_data == nullptr || !lua_getmetatable(lua_state, 1)) {
-        throw fmt_error("First parameter must be of type {}.", type_name);
-    }
-
-    luaL_getmetatable(lua_state, type_name);
-    if (!lua_rawequal(lua_state, -1, -2)) {
-        throw fmt_error("First parameter must be of type {}.", type_name);
-    }
-    lua_pop(lua_state, 2); // remove the two metatables
-
-    return *static_cast<std::size_t const *>(user_data);
-}
-
-template <typename CONTAINER>
-static typename CONTAINER::value_type const &
-get_from_idx_param(lua_State *lua_state, CONTAINER *container,
-                   char const *type_name)
-{
-    if (lua_gettop(lua_state) != 1) {
-        throw fmt_error("Need exactly one parameter of type {}.", type_name);
-    }
-
-    auto const &item = container->at(idx_from_param(lua_state, type_name));
-    lua_remove(lua_state, 1);
-    return item;
-}
-
 flex_table_t const &output_flex_t::get_table_from_param()
 {
     return get_from_idx_param(lua_state(), m_tables.get(),
@@ -495,35 +552,6 @@ void output_flex_t::way_cache_t::init(osmium::Way *way)
     m_num_way_nodes = std::numeric_limits<std::size_t>::max();
 
     m_way = way;
-}
-
-static std::size_t get_nodes(middle_query_t const &middle, osmium::Way *way)
-{
-    constexpr std::size_t const max_missing_nodes = 100;
-    static std::size_t count_missing_nodes = 0;
-
-    auto const count = middle.nodes_get_list(&way->nodes());
-
-    if (count_missing_nodes <= max_missing_nodes &&
-        count != way->nodes().size()) {
-        util::string_joiner_t id_list{','};
-        for (auto const &nr : way->nodes()) {
-            if (!nr.location().valid()) {
-                id_list.add(fmt::to_string(nr.ref()));
-                ++count_missing_nodes;
-            }
-        }
-
-        log_debug("Missing nodes in way {}: {}", way->id(), id_list());
-
-        if (count_missing_nodes > max_missing_nodes) {
-            log_debug("Reported more than {} missing nodes, no further missing "
-                      "nodes will be reported!",
-                      max_missing_nodes);
-        }
-    }
-
-    return count;
 }
 
 std::size_t output_flex_t::way_cache_t::add_nodes(middle_query_t const &middle)
@@ -931,13 +959,6 @@ void output_flex_t::sync()
     }
 }
 
-static void flush_tables(std::vector<table_connection_t> &table_connections)
-{
-    for (auto &table : table_connections) {
-        table.flush();
-    }
-}
-
 void output_flex_t::after_nodes() { flush_tables(m_table_connections); }
 
 void output_flex_t::after_ways() { flush_tables(m_table_connections); }
@@ -1106,25 +1127,6 @@ void output_flex_t::start()
     }
 }
 
-static void
-create_expire_tables(std::vector<expire_output_t> const &expire_outputs,
-                     connection_params_t const &connection_params)
-{
-    if (std::all_of(expire_outputs.begin(), expire_outputs.end(),
-                    [](auto const &expire_output) {
-                        return expire_output.table().empty();
-                    })) {
-        return;
-    }
-
-    pg_conn_t const connection{connection_params, "out.flex.expire"};
-    for (auto const &expire_output : expire_outputs) {
-        if (!expire_output.table().empty()) {
-            expire_output.create_output_table(connection);
-        }
-    }
-}
-
 output_flex_t::output_flex_t(output_flex_t const *other,
                              std::shared_ptr<middle_query_t> mid,
                              std::shared_ptr<db_copy_thread_t> copy_thread)
@@ -1211,10 +1213,12 @@ output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
     create_expire_tables(*m_expire_outputs, get_options()->connection_params);
 }
 
+namespace {
+
 /**
  * Define the osm2pgsql.Table class/metatable.
  */
-static void init_table_class(lua_State *lua_state)
+void init_table_class(lua_State *lua_state)
 {
     lua_getglobal(lua_state, "osm2pgsql");
     if (luaL_newmetatable(lua_state, osm2pgsql_table_name) != 1) {
@@ -1241,7 +1245,7 @@ static void init_table_class(lua_State *lua_state)
 /**
  * Define the osm2pgsql.ExpireOutput class/metatable.
  */
-static void init_expire_output_class(lua_State *lua_state)
+void init_expire_output_class(lua_State *lua_state)
 {
     lua_getglobal(lua_state, "osm2pgsql");
     if (luaL_newmetatable(lua_state, osm2pgsql_expire_output_name) != 1) {
@@ -1269,6 +1273,8 @@ static void init_expire_output_class(lua_State *lua_state)
 
     lua_pop(lua_state, 2);
 }
+
+} // anonymous namespace
 
 void output_flex_t::init_lua(std::string const &filename)
 {

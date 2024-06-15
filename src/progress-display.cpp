@@ -12,7 +12,9 @@
 #include "progress-display.hpp"
 #include "util.hpp"
 
-static double count_per_second(std::size_t count, uint64_t elapsed) noexcept
+namespace {
+
+double count_per_second(std::size_t count, uint64_t elapsed) noexcept
 {
     if (count == 0) {
         return 0.0;
@@ -25,7 +27,7 @@ static double count_per_second(std::size_t count, uint64_t elapsed) noexcept
     return static_cast<double>(count) / static_cast<double>(elapsed);
 }
 
-static std::string cps_display(std::size_t count, uint64_t elapsed)
+std::string cps_display(std::size_t count, uint64_t elapsed)
 {
     double const cps = count_per_second(count, elapsed);
 
@@ -34,6 +36,8 @@ static std::string cps_display(std::size_t count, uint64_t elapsed)
     }
     return fmt::format("{:.0f}/s", cps);
 }
+
+} // anonymous namespace
 
 void progress_display_t::print_summary() const
 {

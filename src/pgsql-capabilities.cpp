@@ -16,21 +16,26 @@
 
 #include <stdexcept>
 
-static database_capabilities_t &capabilities() noexcept
+namespace {
+
+database_capabilities_t &capabilities() noexcept
 {
     static database_capabilities_t c;
     return c;
 }
+
+} // anonymous namespace
 
 database_capabilities_t &database_capabilities_for_testing() noexcept
 {
     return capabilities();
 }
 
-static void init_set_from_query(std::set<std::string> *set,
-                                pg_conn_t const &db_connection,
-                                char const *table, char const *column,
-                                char const *condition = "true")
+namespace {
+
+void init_set_from_query(std::set<std::string> *set,
+                         pg_conn_t const &db_connection, char const *table,
+                         char const *column, char const *condition = "true")
 {
     set->clear(); // Clear existing in case this is called multiple times
 
@@ -42,7 +47,7 @@ static void init_set_from_query(std::set<std::string> *set,
 }
 
 /// Get all config settings from the database.
-static void init_settings(pg_conn_t const &db_connection)
+void init_settings(pg_conn_t const &db_connection)
 {
     capabilities().settings.clear(); // In case this is called multiple times
 
@@ -54,7 +59,7 @@ static void init_settings(pg_conn_t const &db_connection)
     }
 }
 
-static void init_database_name(pg_conn_t const &db_connection)
+void init_database_name(pg_conn_t const &db_connection)
 {
     auto const res = db_connection.exec("SELECT current_catalog");
 
@@ -66,7 +71,7 @@ static void init_database_name(pg_conn_t const &db_connection)
     capabilities().database_name = res.get(0, 0);
 }
 
-static void init_postgis_version(pg_conn_t const &db_connection)
+void init_postgis_version(pg_conn_t const &db_connection)
 {
     auto const res = db_connection.exec(
         "SELECT regexp_split_to_table(extversion, '\\.') FROM"
@@ -83,6 +88,8 @@ static void init_postgis_version(pg_conn_t const &db_connection)
     capabilities().postgis = {std::stoi(std::string{res.get(0, 0)}),
                               std::stoi(std::string{res.get(1, 0)})};
 }
+
+} // anonymous namespace
 
 void init_database_capabilities(pg_conn_t const &db_connection)
 {

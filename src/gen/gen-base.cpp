@@ -82,7 +82,9 @@ std::string gen_base_t::context()
     return gen_name.empty() ? "" : fmt::format(" '{}'", gen_name);
 }
 
-static pg_result_t dbexec_internal(
+namespace {
+
+pg_result_t dbexec_internal(
     pg_conn_t const &connection, std::string const &templ,
     fmt::dynamic_format_arg_store<fmt::format_context> const &format_store)
 {
@@ -94,6 +96,8 @@ static pg_result_t dbexec_internal(
         throw;
     }
 }
+
+} // anonymous namespace
 
 pg_result_t gen_base_t::dbexec(std::string const &templ)
 {

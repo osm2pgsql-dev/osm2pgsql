@@ -20,10 +20,58 @@
 
 #include <unordered_map>
 
-static std::size_t round_up(std::size_t value, std::size_t multiple) noexcept
+namespace {
+
+std::size_t round_up(std::size_t value, std::size_t multiple) noexcept
 {
     return ((value + multiple - 1U) / multiple) * multiple;
 }
+
+struct param_canvas_t
+{
+    canvas_t canvas;
+    std::size_t points = 0;
+
+    param_canvas_t(unsigned int image_extent, unsigned int image_buffer)
+    : canvas(image_extent, image_buffer)
+    {}
+};
+
+using canvas_list_t = std::unordered_map<std::string, param_canvas_t>;
+
+void draw_from_db(double margin, unsigned int image_extent,
+                  unsigned int image_buffer, canvas_list_t *canvas_list,
+                  pg_conn_t *conn, tile_t const &tile)
+{
+    auto const box = tile.box(margin);
+    auto const result = conn->exec_prepared(
+        "get_geoms", box.min_x(), box.min_y(), box.max_x(), box.max_y());
+
+    for (int n = 0; n < result.num_tuples(); ++n) {
+        std::string param = result.get_value(n, 1);
+        auto const geom = ewkb_to_geom(decode_hex(result.get(n, 0)));
+
+        auto const [it, success] = canvas_list->try_emplace(
+            std::move(param), image_extent, image_buffer);
+
+        it->second.points += it->second.canvas.draw(geom, tile);
+    }
+}
+
+void save_image_to_table(pg_conn_t *connection, canvas_t const &canvas,
+                         tile_t const &tile, double margin,
+                         std::string const &param, char const *variant,
+                         std::string const &table_prefix)
+{
+    auto const wkb = to_hex(canvas.to_wkb(tile, margin));
+
+    connection->exec("INSERT INTO \"{}_{}\" (type, zoom, x, y, rast)"
+                     " VALUES ('{}', {}, {}, {}, '{}')",
+                     table_prefix, variant, param, tile.zoom(), tile.x(),
+                     tile.y(), wkb);
+}
+
+} // anonymous namespace
 
 gen_tile_raster_union_t::gen_tile_raster_union_t(pg_conn_t *connection,
                                                  bool append, params_t *params)
@@ -122,54 +170,6 @@ PREPARE insert_geoms (geometry, int, int, text) AS
     }
 
     dbexec(prepare);
-}
-
-static void save_image_to_table(pg_conn_t *connection, canvas_t const &canvas,
-                                tile_t const &tile, double margin,
-                                std::string const &param, char const *variant,
-                                std::string const &table_prefix)
-{
-    auto const wkb = to_hex(canvas.to_wkb(tile, margin));
-
-    connection->exec("INSERT INTO \"{}_{}\" (type, zoom, x, y, rast)"
-                     " VALUES ('{}', {}, {}, {}, '{}')",
-                     table_prefix, variant, param, tile.zoom(), tile.x(),
-                     tile.y(), wkb);
-}
-
-namespace {
-
-struct param_canvas_t
-{
-    canvas_t canvas;
-    std::size_t points = 0;
-
-    param_canvas_t(unsigned int image_extent, unsigned int image_buffer)
-    : canvas(image_extent, image_buffer)
-    {}
-};
-
-} // anonymous namespace
-
-using canvas_list_t = std::unordered_map<std::string, param_canvas_t>;
-
-static void draw_from_db(double margin, unsigned int image_extent,
-                         unsigned int image_buffer, canvas_list_t *canvas_list,
-                         pg_conn_t *conn, tile_t const &tile)
-{
-    auto const box = tile.box(margin);
-    auto const result = conn->exec_prepared(
-        "get_geoms", box.min_x(), box.min_y(), box.max_x(), box.max_y());
-
-    for (int n = 0; n < result.num_tuples(); ++n) {
-        std::string param = result.get_value(n, 1);
-        auto const geom = ewkb_to_geom(decode_hex(result.get(n, 0)));
-
-        auto const [it, success] = canvas_list->try_emplace(
-            std::move(param), image_extent, image_buffer);
-
-        it->second.points += it->second.canvas.draw(geom, tile);
-    }
 }
 
 void gen_tile_raster_union_t::process(tile_t const &tile)

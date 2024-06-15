@@ -76,10 +76,12 @@ bool operator<(geom::point_t a, edge_t const &b) noexcept
     return a < b.points[0];
 }
 
-static void
-follow_chain_and_set_width(edge_t const &edge, std::vector<edge_t> *edges,
-                           std::map<geom::point_t, uint8_t> const &node_order,
-                           geom::linestring_t *seen)
+namespace {
+
+void follow_chain_and_set_width(
+    edge_t const &edge, std::vector<edge_t> *edges,
+    std::map<geom::point_t, uint8_t> const &node_order,
+    geom::linestring_t *seen)
 {
     assert(!edge.points.empty());
 
@@ -115,9 +117,8 @@ follow_chain_and_set_width(edge_t const &edge, std::vector<edge_t> *edges,
     }
 }
 
-static void assemble_edge(edge_t *edge, std::vector<edge_t> *edges,
-                          std::map<geom::point_t, uint8_t> const &node_order)
-
+void assemble_edge(edge_t *edge, std::vector<edge_t> *edges,
+                   std::map<geom::point_t, uint8_t> const &node_order)
 {
     assert(edge);
     assert(edges);
@@ -165,6 +166,19 @@ static void assemble_edge(edge_t *edge, std::vector<edge_t> *edges,
     }
 }
 
+std::string const &get_name(
+    std::unordered_map<osmid_t, std::string> const &names, osmid_t id)
+{
+    static std::string const empty;
+    auto const it = names.find(id);
+    if (it == names.end()) {
+        return empty;
+    }
+    return it->second;
+}
+
+} // anonymous namespace
+
 /// Get some stats from source table
 void gen_rivers_t::get_stats()
 {
@@ -176,17 +190,6 @@ void gen_rivers_t::get_stats()
 
     log_gen("Found {} waterways with {} points.", m_num_waterways,
             m_num_points);
-}
-
-static std::string const &
-get_name(std::unordered_map<osmid_t, std::string> const &names, osmid_t id)
-{
-    static std::string const empty;
-    auto const it = names.find(id);
-    if (it == names.end()) {
-        return empty;
-    }
-    return it->second;
 }
 
 void gen_rivers_t::process()

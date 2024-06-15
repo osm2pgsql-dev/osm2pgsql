@@ -19,6 +19,8 @@
 #include <utility>
 #include <vector>
 
+namespace {
+
 struct column_type_lookup
 {
     char const *m_name;
@@ -54,7 +56,7 @@ static std::vector<column_type_lookup> const column_types = {
      {"id_type", table_column_type::id_type},
      {"id_num", table_column_type::id_num}}};
 
-static table_column_type get_column_type_from_string(std::string const &type)
+table_column_type get_column_type_from_string(std::string const &type)
 {
     auto const *column_type = util::find_by_name(column_types, type);
     if (!column_type) {
@@ -64,7 +66,7 @@ static table_column_type get_column_type_from_string(std::string const &type)
     return column_type->type;
 }
 
-static std::string lowercase(std::string const &str)
+std::string lowercase(std::string const &str)
 {
     std::string result;
 
@@ -75,6 +77,8 @@ static std::string lowercase(std::string const &str)
 
     return result;
 }
+
+} // anonymous namespace
 
 flex_table_column_t::flex_table_column_t(std::string name,
                                          std::string const &type,

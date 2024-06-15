@@ -44,9 +44,7 @@ constexpr std::array<layers_type, 25> const layers = {
      {"primary", 37, true},        {"trunk", 38, true},
      {"motorway", 39, true}}};
 
-} // anonymous namespace
-
-static void add_z_order(taglist_t *tags, bool *roads)
+void add_z_order(taglist_t *tags, bool *roads)
 {
     std::string const *const layer = tags->get("layer");
     std::string const *const highway = tags->get("highway");
@@ -91,6 +89,13 @@ static void add_z_order(taglist_t *tags, bool *roads)
     tags->add_tag("z_order", fmt::to_string(z_order));
 }
 
+bool starts_with(char const *input, std::string const &test) noexcept
+{
+    return std::strncmp(input, test.c_str(), test.size()) == 0;
+}
+
+} // anonymous namespace
+
 c_tagtransform_t::c_tagtransform_t(options_t const *options, export_list exlist)
 : m_options(options), m_export_list(std::move(exlist))
 {}
@@ -98,11 +103,6 @@ c_tagtransform_t::c_tagtransform_t(options_t const *options, export_list exlist)
 std::unique_ptr<tagtransform_t> c_tagtransform_t::clone() const
 {
     return std::make_unique<c_tagtransform_t>(m_options, m_export_list);
-}
-
-static bool starts_with(char const *input, std::string const& test) noexcept
-{
-    return std::strncmp(input, test.c_str(), test.size()) == 0;
 }
 
 bool c_tagtransform_t::check_key(std::vector<taginfo> const &infos,

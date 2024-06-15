@@ -28,8 +28,10 @@ std::size_t pg_result_t::affected_rows() const noexcept
 
 std::atomic<std::uint32_t> pg_conn_t::connection_id{0};
 
-static PGconn *open_connection(connection_params_t const &connection_params,
-                               std::string_view context, std::uint32_t id)
+namespace {
+
+PGconn *open_connection(connection_params_t const &connection_params,
+                        std::string_view context, std::uint32_t id)
 {
     std::vector<char const *> keywords;
     std::vector<char const *> values;
@@ -48,6 +50,19 @@ static PGconn *open_connection(connection_params_t const &connection_params,
 
     return PQconnectdbParams(keywords.data(), values.data(), 1);
 }
+
+std::string concat_params(int num_params, char const *const *param_values)
+{
+    util::string_joiner_t joiner{','};
+
+    for (int i = 0; i < num_params; ++i) {
+        joiner.add(param_values[i] ? param_values[i] : "<NULL>");
+    }
+
+    return joiner();
+}
+
+} // anonymous namespace
 
 pg_conn_t::pg_conn_t(connection_params_t const &connection_params,
                      std::string_view context)
@@ -177,18 +192,6 @@ void pg_conn_t::copy_end(std::string_view context) const
         throw fmt_error("Ending COPY mode for '{}' failed: {}.", context,
                         error_msg());
     }
-}
-
-static std::string concat_params(int num_params,
-                                 char const *const *param_values)
-{
-    util::string_joiner_t joiner{','};
-
-    for (int i = 0; i < num_params; ++i) {
-        joiner.add(param_values[i] ? param_values[i] : "<NULL>");
-    }
-
-    return joiner();
 }
 
 pg_result_t pg_conn_t::exec_prepared_internal(char const *stmt, int num_params,

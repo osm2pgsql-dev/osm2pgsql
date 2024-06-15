@@ -193,7 +193,9 @@ int luaX_pcall(lua_State *lua_state, int narg, int nres)
 
 #else
 
-static int pcall_error_traceback_handler(lua_State *lua_state)
+namespace {
+
+int pcall_error_traceback_handler(lua_State *lua_state)
 {
     assert(lua_state);
 
@@ -209,6 +211,8 @@ static int pcall_error_traceback_handler(lua_State *lua_state)
     luaL_traceback(lua_state, lua_state, msg, 1);
     return 1;
 }
+
+} // anonymous namespace
 
 /// Wrapper function for lua_pcall() showing a stack trace on error.
 int luaX_pcall(lua_State *lua_state, int narg, int nres)

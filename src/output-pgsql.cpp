@@ -45,9 +45,10 @@
 #include "wildcmp.hpp"
 #include "wkb.hpp"
 
-static double calculate_area(bool reproject_area,
-                             geom::geometry_t const &geom4326,
-                             geom::geometry_t const &projected_geom)
+namespace {
+
+double calculate_area(bool reproject_area, geom::geometry_t const &geom4326,
+                      geom::geometry_t const &projected_geom)
 {
     static thread_local auto const proj3857 =
         reprojection::create_projection(3857);
@@ -58,6 +59,37 @@ static double calculate_area(bool reproject_area,
     }
     return geom::area(projected_geom);
 }
+
+// The roles of all available member ways of a relation are available in the
+// Lua "filter_tags_relation_member" callback function. This function extracts
+// the roles from all ways in the buffer and returns the list.
+rolelist_t get_rolelist(osmium::Relation const &rel,
+                        osmium::memory::Buffer const &buffer)
+{
+    rolelist_t roles;
+
+    auto it = buffer.select<osmium::Way>().cbegin();
+    auto const end = buffer.select<osmium::Way>().cend();
+
+    if (it == end) {
+        return roles;
+    }
+
+    for (auto const &member : rel.members()) {
+        if (member.type() == osmium::item_type::way &&
+            member.ref() == it->id()) {
+            roles.emplace_back(member.role());
+            ++it;
+            if (it == end) {
+                break;
+            }
+        }
+    }
+
+    return roles;
+}
+
+} // anonymous namespace
 
 void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
                                    bool polygon, bool roads)
@@ -201,35 +233,6 @@ void output_pgsql_t::way_add(osmium::Way *way)
             pgsql_out_way(*way, &outtags, polygon, roads);
         }
     }
-}
-
-// The roles of all available member ways of a relation are available in the
-// Lua "filter_tags_relation_member" callback function. This function extracts
-// the roles from all ways in the buffer and returns the list.
-static rolelist_t get_rolelist(osmium::Relation const &rel,
-                               osmium::memory::Buffer const &buffer)
-{
-    rolelist_t roles;
-
-    auto it = buffer.select<osmium::Way>().cbegin();
-    auto const end = buffer.select<osmium::Way>().cend();
-
-    if (it == end) {
-        return roles;
-    }
-
-    for (auto const &member : rel.members()) {
-        if (member.type() == osmium::item_type::way &&
-            member.ref() == it->id()) {
-            roles.emplace_back(member.role());
-            ++it;
-            if (it == end) {
-                break;
-            }
-        }
-    }
-
-    return roles;
 }
 
 /* This is the workhorse of pgsql_add_relation, split out because it is used as the callback for iterate relations */
