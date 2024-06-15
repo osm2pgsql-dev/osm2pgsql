@@ -48,6 +48,13 @@ public:
         m_include_columns = columns;
     }
 
+    std::string const &name() const noexcept { return m_name; }
+
+    void set_name(std::string name)
+    {
+        m_name = std::move(name);
+    }
+
     std::string const &expression() const noexcept { return m_expression; }
 
     void set_expression(std::string expression)
@@ -89,6 +96,7 @@ public:
 private:
     std::vector<std::string> m_columns;
     std::vector<std::string> m_include_columns;
+    std::string m_name;
     std::string m_method;
     std::string m_expression;
     std::string m_tablespace;
