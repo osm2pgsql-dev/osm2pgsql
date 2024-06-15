@@ -252,18 +252,18 @@ namespace {
 class without_first
 {
 public:
-    explicit without_first(point_list_t const &list) : m_list(list) {}
+    explicit without_first(point_list_t const &list) : m_list(&list) {}
 
     point_list_t::const_iterator begin()
     {
-        assert(m_list.begin() != m_list.end());
-        return std::next(m_list.begin());
+        assert(m_list->begin() != m_list->end());
+        return std::next(m_list->begin());
     }
 
-    point_list_t::const_iterator end() { return m_list.end(); }
+    point_list_t::const_iterator end() { return m_list->end(); }
 
 private:
-    point_list_t const &m_list;
+    point_list_t const *m_list;
 }; // class without_first
 
 } // anonymous namespace
