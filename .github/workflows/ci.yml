@@ -21,7 +21,11 @@ jobs:
 
       - name: Install prerequisites
         run: |
-          brew install boost lua nlohmann-json opencv pandoc postgis potrace
+          # Workaround for github/brew problem. Python is already install
+          # on the Github action runner and then homebrew comes along...
+          # See also: https://github.com/Homebrew/homebrew-core/issues/173191
+          rm -f /usr/local/bin/2to3* /usr/local/bin/idle3* /usr/local/bin/pydoc3* /usr/local/bin/python3*
+          brew install boost lua nlohmann-json opencv pandoc postgis potrace python3
           # --break-system-packages is needed on macOS 14
           pip3 install --break-system-packages psycopg2 behave osmium
           mkdir ~/postgres
