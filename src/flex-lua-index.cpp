@@ -25,7 +25,7 @@ static void check_and_add_column(flex_table_t const &table,
         throw fmt_error("Unknown column '{}' in table '{}'.", column_name,
                         table.name());
     }
-    columns->push_back(column_name);
+    columns->emplace_back(column_name);
 }
 
 static void check_and_add_columns(flex_table_t const &table,
