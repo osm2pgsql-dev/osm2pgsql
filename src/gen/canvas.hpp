@@ -11,11 +11,14 @@
  */
 
 #include "geom.hpp"
-#include "tile.hpp"
 
 #include <opencv2/core.hpp>
 
 #include <cstddef>
+#include <string>
+#include <vector>
+
+class tile_t;
 
 /**
  * This class wraps the image class from the OpenCV library.

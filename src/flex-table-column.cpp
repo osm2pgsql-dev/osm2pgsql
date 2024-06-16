@@ -13,7 +13,6 @@
 #include "pgsql-capabilities.hpp"
 #include "util.hpp"
 
-#include <algorithm>
 #include <cassert>
 #include <cctype>
 #include <cstdlib>

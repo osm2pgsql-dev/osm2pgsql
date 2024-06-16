@@ -12,7 +12,6 @@
 #include "format.hpp"
 
 #include <cassert>
-#include <stdexcept>
 
 // The lua_getextraspace() function is only available from Lua 5.3. For
 // earlier versions we fall back to storing the context pointer in the

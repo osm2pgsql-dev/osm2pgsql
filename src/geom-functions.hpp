@@ -13,6 +13,8 @@
 #include "geom.hpp"
 #include "reprojection.hpp"
 
+#include <cassert>
+#include <cstddef>
 #include <string_view>
 #include <utility>
 #include <vector>

@@ -9,6 +9,8 @@
 
 #include "debug-output.hpp"
 
+#include "expire-output.hpp"
+#include "flex-table.hpp"
 #include "logging.hpp"
 
 void write_expire_output_list_to_debug_log(

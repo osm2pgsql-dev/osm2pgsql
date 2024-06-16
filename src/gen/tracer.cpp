@@ -9,7 +9,9 @@
 
 #include "tracer.hpp"
 
+#include "canvas.hpp"
 #include "geom-boost-adaptor.hpp"
+#include "tile.hpp"
 
 #include <cassert>
 #include <cmath>

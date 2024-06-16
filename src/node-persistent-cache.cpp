@@ -11,8 +11,9 @@
 #include "node-persistent-cache.hpp"
 
 #include <cassert>
-#include <stdexcept>
+#include <cerrno>
 #include <system_error>
+#include <utility>
 
 void node_persistent_cache::set(osmid_t id, osmium::Location location)
 {

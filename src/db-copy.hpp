@@ -10,6 +10,10 @@
  * For a full list of authors see the git log.
  */
 
+#include "osmtypes.hpp"
+#include "pgsql.hpp"
+#include "pgsql-params.hpp"
+
 #include <cassert>
 #include <condition_variable>
 #include <deque>
@@ -21,9 +25,6 @@
 #include <utility>
 #include <variant>
 #include <vector>
-
-#include "osmtypes.hpp"
-#include "pgsql.hpp"
 
 /**
  * Table information necessary for building SQL queries.

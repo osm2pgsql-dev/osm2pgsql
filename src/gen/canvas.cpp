@@ -10,9 +10,12 @@
 #include "canvas.hpp"
 
 #include "raster.hpp"
+#include "tile.hpp"
 
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
+
+#include <cassert>
 
 void canvas_t::open_close(unsigned int buffer_size)
 {

@@ -16,7 +16,6 @@
 #include "output.hpp"
 #include "pgsql.hpp"
 #include "pgsql-capabilities.hpp"
-#include "pgsql-helper.hpp"
 #include "properties.hpp"
 #include "util.hpp"
 #include "version.hpp"
@@ -26,6 +25,7 @@
 #include <exception>
 #include <filesystem>
 #include <memory>
+#include <string>
 #include <utility>
 
 namespace {

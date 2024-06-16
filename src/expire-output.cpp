@@ -14,6 +14,7 @@
 #include "pgsql.hpp"
 #include "tile.hpp"
 
+#include <cerrno>
 #include <system_error>
 
 std::size_t

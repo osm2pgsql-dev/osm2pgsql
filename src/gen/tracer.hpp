@@ -10,14 +10,16 @@
  * For a full list of authors see the git log.
  */
 
-#include "canvas.hpp"
 #include "geom.hpp"
-#include "tile.hpp"
 
 #include <potracelib.h>
 
+#include <cstddef>
 #include <memory>
 #include <vector>
+
+class canvas_t;
+class tile_t;
 
 class tracer_t
 {
