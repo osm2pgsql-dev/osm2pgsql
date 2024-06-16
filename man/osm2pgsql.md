@@ -278,6 +278,9 @@ mandatory for short options too.
 -o, \--expire-output=FILENAME
 :   Output file name for expired tiles list.
 
+\--expire-segment-length=SIZE
+:   Max length for a line segment to be expired.
+
 \--expire-bbox-size=SIZE
 :   Max size for a polygon to expire the whole polygon, not just the boundary.
 
