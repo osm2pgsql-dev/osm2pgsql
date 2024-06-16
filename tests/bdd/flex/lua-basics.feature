@@ -9,10 +9,10 @@ Feature: Flex output uses a Lua config file
             print("stage=" .. osm2pgsql.stage)
             print("Table=" .. type(osm2pgsql.Table))
             """
-        Then running osm2pgsql flex fails
-        And the error output contains
+        When running osm2pgsql flex
+        Then the error output contains
             """
-            No tables defined in Lua config. Nothing to do!
+            No output tables defined
             """
         And the standard output contains
             """

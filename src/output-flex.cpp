@@ -1172,8 +1172,7 @@ output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
     }
 
     if (m_tables->empty()) {
-        throw std::runtime_error{
-            "No tables defined in Lua config. Nothing to do!"};
+        log_warn("No output tables defined!");
     }
 
     // For backwards compatibility we add a "default" expire output to all
