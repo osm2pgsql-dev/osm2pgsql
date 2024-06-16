@@ -252,18 +252,18 @@ namespace {
 class without_first
 {
 public:
-    explicit without_first(point_list_t const &list) : m_list(list) {}
+    explicit without_first(point_list_t const &list) : m_list(&list) {}
 
     point_list_t::const_iterator begin()
     {
-        assert(m_list.begin() != m_list.end());
-        return std::next(m_list.begin());
+        assert(m_list->begin() != m_list->end());
+        return std::next(m_list->begin());
     }
 
-    point_list_t::const_iterator end() { return m_list.end(); }
+    point_list_t::const_iterator end() { return m_list->end(); }
 
 private:
-    point_list_t const &m_list;
+    point_list_t const *m_list;
 }; // class without_first
 
 } // anonymous namespace
@@ -593,10 +593,10 @@ void line_merge(geometry_t *output, geometry_t const &input)
     struct connection_t
     {
         std::size_t left = NOCONN;
-        linestring_t const *ls;
+        linestring_t const *linestring;
         std::size_t right = NOCONN;
 
-        explicit connection_t(linestring_t const *l) noexcept : ls(l) {}
+        explicit connection_t(linestring_t const *l) noexcept : linestring(l) {}
     };
 
     std::vector<connection_t> conns;
@@ -633,7 +633,7 @@ void line_merge(geometry_t *output, geometry_t const &input)
     std::size_t done_ways = 0;
     std::size_t const todo_ways = conns.size();
     for (std::size_t i = 0; i < todo_ways; ++i) {
-        if (!conns[i].ls ||
+        if (!conns[i].linestring ||
             (conns[i].left != NOCONN && conns[i].right != NOCONN)) {
             continue; // way already done or not the beginning of a segment
         }
@@ -645,8 +645,8 @@ void line_merge(geometry_t *output, geometry_t const &input)
 
             do {
                 auto &conn = conns[cur];
-                assert(conn.ls);
-                auto const &nl = *conn.ls;
+                assert(conn.linestring);
+                auto const &nl = *conn.linestring;
                 bool const forward = conn.left == prev;
                 prev = cur;
                 // add line
@@ -660,7 +660,7 @@ void line_merge(geometry_t *output, geometry_t const &input)
                     cur = conn.left;
                 }
                 // mark line as done
-                conns[prev].ls = nullptr;
+                conns[prev].linestring = nullptr;
                 ++done_ways;
             } while (cur != NOCONN);
         }
@@ -675,7 +675,7 @@ void line_merge(geometry_t *output, geometry_t const &input)
         // oh dear, there must be circular ways without an end
         // need to do the same shebang again
         for (std::size_t i = 0; i < todo_ways; ++i) {
-            if (!conns[i].ls) {
+            if (!conns[i].linestring) {
                 continue; // way already done
             }
 
@@ -686,12 +686,12 @@ void line_merge(geometry_t *output, geometry_t const &input)
 
                 do {
                     auto &conn = conns[cur];
-                    assert(conn.ls);
-                    auto const &nl = *conn.ls;
+                    assert(conn.linestring);
+                    auto const &nl = *conn.linestring;
                     bool const forward =
                         (conn.left == prev &&
-                         (!conns[conn.left].ls ||
-                          conns[conn.left].ls->back() == nl.front()));
+                         (!conns[conn.left].linestring ||
+                          conns[conn.left].linestring->back() == nl.front()));
                     prev = cur;
                     if (forward) {
                         // add line forwards
@@ -705,7 +705,7 @@ void line_merge(geometry_t *output, geometry_t const &input)
                         cur = conn.left;
                     }
                     // mark line as done
-                    conns[prev].ls = nullptr;
+                    conns[prev].linestring = nullptr;
                 } while (cur != i);
             }
 
@@ -801,9 +801,9 @@ static bool simplify(linestring_t *output, linestring_t const &input,
 static bool simplify(multilinestring_t *output, multilinestring_t const &input,
                      double tolerance)
 {
-    for (auto const &ls : input) {
+    for (auto const &linestring : input) {
         linestring_t simplified_ls;
-        if (simplify(&simplified_ls, ls, tolerance)) {
+        if (simplify(&simplified_ls, linestring, tolerance)) {
             output->add_geometry(std::move(simplified_ls));
         }
     }

@@ -47,7 +47,7 @@
 
 static double calculate_area(bool reproject_area,
                              geom::geometry_t const &geom4326,
-                             geom::geometry_t const &geom)
+                             geom::geometry_t const &projected_geom)
 {
     static thread_local auto const proj3857 =
         reprojection::create_projection(3857);
@@ -56,7 +56,7 @@ static double calculate_area(bool reproject_area,
         auto const ogeom = geom::transform(geom4326, *proj3857);
         return geom::area(ogeom);
     }
-    return geom::area(geom);
+    return geom::area(projected_geom);
 }
 
 void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,

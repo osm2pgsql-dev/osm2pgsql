@@ -250,14 +250,6 @@ public:
 
     int app_define_table()
     {
-#if 0
-        if (m_calling_context != calling_context::main) {
-            throw std::runtime_error{
-                "Database tables have to be defined in the"
-                " main Lua code, not in any of the callbacks."};
-        }
-#endif
-
         return setup_flex_table(m_lua_state.get(), &m_tables, &m_expire_outputs,
                                 m_dbschema, true, m_append);
     }
