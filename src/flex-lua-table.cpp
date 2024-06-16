@@ -18,7 +18,9 @@
 
 #include <lua.hpp>
 
-static void check_tablespace(std::string const &tablespace)
+namespace {
+
+void check_tablespace(std::string const &tablespace)
 {
     if (!has_tablespace(tablespace)) {
         throw fmt_error(
@@ -28,9 +30,9 @@ static void check_tablespace(std::string const &tablespace)
     }
 }
 
-static flex_table_t &create_flex_table(lua_State *lua_state,
-                                       std::string const &default_schema,
-                                       std::vector<flex_table_t> *tables)
+flex_table_t &create_flex_table(lua_State *lua_state,
+                                std::string const &default_schema,
+                                std::vector<flex_table_t> *tables)
 {
     std::string const table_name =
         luaX_get_table_string(lua_state, "name", -1, "The table");
@@ -101,7 +103,7 @@ static flex_table_t &create_flex_table(lua_State *lua_state,
     return new_table;
 }
 
-static void parse_create_index(lua_State *lua_state, flex_table_t *table)
+void parse_create_index(lua_State *lua_state, flex_table_t *table)
 {
     std::string const create_index = luaX_get_table_string(
         lua_state, "create_index", -1, "The ids field", "auto");
@@ -117,8 +119,7 @@ static void parse_create_index(lua_State *lua_state, flex_table_t *table)
     }
 }
 
-static void setup_flex_table_id_columns(lua_State *lua_state,
-                                        flex_table_t *table)
+void setup_flex_table_id_columns(lua_State *lua_state, flex_table_t *table)
 {
     assert(lua_state);
     assert(table);
@@ -180,8 +181,8 @@ static void setup_flex_table_id_columns(lua_State *lua_state,
     lua_pop(lua_state, 1); // "ids"
 }
 
-static std::size_t idx_from_userdata(lua_State *lua_state, int idx,
-                                     std::size_t expire_outputs_size)
+std::size_t idx_from_userdata(lua_State *lua_state, int idx,
+                              std::size_t expire_outputs_size)
 {
     void const *const user_data = lua_touserdata(lua_state, idx);
 
@@ -202,10 +203,10 @@ static std::size_t idx_from_userdata(lua_State *lua_state, int idx,
     return eo;
 }
 
-static void parse_and_set_expire_options(lua_State *lua_state,
-                                         flex_table_column_t *column,
-                                         std::size_t expire_outputs_size,
-                                         bool append_mode)
+void parse_and_set_expire_options(lua_State *lua_state,
+                                  flex_table_column_t *column,
+                                  std::size_t expire_outputs_size,
+                                  bool append_mode)
 {
     auto const type = lua_type(lua_state, -1);
 
@@ -300,10 +301,9 @@ static void parse_and_set_expire_options(lua_State *lua_state,
     });
 }
 
-static void
-setup_flex_table_columns(lua_State *lua_state, flex_table_t *table,
-                         std::vector<expire_output_t> *expire_outputs,
-                         bool append_mode)
+void setup_flex_table_columns(lua_State *lua_state, flex_table_t *table,
+                              std::vector<expire_output_t> *expire_outputs,
+                              bool append_mode)
 {
     assert(lua_state);
     assert(table);
@@ -369,8 +369,8 @@ setup_flex_table_columns(lua_State *lua_state, flex_table_t *table,
     lua_pop(lua_state, 1); // "columns"
 }
 
-static void setup_flex_table_indexes(lua_State *lua_state, flex_table_t *table,
-                                     bool updatable)
+void setup_flex_table_indexes(lua_State *lua_state, flex_table_t *table,
+                              bool updatable)
 {
     assert(lua_state);
     assert(table);
@@ -412,6 +412,8 @@ static void setup_flex_table_indexes(lua_State *lua_state, flex_table_t *table,
 
     lua_pop(lua_state, 1); // "indexes"
 }
+
+} // anonymous namespace
 
 int setup_flex_table(lua_State *lua_state, std::vector<flex_table_t> *tables,
                      std::vector<expire_output_t> *expire_outputs,

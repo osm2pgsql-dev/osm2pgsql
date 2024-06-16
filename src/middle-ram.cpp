@@ -25,6 +25,47 @@
 #include <cassert>
 #include <memory>
 
+namespace {
+
+void add_delta_encoded_way_node_list(std::string *data,
+                                     osmium::WayNodeList const &wnl)
+{
+    assert(data);
+
+    // Add number of nodes in list
+    protozero::add_varint_to_buffer(data, wnl.size());
+
+    // Add delta encoded node ids
+    osmium::DeltaEncode<osmid_t> delta;
+    for (auto const &nr : wnl) {
+        protozero::add_varint_to_buffer(
+            data, protozero::encode_zigzag64(delta.update(nr.ref())));
+    }
+}
+
+void get_delta_encoded_way_nodes_list(std::string const &data,
+                                      std::size_t offset,
+                                      osmium::builder::WayBuilder *builder)
+{
+    assert(builder);
+
+    char const *begin = data.data() + offset;
+    char const *const end = data.data() + data.size();
+
+    auto count = protozero::decode_varint(&begin, end);
+
+    osmium::DeltaDecode<osmid_t> delta;
+    osmium::builder::WayNodeListBuilder wnl_builder{*builder};
+    while (count > 0) {
+        auto const val =
+            protozero::decode_zigzag64(protozero::decode_varint(&begin, end));
+        wnl_builder.add_node_ref(delta.update(val));
+        --count;
+    }
+}
+
+} // anonymous namespace
+
 middle_ram_t::middle_ram_t(std::shared_ptr<thread_pool_t> thread_pool,
                            options_t const *options)
 : middle_t(std::move(thread_pool))
@@ -133,22 +174,6 @@ bool middle_ram_t::get_object(osmium::item_type type, osmid_t id,
     return true;
 }
 
-static void add_delta_encoded_way_node_list(std::string *data,
-                                            osmium::WayNodeList const &wnl)
-{
-    assert(data);
-
-    // Add number of nodes in list
-    protozero::add_varint_to_buffer(data, wnl.size());
-
-    // Add delta encoded node ids
-    osmium::DeltaEncode<osmid_t> delta;
-    for (auto const &nr : wnl) {
-        protozero::add_varint_to_buffer(
-            data, protozero::encode_zigzag64(delta.update(nr.ref())));
-    }
-}
-
 void middle_ram_t::node(osmium::Node const &node)
 {
     assert(m_middle_state == middle_state::node);
@@ -231,27 +256,6 @@ bool middle_ram_t::way_get(osmid_t id, osmium::memory::Buffer *buffer) const
         return get_object(osmium::item_type::way, id, buffer);
     }
     return false;
-}
-
-static void
-get_delta_encoded_way_nodes_list(std::string const &data, std::size_t offset,
-                                 osmium::builder::WayBuilder *builder)
-{
-    assert(builder);
-
-    char const *begin = data.data() + offset;
-    char const *const end = data.data() + data.size();
-
-    auto count = protozero::decode_varint(&begin, end);
-
-    osmium::DeltaDecode<osmid_t> delta;
-    osmium::builder::WayNodeListBuilder wnl_builder{*builder};
-    while (count > 0) {
-        auto const val =
-            protozero::decode_zigzag64(protozero::decode_varint(&begin, end));
-        wnl_builder.add_node_ref(delta.update(val));
-        --count;
-    }
 }
 
 std::size_t

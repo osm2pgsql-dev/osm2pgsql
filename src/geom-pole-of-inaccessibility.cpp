@@ -39,9 +39,11 @@
 
 namespace geom {
 
+namespace {
+
 /// Get squared distance from a point p to a segment (a, b).
-static double point_to_segment_distance_squared(point_t p, point_t a, point_t b,
-                                                double stretch) noexcept
+double point_to_segment_distance_squared(point_t p, point_t a, point_t b,
+                                         double stretch) noexcept
 {
     double x = a.x();
     double y = a.y() * stretch;
@@ -68,9 +70,9 @@ static double point_to_segment_distance_squared(point_t p, point_t a, point_t b,
 }
 
 /// Get squared distance from a point p to ring.
-static bool point_to_ring_distance_squared(point_t point, ring_t const &ring,
-                                           bool inside, double stretch,
-                                           double *min_dist_squared) noexcept
+bool point_to_ring_distance_squared(point_t point, ring_t const &ring,
+                                    bool inside, double stretch,
+                                    double *min_dist_squared) noexcept
 {
     std::size_t const len = ring.size();
 
@@ -100,8 +102,8 @@ static bool point_to_ring_distance_squared(point_t point, ring_t const &ring,
  * Signed distance from point to polygon boundary. The result is negative if
  * the point is outside.
  */
-static auto point_to_polygon_distance(point_t point, polygon_t const &polygon,
-                                      double stretch)
+auto point_to_polygon_distance(point_t point, polygon_t const &polygon,
+                               double stretch)
 {
     double min_dist_squared = std::numeric_limits<double>::infinity();
 
@@ -115,8 +117,6 @@ static auto point_to_polygon_distance(point_t point, polygon_t const &polygon,
 
     return (inside ? 1 : -1) * std::sqrt(min_dist_squared);
 }
-
-namespace {
 
 struct Cell
 {
@@ -139,15 +139,15 @@ struct Cell
     }
 };
 
-} // anonymous namespace
-
-static Cell make_centroid_cell(polygon_t const &polygon, double stretch)
+Cell make_centroid_cell(polygon_t const &polygon, double stretch)
 {
     point_t centroid{0, 0};
     boost::geometry::centroid(polygon, centroid);
     centroid.set_y(stretch * centroid.y());
     return {centroid, 0, polygon, stretch};
 }
+
+} // anonymous namespace
 
 point_t pole_of_inaccessibility(const polygon_t &polygon, double precision,
                                 double stretch)

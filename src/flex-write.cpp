@@ -22,7 +22,9 @@
 #include <limits>
 #include <vector>
 
-static int sgn(double val) noexcept
+namespace {
+
+int sgn(double val) noexcept
 {
     if (val > 0) {
         return 1;
@@ -33,8 +35,8 @@ static int sgn(double val) noexcept
     return 0;
 }
 
-static void write_null(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
-                       flex_table_column_t const &column)
+void write_null(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
+                flex_table_column_t const &column)
 {
     if (column.not_null()) {
         throw not_null_exception{
@@ -45,8 +47,8 @@ static void write_null(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
     copy_mgr->add_null_column();
 }
 
-static void write_boolean(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
-                          flex_table_column_t const &column, char const *str)
+void write_boolean(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
+                   flex_table_column_t const &column, char const *str)
 {
     if ((std::strcmp(str, "yes") == 0) || (std::strcmp(str, "true") == 0) ||
         std::strcmp(str, "1") == 0) {
@@ -63,9 +65,8 @@ static void write_boolean(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
     write_null(copy_mgr, column);
 }
 
-static void
-write_direction(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
-                flex_table_column_t const &column, char const *str)
+void write_direction(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
+                     flex_table_column_t const &column, char const *str)
 {
     if ((std::strcmp(str, "yes") == 0) || (std::strcmp(str, "1") == 0)) {
         copy_mgr->add_column(1);
@@ -112,8 +113,8 @@ void write_integer(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
     write_null(copy_mgr, column);
 }
 
-static void write_double(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
-                         flex_table_column_t const &column, char const *str)
+void write_double(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
+                  flex_table_column_t const &column, char const *str)
 {
     if (*str == '\0') {
         write_null(copy_mgr, column);
@@ -133,11 +134,11 @@ static void write_double(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
 
 using table_register_type = std::vector<void const *>;
 
-static void write_json(json_writer_t *writer, lua_State *lua_state,
-                       table_register_type *tables);
+void write_json(json_writer_t *writer, lua_State *lua_state,
+                table_register_type *tables);
 
-static void write_json_table(json_writer_t *writer, lua_State *lua_state,
-                             table_register_type *tables)
+void write_json_table(json_writer_t *writer, lua_State *lua_state,
+                      table_register_type *tables)
 {
     void const *table_ptr = lua_topointer(lua_state, -1);
     assert(table_ptr);
@@ -176,7 +177,7 @@ static void write_json_table(json_writer_t *writer, lua_State *lua_state,
     }
 }
 
-static void write_json_number(json_writer_t *writer, lua_State *lua_state)
+void write_json_number(json_writer_t *writer, lua_State *lua_state)
 {
 #if LUA_VERSION_NUM >= 503
     int okay = 0;
@@ -197,8 +198,8 @@ static void write_json_number(json_writer_t *writer, lua_State *lua_state)
 #endif
 }
 
-static void write_json(json_writer_t *writer, lua_State *lua_state,
-                       table_register_type *tables)
+void write_json(json_writer_t *writer, lua_State *lua_state,
+                table_register_type *tables)
 {
     assert(writer);
     assert(lua_state);
@@ -226,8 +227,8 @@ static void write_json(json_writer_t *writer, lua_State *lua_state,
     }
 }
 
-static bool is_compatible(geom::geometry_t const &geom,
-                          table_column_type type) noexcept
+bool is_compatible(geom::geometry_t const &geom,
+                   table_column_type type) noexcept
 {
     switch (type) {
     case table_column_type::geometry:
@@ -251,6 +252,8 @@ static bool is_compatible(geom::geometry_t const &geom,
     }
     return false;
 }
+
+} // anonymous namespace
 
 void flex_write_column(lua_State *lua_state,
                        db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,

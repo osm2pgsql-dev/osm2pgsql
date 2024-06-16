@@ -16,9 +16,11 @@
 #include <string>
 #include <vector>
 
-static void check_and_add_column(flex_table_t const &table,
-                                 std::vector<std::string> *columns,
-                                 char const *column_name)
+namespace {
+
+void check_and_add_column(flex_table_t const &table,
+                          std::vector<std::string> *columns,
+                          char const *column_name)
 {
     auto const *column = util::find_by_name(table.columns(), column_name);
     if (!column) {
@@ -28,9 +30,9 @@ static void check_and_add_column(flex_table_t const &table,
     columns->emplace_back(column_name);
 }
 
-static void check_and_add_columns(flex_table_t const &table,
-                                  std::vector<std::string> *columns,
-                                  lua_State *lua_state)
+void check_and_add_columns(flex_table_t const &table,
+                           std::vector<std::string> *columns,
+                           lua_State *lua_state)
 {
     if (!luaX_is_array(lua_state)) {
         throw std::runtime_error{
@@ -45,6 +47,8 @@ static void check_and_add_columns(flex_table_t const &table,
         check_and_add_column(table, columns, lua_tostring(lua_state, -1));
     });
 }
+
+} // anonymous namespace
 
 void flex_lua_setup_index(lua_State *lua_state, flex_table_t *table)
 {

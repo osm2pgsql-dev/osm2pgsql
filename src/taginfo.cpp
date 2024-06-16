@@ -64,10 +64,12 @@ unsigned parse_tag_flags(std::string const &flags, int lineno)
     return temp_flags;
 }
 
+namespace {
+
 /**
  * Get the tag type. For unknown types, 0 will be returned.
  */
-static unsigned get_tag_type(std::string const &tag)
+unsigned get_tag_type(std::string const &tag)
 {
     static std::map<std::string, unsigned> const tagtypes = {
         {"smallint", FLAG_INT_TYPE}, {"integer", FLAG_INT_TYPE},
@@ -82,6 +84,8 @@ static unsigned get_tag_type(std::string const &tag)
 
     return 0;
 }
+
+} // anonymous namespace
 
 bool read_style_file(std::string const &filename, export_list *exlist)
 {

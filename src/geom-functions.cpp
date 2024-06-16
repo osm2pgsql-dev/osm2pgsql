@@ -266,10 +266,8 @@ private:
     point_list_t const *m_list;
 }; // class without_first
 
-} // anonymous namespace
-
-static void split_linestring(linestring_t const &line, double split_at,
-                             multilinestring_t *output)
+void split_linestring(linestring_t const &line, double split_at,
+                      multilinestring_t *output)
 {
     double dist = 0;
     point_t prev_pt{line.front()};
@@ -320,6 +318,8 @@ static void split_linestring(linestring_t const &line, double split_at,
     }
 }
 
+} // anonymous namespace
+
 void segmentize(geometry_t *output, geometry_t const &input,
                 double max_segment_length)
 {
@@ -364,7 +364,9 @@ double area(geometry_t const &geom)
 
 /****************************************************************************/
 
-static double spherical_area(polygon_t const &geom)
+namespace {
+
+double spherical_area(polygon_t const &geom)
 {
     boost::geometry::strategy::area::spherical<> const spherical_earth{
         6371008.8};
@@ -377,6 +379,8 @@ static double spherical_area(polygon_t const &geom)
     boost::geometry::convert(geom, sph_geom);
     return boost::geometry::area(sph_geom, spherical_earth);
 }
+
+} // anonymous namespace
 
 double spherical_area(geometry_t const &geom)
 {
@@ -471,23 +475,25 @@ std::vector<geometry_t> split_multi(geometry_t &&geom, bool split_multi)
 
 /****************************************************************************/
 
-static void reverse(geom::nullgeom_t * /*output*/,
-                    geom::nullgeom_t const & /*input*/) noexcept
+namespace {
+
+void reverse(geom::nullgeom_t * /*output*/,
+             geom::nullgeom_t const & /*input*/) noexcept
 {}
 
-static void reverse(geom::point_t *output, geom::point_t const &input) noexcept
+void reverse(geom::point_t *output, geom::point_t const &input) noexcept
 {
     *output = input;
 }
 
-static void reverse(point_list_t *output, point_list_t const &input)
+void reverse(point_list_t *output, point_list_t const &input)
 {
     output->reserve(input.size());
     std::reverse_copy(input.cbegin(), input.cend(),
                       std::back_inserter(*output));
 }
 
-static void reverse(geom::polygon_t *output, geom::polygon_t const &input)
+void reverse(geom::polygon_t *output, geom::polygon_t const &input)
 {
     reverse(&output->outer(), input.outer());
     for (auto const &g : input.inners()) {
@@ -504,6 +510,8 @@ void reverse(geom::multigeometry_t<T> *output,
         reverse(&output->add_geometry(), g);
     }
 }
+
+} // anonymous namespace
 
 void reverse(geometry_t *output, geometry_t const &input)
 {
@@ -525,13 +533,15 @@ geometry_t reverse(geometry_t const &input)
 
 /****************************************************************************/
 
+namespace {
+
 /**
  * Add points specified by iterators to the linestring. If linestring is not
  * empty, do not add the first point returned by *it.
  */
 template <typename ITERATOR>
-static void add_nodes_to_linestring(linestring_t *linestring, ITERATOR it,
-                                    ITERATOR end)
+void add_nodes_to_linestring(linestring_t *linestring, ITERATOR it,
+                             ITERATOR end)
 {
     if (!linestring->empty()) {
         assert(it != end);
@@ -543,6 +553,8 @@ static void add_nodes_to_linestring(linestring_t *linestring, ITERATOR it,
         ++it;
     }
 }
+
+} // anonymous namespace
 
 void line_merge(geometry_t *output, geometry_t const &input)
 {
@@ -728,6 +740,8 @@ geometry_t line_merge(geometry_t const &input)
 
 /****************************************************************************/
 
+namespace {
+
 /**
  * This helper function is used to calculate centroids of geometry collections.
  * It first creates a multi geometry that only contains the geometries of
@@ -740,7 +754,7 @@ geometry_t line_merge(geometry_t const &input)
  * Nested geometry collections are not allowed.
  */
 template <std::size_t N, typename T>
-static void filtered_centroid(collection_t const &collection, point_t *center)
+void filtered_centroid(collection_t const &collection, point_t *center)
 {
     multigeometry_t<T> multi;
     for (auto const &geom : collection) {
@@ -757,6 +771,8 @@ static void filtered_centroid(collection_t const &collection, point_t *center)
     }
     boost::geometry::centroid(multi, *center);
 }
+
+} // anonymous namespace
 
 geometry_t centroid(geometry_t const &geom)
 {
@@ -785,8 +801,9 @@ geometry_t centroid(geometry_t const &geom)
 
 /****************************************************************************/
 
-static bool simplify(linestring_t *output, linestring_t const &input,
-                     double tolerance)
+namespace {
+
+bool simplify(linestring_t *output, linestring_t const &input, double tolerance)
 {
     boost::geometry::simplify(input, *output, tolerance);
 
@@ -798,8 +815,8 @@ static bool simplify(linestring_t *output, linestring_t const &input,
     return output->size() > 1;
 }
 
-static bool simplify(multilinestring_t *output, multilinestring_t const &input,
-                     double tolerance)
+bool simplify(multilinestring_t *output, multilinestring_t const &input,
+              double tolerance)
 {
     for (auto const &linestring : input) {
         linestring_t simplified_ls;
@@ -811,10 +828,12 @@ static bool simplify(multilinestring_t *output, multilinestring_t const &input,
 }
 
 template <typename T>
-static bool simplify(T * /*output*/, T const & /*input*/, double /*tolerance*/)
+bool simplify(T * /*output*/, T const & /*input*/, double /*tolerance*/)
 {
     return false;
 }
+
+} // anonymous namespace
 
 void simplify(geometry_t *output, geometry_t const &input, double tolerance)
 {

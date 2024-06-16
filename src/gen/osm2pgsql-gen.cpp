@@ -58,8 +58,6 @@
 #include <string>
 #include <thread>
 
-constexpr std::size_t const max_force_single_thread = 4;
-
 // Lua can't call functions on C++ objects directly. This macro defines simple
 // C "trampoline" functions which are called from Lua which get the current
 // context (the genproc_t object) and call the respective function on the
@@ -80,6 +78,10 @@ constexpr std::size_t const max_force_single_thread = 4;
         }                                                                      \
     }
 
+namespace {
+
+constexpr std::size_t const max_force_single_thread = 4;
+
 struct tile_extent
 {
     uint32_t xmin = 0;
@@ -89,18 +91,18 @@ struct tile_extent
     bool valid = false;
 };
 
-static bool table_is_empty(pg_conn_t const &db_connection,
-                           std::string const &schema, std::string const &table)
+bool table_is_empty(pg_conn_t const &db_connection, std::string const &schema,
+                    std::string const &table)
 {
     auto const result = db_connection.exec("SELECT 1 FROM {} LIMIT 1",
                                            qualified_name(schema, table));
     return result.num_tuples() == 0;
 }
 
-static tile_extent get_extent_from_db(pg_conn_t const &db_connection,
-                                      std::string const &schema,
-                                      std::string const &table,
-                                      std::string const &column, uint32_t zoom)
+tile_extent get_extent_from_db(pg_conn_t const &db_connection,
+                               std::string const &schema,
+                               std::string const &table,
+                               std::string const &column, uint32_t zoom)
 {
     if (table_is_empty(db_connection, schema, table)) {
         return {};
@@ -128,9 +130,9 @@ static tile_extent get_extent_from_db(pg_conn_t const &db_connection,
             osmium::geom::mercy_to_tiley(zoom, extent_ymin), true};
 }
 
-static tile_extent get_extent_from_db(pg_conn_t const &db_connection,
-                                      std::string const &default_schema,
-                                      params_t const &params, uint32_t zoom)
+tile_extent get_extent_from_db(pg_conn_t const &db_connection,
+                               std::string const &default_schema,
+                               params_t const &params, uint32_t zoom)
 {
     auto const schema = params.get_string("schema", default_schema);
     std::string table;
@@ -149,10 +151,9 @@ static tile_extent get_extent_from_db(pg_conn_t const &db_connection,
     return get_extent_from_db(db_connection, schema, table, geom_column, zoom);
 }
 
-static void
-get_tiles_from_table(pg_conn_t const &connection, std::string const &table,
-                     uint32_t zoom,
-                     std::vector<std::pair<uint32_t, uint32_t>> *tiles)
+void get_tiles_from_table(pg_conn_t const &connection, std::string const &table,
+                          uint32_t zoom,
+                          std::vector<std::pair<uint32_t, uint32_t>> *tiles)
 {
     auto const result = connection.exec(
         R"(SELECT x, y FROM "{}" WHERE zoom = {})", table, zoom);
@@ -612,6 +613,8 @@ void genproc_t::run()
         }
     }
 }
+
+} // anonymous namespace
 
 // NOLINTNEXTLINE(bugprone-exception-escape)
 int main(int argc, char *argv[])

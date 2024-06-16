@@ -31,7 +31,9 @@
 #include <thread> // for number of threads
 #include <vector>
 
-static osmium::Box parse_bbox_param(std::string const &arg)
+namespace {
+
+osmium::Box parse_bbox_param(std::string const &arg)
 {
     double minx = NAN;
     double maxx = NAN;
@@ -61,9 +63,8 @@ static osmium::Box parse_bbox_param(std::string const &arg)
     return osmium::Box{minx, miny, maxx, maxy};
 }
 
-static void parse_expire_tiles_param(char const *arg,
-                                     uint32_t *expire_tiles_zoom_min,
-                                     uint32_t *expire_tiles_zoom)
+void parse_expire_tiles_param(char const *arg, uint32_t *expire_tiles_zoom_min,
+                              uint32_t *expire_tiles_zoom)
 {
     if (!arg || arg[0] == '-') {
         throw std::runtime_error{"Missing argument for option --expire-tiles."
@@ -110,20 +111,7 @@ static void parse_expire_tiles_param(char const *arg,
                              " tile expiry must be separated by '-'."};
 }
 
-void print_version()
-{
-    fmt::print(stderr, "Build: {}\n", get_build_type());
-    fmt::print(stderr, "Compiled using the following library versions:\n");
-    fmt::print(stderr, "Libosmium {}\n", LIBOSMIUM_VERSION_STRING);
-    fmt::print(stderr, "Proj {}\n", get_proj_version());
-#ifdef HAVE_LUAJIT
-    fmt::print(stderr, "{} ({})\n", LUA_RELEASE, LUAJIT_VERSION);
-#else
-    fmt::print(stderr, "{}\n", LUA_RELEASE);
-#endif
-}
-
-static void check_options_non_slim(CLI::App const &app)
+void check_options_non_slim(CLI::App const &app)
 {
     std::vector<std::string> const slim_options = {
         "--flat-nodes",           "--middle-schema",
@@ -138,7 +126,7 @@ static void check_options_non_slim(CLI::App const &app)
     }
 }
 
-static void check_options_output_flex(CLI::App const &app)
+void check_options_output_flex(CLI::App const &app)
 {
     auto const ignored_options = app.get_options([](CLI::Option const *option) {
         return option->get_group() == "Pgsql output options" ||
@@ -154,7 +142,7 @@ static void check_options_output_flex(CLI::App const &app)
     }
 }
 
-static void check_options_output_null(CLI::App const &app)
+void check_options_output_null(CLI::App const &app)
 {
     auto const ignored_options = app.get_options([](CLI::Option const *option) {
         return option->get_group() == "Pgsql output options" ||
@@ -172,7 +160,7 @@ static void check_options_output_null(CLI::App const &app)
     }
 }
 
-static void check_options_output_pgsql(CLI::App const &app, options_t *options)
+void check_options_output_pgsql(CLI::App const &app, options_t *options)
 {
     if (app.count("--latlong") + app.count("--merc") + app.count("--proj") >
         1) {
@@ -196,7 +184,7 @@ static void check_options_output_pgsql(CLI::App const &app, options_t *options)
     }
 }
 
-static void check_options(options_t *options)
+void check_options(options_t *options)
 {
     if (options->append && !options->slim) {
         throw std::runtime_error{"--append can only be used with slim mode!"};
@@ -223,7 +211,7 @@ static void check_options(options_t *options)
     }
 }
 
-static void check_options_expire(options_t *options) {
+void check_options_expire(options_t *options) {
     // Zoom level 31 is the technical limit because we use 32-bit integers for
     // the x and y index of a tile ID.
     if (options->expire_tiles_zoom_min > 31) {
@@ -244,6 +232,25 @@ static void check_options_expire(options_t *options) {
                  "target SRS is not Mercator (EPSG:3857). Expire disabled!");
         options->expire_tiles_zoom = 0;
     }
+}
+
+} // anonymous namespace
+
+void print_version()
+{
+    fmt::print(stderr, "Build: {}\n", get_build_type());
+    fmt::print(stderr, "Compiled using the following library versions:\n");
+    fmt::print(stderr, "Libosmium {}\n", LIBOSMIUM_VERSION_STRING);
+    fmt::print(stderr, "Proj {}\n", get_proj_version());
+#ifdef HAVE_LUA
+#ifdef HAVE_LUAJIT
+    fmt::print(stderr, "{} ({})\n", LUA_RELEASE, LUAJIT_VERSION);
+#else
+    fmt::print(stderr, "{}\n", LUA_RELEASE);
+#endif
+#else
+    fmt::print(stderr, "Lua support not included\n");
+#endif
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)

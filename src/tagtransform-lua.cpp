@@ -45,10 +45,12 @@ void lua_tagtransform_t::check_lua_function_exists(char const *func_name)
     lua_pop(lua_state(), 1);
 }
 
+namespace {
+
 /**
  * Read tags from the Lua table on the stack and write them to out_tags
  */
-static void get_out_tags(lua_State *lua_state, taglist_t *out_tags)
+void get_out_tags(lua_State *lua_state, taglist_t *out_tags)
 {
     luaX_for_each(lua_state, [&]() {
         auto const key_type = lua_type(lua_state, -2);
@@ -76,6 +78,8 @@ static void get_out_tags(lua_State *lua_state, taglist_t *out_tags)
     });
     lua_pop(lua_state, 1);
 }
+
+} // anonymous namespace
 
 bool lua_tagtransform_t::filter_tags(osmium::OSMObject const &o, bool *polygon,
                                      bool *roads, taglist_t *out_tags)

@@ -28,10 +28,12 @@ geom::point_t tile_t::center() const noexcept
     return to_world_coords({0.5, 0.5}, 1);
 }
 
+namespace {
+
 // Quadkey implementation uses bit interleaving code from
 // https://github.com/lemire/Code-used-on-Daniel-Lemire-s-blog/blob/master/2018/01/08/interleave.c
 
-static uint64_t interleave_uint32_with_zeros(uint32_t input) noexcept
+uint64_t interleave_uint32_with_zeros(uint32_t input) noexcept
 {
     uint64_t word = input;
     word = (word ^ (word << 16U)) & 0x0000ffff0000ffffULL;
@@ -42,7 +44,7 @@ static uint64_t interleave_uint32_with_zeros(uint32_t input) noexcept
     return word;
 }
 
-static uint32_t deinterleave_lowuint32(uint64_t word) noexcept
+uint32_t deinterleave_lowuint32(uint64_t word) noexcept
 {
     word &= 0x5555555555555555ULL;
     word = (word ^ (word >> 1U)) & 0x3333333333333333ULL;
@@ -52,6 +54,8 @@ static uint32_t deinterleave_lowuint32(uint64_t word) noexcept
     word = (word ^ (word >> 16U)) & 0x00000000ffffffffULL;
     return static_cast<uint32_t>(word);
 }
+
+} // anonymous namespace
 
 quadkey_t tile_t::quadkey() const noexcept
 {

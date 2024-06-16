@@ -255,8 +255,10 @@ void flex_table_t::analyze(pg_conn_t const &db_connection) const
     analyze_table(db_connection, schema(), name());
 }
 
-static void enable_check_trigger(pg_conn_t const &db_connection,
-                                 flex_table_t const &table)
+namespace {
+
+void enable_check_trigger(pg_conn_t const &db_connection,
+                          flex_table_t const &table)
 {
     std::string checks;
 
@@ -278,6 +280,8 @@ static void enable_check_trigger(pg_conn_t const &db_connection,
     create_geom_check_trigger(db_connection, table.schema(), table.name(),
                               checks);
 }
+
+} // anonymous namespace
 
 void table_connection_t::start(pg_conn_t const &db_connection,
                                bool append) const

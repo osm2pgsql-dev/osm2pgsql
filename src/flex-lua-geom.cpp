@@ -50,10 +50,12 @@ int geom_gc(lua_State *lua_state) noexcept
     return 0;
 }
 
+namespace {
+
 // The following functions are called when their counterparts in Lua are
 // called on geometry objects.
 
-static int geom_area(lua_State *lua_state)
+int geom_area(lua_State *lua_state)
 {
     auto const *const input_geometry = unpack_geometry(lua_state);
 
@@ -66,7 +68,7 @@ static int geom_area(lua_State *lua_state)
     return 1;
 }
 
-static int geom_spherical_area(lua_State *lua_state)
+int geom_spherical_area(lua_State *lua_state)
 {
     auto const *const input_geometry = unpack_geometry(lua_state);
 
@@ -84,7 +86,7 @@ static int geom_spherical_area(lua_State *lua_state)
     return 1;
 }
 
-static int geom_length(lua_State *lua_state)
+int geom_length(lua_State *lua_state)
 {
     auto const *const input_geometry = unpack_geometry(lua_state);
     try {
@@ -96,7 +98,7 @@ static int geom_length(lua_State *lua_state)
     return 1;
 }
 
-static int geom_centroid(lua_State *lua_state)
+int geom_centroid(lua_State *lua_state)
 {
     auto const *const input_geometry = unpack_geometry(lua_state);
 
@@ -110,7 +112,7 @@ static int geom_centroid(lua_State *lua_state)
     return 1;
 }
 
-static int geom_geometry_n(lua_State *lua_state)
+int geom_geometry_n(lua_State *lua_state)
 {
     auto const *const input_geometry = unpack_geometry(lua_state);
     auto const index = static_cast<int>(luaL_checkinteger(lua_state, 2));
@@ -125,7 +127,7 @@ static int geom_geometry_n(lua_State *lua_state)
     return 1;
 }
 
-static int geom_geometry_type(lua_State *lua_state)
+int geom_geometry_type(lua_State *lua_state)
 {
     auto const *const input_geometry = unpack_geometry(lua_state);
 
@@ -139,14 +141,14 @@ static int geom_geometry_type(lua_State *lua_state)
     return 1;
 }
 
-static int geom_is_null(lua_State *lua_state)
+int geom_is_null(lua_State *lua_state)
 {
     auto const *const input_geometry = unpack_geometry(lua_state);
     lua_pushboolean(lua_state, input_geometry->is_null());
     return 1;
 }
 
-static int geom_reverse(lua_State *lua_state)
+int geom_reverse(lua_State *lua_state)
 {
     auto const *const input_geometry = unpack_geometry(lua_state);
 
@@ -160,7 +162,7 @@ static int geom_reverse(lua_State *lua_state)
     return 1;
 }
 
-static int geom_line_merge(lua_State *lua_state)
+int geom_line_merge(lua_State *lua_state)
 {
     auto const *const input_geometry = unpack_geometry(lua_state);
 
@@ -174,7 +176,7 @@ static int geom_line_merge(lua_State *lua_state)
     return 1;
 }
 
-static int geom_num_geometries(lua_State *lua_state)
+int geom_num_geometries(lua_State *lua_state)
 {
     auto const *const input_geometry = unpack_geometry(lua_state);
     lua_pushinteger(lua_state,
@@ -182,7 +184,7 @@ static int geom_num_geometries(lua_State *lua_state)
     return 1;
 }
 
-static int geom_pole_of_inaccessibility(lua_State *lua_state)
+int geom_pole_of_inaccessibility(lua_State *lua_state)
 {
     auto const *const input_geometry = unpack_geometry(lua_state);
 
@@ -210,7 +212,7 @@ static int geom_pole_of_inaccessibility(lua_State *lua_state)
     return 1;
 }
 
-static int geom_segmentize(lua_State *lua_state)
+int geom_segmentize(lua_State *lua_state)
 {
     auto const *const input_geometry = unpack_geometry(lua_state);
     double const max_segment_length = luaL_checknumber(lua_state, 2);
@@ -225,7 +227,7 @@ static int geom_segmentize(lua_State *lua_state)
     return 1;
 }
 
-static int geom_simplify(lua_State *lua_state)
+int geom_simplify(lua_State *lua_state)
 {
     auto const *const input_geometry = unpack_geometry(lua_state);
     double const tolerance = luaL_checknumber(lua_state, 2);
@@ -240,7 +242,7 @@ static int geom_simplify(lua_State *lua_state)
     return 1;
 }
 
-static int geom_srid(lua_State *lua_state)
+int geom_srid(lua_State *lua_state)
 {
     auto const *const input_geometry = unpack_geometry(lua_state);
     lua_pushinteger(lua_state,
@@ -251,12 +253,12 @@ static int geom_srid(lua_State *lua_state)
 // XXX Implementation for Lua __tostring function on geometries. Currently
 // just returns the type as string. This could be improved, for instance by
 // showing a WKT representation of the geometry.
-static int geom_tostring(lua_State *lua_state)
+int geom_tostring(lua_State *lua_state)
 {
     return geom_geometry_type(lua_state);
 }
 
-static int geom_transform(lua_State *lua_state)
+int geom_transform(lua_State *lua_state)
 {
     auto const *const input_geometry = unpack_geometry(lua_state);
     auto const srid = static_cast<int>(luaL_checkinteger(lua_state, 2));
@@ -274,6 +276,8 @@ static int geom_transform(lua_State *lua_state)
 
     return 1;
 }
+
+} // anonymous namespace
 
 void init_geometry_class(lua_State *lua_state)
 {

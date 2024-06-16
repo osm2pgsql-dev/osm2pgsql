@@ -44,8 +44,10 @@
 #include "pgsql-helper.hpp"
 #include "util.hpp"
 
-static bool check_bucket_index(pg_conn_t const *db_connection,
-                               std::string const &prefix)
+namespace {
+
+bool check_bucket_index(pg_conn_t const *db_connection,
+                        std::string const &prefix)
 {
     auto const res =
         db_connection->exec("SELECT relname FROM pg_class"
@@ -55,7 +57,7 @@ static bool check_bucket_index(pg_conn_t const *db_connection,
     return res.num_tuples() > 0;
 }
 
-static void send_id_list(pg_conn_t const &db_connection,
+void send_id_list(pg_conn_t const &db_connection,
                          std::string const &table, idlist_t const &ids)
 {
     std::string data;
@@ -69,8 +71,8 @@ static void send_id_list(pg_conn_t const &db_connection,
     db_connection.copy_end(table);
 }
 
-static void load_id_list(pg_conn_t const &db_connection,
-                         std::string const &table, idlist_t *ids)
+void load_id_list(pg_conn_t const &db_connection, std::string const &table,
+                  idlist_t *ids)
 {
     auto const res = db_connection.exec(
         fmt::format("SELECT DISTINCT id FROM {} ORDER BY id", table));
@@ -79,7 +81,7 @@ static void load_id_list(pg_conn_t const &db_connection,
     }
 }
 
-static std::string build_sql(options_t const &options, std::string const &templ)
+std::string build_sql(options_t const &options, std::string const &templ)
 {
     std::string const using_tablespace{options.tblsslim_index.empty()
                                            ? ""
@@ -114,8 +116,8 @@ static std::string build_sql(options_t const &options, std::string const &templ)
                      : ""));
 }
 
-static std::vector<std::string>
-build_sql(options_t const &options, std::vector<std::string> const &templs)
+std::vector<std::string> build_sql(options_t const &options,
+                                   std::vector<std::string> const &templs)
 {
     std::vector<std::string> out;
     out.reserve(templs.size());
@@ -126,6 +128,8 @@ build_sql(options_t const &options, std::vector<std::string> const &templs)
 
     return out;
 }
+
+} // anonymous namespace
 
 middle_pgsql_t::table_desc::table_desc(options_t const &options,
                                        table_sql const &ts)
@@ -367,9 +371,7 @@ void set_attributes_on_builder(T *builder, pg_result_t const &result, int num,
     }
 }
 
-} // anonymous namespace
-
-static void tags_to_json(osmium::TagList const &tags, json_writer_t *writer)
+void tags_to_json(osmium::TagList const &tags, json_writer_t *writer)
 {
     writer->start_object();
 
@@ -382,8 +384,8 @@ static void tags_to_json(osmium::TagList const &tags, json_writer_t *writer)
     writer->end_object();
 }
 
-static void members_to_json(osmium::RelationMemberList const &members,
-                            json_writer_t *writer)
+void members_to_json(osmium::RelationMemberList const &members,
+                     json_writer_t *writer)
 {
     writer->start_array();
 
@@ -417,6 +419,8 @@ static void members_to_json(osmium::RelationMemberList const &members,
 
     writer->end_array();
 }
+
+} // anonymous namespace
 
 void middle_pgsql_t::copy_attributes(osmium::OSMObject const &obj)
 {
@@ -808,12 +812,13 @@ void middle_pgsql_t::way_set(osmium::Way const &way)
     m_db_copy.finish_line();
 }
 
+namespace {
+
 /**
  * Build way in buffer from database results.
  */
-static void build_way(osmid_t id, pg_result_t const &res, int res_num,
-                      int offset, osmium::memory::Buffer *buffer,
-                      bool with_attributes)
+void build_way(osmid_t id, pg_result_t const &res, int res_num, int offset,
+               osmium::memory::Buffer *buffer, bool with_attributes)
 {
     osmium::builder::WayBuilder builder{*buffer};
     builder.set_id(id);
@@ -824,6 +829,8 @@ static void build_way(osmid_t id, pg_result_t const &res, int res_num,
     pgsql_parse_nodes(res.get_value(res_num, offset + 0), buffer, &builder);
     pgsql_parse_json_tags(res.get_value(res_num, offset + 1), buffer, &builder);
 }
+
+} // anonymous namespace
 
 bool middle_query_pgsql_t::way_get(osmid_t id,
                                    osmium::memory::Buffer *buffer) const
@@ -1030,13 +1037,17 @@ middle_query_pgsql_t::middle_query_pgsql_t(
     m_db_connection.set_config("max_parallel_workers_per_gather", "0");
 }
 
-static void table_setup(pg_conn_t const &db_connection,
-                        middle_pgsql_t::table_desc const &table)
+namespace {
+
+void table_setup(pg_conn_t const &db_connection,
+                 middle_pgsql_t::table_desc const &table)
 {
     log_debug("Setting up table '{}'", table.name());
     drop_table_if_exists(db_connection, table.schema(), table.name());
     table.create_table(db_connection);
 }
+
+} // anonymous namespace
 
 void middle_pgsql_t::start()
 {
@@ -1139,7 +1150,9 @@ void middle_pgsql_t::wait()
     }
 }
 
-static table_sql sql_for_users(middle_pgsql_options const &store_options)
+namespace {
+
+table_sql sql_for_users(middle_pgsql_options const &store_options)
 {
     table_sql sql{};
 
@@ -1155,7 +1168,7 @@ static table_sql sql_for_users(middle_pgsql_options const &store_options)
     return sql;
 }
 
-static table_sql sql_for_nodes(middle_pgsql_options const &options)
+table_sql sql_for_nodes(middle_pgsql_options const &options)
 {
     table_sql sql{};
 
@@ -1183,7 +1196,7 @@ static table_sql sql_for_nodes(middle_pgsql_options const &options)
     return sql;
 }
 
-static table_sql sql_for_ways(middle_pgsql_options const &options)
+table_sql sql_for_ways(middle_pgsql_options const &options)
 {
     table_sql sql{};
 
@@ -1228,7 +1241,7 @@ static table_sql sql_for_ways(middle_pgsql_options const &options)
     return sql;
 }
 
-static table_sql sql_for_relations()
+table_sql sql_for_relations()
 {
     table_sql sql{};
 
@@ -1266,6 +1279,8 @@ static table_sql sql_for_relations()
 
     return sql;
 }
+
+} // anonymous namespace
 
 middle_pgsql_t::middle_pgsql_t(std::shared_ptr<thread_pool_t> thread_pool,
                                options_t const *options)

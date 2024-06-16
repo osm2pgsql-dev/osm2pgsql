@@ -21,10 +21,53 @@
 
 #include <osmium/util/string.hpp>
 
-static std::size_t round_up(std::size_t value, std::size_t multiple) noexcept
+namespace {
+
+std::size_t round_up(std::size_t value, std::size_t multiple) noexcept
 {
     return ((value + multiple - 1U) / multiple) * multiple;
 }
+
+void save_image_to_table(pg_conn_t *connection, canvas_t const &canvas,
+                         tile_t const &tile, double margin,
+                         std::string const &table, char const *variant,
+                         std::string const &table_prefix)
+{
+    auto const wkb = to_hex(canvas.to_wkb(tile, margin));
+
+    connection->exec("INSERT INTO \"{}_{}_{}\" (zoom, x, y, rast)"
+                     " VALUES ({}, {}, {}, '{}')",
+                     table_prefix, table, variant, tile.zoom(), tile.x(),
+                     tile.y(), wkb);
+}
+
+struct param_canvas_t
+{
+    canvas_t canvas;
+    std::string table;
+};
+
+using canvas_list_t = std::vector<param_canvas_t>;
+
+void draw_from_db(double margin, canvas_list_t *canvas_list, pg_conn_t *conn,
+                  tile_t const &tile)
+{
+    int prep = 0;
+    auto const box = tile.box(margin);
+    for (auto &cc : *canvas_list) {
+        std::string const statement = "get_geoms_" + fmt::to_string(prep++);
+        auto const result =
+            conn->exec_prepared(statement.c_str(), box.min_x(), box.min_y(),
+                                box.max_x(), box.max_y());
+
+        for (int n = 0; n < result.num_tuples(); ++n) {
+            auto const geom = ewkb_to_geom(decode_hex(result.get(n, 0)));
+            cc.canvas.draw(geom, tile);
+        }
+    }
+}
+
+} // anonymous namespace
 
 gen_tile_builtup_t::gen_tile_builtup_t(pg_conn_t *connection, bool append,
                                        params_t *params)
@@ -134,49 +177,6 @@ PREPARE insert_geoms (geometry, int, int) AS
  INSERT INTO {dest} ("{geom_column}", x, y)
  VALUES ({geom_sql}, $2, $3)
 )");
-    }
-}
-
-static void save_image_to_table(pg_conn_t *connection, canvas_t const &canvas,
-                                tile_t const &tile, double margin,
-                                std::string const &table, char const *variant,
-                                std::string const &table_prefix)
-{
-    auto const wkb = to_hex(canvas.to_wkb(tile, margin));
-
-    connection->exec("INSERT INTO \"{}_{}_{}\" (zoom, x, y, rast)"
-                     " VALUES ({}, {}, {}, '{}')",
-                     table_prefix, table, variant, tile.zoom(), tile.x(),
-                     tile.y(), wkb);
-}
-
-namespace {
-
-struct param_canvas_t
-{
-    canvas_t canvas;
-    std::string table;
-};
-
-} // anonymous namespace
-
-using canvas_list_t = std::vector<param_canvas_t>;
-
-static void draw_from_db(double margin, canvas_list_t *canvas_list,
-                         pg_conn_t *conn, tile_t const &tile)
-{
-    int prep = 0;
-    auto const box = tile.box(margin);
-    for (auto &cc : *canvas_list) {
-        std::string const statement = "get_geoms_" + fmt::to_string(prep++);
-        auto const result =
-            conn->exec_prepared(statement.c_str(), box.min_x(), box.min_y(),
-                                box.max_x(), box.max_y());
-
-        for (int n = 0; n < result.num_tuples(); ++n) {
-            auto const geom = ewkb_to_geom(decode_hex(result.get(n, 0)));
-            cc.canvas.draw(geom, tile);
-        }
     }
 }
 

@@ -29,6 +29,8 @@ geometry_t create_point(osmium::Node const &node)
     return geometry_t{point_t{node.location()}};
 }
 
+namespace {
+
 /**
  * Fill point list with locations from nodes list. Consecutive identical
  * locations are collapsed into a single point.
@@ -36,8 +38,7 @@ geometry_t create_point(osmium::Node const &node)
  * Returns true if the result is a valid linestring, i.e. it has more than
  * one point.
  */
-static bool fill_point_list(point_list_t *list,
-                            osmium::NodeRefList const &nodes)
+bool fill_point_list(point_list_t *list, osmium::NodeRefList const &nodes)
 {
     osmium::Location last{};
 
@@ -52,6 +53,25 @@ static bool fill_point_list(point_list_t *list,
 
     return list->size() > 1;
 }
+
+void fill_polygon(polygon_t *polygon, osmium::Area const &area,
+                  osmium::OuterRing const &outer_ring)
+{
+    assert(polygon->inners().empty());
+
+    for (auto const &nr : outer_ring) {
+        polygon->outer().emplace_back(nr.location());
+    }
+
+    for (auto const &inner_ring : area.inner_rings(outer_ring)) {
+        auto &ring = polygon->inners().emplace_back();
+        for (auto const &nr : inner_ring) {
+            ring.emplace_back(nr.location());
+        }
+    }
+}
+
+} // anonymous namespace
 
 void create_linestring(geometry_t *geom, osmium::Way const &way)
 {
@@ -183,23 +203,6 @@ geometry_t create_multilinestring(osmium::memory::Buffer const &buffer,
     geometry_t geom{};
     create_multilinestring(&geom, buffer, force_multi);
     return geom;
-}
-
-static void fill_polygon(polygon_t *polygon, osmium::Area const &area,
-                         osmium::OuterRing const &outer_ring)
-{
-    assert(polygon->inners().empty());
-
-    for (auto const &nr : outer_ring) {
-        polygon->outer().emplace_back(nr.location());
-    }
-
-    for (auto const &inner_ring : area.inner_rings(outer_ring)) {
-        auto &ring = polygon->inners().emplace_back();
-        for (auto const &nr : inner_ring) {
-            ring.emplace_back(nr.location());
-        }
-    }
 }
 
 void create_multipolygon(geometry_t *geom, osmium::Relation const &relation,

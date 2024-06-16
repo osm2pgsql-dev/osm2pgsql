@@ -28,12 +28,14 @@
 #include <memory>
 #include <utility>
 
+namespace {
+
 /**
  * Output overall memory usage as debug message.
  *
  * This only works on Linux.
  */
-static void show_memory_usage()
+void show_memory_usage()
 {
     osmium::MemoryUsage const mem;
     if (mem.peak() != 0) {
@@ -42,7 +44,7 @@ static void show_memory_usage()
     }
 }
 
-static file_info run(options_t const &options)
+file_info run(options_t const &options)
 {
     auto const files = prepare_input_files(
         options.input_files, options.input_format, options.append);
@@ -75,7 +77,7 @@ static file_info run(options_t const &options)
     return finfo;
 }
 
-static void check_db(options_t const &options)
+void check_db(options_t const &options)
 {
     pg_conn_t const db_connection{options.connection_params, "check"};
 
@@ -92,7 +94,7 @@ static void check_db(options_t const &options)
 }
 
 // This is called in "create" mode to store properties into the database.
-static void store_properties(properties_t *properties, options_t const &options)
+void store_properties(properties_t *properties, options_t const &options)
 {
     properties->set_bool("attributes", options.extra_attributes);
 
@@ -123,8 +125,7 @@ static void store_properties(properties_t *properties, options_t const &options)
     properties->store();
 }
 
-static void store_data_properties(properties_t *properties,
-                                  file_info const &finfo)
+void store_data_properties(properties_t *properties, file_info const &finfo)
 {
     if (finfo.last_timestamp.valid()) {
         auto const timestamp = finfo.last_timestamp.to_iso();
@@ -142,7 +143,7 @@ static void store_data_properties(properties_t *properties,
     properties->store();
 }
 
-static void check_updatable(properties_t const &properties)
+void check_updatable(properties_t const &properties)
 {
     if (properties.get_bool("updatable", false)) {
         return;
@@ -153,7 +154,7 @@ static void check_updatable(properties_t const &properties)
         " updatable database use --slim (without --drop)."};
 }
 
-static void check_attributes(properties_t const &properties, options_t *options)
+void check_attributes(properties_t const &properties, options_t *options)
 {
     bool const with_attributes = properties.get_bool("attributes", false);
 
@@ -172,8 +173,8 @@ static void check_attributes(properties_t const &properties, options_t *options)
     }
 }
 
-static void check_and_update_flat_node_file(properties_t *properties,
-                                            options_t *options)
+void check_and_update_flat_node_file(properties_t *properties,
+                                     options_t *options)
 {
     auto const flat_node_file_from_import =
         properties->get_string("flat_node_file", "");
@@ -210,7 +211,7 @@ static void check_and_update_flat_node_file(properties_t *properties,
     }
 }
 
-static void check_prefix(properties_t const &properties, options_t *options)
+void check_prefix(properties_t const &properties, options_t *options)
 {
     auto const prefix = properties.get_string("prefix", "planet_osm");
     if (!options->prefix_is_set) {
@@ -226,7 +227,7 @@ static void check_prefix(properties_t const &properties, options_t *options)
     }
 }
 
-static void check_db_format(properties_t const &properties, options_t *options)
+void check_db_format(properties_t const &properties, options_t *options)
 {
     auto const format = properties.get_int("db_format", -1);
 
@@ -243,7 +244,7 @@ static void check_db_format(properties_t const &properties, options_t *options)
     options->middle_database_format = static_cast<uint8_t>(format);
 }
 
-static void check_output(properties_t const &properties, options_t *options)
+void check_output(properties_t const &properties, options_t *options)
 {
     auto const output = properties.get_string("output", "pgsql");
 
@@ -262,8 +263,7 @@ static void check_output(properties_t const &properties, options_t *options)
                     options->output_backend, output);
 }
 
-static void check_and_update_style_file(properties_t *properties,
-                                        options_t *options)
+void check_and_update_style_file(properties_t *properties, options_t *options)
 {
     auto const style_file_from_import = properties->get_string("style", "");
 
@@ -296,8 +296,7 @@ static void check_and_update_style_file(properties_t *properties,
 
 // This is called in "append" mode to check that the command line options are
 // compatible with the properties stored in the database.
-static void check_and_update_properties(properties_t *properties,
-                                        options_t *options)
+void check_and_update_properties(properties_t *properties, options_t *options)
 {
     check_updatable(*properties);
     check_attributes(*properties, options);
@@ -308,7 +307,7 @@ static void check_and_update_properties(properties_t *properties,
     check_and_update_style_file(properties, options);
 }
 
-static void set_option_defaults(options_t *options)
+void set_option_defaults(options_t *options)
 {
     if (options->output_backend.empty()) {
         options->output_backend = "pgsql";
@@ -324,6 +323,8 @@ static void set_option_defaults(options_t *options)
         }
     }
 }
+
+} // anonymous namespace
 
 // NOLINTNEXTLINE(bugprone-exception-escape)
 int main(int argc, char *argv[])

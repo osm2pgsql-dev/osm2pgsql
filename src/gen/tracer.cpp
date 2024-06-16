@@ -15,6 +15,19 @@
 #include <cmath>
 #include <stdexcept>
 
+static_assert(sizeof(potrace_word) == 8);
+
+namespace {
+
+potrace_word bit_squeeze(potrace_word w, unsigned char const *d) noexcept
+{
+    return (0x80U & d[0]) | (0x40U & d[1]) | (0x20U & d[2]) | (0x10U & d[3]) |
+           (0x08U & d[4]) | (0x04U & d[5]) | (0x02U & d[6]) | (0x01U & d[7]) |
+           w;
+}
+
+} // anonymous namespace
+
 geom::point_t tracer_t::make_point(potrace_dpoint_t const &p) const noexcept
 {
     return {p.x - static_cast<double>(m_buffer),
@@ -45,15 +58,6 @@ void tracer_t::reset()
     m_bits.clear();
     m_num_points = 0;
 }
-
-static potrace_word bit_squeeze(potrace_word w, unsigned char const *d) noexcept
-{
-    return (0x80U & d[0]) | (0x40U & d[1]) | (0x20U & d[2]) | (0x10U & d[3]) |
-           (0x08U & d[4]) | (0x04U & d[5]) | (0x02U & d[6]) | (0x01U & d[7]) |
-           w;
-}
-
-static_assert(sizeof(potrace_word) == 8);
 
 void tracer_t::prepare(canvas_t const &canvas) noexcept
 {

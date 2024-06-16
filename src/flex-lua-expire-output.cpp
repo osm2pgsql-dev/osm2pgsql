@@ -17,7 +17,9 @@
 
 #include <lua.hpp>
 
-static expire_output_t &
+namespace {
+
+expire_output_t &
 create_expire_output(lua_State *lua_state, std::string const &default_schema,
                      std::vector<expire_output_t> *expire_outputs)
 {
@@ -64,6 +66,8 @@ create_expire_output(lua_State *lua_state, std::string const &default_schema,
 
     return new_expire_output;
 }
+
+} // anonymous namespace
 
 int setup_flex_expire_output(lua_State *lua_state,
                              std::string const &default_schema,
