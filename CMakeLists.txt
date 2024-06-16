@@ -28,7 +28,6 @@ endif()
 
 option(BUILD_TESTS    "Build test suite" OFF)
 option(BUILD_COVERAGE "Build with coverage" OFF)
-option(WITH_LUA       "Build with Lua support" ON)
 option(WITH_LUAJIT    "Build with LuaJIT support" OFF)
 option(WITH_PROJ      "Build with Projection support" ON)
 
@@ -184,22 +183,18 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR})
 find_package(Osmium 2.17.3 REQUIRED COMPONENTS io)
 include_directories(SYSTEM ${OSMIUM_INCLUDE_DIRS} ${PROTOZERO_INCLUDE_DIR} ${FMT_INCLUDE_DIR} ${CLI11_INCLUDE_DIR})
 
-if (WITH_LUA)
-    if (WITH_LUAJIT)
-        message(STATUS "Building with LuaJIT support")
-        find_package(LuaJIT REQUIRED)
-        include_directories(SYSTEM ${LUAJIT_INCLUDE_DIR})
-        add_definitions(-DHAVE_LUAJIT=1)
-    else()
-        message(STATUS "Building with Lua support")
-        find_package(Lua REQUIRED)
-        include_directories(SYSTEM ${LUA_INCLUDE_DIR})
-    endif()
-    add_definitions(-DHAVE_LUA=1)
-    find_program(LUA_EXE NAMES lua lua5.4 lua5.3 lua5.2 lua5.1)
+if (WITH_LUAJIT)
+    message(STATUS "Building with LuaJIT support")
+    find_package(LuaJIT REQUIRED)
+    include_directories(SYSTEM ${LUAJIT_INCLUDE_DIR})
+    add_definitions(-DHAVE_LUAJIT=1)
 else()
-    message(STATUS "Building without Lua support")
+    message(STATUS "Building with Lua (but not LuaJIT) support")
+    find_package(Lua REQUIRED)
+    include_directories(SYSTEM ${LUA_INCLUDE_DIR})
 endif()
+
+find_program(LUA_EXE NAMES lua lua5.4 lua5.3 lua5.2 lua5.1)
 
 find_package(Boost 1.50 REQUIRED)
 include_directories(SYSTEM ${Boost_INCLUDE_DIR})
@@ -235,7 +230,7 @@ endif()
 
 if (LUAJIT_FOUND)
     list(APPEND LIBS ${LUAJIT_LIBRARIES})
-elseif (LUA_FOUND)
+else()
     list(APPEND LIBS ${LUA_LIBRARIES})
 endif()
 
@@ -257,28 +252,24 @@ target_link_libraries(osm2pgsql osm2pgsql_lib ${LIBS})
 if (${POTRACE_LIBRARY} STREQUAL "POTRACE_LIBRARY-NOTFOUND" OR NOT OPENCV_CORE_FOUND)
     message(STATUS "Did not find opencv and/or potrace library. Not building osm2pgsql-gen.")
 else()
-    if (WITH_LUA)
-        message(STATUS "Found opencv and potrace library. Building osm2pgsql-gen.")
-        set(BUILD_GEN 1)
-        include_directories(SYSTEM ${POTRACE_INCLUDE_DIR})
-        add_executable(osm2pgsql-gen src/gen/osm2pgsql-gen.cpp
-                    src/gen/canvas.cpp
-                    src/gen/gen-base.cpp
-                    src/gen/gen-create.cpp
-                    src/gen/gen-discrete-isolation.cpp
-                    src/gen/gen-rivers.cpp
-                    src/gen/gen-tile-builtup.cpp
-                    src/gen/gen-tile-raster.cpp
-                    src/gen/gen-tile-sql.cpp
-                    src/gen/gen-tile-vector.cpp
-                    src/gen/gen-tile.cpp
-                    src/gen/params.cpp
-                    src/gen/raster.cpp
-                    src/gen/tracer.cpp)
-        target_link_libraries(osm2pgsql-gen osm2pgsql_lib ${LIBS} ${POTRACE_LIBRARY} ${OpenCV_LIBS})
-    else()
-        message(STATUS "No Lua. Not building osm2pgsql-gen.")
-    endif()
+    message(STATUS "Found opencv and potrace library. Building osm2pgsql-gen.")
+    set(BUILD_GEN 1)
+    include_directories(SYSTEM ${POTRACE_INCLUDE_DIR})
+    add_executable(osm2pgsql-gen src/gen/osm2pgsql-gen.cpp
+                src/gen/canvas.cpp
+                src/gen/gen-base.cpp
+                src/gen/gen-create.cpp
+                src/gen/gen-discrete-isolation.cpp
+                src/gen/gen-rivers.cpp
+                src/gen/gen-tile-builtup.cpp
+                src/gen/gen-tile-raster.cpp
+                src/gen/gen-tile-sql.cpp
+                src/gen/gen-tile-vector.cpp
+                src/gen/gen-tile.cpp
+                src/gen/params.cpp
+                src/gen/raster.cpp
+                src/gen/tracer.cpp)
+    target_link_libraries(osm2pgsql-gen osm2pgsql_lib ${LIBS} ${POTRACE_LIBRARY} ${OpenCV_LIBS})
 endif()
 
 #############################################################

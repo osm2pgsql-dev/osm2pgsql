@@ -22,9 +22,7 @@
 
 #include <CLI/CLI.hpp>
 
-#ifdef HAVE_LUA
 #include <lua.hpp>
-#endif
 
 #include <algorithm>
 #include <cstdio>
@@ -118,14 +116,10 @@ void print_version()
     fmt::print(stderr, "Compiled using the following library versions:\n");
     fmt::print(stderr, "Libosmium {}\n", LIBOSMIUM_VERSION_STRING);
     fmt::print(stderr, "Proj {}\n", get_proj_version());
-#ifdef HAVE_LUA
 #ifdef HAVE_LUAJIT
     fmt::print(stderr, "{} ({})\n", LUA_RELEASE, LUAJIT_VERSION);
 #else
     fmt::print(stderr, "{}\n", LUA_RELEASE);
-#endif
-#else
-    fmt::print(stderr, "Lua support not included\n");
 #endif
 }
 
@@ -446,7 +440,6 @@ options_t parse_command_line(int argc, char *argv[])
         ->description("Compute area column using Web Mercator coordinates.")
         ->group("Pgsql output options");
 
-#ifdef HAVE_LUA
     // --tag-transform-script
     app.add_option("--tag-transform-script", options.tag_transform_script)
         ->description(
@@ -454,7 +447,6 @@ options_t parse_command_line(int argc, char *argv[])
         ->option_text("SCRIPT")
         ->check(CLI::ExistingFile)
         ->group("Pgsql output options");
-#endif
 
     // ----------------------------------------------------------------------
     // Expire options

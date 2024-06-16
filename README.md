@@ -53,8 +53,7 @@ Required libraries are
 * [OpenCV](https://opencv.org/) (Optional, for generalization only)
 * [potrace](https://potrace.sourceforge.net/) (Optional, for generalization only)
 * [PostgreSQL](https://www.postgresql.org/) client libraries
-* [Lua](https://www.lua.org/) (Optional, used for Lua tag transforms
-  and the flex output)
+* [Lua](https://www.lua.org/)
 * [Python](https://python.org/) (only for running tests)
 * [Psycopg](https://www.psycopg.org/) (only for running tests)
 

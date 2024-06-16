@@ -66,10 +66,8 @@ TEST_CASE("Middle selection", "[NoDB]")
 
 TEST_CASE("Lua styles", "[NoDB]")
 {
-#ifdef HAVE_LUA
     REQUIRE_THROWS_WITH(opt({"--tag-transform-script", "non_existing.lua"}),
                         Catch::Matchers::Contains("File does not exist"));
-#endif
 }
 
 TEST_CASE("Parsing bbox", "[NoDB]")
