@@ -36,20 +36,19 @@ public:
      */
     void new_line(std::shared_ptr<db_target_descr_t> const &table)
     {
-        if (!m_current || !m_current->target->same_copy_target(*table)) {
+        if (!m_current || !m_current.target->same_copy_target(*table)) {
             if (m_current) {
-                m_processor->add_buffer(std::move(m_current));
+                m_processor->send_command(std::move(m_current));
             }
-
-            m_current = std::make_unique<db_cmd_copy_delete_t<DELETER>>(table);
+            m_current = db_cmd_copy_delete_t<DELETER>(table);
         }
-        m_committed = m_current->buffer.size();
+        m_committed = m_current.buffer.size();
     }
 
     void rollback_line()
     {
         assert(m_current);
-        m_current->buffer.resize(m_committed);
+        m_current.buffer.resize(m_committed);
     }
 
     /**
@@ -62,7 +61,7 @@ public:
     {
         assert(m_current);
 
-        auto &buf = m_current->buffer;
+        auto &buf = m_current.buffer;
         assert(!buf.empty());
 
         // Expect that a column has been written last which ended in a '\t'.
@@ -70,8 +69,9 @@ public:
         assert(buf.back() == '\t');
         buf.back() = '\n';
 
-        if (m_current->is_full()) {
-            m_processor->add_buffer(std::move(m_current));
+        if (m_current.is_full()) {
+            m_processor->send_command(std::move(m_current));
+            m_current = {};
         }
     }
 
@@ -96,7 +96,7 @@ public:
     void add_column(T value)
     {
         add_value(value);
-        m_current->buffer += '\t';
+        m_current.buffer += '\t';
     }
 
     /**
@@ -104,7 +104,7 @@ public:
      *
      * Adds a NULL value for the column.
      */
-    void add_null_column() { m_current->buffer += "\\N\t"; }
+    void add_null_column() { m_current.buffer += "\\N\t"; }
 
     /**
      * Start an array column.
@@ -113,7 +113,7 @@ public:
      *
      * Must be finished with a call to finish_array().
      */
-    void new_array() { m_current->buffer += "{"; }
+    void new_array() { m_current.buffer += "{"; }
 
     /**
      * Add a single value to an array column.
@@ -124,7 +124,7 @@ public:
     void add_array_elem(osmid_t value)
     {
         add_value(value);
-        m_current->buffer += ',';
+        m_current.buffer += ',';
     }
 
     /**
@@ -135,13 +135,13 @@ public:
      */
     void finish_array()
     {
-        assert(!m_current->buffer.empty());
-        if (m_current->buffer.back() == '{') {
-            m_current->buffer += '}';
+        assert(!m_current.buffer.empty());
+        if (m_current.buffer.back() == '{') {
+            m_current.buffer += '}';
         } else {
-            m_current->buffer.back() = '}';
+            m_current.buffer.back() = '}';
         }
-        m_current->buffer += '\t';
+        m_current.buffer += '\t';
     }
 
     /**
@@ -172,11 +172,11 @@ public:
      */
     void add_hash_elem(char const *k, char const *v)
     {
-        m_current->buffer += '"';
+        m_current.buffer += '"';
         add_escaped_string(k);
-        m_current->buffer += "\"=>\"";
+        m_current.buffer += "\"=>\"";
         add_escaped_string(v);
-        m_current->buffer += "\",";
+        m_current.buffer += "\",";
     }
 
     /**
@@ -187,11 +187,11 @@ public:
      */
     void add_hash_elem_noescape(char const *k, char const *v)
     {
-        m_current->buffer += '"';
-        m_current->buffer += k;
-        m_current->buffer += "\"=>\"";
-        m_current->buffer += v;
-        m_current->buffer += "\",";
+        m_current.buffer += '"';
+        m_current.buffer += k;
+        m_current.buffer += "\"=>\"";
+        m_current.buffer += v;
+        m_current.buffer += "\",";
     }
 
     /**
@@ -207,11 +207,11 @@ public:
     template <typename T>
     void add_hstore_num_noescape(char const *k, T const value)
     {
-        m_current->buffer += '"';
-        m_current->buffer += k;
-        m_current->buffer += "\"=>\"";
-        m_current->buffer += std::to_string(value);
-        m_current->buffer += "\",";
+        m_current.buffer += '"';
+        m_current.buffer += k;
+        m_current.buffer += "\"=>\"";
+        m_current.buffer += std::to_string(value);
+        m_current.buffer += "\",";
     }
 
     /**
@@ -222,11 +222,11 @@ public:
      */
     void finish_hash()
     {
-        auto const idx = m_current->buffer.size() - 1;
-        if (!m_current->buffer.empty() && m_current->buffer[idx] == ',') {
-            m_current->buffer[idx] = '\t';
+        auto const idx = m_current.buffer.size() - 1;
+        if (!m_current.buffer.empty() && m_current.buffer[idx] == ',') {
+            m_current.buffer[idx] = '\t';
         } else {
-            m_current->buffer += '\t';
+            m_current.buffer += '\t';
         }
     }
 
@@ -241,10 +241,10 @@ public:
 
         for (auto c : wkb) {
             unsigned int const num = static_cast<unsigned char>(c);
-            m_current->buffer += lookup_hex[(num >> 4U) & 0xfU];
-            m_current->buffer += lookup_hex[num & 0xfU];
+            m_current.buffer += lookup_hex[(num >> 4U) & 0xfU];
+            m_current.buffer += lookup_hex[num & 0xfU];
         }
-        m_current->buffer += '\t';
+        m_current.buffer += '\t';
     }
 
     /**
@@ -257,14 +257,16 @@ public:
     void delete_object(ARGS &&... args)
     {
         assert(m_current);
-        m_current->add_deletable(std::forward<ARGS>(args)...);
+        m_current.add_deletable(std::forward<ARGS>(args)...);
     }
 
     void flush()
     {
         // flush current buffer if there is one
         if (m_current) {
-            m_processor->add_buffer(std::move(m_current));
+            m_processor->send_command(
+                db_cmd_copy_delete_t<DELETER>{std::move(m_current)});
+            m_current = {};
         }
         // close any ongoing copy operations
         m_processor->end_copy();
@@ -285,7 +287,7 @@ private:
     template <typename T>
     void add_value(T value)
     {
-        m_current->buffer += fmt::to_string(value);
+        m_current.buffer += fmt::to_string(value);
     }
 
     void add_value(std::string const &s) { add_value(s.c_str()); }
@@ -296,22 +298,22 @@ private:
         for (char const *c = s; *c; ++c) {
             switch (*c) {
             case '"':
-                m_current->buffer += "\\\"";
+                m_current.buffer += "\\\"";
                 break;
             case '\\':
-                m_current->buffer += "\\\\";
+                m_current.buffer += "\\\\";
                 break;
             case '\n':
-                m_current->buffer += "\\n";
+                m_current.buffer += "\\n";
                 break;
             case '\r':
-                m_current->buffer += "\\r";
+                m_current.buffer += "\\r";
                 break;
             case '\t':
-                m_current->buffer += "\\t";
+                m_current.buffer += "\\t";
                 break;
             default:
-                m_current->buffer += *c;
+                m_current.buffer += *c;
                 break;
             }
         }
@@ -322,29 +324,29 @@ private:
         for (char const *c = s; *c; ++c) {
             switch (*c) {
             case '"':
-                m_current->buffer += R"(\\")";
+                m_current.buffer += R"(\\")";
                 break;
             case '\\':
-                m_current->buffer += R"(\\\\)";
+                m_current.buffer += R"(\\\\)";
                 break;
             case '\n':
-                m_current->buffer += "\\n";
+                m_current.buffer += "\\n";
                 break;
             case '\r':
-                m_current->buffer += "\\r";
+                m_current.buffer += "\\r";
                 break;
             case '\t':
-                m_current->buffer += "\\t";
+                m_current.buffer += "\\t";
                 break;
             default:
-                m_current->buffer += *c;
+                m_current.buffer += *c;
                 break;
             }
         }
     }
 
     std::shared_ptr<db_copy_thread_t> m_processor;
-    std::unique_ptr<db_cmd_copy_delete_t<DELETER>> m_current;
+    db_cmd_copy_delete_t<DELETER> m_current;
     std::size_t m_committed = 0;
 };
 

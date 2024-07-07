@@ -92,7 +92,7 @@ db_copy_thread_t::db_copy_thread_t(connection_params_t const &connection_params)
 
 db_copy_thread_t::~db_copy_thread_t() { finish(); }
 
-void db_copy_thread_t::add_buffer(std::unique_ptr<db_cmd_t> &&buffer)
+void db_copy_thread_t::send_command(db_cmd_t &&buffer)
 {
     assert(m_worker.joinable()); // thread must not have been finished
 
@@ -107,21 +107,21 @@ void db_copy_thread_t::add_buffer(std::unique_ptr<db_cmd_t> &&buffer)
 
 void db_copy_thread_t::end_copy()
 {
-    add_buffer(std::make_unique<db_cmd_end_copy_t>());
+    send_command(db_cmd_end_copy_t{});
 }
 
 void db_copy_thread_t::sync_and_wait()
 {
     std::promise<void> barrier;
     std::future<void> const sync = barrier.get_future();
-    add_buffer(std::make_unique<db_cmd_sync_t>(std::move(barrier)));
+    send_command(db_cmd_sync_t{std::move(barrier)});
     sync.wait();
 }
 
 void db_copy_thread_t::finish()
 {
     if (m_worker.joinable()) {
-        add_buffer(std::make_unique<db_cmd_finish_t>());
+        send_command(db_cmd_finish_t{});
         m_worker.join();
     }
 }
@@ -147,7 +147,7 @@ void db_copy_thread_t::thread_t::operator()()
 
         bool done = false;
         while (!done) {
-            std::unique_ptr<db_cmd_t> item;
+            db_cmd_t item{};
             {
                 std::unique_lock<std::mutex> lock{m_shared->queue_mutex};
                 m_shared->queue_cond.wait(
@@ -158,21 +158,11 @@ void db_copy_thread_t::thread_t::operator()()
                 m_shared->queue_full_cond.notify_one();
             }
 
-            switch (item->type) {
-            case db_cmd_t::Cmd_copy:
-                write_to_db(static_cast<db_cmd_copy_t *>(item.get()));
-                break;
-            case db_cmd_t::Cmd_end_copy:
-                finish_copy();
-                break;
-            case db_cmd_t::Cmd_sync:
-                finish_copy();
-                static_cast<db_cmd_sync_t *>(item.get())->barrier.set_value();
-                break;
-            case db_cmd_t::Cmd_finish:
-                done = true;
-                break;
-            }
+            done = std::visit(
+                [&](auto &&cmd) {
+                    return execute(std::forward<decltype(cmd)>(cmd));
+                },
+                item);
         }
 
         finish_copy();
@@ -184,20 +174,36 @@ void db_copy_thread_t::thread_t::operator()()
     }
 }
 
-void db_copy_thread_t::thread_t::write_to_db(db_cmd_copy_t *buffer)
+template <typename DELETER>
+bool db_copy_thread_t::thread_t::execute(db_cmd_copy_delete_t<DELETER> &cmd)
 {
-    if (buffer->has_deletables() ||
-        (m_inflight && !buffer->target->same_copy_target(*m_inflight))) {
+    if (cmd.has_deletables() ||
+        (m_inflight && !cmd.target->same_copy_target(*m_inflight))) {
         finish_copy();
     }
 
-    buffer->delete_data(*m_db_connection);
+    cmd.delete_data(*m_db_connection);
 
     if (!m_inflight) {
-        start_copy(buffer->target);
+        start_copy(cmd.target);
     }
 
-    m_db_connection->copy_send(buffer->buffer, buffer->target->name());
+    m_db_connection->copy_send(cmd.buffer, cmd.target->name());
+
+    return false;
+}
+
+bool db_copy_thread_t::thread_t::execute(db_cmd_end_copy_t &)
+{
+    finish_copy();
+    return false;
+}
+
+bool db_copy_thread_t::thread_t::execute(db_cmd_sync_t &cmd)
+{
+    finish_copy();
+    cmd.barrier.set_value();
+    return false;
 }
 
 void db_copy_thread_t::thread_t::start_copy(

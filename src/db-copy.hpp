@@ -19,6 +19,7 @@
 #include <string>
 #include <thread>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "osmtypes.hpp"
@@ -136,29 +137,7 @@ private:
     bool m_has_type = false;
 };
 
-/**
- * A command for the copy thread to execute.
- */
-class db_cmd_t
-{
-public:
-    enum cmd_t
-    {
-        Cmd_copy,     ///< Copy buffer content into given target.
-        Cmd_end_copy, ///< End COPY command.
-        Cmd_sync,     ///< Synchronize with parent.
-        Cmd_finish
-    };
-
-    virtual ~db_cmd_t() = default;
-
-    cmd_t type;
-
-protected:
-    explicit db_cmd_t(cmd_t t) : type(t) {}
-};
-
-struct db_cmd_copy_t : public db_cmd_t
+struct db_cmd_copy_t
 {
     enum
     {
@@ -183,14 +162,15 @@ struct db_cmd_copy_t : public db_cmd_t
     /// actual copy buffer
     std::string buffer;
 
-    virtual bool has_deletables() const noexcept = 0;
-    virtual void delete_data(pg_conn_t const &db_connection) = 0;
+    db_cmd_copy_t() = default;
 
     explicit db_cmd_copy_t(std::shared_ptr<db_target_descr_t> t)
-    : db_cmd_t(db_cmd_t::Cmd_copy), target(std::move(t))
+    : target(std::move(t))
     {
         buffer.reserve(Max_buf_size);
     }
+
+    explicit operator bool() const noexcept { return target != nullptr; }
 };
 
 template <typename DELETER>
@@ -205,12 +185,9 @@ public:
         return (buffer.size() > Max_buf_size - 100) || m_deleter.is_full();
     }
 
-    bool has_deletables() const noexcept override
-    {
-        return m_deleter.has_data();
-    }
+    bool has_deletables() const noexcept { return m_deleter.has_data(); }
 
-    void delete_data(pg_conn_t const &db_connection) override
+    void delete_data(pg_conn_t const &db_connection)
     {
         if (m_deleter.has_data()) {
             m_deleter.delete_rows(
@@ -230,24 +207,29 @@ private:
     DELETER m_deleter;
 };
 
-struct db_cmd_end_copy_t : public db_cmd_t
+struct db_cmd_end_copy_t
 {
-    db_cmd_end_copy_t() : db_cmd_t(db_cmd_t::Cmd_end_copy) {}
 };
 
-struct db_cmd_sync_t : public db_cmd_t
+struct db_cmd_sync_t
 {
     std::promise<void> barrier;
 
-    explicit db_cmd_sync_t(std::promise<void> &&b)
-    : db_cmd_t(db_cmd_t::Cmd_sync), barrier(std::move(b))
-    {}
+    explicit db_cmd_sync_t(std::promise<void> &&b) : barrier(std::move(b)) {}
 };
 
-struct db_cmd_finish_t : public db_cmd_t
+struct db_cmd_finish_t
 {
-    db_cmd_finish_t() : db_cmd_t(db_cmd_t::Cmd_finish) {}
 };
+
+/**
+ * This type implements the commands that can be sent through the worker
+ * queue to the worker thread.
+ */
+using db_cmd_t =
+    std::variant<db_cmd_copy_delete_t<db_deleter_by_id_t>,
+                 db_cmd_copy_delete_t<db_deleter_by_type_and_id_t>,
+                 db_cmd_end_copy_t, db_cmd_sync_t, db_cmd_finish_t>;
 
 /**
  * The manager for the worker thread that streams copy data into the database.
@@ -265,17 +247,13 @@ public:
 
     ~db_copy_thread_t();
 
-    /**
-     * Add another command for the worker.
-     */
-    void add_buffer(std::unique_ptr<db_cmd_t> &&buffer);
+    /// Add a command to the worker queue.
+    void send_command(db_cmd_t &&buffer);
 
-    /// Close COPY if one is open
+    /// Close COPY if one is open.
     void end_copy();
 
-    /**
-     * Send sync command and wait for the notification.
-     */
+    /// Send sync command and wait for it to finish.
     void sync_and_wait();
 
     /**
@@ -292,7 +270,7 @@ private:
         std::mutex queue_mutex;
         std::condition_variable queue_cond;
         std::condition_variable queue_full_cond;
-        std::deque<std::unique_ptr<db_cmd_t>> worker_queue;
+        std::deque<db_cmd_t> worker_queue;
     };
 
     // This is the class that actually instantiated and run in the thread.
@@ -304,7 +282,15 @@ private:
         void operator()();
 
     private:
-        void write_to_db(db_cmd_copy_t *buffer);
+        template <typename DELETER>
+        bool execute(db_cmd_copy_delete_t<DELETER> &cmd);
+
+        bool execute(db_cmd_end_copy_t &);
+
+        bool execute(db_cmd_sync_t &cmd);
+
+        static bool execute(db_cmd_finish_t &) { return true; }
+
         void start_copy(std::shared_ptr<db_target_descr_t> const &target);
         void finish_copy();
         void delete_rows(db_cmd_copy_t *buffer);
