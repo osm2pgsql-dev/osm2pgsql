@@ -264,8 +264,7 @@ public:
     {
         // flush current buffer if there is one
         if (m_current) {
-            m_processor->send_command(
-                db_cmd_copy_delete_t<DELETER>{std::move(m_current)});
+            m_processor->send_command(std::move(m_current));
             m_current = {};
         }
         // close any ongoing copy operations

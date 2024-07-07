@@ -277,7 +277,7 @@ private:
     class thread_t
     {
     public:
-        thread_t(connection_params_t connection_params, shared *shared);
+        thread_t(pg_conn_t &&db_connection, shared *shared);
 
         void operator()();
 
@@ -296,7 +296,7 @@ private:
         void delete_rows(db_cmd_copy_t *buffer);
 
         connection_params_t m_connection_params;
-        std::unique_ptr<pg_conn_t> m_db_connection;
+        pg_conn_t m_db_connection;
 
         // Target for copy operation currently ongoing.
         std::shared_ptr<db_target_descr_t> m_inflight;

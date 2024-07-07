@@ -87,7 +87,8 @@ db_copy_thread_t::db_copy_thread_t(connection_params_t const &connection_params)
     // Connection params are captured by copy here, because we don't know
     // whether the reference will still be valid once we get around to running
     // the thread.
-    m_worker = std::thread{thread_t{connection_params, &m_shared}};
+    m_worker =
+        std::thread{thread_t{pg_conn_t{connection_params, "copy"}, &m_shared}};
 }
 
 db_copy_thread_t::~db_copy_thread_t() { finish(); }
@@ -126,24 +127,21 @@ void db_copy_thread_t::finish()
     }
 }
 
-db_copy_thread_t::thread_t::thread_t(connection_params_t connection_params,
+db_copy_thread_t::thread_t::thread_t(pg_conn_t &&db_connection,
                                      shared *shared)
-: m_connection_params(std::move(connection_params)), m_shared(shared)
+: m_db_connection(std::move(db_connection)), m_shared(shared)
 {}
 
 void db_copy_thread_t::thread_t::operator()()
 {
     try {
-        m_db_connection =
-            std::make_unique<pg_conn_t>(m_connection_params, "copy");
-
         // Disable sequential scan on database tables in the copy threads.
         // The copy threads only do COPYs (which are unaffected by this
         // setting) and DELETEs which we know benefit from the index. For
         // some reason PostgreSQL chooses in some cases not to use that index,
         // possibly because the DELETEs get a large list of ids to delete of
         // which many are not in the table which confuses the query planner.
-        m_db_connection->exec("SET enable_seqscan = off");
+        m_db_connection.exec("SET enable_seqscan = off");
 
         bool done = false;
         while (!done) {
@@ -166,8 +164,6 @@ void db_copy_thread_t::thread_t::operator()()
         }
 
         finish_copy();
-
-        m_db_connection.reset();
     } catch (std::runtime_error const &e) {
         log_error("DB copy thread failed: {}", e.what());
         std::exit(2); // NOLINT(concurrency-mt-unsafe)
@@ -182,13 +178,13 @@ bool db_copy_thread_t::thread_t::execute(db_cmd_copy_delete_t<DELETER> &cmd)
         finish_copy();
     }
 
-    cmd.delete_data(*m_db_connection);
+    cmd.delete_data(m_db_connection);
 
     if (!m_inflight) {
         start_copy(cmd.target);
     }
 
-    m_db_connection->copy_send(cmd.buffer, cmd.target->name());
+    m_db_connection.copy_send(cmd.buffer, cmd.target->name());
 
     return false;
 }
@@ -224,7 +220,7 @@ void db_copy_thread_t::thread_t::start_copy(
     }
 
     sql.push_back('\0');
-    m_db_connection->copy_start(sql.data());
+    m_db_connection.copy_start(sql.data());
 
     m_inflight = target;
 }
@@ -232,7 +228,7 @@ void db_copy_thread_t::thread_t::start_copy(
 void db_copy_thread_t::thread_t::finish_copy()
 {
     if (m_inflight) {
-        m_db_connection->copy_end(m_inflight->name());
+        m_db_connection.copy_end(m_inflight->name());
         m_inflight.reset();
     }
 }
