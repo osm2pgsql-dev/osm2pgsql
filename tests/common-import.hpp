@@ -22,6 +22,7 @@
 #include "middle-ram.hpp"
 #include "osmdata.hpp"
 #include "output.hpp"
+#include "properties.hpp"
 #include "taginfo-impl.hpp"
 
 #include "common-pg.hpp"
@@ -132,12 +133,15 @@ public:
     {
         options.connection_params = m_db.connection_params();
 
+        properties_t const properties{options.connection_params,
+                                      options.middle_dbschema};
+
         auto thread_pool = std::make_shared<thread_pool_t>(1U);
         auto middle = create_middle(thread_pool, options);
         middle->start();
 
         auto output = output_t::create_output(middle->get_query_instance(),
-                                              thread_pool, options);
+                                              thread_pool, options, properties);
 
         middle->set_requirements(output->get_requirements());
 
@@ -163,12 +167,15 @@ public:
     {
         options.connection_params = m_db.connection_params();
 
+        properties_t const properties{options.connection_params,
+                                      options.middle_dbschema};
+
         auto thread_pool = std::make_shared<thread_pool_t>(1U);
         auto middle = std::make_shared<middle_ram_t>(thread_pool, &options);
         middle->start();
 
         auto output = output_t::create_output(middle->get_query_instance(),
-                                              thread_pool, options);
+                                              thread_pool, options, properties);
 
         middle->set_requirements(output->get_requirements());
 

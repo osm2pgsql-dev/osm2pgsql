@@ -23,7 +23,8 @@
 std::shared_ptr<output_t>
 output_t::create_output(std::shared_ptr<middle_query_t> const &mid,
                         std::shared_ptr<thread_pool_t> thread_pool,
-                        options_t const &options)
+                        options_t const &options,
+                        properties_t const &properties)
 {
     if (options.output_backend == "pgsql") {
         return std::make_shared<output_pgsql_t>(mid, std::move(thread_pool),
@@ -32,7 +33,7 @@ output_t::create_output(std::shared_ptr<middle_query_t> const &mid,
 
     if (options.output_backend == "flex") {
         return std::make_shared<output_flex_t>(mid, std::move(thread_pool),
-                                               options);
+                                               options, properties);
     }
 
     if (options.output_backend == "null") {

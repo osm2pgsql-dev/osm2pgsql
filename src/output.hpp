@@ -22,6 +22,7 @@
 #include "output-requirements.hpp"
 
 class db_copy_thread_t;
+class properties_t;
 class thread_pool_t;
 
 struct middle_query_t;
@@ -34,7 +35,7 @@ public:
     static std::shared_ptr<output_t>
     create_output(std::shared_ptr<middle_query_t> const &mid,
                   std::shared_ptr<thread_pool_t> thread_pool,
-                  options_t const &options);
+                  options_t const &options, properties_t const &properties);
 
     output_t(output_t const &) = default;
     output_t &operator=(output_t const &) = default;

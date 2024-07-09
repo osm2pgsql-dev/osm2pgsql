@@ -30,6 +30,7 @@
 #include "output-flex.hpp"
 #include "pgsql.hpp"
 #include "pgsql-capabilities.hpp"
+#include "properties.hpp"
 #include "reprojection.hpp"
 #include "thread-pool.hpp"
 #include "util.hpp"
@@ -1159,12 +1160,13 @@ output_flex_t::clone(std::shared_ptr<middle_query_t> const &mid,
 
 output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
                              std::shared_ptr<thread_pool_t> thread_pool,
-                             options_t const &options)
+                             options_t const &options,
+                             properties_t const &properties)
 : output_t(mid, std::move(thread_pool), options),
   m_db_connection(get_options()->connection_params, "out.flex.main"),
   m_copy_thread(std::make_shared<db_copy_thread_t>(options.connection_params))
 {
-    init_lua(options.style);
+    init_lua(options.style, properties);
 
     // If the osm2pgsql.select_relation_members() Lua function is defined
     // it means we need two-stage processing which in turn means we need
@@ -1276,7 +1278,8 @@ void init_expire_output_class(lua_State *lua_state)
 
 } // anonymous namespace
 
-void output_flex_t::init_lua(std::string const &filename)
+void output_flex_t::init_lua(std::string const &filename,
+                             properties_t const &properties)
 {
     m_lua_state.reset(luaL_newstate(),
                       [](lua_State *state) { lua_close(state); });
@@ -1284,6 +1287,14 @@ void output_flex_t::init_lua(std::string const &filename)
     setup_lua_environment(lua_state(), filename, get_options()->append);
 
     luaX_add_table_int(lua_state(), "stage", 1);
+
+    lua_pushstring(lua_state(), "properties");
+    lua_createtable(lua_state(), 0, (int)properties.size());
+    for (auto const &property : properties) {
+        luaX_add_table_str(lua_state(), property.first.c_str(),
+                           property.second.c_str());
+    }
+    lua_rawset(lua_state(), -3);
 
     luaX_add_table_func(lua_state(), "define_table",
                         lua_trampoline_app_define_table);

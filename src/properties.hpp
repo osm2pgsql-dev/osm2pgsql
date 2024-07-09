@@ -39,6 +39,8 @@ public:
      */
     properties_t(connection_params_t connection_params, std::string schema);
 
+    std::size_t size() const noexcept { return m_properties.size(); }
+
     std::string get_string(std::string const &property,
                            std::string const &default_value) const;
 
@@ -92,6 +94,10 @@ public:
      * \returns true if properties could be loaded, false otherwise.
      */
     bool load();
+
+    auto begin() const { return m_properties.begin(); }
+
+    auto end() const { return m_properties.end(); }
 
 private:
     std::string table_name() const;

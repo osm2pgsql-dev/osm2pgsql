@@ -44,7 +44,7 @@ void show_memory_usage()
     }
 }
 
-file_info run(options_t const &options)
+file_info run(options_t const &options, properties_t const &properties)
 {
     auto const files = prepare_input_files(
         options.input_files, options.input_format, options.append);
@@ -57,7 +57,7 @@ file_info run(options_t const &options)
     middle->start();
 
     auto output = output_t::create_output(middle->get_query_instance(),
-                                          thread_pool, options);
+                                          thread_pool, options, properties);
 
     middle->set_requirements(output->get_requirements());
 
@@ -357,7 +357,7 @@ int main(int argc, char *argv[])
 
             check_and_update_properties(&properties, &options);
 
-            auto const finfo = run(options);
+            auto const finfo = run(options, properties);
 
             if (finfo.last_timestamp.valid()) {
                 auto const current_timestamp =
@@ -373,7 +373,7 @@ int main(int argc, char *argv[])
         } else {
             set_option_defaults(&options);
             store_properties(&properties, options);
-            auto const finfo = run(options);
+            auto const finfo = run(options, properties);
             store_data_properties(&properties, finfo);
         }
 
