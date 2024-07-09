@@ -31,16 +31,16 @@ TEST_CASE("db_copy_thread_t with db_deleter_by_id_t")
 
     db_copy_thread_t t{db.connection_params()};
     using cmd_copy_t = db_cmd_copy_delete_t<db_deleter_by_id_t>;
-    auto cmd = std::make_unique<cmd_copy_t>(table);
 
     SECTION("simple copy command")
     {
 
         SECTION("add one copy line and sync")
         {
-            cmd->buffer += "42\n";
+            cmd_copy_t cmd{table};
+            cmd.buffer += "42\n";
 
-            t.add_buffer(std::unique_ptr<db_cmd_t>(cmd.release()));
+            t.send_command(std::move(cmd));
             t.sync_and_wait();
 
             REQUIRE(conn.result_as_int("SELECT id FROM test_copy_thread") ==
@@ -49,9 +49,10 @@ TEST_CASE("db_copy_thread_t with db_deleter_by_id_t")
 
         SECTION("add multiple rows and sync")
         {
-            cmd->buffer += "101\n  23\n 900\n";
+            cmd_copy_t cmd{table};
+            cmd.buffer += "101\n  23\n 900\n";
 
-            t.add_buffer(std::unique_ptr<db_cmd_t>(cmd.release()));
+            t.send_command(std::move(cmd));
             t.sync_and_wait();
 
             REQUIRE(table_count(conn) == 3);
@@ -59,9 +60,10 @@ TEST_CASE("db_copy_thread_t with db_deleter_by_id_t")
 
         SECTION("add one line and finish")
         {
-            cmd->buffer += "2\n";
+            cmd_copy_t cmd{table};
+            cmd.buffer += "2\n";
 
-            t.add_buffer(std::unique_ptr<db_cmd_t>(cmd.release()));
+            t.send_command(std::move(cmd));
             t.finish();
 
             REQUIRE(conn.result_as_int("SELECT id FROM test_copy_thread") == 2);
@@ -70,18 +72,18 @@ TEST_CASE("db_copy_thread_t with db_deleter_by_id_t")
 
     SECTION("delete command")
     {
-        cmd->buffer += "42\n43\n133\n223\n224\n";
-        t.add_buffer(std::unique_ptr<db_cmd_t>(cmd.release()));
+        cmd_copy_t cmd{table};
+        cmd.buffer += "42\n43\n133\n223\n224\n";
+        t.send_command(std::move(cmd));
         t.sync_and_wait();
-
-        cmd = std::make_unique<cmd_copy_t>(table);
 
         SECTION("simple delete of existing rows")
         {
-            cmd->add_deletable(223);
-            cmd->add_deletable(42);
+            cmd = cmd_copy_t{table};
+            cmd.add_deletable(223);
+            cmd.add_deletable(42);
 
-            t.add_buffer(std::unique_ptr<db_cmd_t>(cmd.release()));
+            t.send_command(std::move(cmd));
             t.sync_and_wait();
 
             REQUIRE(table_count(conn, "WHERE id = 42") == 0);
@@ -90,10 +92,11 @@ TEST_CASE("db_copy_thread_t with db_deleter_by_id_t")
 
         SECTION("delete one and add another")
         {
-            cmd->add_deletable(133);
-            cmd->buffer += "134\n";
+            cmd = cmd_copy_t{table};
+            cmd.add_deletable(133);
+            cmd.buffer += "134\n";
 
-            t.add_buffer(std::unique_ptr<db_cmd_t>(cmd.release()));
+            t.send_command(std::move(cmd));
             t.sync_and_wait();
 
             REQUIRE(table_count(conn, "WHERE id = 133") == 0);
@@ -102,10 +105,11 @@ TEST_CASE("db_copy_thread_t with db_deleter_by_id_t")
 
         SECTION("delete one and add the same")
         {
-            cmd->add_deletable(133);
-            cmd->buffer += "133\n";
+            cmd = cmd_copy_t{table};
+            cmd.add_deletable(133);
+            cmd.buffer += "133\n";
 
-            t.add_buffer(std::unique_ptr<db_cmd_t>(cmd.release()));
+            t.send_command(std::move(cmd));
             t.sync_and_wait();
 
             REQUIRE(table_count(conn, "WHERE id = 133") == 1);
@@ -114,12 +118,13 @@ TEST_CASE("db_copy_thread_t with db_deleter_by_id_t")
 
     SECTION("multi buffer add without delete")
     {
-        cmd->buffer += "542\n5543\n10133\n";
-        t.add_buffer(std::unique_ptr<db_cmd_t>(cmd.release()));
+        cmd_copy_t cmd{table};
+        cmd.buffer += "542\n5543\n10133\n";
+        t.send_command(std::move(cmd));
 
-        cmd = std::make_unique<cmd_copy_t>(table);
-        cmd->buffer += "12\n784\n523\n";
-        t.add_buffer(std::unique_ptr<db_cmd_t>(cmd.release()));
+        cmd = cmd_copy_t{table};
+        cmd.buffer += "12\n784\n523\n";
+        t.send_command(std::move(cmd));
 
         t.finish();
 
@@ -130,13 +135,14 @@ TEST_CASE("db_copy_thread_t with db_deleter_by_id_t")
 
     SECTION("multi buffer add with delete")
     {
-        cmd->buffer += "542\n5543\n10133\n";
-        t.add_buffer(std::unique_ptr<db_cmd_t>(cmd.release()));
+        cmd_copy_t cmd{table};
+        cmd.buffer += "542\n5543\n10133\n";
+        t.send_command(std::move(cmd));
 
-        cmd = std::make_unique<cmd_copy_t>(table);
-        cmd->add_deletable(542);
-        cmd->buffer += "12\n";
-        t.add_buffer(std::unique_ptr<db_cmd_t>(cmd.release()));
+        cmd = cmd_copy_t{table};
+        cmd.add_deletable(542);
+        cmd.buffer += "12\n";
+        t.send_command(std::move(cmd));
 
         t.finish();
 
