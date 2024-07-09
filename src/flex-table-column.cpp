@@ -8,11 +8,13 @@
  */
 
 #include "flex-table-column.hpp"
+
 #include "format.hpp"
 #include "pgsql-capabilities.hpp"
 #include "util.hpp"
 
 #include <algorithm>
+#include <cassert>
 #include <cctype>
 #include <cstdlib>
 #include <stdexcept>
@@ -24,12 +26,12 @@ namespace {
 struct column_type_lookup
 {
     char const *m_name;
-    table_column_type type;
+    table_column_type m_type;
 
     char const *name() const noexcept { return m_name; }
 };
 
-static std::vector<column_type_lookup> const column_types = {
+std::vector<column_type_lookup> const column_types = {
     {{"text", table_column_type::text},
      {"boolean", table_column_type::boolean},
      {"bool", table_column_type::boolean},
@@ -63,7 +65,7 @@ table_column_type get_column_type_from_string(std::string const &type)
         throw fmt_error("Unknown column type '{}'.", type);
     }
 
-    return column_type->type;
+    return column_type->m_type;
 }
 
 std::string lowercase(std::string const &str)
