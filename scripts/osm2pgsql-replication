@@ -721,4 +721,10 @@ def main(prog_args=None):
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    try:
+        retcode = main()
+    except Exception as ex:
+        LOG.fatal("Exception during execution: %s", ex)
+        retcode = 3
+
+    sys.exit(retcode)
