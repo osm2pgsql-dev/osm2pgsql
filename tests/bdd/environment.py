@@ -38,7 +38,6 @@ USER_CONFIG = {
     'KEEP_TEST_DB': False,
     'TEST_DB': 'osm2pgsql-test',
     'HAVE_TABLESPACE': True,
-    'HAVE_LUA': True,
     'HAVE_PROJ': True
 }
 
@@ -93,9 +92,6 @@ def before_all(context):
     if proc.returncode != 0:
         raise RuntimeError('Cannot run osm2pgsql')
 
-    if context.config.userdata['HAVE_LUA']:
-        context.config.userdata['HAVE_LUA'] = 'Lua support not included' not in ver_info
-
     if context.config.userdata['HAVE_PROJ']:
         context.config.userdata['HAVE_PROJ'] = 'Proj [disabled]' not in ver_info
 
@@ -117,9 +113,6 @@ def before_scenario(context, scenario):
     """
     if 'config.have_proj' in scenario.tags and not context.config.userdata['HAVE_PROJ']:
         scenario.skip("Generic proj library not configured.")
-
-    if 'config.have_lua' in scenario.tags and not context.config.userdata['HAVE_LUA']:
-        scenario.skip("Lua support not compiled in.")
 
     context.db = use_fixture(test_db, context)
     context.import_file = None

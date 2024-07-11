@@ -121,19 +121,11 @@ def do_not_setup_tagtransform(context):
 
 @given("the default lua tagtransform")
 def setup_lua_tagtransform(context):
-    if not context.config.userdata['HAVE_LUA']:
-        context.scenario.skip("Lua support not compiled in.")
-        return
-
     context.osm2pgsql_params.extend(('--tag-transform-script',
                                     str(context.default_data_dir / 'style.lua')))
 
 @given("the lua style")
 def setup_inline_lua_style(context):
-    if not context.config.userdata['HAVE_LUA']:
-        context.scenario.skip("Lua support not compiled in.")
-        return
-
     outfile = context.workdir / 'inline_style.lua'
     outfile.write_text(context.text)
     context.osm2pgsql_params.extend(('-S', str(outfile)))
@@ -141,10 +133,6 @@ def setup_inline_lua_style(context):
 
 @given("the style file '(?P<style>.+)'")
 def setup_style_file(context, style):
-    if style.endswith('.lua') and not context.config.userdata['HAVE_LUA']:
-        context.scenario.skip("Lua support not compiled in.")
-        return
-
     context.osm2pgsql_params.extend(('-S', str(context.test_data_dir / style)))
 
 

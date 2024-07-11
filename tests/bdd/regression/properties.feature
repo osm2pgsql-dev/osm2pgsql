@@ -92,7 +92,6 @@ Feature: Updates to the test database with properties check
             Using style file '' (same as on import).
             """
 
-    @config.have_lua
     Scenario Outline: Create/append with various style parameters with flex output
         When running osm2pgsql flex with parameters
             | --slim         |
