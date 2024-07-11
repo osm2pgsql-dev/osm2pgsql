@@ -10,6 +10,8 @@ Feature: Tests for the osm2pgsql-replication script without property table
 
     Scenario: Replication can be initialised with a osm file
         Given the replication service at http://example.com/europe/liechtenstein-updates
+            | sequence | timestamp            |
+            | 9999999  | 2013-08-03T19:00:02Z |
         When running osm2pgsql pgsql with parameters
             | --slim |
         And deleting table osm2pgsql_properties
@@ -38,6 +40,8 @@ Feature: Tests for the osm2pgsql-replication script without property table
 
     Scenario: Replication can be initialised in different schema
         Given the replication service at http://example.com/europe/liechtenstein-updates
+            | sequence | timestamp            |
+            | 9999999  | 2013-08-03T19:00:02Z |
         Given the database schema foobar
         When running osm2pgsql pgsql with parameters
             | --slim | --middle-schema=foobar |
