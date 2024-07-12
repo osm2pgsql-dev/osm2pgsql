@@ -45,6 +45,7 @@ except ImportError:
 try:
     from osmium.replication.server import ReplicationServer
     from osmium.replication.utils import get_replication_header
+    from osmium.replication import newest_change_from_file
     from osmium import WriteHandler
 except ImportError:
     missing_modules.append('osmium')
@@ -208,7 +209,8 @@ class Osm2pgsqlProperties:
     def write_replication_state(self, base_url, seq, date):
         self._set_prop('replication_base_url', base_url)
         self._set_prop('replication_sequence_number', seq)
-        self._set_prop('replication_timestamp', osm_date(date))
+        if date is not None:
+            self._set_prop('replication_timestamp', osm_date(date))
         self.db.conn.commit()
 
 
@@ -553,19 +555,25 @@ def update(props, args):
         seq = endseq
 
         nextstate = repl.get_state_info(seq)
-        timestamp = nextstate.timestamp if nextstate else None
+        if nextstate:
+            timestamp = nextstate.timestamp
+        else:
+            # Can't get state information for some reason, get the timestamp from file.
+            timestamp = newest_change_from_file(str(outfile))
+            if timestamp <= dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc):
+                timestamp = None
 
         if args.post_processing:
             cmd = [args.post_processing, str(endseq), str(timestamp or '')]
             LOG.debug('Calling post-processing script: %s', ' '.join(cmd))
             subprocess.run(cmd, check=True)
 
-        props.write_replication_state(base_url, seq, nextstate.timestamp if nextstate else None)
+        props.write_replication_state(base_url, seq, timestamp)
 
-        if nextstate is not None:
+        if timestamp is not None:
             LOG.info("Data imported until %s. Backlog remaining: %s",
-                osm_date(nextstate.timestamp.astimezone(dt.timezone.utc)),
-                pretty_format_timedelta((dt.datetime.now(dt.timezone.utc) - nextstate.timestamp).total_seconds()),
+                osm_date(timestamp.astimezone(dt.timezone.utc)),
+                pretty_format_timedelta((dt.datetime.now(dt.timezone.utc) - timestamp).total_seconds()),
             )
 
         if args.once:
