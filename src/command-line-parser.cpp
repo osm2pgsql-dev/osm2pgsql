@@ -242,14 +242,10 @@ void print_version()
     fmt::print(stderr, "Compiled using the following library versions:\n");
     fmt::print(stderr, "Libosmium {}\n", LIBOSMIUM_VERSION_STRING);
     fmt::print(stderr, "Proj {}\n", get_proj_version());
-#ifdef HAVE_LUA
 #ifdef HAVE_LUAJIT
     fmt::print(stderr, "{} ({})\n", LUA_RELEASE, LUAJIT_VERSION);
 #else
     fmt::print(stderr, "{}\n", LUA_RELEASE);
-#endif
-#else
-    fmt::print(stderr, "Lua support not included\n");
 #endif
 }
 

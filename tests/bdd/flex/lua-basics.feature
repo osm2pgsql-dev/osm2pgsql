@@ -1,7 +1,9 @@
 Feature: Flex output uses a Lua config file
 
     Scenario: Check access to osm2pgsql object from Lua
-        Given the input file 'liechtenstein-2013-08-03.osm.pbf'
+        Given the OSM data
+            """
+            """
         And the lua style
             """
             print("version=" .. osm2pgsql.version)
@@ -28,15 +30,17 @@ Feature: Flex output uses a Lua config file
             """
 
     Scenario: Check access to osm2pgsql properties from Lua
-        Given the input file 'liechtenstein-2013-08-03.osm.pbf'
+        Given the OSM data
+            """
+            """
         And the lua style
             """
             local p = osm2pgsql.properties
             print("attributes=" .. p.attributes)
             print("prefix=" .. p.prefix)
             """
-        Then running osm2pgsql flex fails
-        And the standard output contains
+        When running osm2pgsql flex
+        Then the standard output contains
             """
             attributes=false
             """
