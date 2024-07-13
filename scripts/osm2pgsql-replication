@@ -449,12 +449,22 @@ def init(props, args):
             raise DBError(1, f"Cannot reach the configured replication service '{base_url}'.\n"
                              "Does the URL point to a directory containing OSM update data?")
 
+    state = repl.get_state_info(seq)
+    if state is None:
+        raise DBError(1, f"Cannot load state information for {seq} from replication service {base_url}.\n"
+                         + (f"The server may not have diffs going as far back as {date}."
+                            if date is not None else
+                            "Does the URL point to a directory containing OSM update data?"))
+
     if date is None:
-        state = repl.get_state_info(seq)
-        if state is None:
-            raise DBError(1, f"Cannot reach the configured replication service '{base_url}'.\n"
-                             "Does the URL point to a directory containing OSM update data?")
         date = from_osm_date(state.timestamp)
+    else:
+        # Sanity check. Is the sequence in line with the date requested?
+        if state.timestamp > date:
+            raise DBError(1, "The replication service does not have diff files for the requested date.\n"
+                             f"Replication service used: {base_url}\n"
+                             f"Most recent diffs available start at: {state.timestamp}\n"
+                             f"Database date: {date}")
 
     props.write_replication_state(base_url, seq, date)
 

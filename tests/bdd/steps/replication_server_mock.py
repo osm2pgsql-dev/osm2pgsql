@@ -28,7 +28,7 @@ class ReplicationServerMock:
             if info.sequence == seq:
                 return info
 
-        assert False, f"No sequence information for sequence ID {seq}."
+        return None
 
     def timestamp_to_sequence(self, timestamp, balanced_search=False):
         assert self.state_infos, 'Replication mock not properly set up'
