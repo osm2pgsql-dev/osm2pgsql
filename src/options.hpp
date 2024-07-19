@@ -95,6 +95,9 @@ struct options_t
 
     std::shared_ptr<reprojection> projection; ///< SRS of projection
 
+    /// Max length of line segment that will be expired
+    double expire_tiles_max_segment = 0.0;
+
     /// Max bbox size in either dimension to expire full bbox for a polygon
     double expire_tiles_max_bbox = 20000.0;
 

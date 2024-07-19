@@ -165,6 +165,37 @@ TEST_CASE("expire linestring crossing tile boundary", "[NoDB]")
     CHECK(tile_t::from_quadkey(tiles[1], zoom) == tile_t{zoom, 2048, 2047});
 }
 
+TEST_CASE("expire linestring with long segment", "[NoDB]")
+{
+    expire_config_t expire_config;
+    expire_config.line_segment_limit = 10000;
+    expire_tiles et{zoom, defproj};
+
+    SECTION("line")
+    {
+        geom::linestring_t const line{{5000.0, 5000.0}, {15000.0, 15000.0}};
+        et.from_geometry(line, expire_config);
+    }
+
+    SECTION("geom")
+    {
+        geom::linestring_t line{{5000.0, 5000.0}, {15000.0, 15000.0}};
+        geom::geometry_t const geom{std::move(line)};
+        et.from_geometry(geom, expire_config);
+    }
+
+    SECTION("geom with check")
+    {
+        geom::linestring_t line{{5000.0, 5000.0}, {15000.0, 15000.0}};
+        geom::geometry_t geom{std::move(line)};
+        geom.set_srid(3857);
+        et.from_geometry_if_3857(geom, expire_config);
+    }
+
+    auto const tiles = et.get_tiles();
+    REQUIRE(tiles.size() == 0);
+}
+
 TEST_CASE("expire small polygon", "[NoDB]")
 {
     expire_config_t const expire_config;

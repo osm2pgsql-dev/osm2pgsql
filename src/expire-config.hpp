@@ -34,6 +34,11 @@ struct expire_config_t
     double buffer = 0.1;
 
     /**
+     * Maximum length of a line segment that will be expired.
+     */
+    double line_segment_limit = 0.0;
+
+    /**
      * Maximum width/heigth of bbox of a (multi)polygon before hybrid mode
      * expiry switches from full-area to boundary-only expire.
      */

@@ -156,6 +156,11 @@ void expire_tiles::from_line_segment(geom::point_t const &a,
                                      geom::point_t const &b,
                                      expire_config_t const &expire_config)
 {
+    if (expire_config.line_segment_limit > 0.0 &&
+        distance(a, b) > expire_config.line_segment_limit) {
+        return;
+    }
+
     auto tilec_a = coords_to_tile(a);
     auto tilec_b = coords_to_tile(b);
 
