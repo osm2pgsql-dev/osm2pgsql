@@ -238,6 +238,7 @@ void check_options_expire(options_t *options) {
 
 void print_version()
 {
+    fmt::print(stderr, "osm2pgsql version {}", get_osm2pgsql_version());
     fmt::print(stderr, "Build: {}\n", get_build_type());
     fmt::print(stderr, "Compiled using the following library versions:\n");
     fmt::print(stderr, "Libosmium {}\n", LIBOSMIUM_VERSION_STRING);
@@ -609,15 +610,15 @@ options_t parse_command_line(int argc, char *argv[])
         return options;
     }
 
+    if (app.want_version()) {
+        options.command = command_t::version;
+        return options;
+    }
+
     log_info("osm2pgsql version {}", get_osm2pgsql_version());
 
     if (verbose) {
         get_logger().set_level(log_level::debug);
-    }
-
-    if (app.want_version()) {
-        options.command = command_t::version;
-        return options;
     }
 
     if (options.append && app.count("--create")) {
