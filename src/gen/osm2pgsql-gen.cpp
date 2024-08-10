@@ -109,15 +109,20 @@ tile_extent get_extent_from_db(pg_conn_t const &db_connection,
         return {};
     }
 
-    std::string const sql =
-        raster ? "SELECT ST_XMin(extent), ST_YMin(extent),"
-                 " ST_XMax(extent), ST_YMax(extent)"
-                 " FROM raster_columns WHERE r_table_schema='{}'"
-                 " AND r_table_name='{}' AND r_raster_column = '{}'"
-               : "SELECT ST_XMin(e), ST_YMin(e), ST_XMax(e), ST_YMax(e)"
-                 " FROM ST_EstimatedExtent('{}', '{}', '{}') AS e";
-
-    auto const result = db_connection.exec(sql, schema, table, column);
+    pg_result_t result;
+    if (raster) {
+        result = db_connection.exec(
+            "SELECT ST_XMin(extent), ST_YMin(extent),"
+            " ST_XMax(extent), ST_YMax(extent)"
+            " FROM raster_columns WHERE r_table_schema='{}'"
+            " AND r_table_name='{}' AND r_raster_column = '{}'",
+            schema, table, column);
+    } else {
+        result = db_connection.exec(
+            "SELECT ST_XMin(e), ST_YMin(e), ST_XMax(e), ST_YMax(e)"
+            " FROM ST_EstimatedExtent('{}', '{}', '{}') AS e",
+            schema, table, column);
+    }
 
     if (result.num_tuples() == 0 || result.is_null(0, 0)) {
         return {};
