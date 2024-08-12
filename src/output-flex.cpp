@@ -804,6 +804,15 @@ int output_flex_t::expire_output_table()
     return 1;
 }
 
+void output_flex_t::call_lua_function(prepared_lua_function_t func)
+{
+    lua_pushvalue(lua_state(), func.index());
+    if (luaX_pcall(lua_state(), 0, func.nresults())) {
+        throw fmt_error("Failed to execute Lua function 'osm2pgsql.{}': {}.",
+                        func.name(), lua_tostring(lua_state(), -1));
+    }
+}
+
 void output_flex_t::call_lua_function(prepared_lua_function_t func,
                                       osmium::OSMObject const &object)
 {
@@ -821,6 +830,13 @@ void output_flex_t::call_lua_function(prepared_lua_function_t func,
     }
 
     m_calling_context = calling_context::main;
+}
+
+void output_flex_t::get_mutex_and_call_lua_function(
+    prepared_lua_function_t func)
+{
+    std::lock_guard<std::mutex> const guard{lua_mutex};
+    call_lua_function(func);
 }
 
 void output_flex_t::get_mutex_and_call_lua_function(
@@ -960,11 +976,32 @@ void output_flex_t::sync()
     }
 }
 
-void output_flex_t::after_nodes() { flush_tables(m_table_connections); }
+void output_flex_t::after_nodes()
+{
+    if (m_after_nodes) {
+        get_mutex_and_call_lua_function(m_after_nodes);
+    }
 
-void output_flex_t::after_ways() { flush_tables(m_table_connections); }
+    flush_tables(m_table_connections);
+}
 
-void output_flex_t::after_relations() { flush_tables(m_table_connections); }
+void output_flex_t::after_ways()
+{
+    if (m_after_ways) {
+        get_mutex_and_call_lua_function(m_after_ways);
+    }
+
+    flush_tables(m_table_connections);
+}
+
+void output_flex_t::after_relations()
+{
+    if (m_after_relations) {
+        get_mutex_and_call_lua_function(m_after_relations);
+    }
+
+    flush_tables(m_table_connections);
+}
 
 void output_flex_t::stop()
 {
@@ -1138,7 +1175,9 @@ output_flex_t::output_flex_t(output_flex_t const *other,
   m_copy_thread(std::move(copy_thread)), m_lua_state(other->m_lua_state),
   m_process_node(other->m_process_node), m_process_way(other->m_process_way),
   m_process_relation(other->m_process_relation),
-  m_select_relation_members(other->m_select_relation_members)
+  m_select_relation_members(other->m_select_relation_members),
+  m_after_nodes(other->m_after_nodes), m_after_ways(other->m_after_ways),
+  m_after_relations(other->m_after_relations)
 {
     for (auto &table : *m_tables) {
         table.prepare(m_db_connection);
@@ -1369,6 +1408,12 @@ void output_flex_t::init_lua(std::string const &filename,
     m_select_relation_members = prepared_lua_function_t{
         lua_state(), calling_context::select_relation_members,
         "select_relation_members", 1};
+    m_after_nodes = prepared_lua_function_t{lua_state(), calling_context::main,
+                                            "after_nodes"};
+    m_after_ways = prepared_lua_function_t{lua_state(), calling_context::main,
+                                           "after_ways"};
+    m_after_relations = prepared_lua_function_t{
+        lua_state(), calling_context::main, "after_relations"};
 
     lua_remove(lua_state(), 1); // global "osm2pgsql"
 }
