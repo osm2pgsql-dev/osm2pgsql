@@ -24,6 +24,7 @@
 #include <string>
 #include <utility>
 
+class node_persistent_cache;
 class thread_pool_t;
 
 /**
@@ -124,6 +125,10 @@ private:
 
     /// Options for this middle.
     middle_ram_options m_store_options;
+
+    /// File cache
+    std::shared_ptr<node_persistent_cache> m_persistent_cache;
+
 }; // class middle_ram_t
 
 #endif // OSM2PGSQL_MIDDLE_RAM_HPP

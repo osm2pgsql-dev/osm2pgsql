@@ -114,9 +114,9 @@ void parse_expire_tiles_param(char const *arg, uint32_t *expire_tiles_zoom_min,
 void check_options_non_slim(CLI::App const &app)
 {
     std::vector<std::string> const slim_options = {
-        "--flat-nodes",           "--middle-schema",
-        "--middle-with-nodes",    "--middle-way-node-index-id-shift",
-        "--tablespace-slim-data", "--tablespace-slim-index"};
+        "--middle-schema", "--middle-with-nodes",
+        "--middle-way-node-index-id-shift", "--tablespace-slim-data",
+        "--tablespace-slim-index"};
 
     for (auto const &opt : slim_options) {
         if (app.count(opt) > 0) {
@@ -188,10 +188,6 @@ void check_options(options_t *options)
 {
     if (options->append && !options->slim) {
         throw std::runtime_error{"--append can only be used with slim mode!"};
-    }
-
-    if (options->droptemp && !options->slim) {
-        throw std::runtime_error{"--drop only makes sense with --slim."};
     }
 
     if (options->cache < 0) {
@@ -494,7 +490,7 @@ options_t parse_command_line(int argc, char *argv[])
 
     // --drop
     app.add_flag("--drop", options.droptemp)
-        ->description("Drop middle tables after import (needs --slim).")
+        ->description("Drop middle tables and flat node file after import.")
         ->group("Middle options");
 
     // --extra-attributes
@@ -505,8 +501,8 @@ options_t parse_command_line(int argc, char *argv[])
 
     // --flat-nodes
     app.add_option("-F,--flat-nodes", options.flat_node_file)
-        ->description("File for storing node locations (needs --slim,"
-                      " default: store in database).")
+        ->description(
+            "File for storing node locations (default: store in database).")
         ->type_name("FILE")
         ->group("Middle options");
 

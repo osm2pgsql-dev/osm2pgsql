@@ -155,16 +155,17 @@ mandatory for short options too.
     timestamp and version.
 
 \--flat-nodes=FILENAME
-:   The flat-nodes mode is a separate method to store slim mode node information on disk.
-    Instead of storing this information in the main PostgreSQL database, this mode creates
-    its own separate custom database to store the information. As this custom database
-    has application level knowledge about the data to store and is not general purpose,
-    it can store the data much more efficiently. Storing the node information for the full
-    planet requires more than 300GB in PostgreSQL, the same data is stored in "only" 50GB using
+:   Use a file on disk to store node locations instead of storing them in
+    memory (in non-slim mode) or in the database (in slim mode). This is much
+    more efficient than storing the data in the database.
+    Storing the node information for the full
+    planet requires more than 500GB in PostgreSQL, the same data is stored in "only" 90GB using
     the flat-nodes mode. This can also increase the speed of applying diff files. This option
     activates the flat-nodes mode and specifies the location of the database file. It is a
     single large file. This mode is only recommended for full planet imports
-    as it doesn't work well with small imports. The default is disabled.
+    as it doesn't work well with small imports. The default is disabled. The
+    file will stay on disk after import, use \--drop to remove it (but you
+    can't do updates then).
 
 \--middle-schema=SCHEMA
 :   Use PostgreSQL schema SCHEMA for all tables, indexes, and functions in the

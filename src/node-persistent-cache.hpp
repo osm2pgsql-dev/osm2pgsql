@@ -33,6 +33,12 @@ public:
     void set(osmid_t id, osmium::Location location);
     osmium::Location get(osmid_t id) const noexcept;
 
+    /// The number of locations stored.
+    std::size_t size() const { return m_index->size(); }
+
+    /// Return the approximate number of bytes used for internal storage.
+    std::size_t used_memory() const { return m_index->used_memory(); }
+
 private:
     using index_t =
         osmium::index::map::DenseFileArray<osmium::unsigned_object_id_type,

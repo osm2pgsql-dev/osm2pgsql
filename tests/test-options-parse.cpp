@@ -48,8 +48,6 @@ TEST_CASE("Incompatible arguments", "[NoDB]")
 {
     bad_opt({"-a", "-c", "--slim"}, "options can not be used at the same time");
 
-    bad_opt({"--drop"}, "drop only makes sense with");
-
     bad_opt({"-j", "-k"}, "--hstore excludes --hstore-all");
 
     bad_opt({"-a"}, "--append can only be used with slim mode");
