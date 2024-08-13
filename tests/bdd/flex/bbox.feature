@@ -18,6 +18,11 @@ Feature: Test get_bbox() function
             function osm2pgsql.process_node(object)
                 local row = { geom = object:as_point() }
                 row.min_x, row.min_y, row.max_x, row.max_y = object:get_bbox()
+                local min_x, min_y, max_x, max_y = object:as_point():get_bbox()
+                assert(row.min_x == min_x)
+                assert(row.min_y == min_y)
+                assert(row.max_x == max_x)
+                assert(row.max_y == max_y)
                 points:insert(row)
             end
             """
@@ -53,6 +58,11 @@ Feature: Test get_bbox() function
             function osm2pgsql.process_way(object)
                 local row = { geom = object:as_linestring() }
                 row.min_x, row.min_y, row.max_x, row.max_y = object:get_bbox()
+                local min_x, min_y, max_x, max_y = object:as_linestring():get_bbox()
+                assert(row.min_x == min_x)
+                assert(row.min_y == min_y)
+                assert(row.max_x == max_x)
+                assert(row.max_y == max_y)
                 highways:insert(row)
             end
             """
@@ -93,6 +103,11 @@ Feature: Test get_bbox() function
                 row.min_x, row.min_y, row.max_x, row.max_y = object:get_bbox()
                 for sgeom in object:as_multilinestring():line_merge():geometries() do
                     row.geom = sgeom
+                    local min_x, min_y, max_x, max_y = sgeom:get_bbox()
+                    assert(row.min_x == min_x)
+                    assert(row.min_y == min_y)
+                    assert(row.max_x == max_x)
+                    assert(row.max_y == max_y)
                     rels:insert(row)
                 end
             end
