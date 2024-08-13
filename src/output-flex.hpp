@@ -181,6 +181,9 @@ public:
 private:
     void select_relation_members();
 
+    /// Call a Lua function that was "prepared" earlier.
+    void call_lua_function(prepared_lua_function_t func);
+
     /**
      * Call a Lua function that was "prepared" earlier with the OSMObject
      * as its only parameter.
@@ -188,7 +191,9 @@ private:
     void call_lua_function(prepared_lua_function_t func,
                            osmium::OSMObject const &object);
 
-    /// Aquire the lua_mutex and the call `call_lua_function()`.
+    /// Aquire the lua_mutex and then call `call_lua_function()`.
+    void get_mutex_and_call_lua_function(prepared_lua_function_t func);
+
     void get_mutex_and_call_lua_function(prepared_lua_function_t func,
                                          osmium::OSMObject const &object);
 
@@ -296,6 +301,9 @@ private:
     prepared_lua_function_t m_process_way{};
     prepared_lua_function_t m_process_relation{};
     prepared_lua_function_t m_select_relation_members{};
+    prepared_lua_function_t m_after_nodes{};
+    prepared_lua_function_t m_after_ways{};
+    prepared_lua_function_t m_after_relations{};
 
     calling_context m_calling_context = calling_context::main;
 
