@@ -8,6 +8,7 @@
  */
 
 #include "flex-lua-geom.hpp"
+#include "geom-box.hpp"
 #include "geom-functions.hpp"
 #include "geom-pole-of-inaccessibility.hpp"
 #include "lua-utils.hpp"
@@ -242,6 +243,23 @@ int geom_simplify(lua_State *lua_state)
     return 1;
 }
 
+int geom_get_bbox(lua_State *lua_state)
+{
+    auto const *const input_geometry = unpack_geometry(lua_state);
+
+    try {
+        auto const box = geom::envelope(*input_geometry);
+        lua_pushnumber(lua_state, box.min_x());
+        lua_pushnumber(lua_state, box.min_y());
+        lua_pushnumber(lua_state, box.max_x());
+        lua_pushnumber(lua_state, box.max_y());
+    } catch (...) {
+        return luaL_error(lua_state, "Unknown error in 'get_bbox()'.\n");
+    }
+
+    return 4;
+}
+
 int geom_srid(lua_State *lua_state)
 {
     auto const *const input_geometry = unpack_geometry(lua_state);
@@ -298,6 +316,7 @@ void init_geometry_class(lua_State *lua_state)
     luaX_add_table_func(lua_state, "area", geom_area);
     luaX_add_table_func(lua_state, "length", geom_length);
     luaX_add_table_func(lua_state, "centroid", geom_centroid);
+    luaX_add_table_func(lua_state, "get_bbox", geom_get_bbox);
     luaX_add_table_func(lua_state, "geometry_n", geom_geometry_n);
     luaX_add_table_func(lua_state, "geometry_type", geom_geometry_type);
     luaX_add_table_func(lua_state, "is_null", geom_is_null);
