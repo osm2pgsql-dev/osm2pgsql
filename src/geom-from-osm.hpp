@@ -76,8 +76,10 @@ void create_linestring(geometry_t *geom, osmium::Way const &way);
  *
  * \param geom Pointer to an existing geometry which will be used as output.
  * \param way The input way.
+ * \param area_buffer Temporary buffer used to create area.
  */
-void create_polygon(geometry_t *geom, osmium::Way const &way);
+void create_polygon(geometry_t *geom, osmium::Way const &way,
+                    osmium::memory::Buffer *area_buffer);
 
 /**
  * Create a polygon geometry from a way.
@@ -85,9 +87,11 @@ void create_polygon(geometry_t *geom, osmium::Way const &way);
  * If the resulting polygon would be invalid, a null geometry is returned.
  *
  * \param way The input way.
+ * \param area_buffer Temporary buffer used to create area.
  * \returns The created geometry.
  */
-[[nodiscard]] geometry_t create_polygon(osmium::Way const &way);
+[[nodiscard]] geometry_t create_polygon(osmium::Way const &way,
+                                        osmium::memory::Buffer *area_buffer);
 
 /**
  * Create a multipoint geometry from a bunch of nodes (usually this would be
@@ -163,9 +167,11 @@ create_multilinestring(osmium::memory::Buffer const &buffer,
  * \param geom Pointer to an existing geometry which will be used as output.
  * \param relation The input relation.
  * \param buffer Buffer with OSM objects. Anything but ways are ignored.
+ * \param area_buffer Temporary buffer used to create area.
  */
 void create_multipolygon(geometry_t *geom, osmium::Relation const &relation,
-                         osmium::memory::Buffer const &buffer);
+                         osmium::memory::Buffer const &buffer,
+                         osmium::memory::Buffer *area_buffer);
 
 /**
  * Create a (multi)polygon geometry from a relation and member ways.
@@ -175,11 +181,13 @@ void create_multipolygon(geometry_t *geom, osmium::Relation const &relation,
  *
  * \param relation The input relation.
  * \param buffer Buffer with OSM objects. Anything but ways are ignored.
+ * \param area_buffer Temporary buffer used to create area.
  * \returns The created geometry.
  */
 [[nodiscard]] geometry_t
 create_multipolygon(osmium::Relation const &relation,
-                    osmium::memory::Buffer const &buffer);
+                    osmium::memory::Buffer const &buffer,
+                    osmium::memory::Buffer *area_buffer);
 
 /**
  * Create a geometry collection from nodes and ways, usually used for

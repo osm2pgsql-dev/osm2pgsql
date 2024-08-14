@@ -90,7 +90,8 @@ geometry_t create_linestring(osmium::Way const &way)
     return geom;
 }
 
-void create_polygon(geometry_t *geom, osmium::Way const &way)
+void create_polygon(geometry_t *geom, osmium::Way const &way,
+                    osmium::memory::Buffer *area_buffer)
 {
     auto &polygon = geom->set<polygon_t>();
 
@@ -100,8 +101,7 @@ void create_polygon(geometry_t *geom, osmium::Way const &way)
         return;
     }
 
-    osmium::memory::Buffer area_buffer{1024};
-    geom::area_assembler_t assembler{&area_buffer};
+    geom::area_assembler_t assembler{area_buffer};
 
     if (!assembler(way)) {
         geom->reset();
@@ -114,10 +114,11 @@ void create_polygon(geometry_t *geom, osmium::Way const &way)
     fill_point_list(&polygon.outer(), ring);
 }
 
-geometry_t create_polygon(osmium::Way const &way)
+geometry_t create_polygon(osmium::Way const &way,
+                          osmium::memory::Buffer *area_buffer)
 {
     geometry_t geom{};
-    create_polygon(&geom, way);
+    create_polygon(&geom, way, area_buffer);
     return geom;
 }
 
@@ -205,10 +206,10 @@ geometry_t create_multilinestring(osmium::memory::Buffer const &buffer,
 }
 
 void create_multipolygon(geometry_t *geom, osmium::Relation const &relation,
-                         osmium::memory::Buffer const &buffer)
+                         osmium::memory::Buffer const &buffer,
+                         osmium::memory::Buffer *area_buffer)
 {
-    osmium::memory::Buffer area_buffer{1024};
-    geom::area_assembler_t assembler{&area_buffer};
+    geom::area_assembler_t assembler{area_buffer};
 
     if (!assembler(relation, buffer)) {
         geom->reset();
@@ -231,10 +232,11 @@ void create_multipolygon(geometry_t *geom, osmium::Relation const &relation,
 }
 
 geometry_t create_multipolygon(osmium::Relation const &relation,
-                               osmium::memory::Buffer const &buffer)
+                               osmium::memory::Buffer const &buffer,
+                               osmium::memory::Buffer *area_buffer)
 {
     geometry_t geom{};
-    create_multipolygon(&geom, relation, buffer);
+    create_multipolygon(&geom, relation, buffer, area_buffer);
     return geom;
 }
 

@@ -109,6 +109,7 @@ private:
 
     osmium::memory::Buffer m_buffer;
     osmium::memory::Buffer m_rels_buffer;
+    osmium::memory::Buffer m_area_buffer;
 };
 
 #endif // OSM2PGSQL_OUTPUT_PGSQL_HPP
