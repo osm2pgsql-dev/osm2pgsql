@@ -174,7 +174,7 @@ void expire_tiles::from_line_segment(geom::point_t const &a,
     }
 
     double const y_len = tilec_b.y() - tilec_a.y();
-    double const hyp_len = sqrt(pow(x_len, 2) + pow(y_len, 2)); /* Pythagoras */
+    double const hyp_len = std::sqrt(x_len * x_len + y_len * y_len); /* Pythagoras */
     double const x_step = x_len / hyp_len;
     double const y_step = y_len / hyp_len;
 
