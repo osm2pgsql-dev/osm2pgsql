@@ -18,6 +18,7 @@
 #include "util.hpp"
 #include "version.hpp"
 
+#include <osmium/util/string.hpp>
 #include <osmium/version.hpp>
 
 #include <CLI/CLI.hpp>
@@ -25,6 +26,7 @@
 #include <lua.hpp>
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <stdexcept>
@@ -33,20 +35,35 @@
 
 namespace {
 
+void error_bbox()
+{
+    throw std::runtime_error{"Bounding box must be specified like: "
+                             "minlon,minlat,maxlon,maxlat."};
+}
+
+double parse_and_check_coordinate(std::string const &str)
+{
+    char *end = nullptr;
+
+    double const value = std::strtod(str.c_str(), &end);
+    if (end != &*str.end() || !std::isfinite(value)) {
+        error_bbox();
+    }
+
+    return value;
+}
+
 osmium::Box parse_bbox_param(std::string const &arg)
 {
-    double minx = NAN;
-    double maxx = NAN;
-    double miny = NAN;
-    double maxy = NAN;
-
-    int const n =
-        sscanf(arg.c_str(), "%lf,%lf,%lf,%lf", &minx, &miny, &maxx, &maxy);
-
-    if (n != 4) {
-        throw std::runtime_error{"Bounding box must be specified like: "
-                                 "minlon,minlat,maxlon,maxlat."};
+    auto const values = osmium::split_string(arg, ',', true);
+    if (values.size() != 4) {
+        error_bbox();
     }
+
+    double const minx = parse_and_check_coordinate(values[0]);
+    double const miny = parse_and_check_coordinate(values[1]);
+    double const maxx = parse_and_check_coordinate(values[2]);
+    double const maxy = parse_and_check_coordinate(values[3]);
 
     if (maxx <= minx) {
         throw std::runtime_error{
@@ -60,7 +77,12 @@ osmium::Box parse_bbox_param(std::string const &arg)
 
     log_debug("Applying bounding box: {},{} to {},{}", minx, miny, maxx, maxy);
 
-    return osmium::Box{minx, miny, maxx, maxy};
+    osmium::Box const box{minx, miny, maxx, maxy};
+    if (!box.valid()) {
+        error_bbox();
+    }
+
+    return box;
 }
 
 void parse_expire_tiles_param(char const *arg, uint32_t *expire_tiles_zoom_min,

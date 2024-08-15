@@ -89,6 +89,24 @@ TEST_CASE("Parsing bbox fails if wrong format", "[NoDB]")
 {
     bad_opt({"-b", "123"}, "Bounding box must be specified like:"
                            " minlon,minlat,maxlon,maxlat.");
+
+    bad_opt({"-b", "1,2,3,4x"}, "Bounding box must be specified like:"
+                                " minlon,minlat,maxlon,maxlat.");
+
+    bad_opt({"-b", "1,,3,4"}, "Bounding box must be specified like:"
+                              " minlon,minlat,maxlon,maxlat.");
+
+    bad_opt({"-b", "1,2,3"}, "Bounding box must be specified like:"
+                             " minlon,minlat,maxlon,maxlat.");
+
+    bad_opt({"-b", "1,2,3,4,5"}, "Bounding box must be specified like:"
+                                 " minlon,minlat,maxlon,maxlat.");
+
+    bad_opt({"-b", "1,2,INF,4"}, "Bounding box must be specified like:"
+                                 " minlon,minlat,maxlon,maxlat.");
+
+    bad_opt({"-b", "1,NAN,3,4"}, "Bounding box must be specified like:"
+                                 " minlon,minlat,maxlon,maxlat.");
 }
 
 TEST_CASE("Parsing number-processes", "[NoDB]")
