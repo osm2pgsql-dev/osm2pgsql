@@ -26,9 +26,9 @@
 #include "common-options.hpp"
 #include "common-pg.hpp"
 
-static testing::pg::tempdb_t db;
-
 namespace {
+
+testing::pg::tempdb_t db;
 
 void check_locations_are_equal(osmium::Location a, osmium::Location b)
 {
@@ -36,7 +36,7 @@ void check_locations_are_equal(osmium::Location a, osmium::Location b)
     CHECK(a.lon() == Approx(b.lon()));
 }
 
-} // namespace
+} // anonymous namespace
 
 struct options_slim_default
 {
@@ -323,11 +323,13 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
     }
 }
 
+namespace {
+
 /**
  * Check that the node is in the mid with the right id and location.
  */
-static void check_node(std::shared_ptr<middle_pgsql_t> const &mid,
-                       osmium::Node const &node)
+void check_node(std::shared_ptr<middle_pgsql_t> const &mid,
+                osmium::Node const &node)
 {
     test_buffer_t buffer;
     auto &nodes = buffer.add_way(999, {node.id()}).nodes();
@@ -338,13 +340,15 @@ static void check_node(std::shared_ptr<middle_pgsql_t> const &mid,
 }
 
 /// Return true if the node with the specified id is not in the mid.
-static bool no_node(std::shared_ptr<middle_pgsql_t> const &mid, osmid_t id)
+bool no_node(std::shared_ptr<middle_pgsql_t> const &mid, osmid_t id)
 {
     test_buffer_t buffer;
     auto &nodes = buffer.add_way(999, {id}).nodes();
     auto const mid_q = mid->get_query_instance();
     return mid_q->nodes_get_list(&nodes) == 0;
 }
+
+} // anonymous namespace
 
 TEMPLATE_TEST_CASE("middle: add, delete and update node", "",
                    options_slim_default, options_flat_node_cache)
@@ -490,12 +494,14 @@ TEMPLATE_TEST_CASE("middle: add, delete and update node", "",
     }
 }
 
+namespace {
+
 /**
  * Check that the way is in the mid with the right attributes and tags.
  * Does not check node locations.
  */
-static void check_way(std::shared_ptr<middle_pgsql_t> const &mid,
-                      osmium::Way const &orig_way)
+void check_way(std::shared_ptr<middle_pgsql_t> const &mid,
+               osmium::Way const &orig_way)
 {
     auto const mid_q = mid->get_query_instance();
 
@@ -535,9 +541,8 @@ static void check_way(std::shared_ptr<middle_pgsql_t> const &mid,
  * Check that the nodes (ids and locations) of the way with the way_id in the
  * mid are identical to the nodes in the nodes vector.
  */
-static void check_way_nodes(std::shared_ptr<middle_pgsql_t> const &mid,
-                            osmid_t way_id,
-                            std::vector<osmium::Node const *> const &nodes)
+void check_way_nodes(std::shared_ptr<middle_pgsql_t> const &mid, osmid_t way_id,
+                     std::vector<osmium::Node const *> const &nodes)
 {
     auto const mid_q = mid->get_query_instance();
 
@@ -556,12 +561,14 @@ static void check_way_nodes(std::shared_ptr<middle_pgsql_t> const &mid,
 }
 
 /// Return true if the way with the specified id is not in the mid.
-static bool no_way(std::shared_ptr<middle_pgsql_t> const &mid, osmid_t id)
+bool no_way(std::shared_ptr<middle_pgsql_t> const &mid, osmid_t id)
 {
     auto const mid_q = mid->get_query_instance();
     osmium::memory::Buffer outbuf{4096, osmium::memory::Buffer::auto_grow::yes};
     return !mid_q->way_get(id, &outbuf);
 }
+
+} // anonymous namespace
 
 TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
                    options_slim_default, options_flat_node_cache)
@@ -762,12 +769,14 @@ TEMPLATE_TEST_CASE("middle: add way with attributes", "", options_slim_default,
     }
 }
 
+namespace {
+
 /**
  * Check that the relation is in the mid with the right attributes, members
  * and tags. Only checks the relation, does not recurse into members.
  */
-static void check_relation(std::shared_ptr<middle_pgsql_t> const &mid,
-                           osmium::Relation const &orig_relation)
+void check_relation(std::shared_ptr<middle_pgsql_t> const &mid,
+                    osmium::Relation const &orig_relation)
 {
     auto const mid_q = mid->get_query_instance();
 
@@ -807,12 +816,14 @@ static void check_relation(std::shared_ptr<middle_pgsql_t> const &mid,
 }
 
 /// Return true if the relation with the specified id is not in the mid.
-static bool no_relation(std::shared_ptr<middle_pgsql_t> const &mid, osmid_t id)
+bool no_relation(std::shared_ptr<middle_pgsql_t> const &mid, osmid_t id)
 {
     auto const mid_q = mid->get_query_instance();
     osmium::memory::Buffer outbuf{4096, osmium::memory::Buffer::auto_grow::yes};
     return !mid_q->relation_get(id, &outbuf);
 }
+
+} // anonymous namespace
 
 TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
                    options_slim_default, options_flat_node_cache)

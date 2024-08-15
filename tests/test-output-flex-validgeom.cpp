@@ -12,10 +12,14 @@
 #include "common-import.hpp"
 #include "common-options.hpp"
 
-static testing::db::import_t db;
+namespace {
 
-static char const *const conf_file = "test_output_flex_validgeom.lua";
-static char const *const data_file = "test_output_pgsql_validgeom.osm";
+testing::db::import_t db;
+
+char const *const conf_file = "test_output_flex_validgeom.lua";
+char const *const data_file = "test_output_pgsql_validgeom.osm";
+
+} // anonymous namespace
 
 TEST_CASE("no invalid geometries should end up in the database")
 {

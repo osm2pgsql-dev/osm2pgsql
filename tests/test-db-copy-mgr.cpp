@@ -16,11 +16,13 @@
 #include "common-pg.hpp"
 #include "db-copy-mgr.hpp"
 
-static testing::pg::tempdb_t db;
+namespace {
+
+testing::pg::tempdb_t db;
 
 using copy_mgr_t = db_copy_mgr_t<db_deleter_by_id_t>;
 
-static std::shared_ptr<db_target_descr_t> setup_table(std::string const &cols)
+std::shared_ptr<db_target_descr_t> setup_table(std::string const &cols)
 {
     auto const conn = db.connect();
     conn.exec("DROP TABLE IF EXISTS test_copy_mgr");
@@ -59,9 +61,9 @@ void add_array(copy_mgr_t *mgr, std::shared_ptr<db_target_descr_t> const &t,
     mgr->sync();
 }
 
-static void
-add_hash(copy_mgr_t *mgr, std::shared_ptr<db_target_descr_t> const &t, int id,
-         std::vector<std::pair<std::string, std::string>> const &values)
+void add_hash(copy_mgr_t *mgr, std::shared_ptr<db_target_descr_t> const &t,
+              int id,
+              std::vector<std::pair<std::string, std::string>> const &values)
 {
     mgr->new_line(t);
 
@@ -76,7 +78,7 @@ add_hash(copy_mgr_t *mgr, std::shared_ptr<db_target_descr_t> const &t, int id,
     mgr->sync();
 }
 
-static void check_row(std::vector<std::string> const &row)
+void check_row(std::vector<std::string> const &row)
 {
     auto const conn = db.connect();
     auto const res = conn.require_row("SELECT * FROM test_copy_mgr");
@@ -85,6 +87,8 @@ static void check_row(std::vector<std::string> const &row)
         CHECK(res.get_value(0, (int)i) == row[i]);
     }
 }
+
+} // anonymous namespace
 
 TEST_CASE("copy_mgr_t: Insert null")
 {

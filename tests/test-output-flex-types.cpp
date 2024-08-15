@@ -14,9 +14,13 @@
 
 #include <array>
 
-static testing::db::import_t db;
+namespace {
 
-static char const *const conf_file = "test_output_flex_types.lua";
+testing::db::import_t db;
+
+char const *const conf_file = "test_output_flex_types.lua";
+
+} // anonymous namespace
 
 TEST_CASE("type nil")
 {

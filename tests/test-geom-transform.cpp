@@ -14,11 +14,15 @@
 #include "geom.hpp"
 #include "reprojection.hpp"
 
-static void check(geom::point_t a, geom::point_t b)
+namespace {
+
+void check(geom::point_t a, geom::point_t b)
 {
     REQUIRE(a.x() == Approx(b.x()));
     REQUIRE(a.y() == Approx(b.y()));
 }
+
+} // anonymous namespace
 
 double const X55 = 612257.1993630046;  // lon 5.5
 double const Y44 = 490287.90003313165; // lat 4.4

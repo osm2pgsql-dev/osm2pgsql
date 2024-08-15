@@ -16,7 +16,11 @@
 #include "command-line-parser.hpp"
 #include "reprojection.hpp"
 
-static testing::db::import_t db;
+namespace {
+
+testing::db::import_t db;
+
+} // anonymous namespace
 
 TEST_CASE("Projection setup")
 {

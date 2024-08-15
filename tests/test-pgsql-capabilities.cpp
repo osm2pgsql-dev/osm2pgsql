@@ -13,7 +13,11 @@
 
 #include "pgsql-capabilities.hpp"
 
-static testing::db::import_t const db;
+namespace {
+
+testing::db::import_t db;
+
+} // anonymous namespace
 
 TEST_CASE("has_extension() should work")
 {

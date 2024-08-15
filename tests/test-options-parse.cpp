@@ -15,9 +15,11 @@
 #include "taginfo-impl.hpp"
 #include "tagtransform.hpp"
 
-static char const *const TEST_PBF = "foo.pbf";
+namespace {
 
-static void bad_opt(std::vector<char const *> opts, char const *msg)
+char const *const TEST_PBF = "foo.pbf";
+
+void bad_opt(std::vector<char const *> opts, char const *msg)
 {
     opts.insert(opts.begin(), "osm2pgsql");
     opts.push_back(TEST_PBF);
@@ -27,13 +29,15 @@ static void bad_opt(std::vector<char const *> opts, char const *msg)
         Catch::Matchers::Contains(msg));
 }
 
-static options_t opt(std::vector<char const *> opts)
+options_t opt(std::vector<char const *> opts)
 {
     opts.insert(opts.begin(), "osm2pgsql");
     opts.push_back(TEST_PBF);
 
     return parse_command_line((int)opts.size(), (char **)opts.data());
 }
+
+} // anonymous namespace
 
 TEST_CASE("Insufficient arguments", "[NoDB]")
 {

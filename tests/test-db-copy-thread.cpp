@@ -12,13 +12,16 @@
 #include "common-pg.hpp"
 #include "db-copy.hpp"
 
-static testing::pg::tempdb_t db;
+namespace {
 
-static int table_count(testing::pg::conn_t const &conn,
-                       std::string const &where = "")
+testing::pg::tempdb_t db;
+
+int table_count(testing::pg::conn_t const &conn, std::string const &where = "")
 {
     return conn.result_as_int("SELECT count(*) FROM test_copy_thread " + where);
 }
+
+} // anonymous namespace
 
 TEST_CASE("db_copy_thread_t with db_deleter_by_id_t")
 {

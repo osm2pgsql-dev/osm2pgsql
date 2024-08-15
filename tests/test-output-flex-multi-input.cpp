@@ -12,11 +12,15 @@
 #include "common-import.hpp"
 #include "common-options.hpp"
 
-static testing::db::import_t db;
+namespace {
 
-static char const *const conf_file = "test_output_flex.lua";
-static char const *const points = "osm2pgsql_test_point";
-static char const *const lines = "osm2pgsql_test_line";
+testing::db::import_t db;
+
+char const *const conf_file = "test_output_flex.lua";
+char const *const points = "osm2pgsql_test_point";
+char const *const lines = "osm2pgsql_test_line";
+
+} // anonymous namespace
 
 TEST_CASE("with three input files")
 {

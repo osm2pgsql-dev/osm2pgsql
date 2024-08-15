@@ -12,10 +12,14 @@
 #include "common-import.hpp"
 #include "common-options.hpp"
 
-static testing::db::import_t db;
+namespace {
 
-static char const *const conf_file = "test_output_flex_schema.lua";
-static char const *const data_file = "liechtenstein-2013-08-03.osm.pbf";
+testing::db::import_t db;
+
+char const *const conf_file = "test_output_flex_schema.lua";
+char const *const data_file = "liechtenstein-2013-08-03.osm.pbf";
+
+} // anonymous namespace
 
 TEST_CASE("config with schema should work")
 {
