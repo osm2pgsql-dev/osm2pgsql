@@ -10,28 +10,6 @@ runs:
     using: composite
 
     steps:
-      - name: create build directory
-        run: mkdir build
-        shell: bash
-
-      - name: configure
-        run: |
-          CMAKE_OPTIONS="-LA -DBUILD_TESTS=ON -DWITH_LUAJIT=${LUAJIT_OPTION}"
-          if [ -n "$WITH_PROJ" ]; then
-            CMAKE_OPTIONS="$CMAKE_OPTIONS -DWITH_PROJ=$WITH_PROJ"
-          fi
-          if [ -n "$CPP_VERSION" ]; then
-            CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_CXX_STANDARD=$CPP_VERSION"
-          fi
-          if [ -n "$BUILD_TYPE" ]; then
-            CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_BUILD_TYPE=$BUILD_TYPE"
-          fi
-          cmake $CMAKE_OPTIONS ..
-        shell: bash
-        working-directory: build
-        env:
-          CXXFLAGS: -pedantic -Wextra ${{ env.EXTRA_FLAGS }} -Werror
-
       - name: build
         run: make -j3 all man
         shell: bash

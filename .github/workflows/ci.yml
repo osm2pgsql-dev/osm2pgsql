@@ -42,6 +42,7 @@ jobs:
           psql -d postgres -c "CREATE TABLESPACE tablespacetest LOCATION '$GITHUB_WORKSPACE/tablespacetest'"
         shell: bash
 
+      - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
         with:
           test-wrapper: ''
@@ -65,6 +66,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
 
   ubuntu20-pg96-clang10-jit:
@@ -83,6 +85,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
 
   ubuntu20-pg10-gcc10:
@@ -102,6 +105,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
 
 
@@ -121,6 +125,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
 
   ubuntu20-pg13-gcc10-jit:
@@ -139,6 +144,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
 
 
@@ -158,6 +164,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
 
   ubuntu20-pg15-clang10-noproj:
@@ -177,6 +184,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
 
   ubuntu20-pg16-clang10:
@@ -195,6 +203,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
 
   ubuntu20-pg13-gcc10-release:
@@ -213,6 +222,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
 
   ubuntu22-pg16-clang14-jit:
@@ -231,6 +241,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
 
   ubuntu22-pg16-clang14-proj:
@@ -249,6 +260,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
 
   ubuntu22-pg16-clang14-noproj:
@@ -268,6 +280,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
 
   ubuntu22-pg15-clang14:
@@ -286,6 +299,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
 
   ubuntu22-pg16-gcc12-release:
@@ -305,6 +319,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
 
   ubuntu22-pg16-clang15-cpp20:
@@ -324,6 +339,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
 
   ubuntu22-pg16-gcc12-cpp20:
@@ -343,6 +359,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
 
   ubuntu24-pg16-gcc14:
@@ -362,6 +379,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
 
   windows:
