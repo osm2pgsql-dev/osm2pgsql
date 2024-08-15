@@ -437,6 +437,8 @@ public:
     void operator()(T) const
     {}
 
+    // false positive https://github.com/llvm/llvm-project/issues/74738
+    // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
     void operator()(geom::collection_t &&geom) const
     {
         for (auto &&sgeom : geom) {
@@ -445,6 +447,8 @@ public:
     }
 
     template <typename T>
+    // false positive https://github.com/llvm/llvm-project/issues/74738
+    // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
     void operator()(geom::multigeometry_t<T> &&geom) const
     {
         for (auto &&sgeom : geom) {

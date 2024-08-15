@@ -135,6 +135,8 @@ void expire_tiles::from_geometry(geom::multipolygon_t const &geom,
     }
 }
 
+// False positive: Apparently clang-tidy can not see through the visit()
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 void expire_tiles::from_geometry(geom::geometry_t const &geom,
                                  expire_config_t const &expire_config)
 {

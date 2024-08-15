@@ -95,6 +95,7 @@ public:
      *         of the task can be queried.
      */
     template <typename TFunction>
+    // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward) false positive
     std::future<std::chrono::microseconds> submit(TFunction &&func)
     {
         std::packaged_task<std::chrono::microseconds()> task{
