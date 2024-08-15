@@ -36,7 +36,7 @@
 expire_tiles::expire_tiles(uint32_t max_zoom,
                            std::shared_ptr<reprojection> projection)
 : m_projection(std::move(projection)), m_maxzoom(max_zoom),
-  m_map_width(1U << m_maxzoom)
+  m_map_width(static_cast<int>(1U << m_maxzoom))
 {}
 
 void expire_tiles::expire_tile(uint32_t x, uint32_t y)
@@ -167,7 +167,7 @@ void expire_tiles::from_line_segment(geom::point_t const &a,
     }
 
     double const x_len = tilec_b.x() - tilec_a.x();
-    if (x_len > m_map_width / 2) {
+    if (x_len > m_map_width / 2) { // NOLINT(bugprone-integer-division)
         /* If the line is wider than half the map, assume it
            crosses the international date line.
            These coordinates get normalised again later */
