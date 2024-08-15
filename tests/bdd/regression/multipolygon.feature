@@ -137,6 +137,22 @@ Feature: Import and update of multipolygon areas
             | -k     | the default |
 
 
+     Scenario: Import with flat-node option
+        When running osm2pgsql pgsql with parameters
+            | -F | flat.store | --drop |
+
+        Then table planet_osm_polygon contains
+            | osm_id | landuse     | name      | round(ST_Area(way)) |
+            | -1     | residential | Name_rel  | 12895               |
+            | 4      | farmland    | Name_way3 | 3144                |
+            | -8     | residential | Name_rel2 | 12894               |
+            | 5      | farmland    | Name_way4 | 3144                |
+            | -14    | residential | Name_way5 | 12894               |
+            | -11    | residential | Name_rel6 | 11529               |
+            | -3     | residential | Name_rel11| 9286                |
+            | 83     | farmland    | NULL      | 24859               |
+
+
      Scenario: Import and update with flat-node option
         When running osm2pgsql pgsql with parameters
             | --slim | -F | flat.store |

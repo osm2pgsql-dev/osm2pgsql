@@ -7,8 +7,10 @@
  * For a full list of authors see the git log.
  */
 
-#include "logging.hpp"
 #include "middle-ram.hpp"
+
+#include "logging.hpp"
+#include "node-persistent-cache.hpp"
 #include "options.hpp"
 #include "output-requirements.hpp"
 
@@ -75,6 +77,11 @@ middle_ram_t::middle_ram_t(std::shared_ptr<thread_pool_t> thread_pool,
     if (options->extra_attributes) {
         m_store_options.untagged_nodes = true;
     }
+
+    if (!options->flat_node_file.empty()) {
+        m_persistent_cache = std::make_shared<node_persistent_cache>(
+            options->flat_node_file, options->droptemp);
+    }
 }
 
 void middle_ram_t::set_requirements(output_requirements const &requirements)
@@ -94,6 +101,7 @@ void middle_ram_t::set_requirements(output_requirements const &requirements)
 
     log_debug("Middle 'ram' options:");
     log_debug("  locations: {}", m_store_options.locations);
+    log_debug("  locations_on_disk: {}", !!m_persistent_cache);
     log_debug("  way_nodes: {}", m_store_options.way_nodes);
     log_debug("  nodes: {}", m_store_options.nodes);
     log_debug("  untagged_nodes: {}", m_store_options.untagged_nodes);
@@ -107,8 +115,15 @@ void middle_ram_t::stop()
 
     auto const mbyte = 1024 * 1024;
 
-    log_debug("Middle 'ram': Node locations: size={} bytes={}M",
-              m_node_locations.size(), m_node_locations.used_memory() / mbyte);
+    if (m_persistent_cache) {
+        log_debug("Middle 'ram': Node locations on disk: size={} bytes={}M",
+                  m_persistent_cache->size(),
+                  m_persistent_cache->used_memory() / mbyte);
+    } else {
+        log_debug("Middle 'ram': Node locations in memory: size={} bytes={}M",
+                  m_node_locations.size(),
+                  m_node_locations.used_memory() / mbyte);
+    }
 
     log_debug("Middle 'ram': Way nodes data: size={} capacity={} bytes={}M",
               m_way_nodes_data.size(), m_way_nodes_data.capacity(),
@@ -180,7 +195,11 @@ void middle_ram_t::node(osmium::Node const &node)
     assert(node.visible());
 
     if (m_store_options.locations) {
-        m_node_locations.set(node.id(), node.location());
+        if (m_persistent_cache) {
+            m_persistent_cache->set(node.id(), node.location());
+        } else {
+            m_node_locations.set(node.id(), node.location());
+        }
     }
 
     if (m_store_options.nodes &&
@@ -222,7 +241,9 @@ void middle_ram_t::after_nodes()
     m_middle_state = middle_state::way;
 #endif
 
-    m_node_locations.log_stats();
+    if (!m_persistent_cache) {
+        m_node_locations.log_stats();
+    }
 }
 
 osmium::Location middle_ram_t::get_node_location(osmid_t id) const
@@ -237,10 +258,19 @@ std::size_t middle_ram_t::nodes_get_list(osmium::WayNodeList *nodes) const
     std::size_t count = 0;
 
     if (m_store_options.locations) {
-        for (auto &nr : *nodes) {
-            nr.set_location(m_node_locations.get(nr.ref()));
-            if (nr.location().valid()) {
-                ++count;
+        if (m_persistent_cache) {
+            for (auto &nr : *nodes) {
+                nr.set_location(m_persistent_cache->get(nr.ref()));
+                if (nr.location().valid()) {
+                    ++count;
+                }
+            }
+        } else {
+            for (auto &nr : *nodes) {
+                nr.set_location(m_node_locations.get(nr.ref()));
+                if (nr.location().valid()) {
+                    ++count;
+                }
             }
         }
     }
