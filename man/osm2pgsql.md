@@ -154,7 +154,7 @@ mandatory for short options too.
     available to the outputs. Attributes are: user name, user id, changeset id,
     timestamp and version.
 
-\--flat-nodes=FILENAME
+-F, \--flat-nodes=FILENAME
 :   Use a file on disk to store node locations instead of storing them in
     memory (in non-slim mode) or in the database (in slim mode). This is much
     more efficient than storing the data in the database.
