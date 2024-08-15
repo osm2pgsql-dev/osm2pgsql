@@ -27,7 +27,7 @@ namespace geom {
 class area_assembler_t : public osmium::area::detail::BasicAssembler
 {
 public:
-    area_assembler_t(osmium::memory::Buffer *buffer);
+    explicit area_assembler_t(osmium::memory::Buffer *buffer);
 
     /**
      * Assemble an area from the given way.
