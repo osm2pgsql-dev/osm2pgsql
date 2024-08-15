@@ -297,6 +297,8 @@ private:
     relation_cache_t m_relation_cache;
     osmium::Node const *m_context_node = nullptr;
 
+    osmium::memory::Buffer m_area_buffer;
+
     prepared_lua_function_t m_process_node{};
     prepared_lua_function_t m_process_way{};
     prepared_lua_function_t m_process_relation{};

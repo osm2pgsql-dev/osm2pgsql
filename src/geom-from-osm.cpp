@@ -8,9 +8,10 @@
  */
 
 #include "geom-from-osm.hpp"
+
+#include "geom-area-assembler.hpp"
 #include "osmtypes.hpp"
 
-#include <osmium/area/geom_assembler.hpp>
 #include <osmium/osm/way.hpp>
 
 #include <cassert>
@@ -90,7 +91,8 @@ geometry_t create_linestring(osmium::Way const &way)
     return geom;
 }
 
-void create_polygon(geometry_t *geom, osmium::Way const &way)
+void create_polygon(geometry_t *geom, osmium::Way const &way,
+                    osmium::memory::Buffer *area_buffer)
 {
     auto &polygon = geom->set<polygon_t>();
 
@@ -100,26 +102,24 @@ void create_polygon(geometry_t *geom, osmium::Way const &way)
         return;
     }
 
-    osmium::area::AssemblerConfig area_config;
-    area_config.ignore_invalid_locations = true;
-    osmium::area::GeomAssembler assembler{area_config};
-    osmium::memory::Buffer area_buffer{1024};
+    geom::area_assembler_t assembler{area_buffer};
 
-    if (!assembler(way, area_buffer)) {
+    if (!assembler(way)) {
         geom->reset();
         return;
     }
 
-    auto const &area = area_buffer.get<osmium::Area>(0);
+    auto const &area = assembler.get_area();
     auto const &ring = *area.begin<osmium::OuterRing>();
 
     fill_point_list(&polygon.outer(), ring);
 }
 
-geometry_t create_polygon(osmium::Way const &way)
+geometry_t create_polygon(osmium::Way const &way,
+                          osmium::memory::Buffer *area_buffer)
 {
     geometry_t geom{};
-    create_polygon(&geom, way);
+    create_polygon(&geom, way, area_buffer);
     return geom;
 }
 
@@ -207,19 +207,17 @@ geometry_t create_multilinestring(osmium::memory::Buffer const &buffer,
 }
 
 void create_multipolygon(geometry_t *geom, osmium::Relation const &relation,
-                         osmium::memory::Buffer const &buffer)
+                         osmium::memory::Buffer const &buffer,
+                         osmium::memory::Buffer *area_buffer)
 {
-    osmium::area::AssemblerConfig area_config;
-    area_config.ignore_invalid_locations = true;
-    osmium::area::GeomAssembler assembler{area_config};
-    osmium::memory::Buffer area_buffer{1024};
+    geom::area_assembler_t assembler{area_buffer};
 
-    if (!assembler(relation, buffer, area_buffer)) {
+    if (!assembler(relation, buffer)) {
         geom->reset();
         return;
     }
 
-    auto const &area = area_buffer.get<osmium::Area>(0);
+    auto const &area = assembler.get_area();
 
     if (area.is_multipolygon()) {
         auto &multipolygon = geom->set<multipolygon_t>();
@@ -235,10 +233,11 @@ void create_multipolygon(geometry_t *geom, osmium::Relation const &relation,
 }
 
 geometry_t create_multipolygon(osmium::Relation const &relation,
-                               osmium::memory::Buffer const &buffer)
+                               osmium::memory::Buffer const &buffer,
+                               osmium::memory::Buffer *area_buffer)
 {
     geometry_t geom{};
-    create_multipolygon(&geom, relation, buffer);
+    create_multipolygon(&geom, relation, buffer, area_buffer);
     return geom;
 }
 

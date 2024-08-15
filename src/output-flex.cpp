@@ -400,7 +400,7 @@ int output_flex_t::app_as_polygon()
     m_way_cache.add_nodes(middle());
 
     auto *geom = create_lua_geometry_object(lua_state());
-    geom::create_polygon(geom, m_way_cache.get());
+    geom::create_polygon(geom, m_way_cache.get(), &m_area_buffer);
 
     return 1;
 }
@@ -459,7 +459,7 @@ int output_flex_t::app_as_multipolygon()
         m_way_cache.add_nodes(middle());
 
         auto *geom = create_lua_geometry_object(lua_state());
-        geom::create_polygon(geom, m_way_cache.get());
+        geom::create_polygon(geom, m_way_cache.get(), &m_area_buffer);
 
         return 1;
     }
@@ -468,7 +468,8 @@ int output_flex_t::app_as_multipolygon()
 
     auto *geom = create_lua_geometry_object(lua_state());
     geom::create_multipolygon(geom, m_relation_cache.get(),
-                              m_relation_cache.members_buffer());
+                              m_relation_cache.members_buffer(),
+                              &m_area_buffer);
 
     return 1;
 }
@@ -1173,6 +1174,7 @@ output_flex_t::output_flex_t(output_flex_t const *other,
   m_db_connection(get_options()->connection_params, "out.flex.thread"),
   m_stage2_way_ids(other->m_stage2_way_ids),
   m_copy_thread(std::move(copy_thread)), m_lua_state(other->m_lua_state),
+  m_area_buffer(1024, osmium::memory::Buffer::auto_grow::yes),
   m_process_node(other->m_process_node), m_process_way(other->m_process_way),
   m_process_relation(other->m_process_relation),
   m_select_relation_members(other->m_select_relation_members),
@@ -1203,7 +1205,8 @@ output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
                              properties_t const &properties)
 : output_t(mid, std::move(thread_pool), options),
   m_db_connection(get_options()->connection_params, "out.flex.main"),
-  m_copy_thread(std::make_shared<db_copy_thread_t>(options.connection_params))
+  m_copy_thread(std::make_shared<db_copy_thread_t>(options.connection_params)),
+  m_area_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
 {
     init_lua(options.style, properties);
 

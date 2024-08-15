@@ -25,6 +25,7 @@ target_sources(osm2pgsql_lib PRIVATE
     flex-table-column.cpp
     flex-table.cpp
     flex-write.cpp
+    geom-area-assembler.cpp
     geom-box.cpp
     geom-from-osm.cpp
     geom-functions.cpp

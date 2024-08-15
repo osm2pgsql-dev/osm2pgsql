@@ -95,7 +95,7 @@ void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
                                    bool polygon, bool roads)
 {
     if (polygon && !way.nodes().empty() && way.is_closed()) {
-        auto const geom = geom::create_polygon(way);
+        auto const geom = geom::create_polygon(way, &m_area_buffer);
         auto const projected_geom = geom::transform(geom, *m_proj);
 
         auto const wkb = geom_to_ewkb(projected_geom);
@@ -297,9 +297,9 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
 
     // multipolygons and boundaries
     if (make_boundary || make_polygon) {
-        auto const geoms =
-            geom::split_multi(geom::create_multipolygon(rel, m_buffer),
-                              !get_options()->enable_multi);
+        auto const geoms = geom::split_multi(
+            geom::create_multipolygon(rel, m_buffer, &m_area_buffer),
+            !get_options()->enable_multi);
         for (auto const &sgeom : geoms) {
             auto const projected_geom = geom::transform(sgeom, *m_proj);
             m_expire.from_geometry_if_3857(projected_geom, m_expire_config);
@@ -439,7 +439,8 @@ output_pgsql_t::output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
 : output_t(mid, std::move(thread_pool), options), m_proj(options.projection),
   m_expire(options.expire_tiles_zoom, options.projection),
   m_buffer(32768, osmium::memory::Buffer::auto_grow::yes),
-  m_rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
+  m_rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes),
+  m_area_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
 {
     m_expire_config.full_area_limit = get_options()->expire_tiles_max_bbox;
     if (get_options()->expire_tiles_max_bbox > 0.0) {
@@ -505,7 +506,8 @@ output_pgsql_t::output_pgsql_t(
   m_proj(get_options()->projection), m_expire_config(other->m_expire_config),
   m_expire(get_options()->expire_tiles_zoom, get_options()->projection),
   m_buffer(1024, osmium::memory::Buffer::auto_grow::yes),
-  m_rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
+  m_rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes),
+  m_area_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
 {
     for (std::size_t i = 0; i < m_tables.size(); ++i) {
         //copy constructor will just connect to the already there table
