@@ -159,7 +159,7 @@ tile_extent get_extent_from_db(pg_conn_t const &db_connection,
     auto const geom_column = params.get_string("geom_column", "geom");
     auto const raster_column = params.get_string("raster_column", "");
 
-    bool const is_raster = raster_column != "";
+    bool const is_raster = !raster_column.empty();
 
     return get_extent_from_db(db_connection, schema, table,
                               is_raster ? raster_column : geom_column,

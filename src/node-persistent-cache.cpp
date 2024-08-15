@@ -56,6 +56,7 @@ node_persistent_cache::~node_persistent_cache() noexcept
         try {
             log_debug("Removing persistent node cache at '{}'.", m_file_name);
         } catch (...) {
+            // exception ignored on purpose
         }
         unlink(m_file_name.c_str());
     }
