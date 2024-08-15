@@ -10,12 +10,15 @@
  * For a full list of authors see the git log.
  */
 
-#include "expire-tiles.hpp"
 #include "flex-table.hpp"
 
 #include <lua.hpp>
 
 #include <stdexcept>
+#include <string>
+#include <vector>
+
+class expire_tiles;
 
 class not_null_exception : public std::runtime_error
 {

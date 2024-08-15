@@ -19,6 +19,7 @@
 #include <osmium/memory/buffer.hpp>
 #include <osmium/osm.hpp>
 
+#include <cassert>
 #include <cstddef>
 #include <memory>
 #include <string>

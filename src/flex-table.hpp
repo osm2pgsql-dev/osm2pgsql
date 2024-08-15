@@ -20,7 +20,10 @@
 
 #include <osmium/osm/item_type.hpp>
 
+#include <cassert>
+#include <chrono>
 #include <cstddef>
+#include <future>
 #include <limits>
 #include <memory>
 #include <string>

@@ -14,6 +14,8 @@
 
 #include <fmt/args.h>
 
+#include <cassert>
+
 gen_base_t::gen_base_t(pg_conn_t *connection, bool append, params_t *params)
 : m_connection(connection), m_params(params), m_append(append)
 {

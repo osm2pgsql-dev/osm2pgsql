@@ -8,11 +8,15 @@
  */
 
 #include "flex-lua-index.hpp"
+
+#include "flex-index.hpp"
+#include "flex-table.hpp"
+#include "format.hpp"
 #include "lua-utils.hpp"
-#include "output-flex.hpp"
 #include "pgsql-capabilities.hpp"
 #include "util.hpp"
 
+#include <stdexcept>
 #include <string>
 #include <vector>
 

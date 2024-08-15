@@ -9,6 +9,8 @@
 
 #include "geom-box.hpp"
 
+#include <variant>
+
 namespace geom {
 
 box_t &box_t::extend(point_t const &point) noexcept

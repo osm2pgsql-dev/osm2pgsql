@@ -15,7 +15,6 @@
  * in the future.
  */
 
-#include "canvas.hpp"
 #include "command-line-app.hpp"
 #include "debug-output.hpp"
 #include "expire-output.hpp"
@@ -30,7 +29,6 @@
 #include "lua-init.hpp"
 #include "lua-setup.hpp"
 #include "lua-utils.hpp"
-#include "options.hpp"
 #include "params.hpp"
 #include "pgsql-capabilities.hpp"
 #include "pgsql.hpp"
@@ -45,18 +43,16 @@
 #include <lua.hpp>
 
 #include <algorithm>
-#include <array>
 #include <atomic>
-#include <cassert>
 #include <chrono>
 #include <cstdint>
 #include <cstdlib>
-#include <cstring>
-#include <getopt.h>
-#include <limits>
+#include <memory>
+#include <mutex>
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <vector>
 
 // Lua can't call functions on C++ objects directly. This macro defines simple
 // C "trampoline" functions which are called from Lua which get the current

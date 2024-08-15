@@ -9,12 +9,14 @@
 
 #include "gen-discrete-isolation.hpp"
 
-#include "logging.hpp"
 #include "params.hpp"
 #include "pgsql.hpp"
 #include "util.hpp"
 
 #include <algorithm>
+#include <cmath>
+#include <cstdint>
+#include <cstdlib>
 #include <vector>
 
 gen_di_t::gen_di_t(pg_conn_t *connection, bool append, params_t *params)
@@ -115,7 +117,7 @@ FROM {src} WHERE {importance_column} > 0
                     min = dist;
                 }
             }
-            data[n].di = sqrt(min);
+            data[n].di = std::sqrt(min);
         }
         data[0].di = data[1].di + 1;
     }

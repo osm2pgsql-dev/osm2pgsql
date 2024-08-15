@@ -12,7 +12,11 @@
 
 #include "gen-base.hpp"
 
+#include <cstddef>
 #include <string_view>
+
+class params_t;
+class pg_conn_t;
 
 class gen_di_t : public gen_base_t
 {

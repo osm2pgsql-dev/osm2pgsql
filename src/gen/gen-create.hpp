@@ -10,11 +10,10 @@
  * For a full list of authors see the git log.
  */
 
-#include "gen-base.hpp"
-
 #include <memory>
 #include <string>
 
+class gen_base_t;
 class params_t;
 class pg_conn_t;
 

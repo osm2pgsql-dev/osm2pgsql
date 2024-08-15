@@ -8,11 +8,9 @@
  */
 
 #include <algorithm>
-#include <cassert>
 #include <cstdint>
 #include <cstdio>
 #include <limits>
-#include <stdexcept>
 #include <string>
 #include <vector>
 

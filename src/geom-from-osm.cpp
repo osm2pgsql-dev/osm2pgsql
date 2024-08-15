@@ -13,6 +13,7 @@
 #include <osmium/area/geom_assembler.hpp>
 #include <osmium/osm/way.hpp>
 
+#include <cassert>
 #include <utility>
 
 namespace geom {

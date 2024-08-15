@@ -9,6 +9,8 @@
 
 #include "gen-create.hpp"
 
+#include "format.hpp"
+#include "gen-base.hpp"
 #include "gen-discrete-isolation.hpp"
 #include "gen-rivers.hpp"
 #include "gen-tile-builtup.hpp"

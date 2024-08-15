@@ -7,12 +7,16 @@
  * For a full list of authors see the git log.
  */
 
-#include <cassert>
-
 #include "db-copy.hpp"
+
 #include "format.hpp"
 #include "logging.hpp"
 #include "pgsql.hpp"
+
+#include <cassert>
+#include <cstdlib>
+#include <iterator>
+#include <stdexcept>
 
 void db_deleter_by_id_t::delete_rows(std::string const &table,
                                      std::string const &column,
