@@ -1,5 +1,5 @@
 ---
-Checks: '*,-abseil-*,-altera-*,-android-cloexec-*,-bugprone-easily-swappable-parameters,-cert-err58-cpp,-cppcoreguidelines-avoid-magic-numbers,-cppcoreguidelines-avoid-non-const-global-variables,-cppcoreguidelines-owning-memory,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-cppcoreguidelines-pro-type-cstyle-cast,-cppcoreguidelines-pro-type-reinterpret-cast,-cppcoreguidelines-pro-type-static-cast-downcast,-cppcoreguidelines-pro-type-vararg,-fuchsia-*,-google-readability-casting,-google-readability-todo,-hicpp-named-parameter,-hicpp-no-array-decay,-hicpp-vararg,-llvm-include-order,-llvm-header-guard,-llvmlibc-*,-misc-no-recursion,-modernize-use-nodiscard,-modernize-use-trailing-return-type,-readability-identifier-length,-readability-implicit-bool-conversion,-readability-named-parameter,-readability-magic-numbers'
+Checks: '*,-abseil-*,-altera-*,-android-cloexec-*,-bugprone-easily-swappable-parameters,-cert-err58-cpp,-cppcoreguidelines-avoid-do-while,-cppcoreguidelines-avoid-magic-numbers,-cppcoreguidelines-avoid-non-const-global-variables,-cppcoreguidelines-owning-memory,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-cppcoreguidelines-pro-type-cstyle-cast,-cppcoreguidelines-pro-type-reinterpret-cast,-cppcoreguidelines-pro-type-static-cast-downcast,-cppcoreguidelines-pro-type-vararg,-fuchsia-*,-google-readability-casting,-google-readability-todo,-hicpp-named-parameter,-hicpp-no-array-decay,-hicpp-vararg,-llvm-include-order,-llvm-header-guard,-llvmlibc-*,-misc-include-cleaner,-misc-no-recursion,-misc-use-anonymous-namespace,-modernize-use-nodiscard,-modernize-use-trailing-return-type,-readability-identifier-length,-readability-implicit-bool-conversion,-readability-named-parameter,-readability-magic-numbers'
 #
 #  cppcoreguidelines-pro-type-cstyle-cast
 #  google-build-using-namespace
@@ -25,6 +25,10 @@ Checks: '*,-abseil-*,-altera-*,-android-cloexec-*,-bugprone-easily-swappable-par
 #  cert-err58-cpp
 #    There are many of these in the test code, most of them from the Catch
 #    framework. Difficult to avoid.
+#
+#  cppcoreguidelines-avoid-do-while (new in clang-tidy-16)
+#    Its a good idea to avoid them when there are better alternatives, but
+#    sometimes they are the cleanest alternative.
 #
 #  cppcoreguidelines-avoid-magic-numbers
 #  readability-magic-numbers
@@ -55,8 +59,14 @@ Checks: '*,-abseil-*,-altera-*,-android-cloexec-*,-bugprone-easily-swappable-par
 #  llvmlibc-*
 #    Not applicable
 #
+#  misc-include-cleaner (new in clang-tidy-17)
+#    Many instances of this warning, disabled for now. (TODO)
+#
 #  misc-no-recursion
 #    Nothing wrong with recursion
+#
+#  misc-use-anonymous-namespace (new in clang-tidy-16)
+#    Lots of these, need some time to fix. (TODO)
 #
 #  modernize-use-nodiscard
 #    We have a lot of these. Remove it for the time being because there are

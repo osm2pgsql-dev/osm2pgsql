@@ -1,0 +1,9 @@
+name: Run clang-tidy
+
+runs:
+    using: composite
+
+    steps:
+      - name: Run clang-tidy
+        run: run-clang-tidy-17 -q -p build
+        shell: bash
