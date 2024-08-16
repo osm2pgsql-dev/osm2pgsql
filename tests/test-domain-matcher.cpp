@@ -17,8 +17,10 @@
 
 #include <cstring>
 
-static osmium::Tag &fill_buffer(osmium::memory::Buffer *buffer, char const *key,
-                                char const *value)
+namespace {
+
+osmium::Tag &fill_buffer(osmium::memory::Buffer *buffer, char const *key,
+                         char const *value)
 {
     {
         osmium::builder::TagListBuilder builder{*buffer};
@@ -28,6 +30,8 @@ static osmium::Tag &fill_buffer(osmium::memory::Buffer *buffer, char const *key,
 
     return *buffer->get<osmium::TagList>(0).begin();
 }
+
+} // anonymous namespace
 
 TEST_CASE("DomainMatcher: name", "[NoDB]")
 {

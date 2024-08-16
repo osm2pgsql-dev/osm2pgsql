@@ -17,12 +17,16 @@
 #include "tile-output.hpp"
 #include "tile.hpp"
 
-static std::shared_ptr<reprojection> defproj{
+namespace {
+
+std::shared_ptr<reprojection> defproj{
     reprojection::create_projection(PROJ_SPHERE_MERC)};
 
 // We are using zoom level 12 here, because at that level a tile is about
 // 10,000 units wide/high which gives us easy numbers to work with.
-static constexpr uint32_t const zoom = 12;
+constexpr uint32_t const zoom = 12;
+
+} // anonymous namespace
 
 TEST_CASE("expire null geometry does nothing", "[NoDB]")
 {

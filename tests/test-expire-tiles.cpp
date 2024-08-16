@@ -17,10 +17,12 @@
 #include "tile-output.hpp"
 #include "tile.hpp"
 
-static std::shared_ptr<reprojection> defproj{
+namespace {
+
+std::shared_ptr<reprojection> defproj{
     reprojection::create_projection(PROJ_SPHERE_MERC)};
 
-static std::set<tile_t> generate_random(uint32_t zoom, size_t count)
+std::set<tile_t> generate_random(uint32_t zoom, size_t count)
 {
     // Use a random device with a fixed seed. We don't really care about
     // the quality of random numbers here, we just need to generate valid
@@ -39,7 +41,7 @@ static std::set<tile_t> generate_random(uint32_t zoom, size_t count)
     return set;
 }
 
-static void expire_centroids(expire_tiles *et, std::set<tile_t> const &tiles)
+void expire_centroids(expire_tiles *et, std::set<tile_t> const &tiles)
 {
     for (auto const &t : tiles) {
         auto const p = t.center();
@@ -47,16 +49,15 @@ static void expire_centroids(expire_tiles *et, std::set<tile_t> const &tiles)
     }
 }
 
-static void check_quadkey(quadkey_t quadkey_expected,
-                          tile_t const &tile) noexcept
+void check_quadkey(quadkey_t quadkey_expected, tile_t const &tile) noexcept
 {
     CHECK(tile.quadkey() == quadkey_expected);
     auto const t = tile_t::from_quadkey(quadkey_expected, tile.zoom());
     CHECK(t == tile);
 }
 
-static std::vector<tile_t> get_tiles_ordered(expire_tiles *et, uint32_t minzoom,
-                                             uint32_t maxzoom)
+std::vector<tile_t> get_tiles_ordered(expire_tiles *et, uint32_t minzoom,
+                                      uint32_t maxzoom)
 {
     std::vector<tile_t> tiles;
 
@@ -66,7 +67,7 @@ static std::vector<tile_t> get_tiles_ordered(expire_tiles *et, uint32_t minzoom,
     return tiles;
 }
 
-static std::set<tile_t> get_tiles_unordered(expire_tiles *et, uint32_t zoom)
+std::set<tile_t> get_tiles_unordered(expire_tiles *et, uint32_t zoom)
 {
     std::set<tile_t> tiles;
 
@@ -75,6 +76,8 @@ static std::set<tile_t> get_tiles_unordered(expire_tiles *et, uint32_t zoom)
 
     return tiles;
 }
+
+} // anonymous namespace
 
 TEST_CASE("tile to quadkey", "[NoDB]")
 {

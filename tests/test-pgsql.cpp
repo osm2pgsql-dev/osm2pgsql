@@ -12,7 +12,11 @@
 #include "common-import.hpp"
 #include "pgsql.hpp"
 
-static testing::db::import_t const db;
+namespace {
+
+testing::db::import_t db;
+
+} // anonymous namespace
 
 TEST_CASE("Tablespace clause with no tablespace")
 {

@@ -19,9 +19,13 @@
 #include <string>
 #include <vector>
 
-static testing::db::import_t db;
+namespace {
 
-static char const *const data_file = "liechtenstein-2013-08-03.osm.pbf";
+testing::db::import_t db;
+
+char const *const data_file = "liechtenstein-2013-08-03.osm.pbf";
+
+} // anonymous namespace
 
 std::vector<std::string> get_files() {
     // NOLINTNEXTLINE(concurrency-mt-unsafe)

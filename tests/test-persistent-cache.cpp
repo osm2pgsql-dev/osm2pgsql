@@ -13,24 +13,28 @@
 
 #include "common-cleanup.hpp"
 
-static void write_and_read_location(node_persistent_cache *cache, osmid_t id,
-                                    double x, double y)
+namespace {
+
+void write_and_read_location(node_persistent_cache *cache, osmid_t id, double x,
+                             double y)
 {
     cache->set(id, osmium::Location{x, y});
     REQUIRE(osmium::Location(x, y) == cache->get(id));
 }
 
-static void read_location(node_persistent_cache const &cache, osmid_t id,
-                          double x, double y)
+void read_location(node_persistent_cache const &cache, osmid_t id, double x,
+                   double y)
 {
     REQUIRE(osmium::Location(x, y) == cache.get(id));
 }
 
-static void delete_location(node_persistent_cache *cache, osmid_t id)
+void delete_location(node_persistent_cache *cache, osmid_t id)
 {
     cache->set(id, osmium::Location{});
     REQUIRE(osmium::Location{} == cache->get(id));
 }
+
+} // anonymous namespace
 
 TEST_CASE("Persistent cache", "[NoDB]")
 {

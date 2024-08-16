@@ -12,15 +12,19 @@
 #include "common-import.hpp"
 #include "common-options.hpp"
 
-static testing::db::import_t db;
+namespace {
 
-static void require_tables(testing::pg::conn_t const &conn)
+testing::db::import_t db;
+
+void require_tables(testing::pg::conn_t const &conn)
 {
     conn.require_has_table("osm2pgsql_test_point");
     conn.require_has_table("osm2pgsql_test_line");
     conn.require_has_table("osm2pgsql_test_polygon");
     conn.require_has_table("osm2pgsql_test_roads");
 }
+
+} // anonymous namespace
 
 TEST_CASE("liechtenstein slim regression simple")
 {

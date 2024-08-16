@@ -14,13 +14,17 @@
 
 #include <string>
 
-static testing::db::import_t db;
+namespace {
 
-static std::string population(osmid_t id)
+testing::db::import_t db;
+
+std::string population(osmid_t id)
 {
     return "SELECT population FROM osm2pgsql_test_point WHERE osm_id = " +
            std::to_string(id);
 }
+
+} // anonymous namespace
 
 TEST_CASE("int4 conversion")
 {
