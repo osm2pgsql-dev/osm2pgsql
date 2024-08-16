@@ -1047,12 +1047,15 @@ void output_flex_t::wait()
 
 void output_flex_t::node_add(osmium::Node const &node)
 {
-    if (!m_process_node) {
+    auto const &func =
+        node.tags().empty() ? m_process_untagged_node : m_process_node;
+
+    if (!func) {
         return;
     }
 
     m_context_node = &node;
-    get_mutex_and_call_lua_function(m_process_node, node);
+    get_mutex_and_call_lua_function(func, node);
     m_context_node = nullptr;
 }
 
@@ -1060,23 +1063,29 @@ void output_flex_t::way_add(osmium::Way *way)
 {
     assert(way);
 
-    if (!m_process_way) {
+    auto const &func =
+        way->tags().empty() ? m_process_untagged_way : m_process_way;
+
+    if (!func) {
         return;
     }
 
     m_way_cache.init(way);
-    get_mutex_and_call_lua_function(m_process_way, m_way_cache.get());
+    get_mutex_and_call_lua_function(func, m_way_cache.get());
 }
 
 void output_flex_t::relation_add(osmium::Relation const &relation)
 {
-    if (!m_process_relation) {
+    auto const &func = relation.tags().empty() ? m_process_untagged_relation
+                                               : m_process_relation;
+
+    if (!func) {
         return;
     }
 
     m_relation_cache.init(relation);
     select_relation_members();
-    get_mutex_and_call_lua_function(m_process_relation, relation);
+    get_mutex_and_call_lua_function(func, relation);
 }
 
 void output_flex_t::delete_from_table(table_connection_t *table_connection,
@@ -1171,6 +1180,9 @@ output_flex_t::output_flex_t(output_flex_t const *other,
   m_area_buffer(1024, osmium::memory::Buffer::auto_grow::yes),
   m_process_node(other->m_process_node), m_process_way(other->m_process_way),
   m_process_relation(other->m_process_relation),
+  m_process_untagged_node(other->m_process_untagged_node),
+  m_process_untagged_way(other->m_process_untagged_way),
+  m_process_untagged_relation(other->m_process_untagged_relation),
   m_select_relation_members(other->m_select_relation_members),
   m_after_nodes(other->m_after_nodes), m_after_ways(other->m_after_ways),
   m_after_relations(other->m_after_relations)
@@ -1402,9 +1414,19 @@ void output_flex_t::init_lua(std::string const &filename,
         lua_state(), calling_context::process_way, "process_way"};
     m_process_relation = prepared_lua_function_t{
         lua_state(), calling_context::process_relation, "process_relation"};
+
+    m_process_untagged_node = prepared_lua_function_t{
+        lua_state(), calling_context::process_node, "process_untagged_node"};
+    m_process_untagged_way = prepared_lua_function_t{
+        lua_state(), calling_context::process_way, "process_untagged_way"};
+    m_process_untagged_relation =
+        prepared_lua_function_t{lua_state(), calling_context::process_relation,
+                                "process_untagged_relation"};
+
     m_select_relation_members = prepared_lua_function_t{
         lua_state(), calling_context::select_relation_members,
         "select_relation_members", 1};
+
     m_after_nodes = prepared_lua_function_t{lua_state(), calling_context::main,
                                             "after_nodes"};
     m_after_ways = prepared_lua_function_t{lua_state(), calling_context::main,
