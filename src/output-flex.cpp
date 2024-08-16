@@ -126,15 +126,14 @@ prepared_lua_function_t::prepared_lua_function_t(lua_State *lua_state,
 namespace {
 
 void push_osm_object_to_lua_stack(lua_State *lua_state,
-                                  osmium::OSMObject const &object,
-                                  bool with_attributes)
+                                  osmium::OSMObject const &object)
 {
     assert(lua_state);
 
     /**
-     * Table will always have at least 3 fields (id, type, tags). And 5 more if
-     * with_attributes is true (version, timestamp, changeset, uid, user). For
-     * ways there are 2 more (is_closed, nodes), for relations 1 more (members).
+     * Table will always have at least 8 fields (id, type, tags, version,
+     * timestamp, changeset, uid, user). For ways there are 2 more (is_closed,
+     * nodes), for relations 1 more (members).
      */
     constexpr int const max_table_size = 10;
 
@@ -145,23 +144,21 @@ void push_osm_object_to_lua_stack(lua_State *lua_state,
     luaX_add_table_str(lua_state, "type",
                        osmium::item_type_to_name(object.type()));
 
-    if (with_attributes) {
-        if (object.version() != 0U) {
-            luaX_add_table_int(lua_state, "version", object.version());
-        }
-        if (object.timestamp().valid()) {
-            luaX_add_table_int(lua_state, "timestamp",
-                               object.timestamp().seconds_since_epoch());
-        }
-        if (object.changeset() != 0U) {
-            luaX_add_table_int(lua_state, "changeset", object.changeset());
-        }
-        if (object.uid() != 0U) {
-            luaX_add_table_int(lua_state, "uid", object.uid());
-        }
-        if (object.user()[0] != '\0') {
-            luaX_add_table_str(lua_state, "user", object.user());
-        }
+    if (object.version() != 0U) {
+        luaX_add_table_int(lua_state, "version", object.version());
+    }
+    if (object.timestamp().valid()) {
+        luaX_add_table_int(lua_state, "timestamp",
+                           object.timestamp().seconds_since_epoch());
+    }
+    if (object.changeset() != 0U) {
+        luaX_add_table_int(lua_state, "changeset", object.changeset());
+    }
+    if (object.uid() != 0U) {
+        luaX_add_table_int(lua_state, "uid", object.uid());
+    }
+    if (object.user()[0] != '\0') {
+        luaX_add_table_str(lua_state, "user", object.user());
     }
 
     if (object.type() == osmium::item_type::way) {
@@ -692,8 +689,7 @@ int output_flex_t::table_insert()
         lua_pushboolean(lua_state(), false);
         lua_pushstring(lua_state(), "null value in not null column.");
         lua_pushstring(lua_state(), e.column().name().c_str());
-        push_osm_object_to_lua_stack(lua_state(), object,
-                                     get_options()->extra_attributes);
+        push_osm_object_to_lua_stack(lua_state(), object);
         table_connection.increment_not_null_error_counter();
         return 4;
     }
@@ -820,9 +816,7 @@ void output_flex_t::call_lua_function(prepared_lua_function_t func,
     m_calling_context = func.context();
 
     lua_pushvalue(lua_state(), func.index()); // the function to call
-    push_osm_object_to_lua_stack(
-        lua_state(), object,
-        get_options()->extra_attributes); // the single argument
+    push_osm_object_to_lua_stack(lua_state(), object); // the single argument
 
     luaX_set_context(lua_state(), this);
     if (luaX_pcall(lua_state(), 1, func.nresults())) {

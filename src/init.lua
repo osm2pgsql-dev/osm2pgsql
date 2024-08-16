@@ -168,16 +168,6 @@ end
 
 -- This will be the metatable for the OSM objects given to the process callback
 -- functions.
-local inner_metatable = {
-    __index = function(table, key)
-        if key == 'version' or key == 'timestamp' or
-           key == 'changeset' or key == 'uid' or key == 'user' then
-            return nil
-        end
-        error("unknown field '" .. key .. "'", 2)
-    end
-}
-
 object_metatable = {
     __index =  {
         grab_tag = function(data, tag)
@@ -190,8 +180,6 @@ object_metatable = {
         end
     }
 }
-
-setmetatable(object_metatable.__index, inner_metatable)
 
 -- This is used to iterate over (multi)geometries.
 function osm2pgsql.Geometry.geometries(geom)
