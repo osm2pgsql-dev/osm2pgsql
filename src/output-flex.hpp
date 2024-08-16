@@ -161,7 +161,6 @@ public:
     int app_define_table();
     int app_define_expire_output();
     int app_get_bbox();
-    int app_mark_way();
 
     int table_tostring();
     int table_insert();
