@@ -174,8 +174,8 @@ mandatory for short options too.
     `public` if that is not set.
 
 \--middle-with-nodes
-:   Used together with the **new** middle database format when a flat nodes
-    file is used to force storing nodes with tags in the database, too.
+:   When a flat nodes file is used, nodes are not stored in the database. Use
+    this option to force storing nodes with tags in the database, too.
 
 # OUTPUT OPTIONS
 
