@@ -173,10 +173,6 @@ mandatory for short options too.
     database user. By default the schema set with `--schema` is used, or
     `public` if that is not set.
 
-\--middle-way-node-index-id-shift=SHIFT
-:   Set ID shift for way node bucket index in middle. Experts only. See
-    documentation for details.
-
 \--middle-with-nodes
 :   Used together with the **new** middle database format when a flat nodes
     file is used to force storing nodes with tags in the database, too.

@@ -39,9 +39,6 @@ struct middle_pgsql_options
     // Store untagged nodes also (set in addition to nodes=true).
     bool untagged_nodes = false;
 
-    // Bit shift used in way node index
-    uint8_t way_node_index_id_shift = 5;
-
     // Use a flat node file
     bool use_flat_node_file = false;
 

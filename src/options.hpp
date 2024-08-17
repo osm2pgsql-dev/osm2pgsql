@@ -108,14 +108,6 @@ struct options_t
     unsigned int num_procs = 1;
 
     /**
-     * How many bits should the node id be shifted for the way node index?
-     * The result is a lossy index which is significantly smaller.
-     * See https://osm2pgsql.org/doc/manual.html#bucket-index-for-slim-mode
-     * Use 0 to use a classic loss-less GIN index.
-     */
-    uint8_t way_node_index_id_shift = 5;
-
-    /**
      * Middle database format:
      * 0 = non-slim mode, no database middle (ram middle)
      * 1 = slim mode, legacy database format (not used any more)
