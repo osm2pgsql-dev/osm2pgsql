@@ -136,8 +136,11 @@ void parse_expire_tiles_param(char const *arg, uint32_t *expire_tiles_zoom_min,
 void check_options_non_slim(CLI::App const &app)
 {
     std::vector<std::string> const slim_options = {
-        "--middle-schema", "--middle-with-nodes",
-        "--middle-way-node-index-id-shift", "--tablespace-slim-data",
+        "--cache",
+        "--middle-schema",
+        "--middle-with-nodes",
+        "--middle-way-node-index-id-shift",
+        "--tablespace-slim-data",
         "--tablespace-slim-index"};
 
     for (auto const &opt : slim_options) {
