@@ -45,6 +45,7 @@
 #include <limits>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -295,6 +296,40 @@ void create_expire_tables(std::vector<expire_output_t> const &expire_outputs,
     }
 }
 
+void check_for_object(lua_State *lua_state, char const *const function_name)
+{
+    // This is used to make sure we are printing warnings only once per
+    // function name.
+    static std::set<std::string> message_shown;
+    if (message_shown.count(function_name)) {
+        return;
+    }
+
+    int const num_params = lua_gettop(lua_state);
+    if (num_params == 0) {
+        log_warn("You should use the syntax 'object:{}()' (with the colon, not "
+                 "a point) to call functions on the OSM object.",
+                 function_name);
+
+        message_shown.emplace(function_name);
+        return;
+    }
+
+    if (lua_getmetatable(lua_state, 1)) {
+        luaL_getmetatable(lua_state, osm2pgsql_object_metatable.data());
+        if (lua_rawequal(lua_state, -1, -2)) {
+            lua_pop(lua_state, 2); // remove the two metatables
+            return;
+        }
+        lua_pop(lua_state, 2); // remove the two metatables
+    }
+
+    message_shown.emplace(function_name);
+    log_warn("First and only parameter for {0}() must be the OSM object. Call "
+             "it like this: 'object:{0}()'.",
+             function_name);
+}
+
 } // anonymous namespace
 
 /**
@@ -304,6 +339,8 @@ void create_expire_tables(std::vector<expire_output_t> const &expire_outputs,
 void output_flex_t::check_context_and_state(char const *name,
                                             char const *context, bool condition)
 {
+    check_for_object(lua_state(), name);
+
     if (condition) {
         throw fmt_error(
             "The function {}() can only be called (directly or indirectly) "
