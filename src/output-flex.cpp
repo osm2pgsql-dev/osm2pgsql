@@ -47,6 +47,7 @@
 #include <mutex>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 
 // Mutex used to coordinate access to Lua code
 static std::mutex lua_mutex;
@@ -97,9 +98,6 @@ TRAMPOLINE(expire_output_schema, schema)
 TRAMPOLINE(expire_output_table, table)
 TRAMPOLINE(expire_output_tostring, __tostring)
 
-static char const *const osm2pgsql_object_metatable =
-    "osm2pgsql.object_metatable";
-
 prepared_lua_function_t::prepared_lua_function_t(lua_State *lua_state,
                                                  calling_context context,
                                                  char const *name, int nresults)
@@ -124,6 +122,8 @@ prepared_lua_function_t::prepared_lua_function_t(lua_State *lua_state,
 }
 
 namespace {
+
+std::string_view const osm2pgsql_object_metatable = "osm2pgsql.OSMObject";
 
 void push_osm_object_to_lua_stack(lua_State *lua_state,
                                   osmium::OSMObject const &object)
@@ -191,7 +191,7 @@ void push_osm_object_to_lua_stack(lua_State *lua_state,
     lua_rawset(lua_state, -3);
 
     // Set the metatable of this object
-    lua_pushlightuserdata(lua_state, (void *)osm2pgsql_object_metatable);
+    luaX_pushstring(lua_state, osm2pgsql_object_metatable);
     lua_gettable(lua_state, LUA_REGISTRYINDEX);
     lua_setmetatable(lua_state, -2);
 }
@@ -1370,6 +1370,8 @@ void output_flex_t::init_lua(std::string const &filename,
 
     // Store the methods on OSM objects in its metatable.
     lua_getglobal(lua_state(), "object_metatable");
+    luaX_pushstring(lua_state(), osm2pgsql_object_metatable);
+    lua_setfield(lua_state(), -2, "__name");
     lua_getfield(lua_state(), -1, "__index");
     luaX_add_table_func(lua_state(), "get_bbox", lua_trampoline_app_get_bbox);
     luaX_add_table_func(lua_state(), "as_linestring",
@@ -1391,7 +1393,7 @@ void output_flex_t::init_lua(std::string const &filename,
     // Store the global object "object_metatable" defined in the init.lua
     // script in the registry and then remove the global object. It will
     // later be used as metatable for OSM objects.
-    lua_pushlightuserdata(lua_state(), (void *)osm2pgsql_object_metatable);
+    luaX_pushstring(lua_state(), osm2pgsql_object_metatable);
     lua_getglobal(lua_state(), "object_metatable");
     lua_settable(lua_state(), LUA_REGISTRYINDEX);
     lua_pushnil(lua_state());
