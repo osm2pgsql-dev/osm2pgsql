@@ -7,11 +7,13 @@
  * For a full list of authors see the git log.
  */
 
-#include "logging.hpp"
 #include "node-persistent-cache.hpp"
+
+#include "logging.hpp"
 
 #include <cassert>
 #include <cerrno>
+#include <filesystem>
 #include <system_error>
 #include <utility>
 
@@ -55,9 +57,14 @@ node_persistent_cache::~node_persistent_cache() noexcept
     if (m_remove_file) {
         try {
             log_debug("Removing persistent node cache at '{}'.", m_file_name);
+            std::error_code ec{};
+            std::filesystem::remove(m_file_name, ec);
+            if (ec) {
+                log_warn("Failed to remove persistent node cache at '{}': {}.",
+                         m_file_name, ec.message());
+            }
         } catch (...) {
             // exception ignored on purpose
         }
-        unlink(m_file_name.c_str());
     }
 }
