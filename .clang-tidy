@@ -69,8 +69,9 @@ Checks: '*,-abseil-*,-altera-*,-android-cloexec-*,-bugprone-easily-swappable-par
 #    Lots of these, need some time to fix. (TODO)
 #
 #  modernize-use-nodiscard
-#    We have a lot of these. Remove it for the time being because there are
-#    too many to fix quickly. (TODO)
+#    Doesn't really make the code clearer if it is all littered with
+#    [[nodiscard]]. Looks like this warning is more suited for a library
+#    than for normal code.
 #
 #  modernize-use-trailing-return-type
 #    We are not that modern...
