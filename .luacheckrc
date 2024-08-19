@@ -20,6 +20,15 @@ stds.osm2pgsql = {
                 process_relation = {
                     read_only = false
                 },
+                process_untagged_node = {
+                    read_only = false
+                },
+                process_untagged_way = {
+                    read_only = false
+                },
+                process_untagged_relation = {
+                    read_only = false
+                },
                 select_relation_members = {
                     read_only = false
                 },

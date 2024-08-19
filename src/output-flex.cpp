@@ -126,15 +126,14 @@ prepared_lua_function_t::prepared_lua_function_t(lua_State *lua_state,
 namespace {
 
 void push_osm_object_to_lua_stack(lua_State *lua_state,
-                                  osmium::OSMObject const &object,
-                                  bool with_attributes)
+                                  osmium::OSMObject const &object)
 {
     assert(lua_state);
 
     /**
-     * Table will always have at least 3 fields (id, type, tags). And 5 more if
-     * with_attributes is true (version, timestamp, changeset, uid, user). For
-     * ways there are 2 more (is_closed, nodes), for relations 1 more (members).
+     * Table will always have at least 8 fields (id, type, tags, version,
+     * timestamp, changeset, uid, user). For ways there are 2 more (is_closed,
+     * nodes), for relations 1 more (members).
      */
     constexpr int const max_table_size = 10;
 
@@ -145,23 +144,21 @@ void push_osm_object_to_lua_stack(lua_State *lua_state,
     luaX_add_table_str(lua_state, "type",
                        osmium::item_type_to_name(object.type()));
 
-    if (with_attributes) {
-        if (object.version() != 0U) {
-            luaX_add_table_int(lua_state, "version", object.version());
-        }
-        if (object.timestamp().valid()) {
-            luaX_add_table_int(lua_state, "timestamp",
-                               object.timestamp().seconds_since_epoch());
-        }
-        if (object.changeset() != 0U) {
-            luaX_add_table_int(lua_state, "changeset", object.changeset());
-        }
-        if (object.uid() != 0U) {
-            luaX_add_table_int(lua_state, "uid", object.uid());
-        }
-        if (object.user()[0] != '\0') {
-            luaX_add_table_str(lua_state, "user", object.user());
-        }
+    if (object.version() != 0U) {
+        luaX_add_table_int(lua_state, "version", object.version());
+    }
+    if (object.timestamp().valid()) {
+        luaX_add_table_int(lua_state, "timestamp",
+                           object.timestamp().seconds_since_epoch());
+    }
+    if (object.changeset() != 0U) {
+        luaX_add_table_int(lua_state, "changeset", object.changeset());
+    }
+    if (object.uid() != 0U) {
+        luaX_add_table_int(lua_state, "uid", object.uid());
+    }
+    if (object.user()[0] != '\0') {
+        luaX_add_table_str(lua_state, "user", object.user());
     }
 
     if (object.type() == osmium::item_type::way) {
@@ -308,8 +305,10 @@ void output_flex_t::check_context_and_state(char const *name,
                                             char const *context, bool condition)
 {
     if (condition) {
-        throw fmt_error("The function {}() can only be called from the {}.",
-                        name, context);
+        throw fmt_error(
+            "The function {}() can only be called (directly or indirectly) "
+            "from the process_[untagged]_{}() functions.",
+            name, context);
     }
 
     if (lua_gettop(lua_state()) > 1) {
@@ -320,7 +319,7 @@ void output_flex_t::check_context_and_state(char const *name,
 int output_flex_t::app_get_bbox()
 {
     check_context_and_state(
-        "get_bbox", "process_node/way/relation() functions",
+        "get_bbox", "node/way/relation",
         m_calling_context != calling_context::process_node &&
             m_calling_context != calling_context::process_way &&
             m_calling_context != calling_context::process_relation);
@@ -370,7 +369,7 @@ int output_flex_t::app_get_bbox()
 
 int output_flex_t::app_as_point()
 {
-    check_context_and_state("as_point", "process_node() function",
+    check_context_and_state("as_point", "node",
                             m_calling_context != calling_context::process_node);
 
     auto *geom = create_lua_geometry_object(lua_state());
@@ -381,7 +380,7 @@ int output_flex_t::app_as_point()
 
 int output_flex_t::app_as_linestring()
 {
-    check_context_and_state("as_linestring", "process_way() function",
+    check_context_and_state("as_linestring", "way",
                             m_calling_context != calling_context::process_way);
 
     m_way_cache.add_nodes(middle());
@@ -394,7 +393,7 @@ int output_flex_t::app_as_linestring()
 
 int output_flex_t::app_as_polygon()
 {
-    check_context_and_state("as_polygon", "process_way() function",
+    check_context_and_state("as_polygon", "way",
                             m_calling_context != calling_context::process_way);
 
     m_way_cache.add_nodes(middle());
@@ -408,7 +407,7 @@ int output_flex_t::app_as_polygon()
 int output_flex_t::app_as_multipoint()
 {
     check_context_and_state(
-        "as_multipoint", "process_node/relation() functions",
+        "as_multipoint", "node/relation",
         m_calling_context != calling_context::process_node &&
             m_calling_context != calling_context::process_relation);
 
@@ -426,10 +425,10 @@ int output_flex_t::app_as_multipoint()
 
 int output_flex_t::app_as_multilinestring()
 {
-    check_context_and_state(
-        "as_multilinestring", "process_way/relation() functions",
-        m_calling_context != calling_context::process_way &&
-            m_calling_context != calling_context::process_relation);
+    check_context_and_state("as_multilinestring", "way/relation",
+                            m_calling_context != calling_context::process_way &&
+                                m_calling_context !=
+                                    calling_context::process_relation);
 
     if (m_calling_context == calling_context::process_way) {
         m_way_cache.add_nodes(middle());
@@ -450,10 +449,10 @@ int output_flex_t::app_as_multilinestring()
 
 int output_flex_t::app_as_multipolygon()
 {
-    check_context_and_state(
-        "as_multipolygon", "process_way/relation() functions",
-        m_calling_context != calling_context::process_way &&
-            m_calling_context != calling_context::process_relation);
+    check_context_and_state("as_multipolygon", "way/relation",
+                            m_calling_context != calling_context::process_way &&
+                                m_calling_context !=
+                                    calling_context::process_relation);
 
     if (m_calling_context == calling_context::process_way) {
         m_way_cache.add_nodes(middle());
@@ -476,9 +475,9 @@ int output_flex_t::app_as_multipolygon()
 
 int output_flex_t::app_as_geometrycollection()
 {
-    check_context_and_state(
-        "as_geometrycollection", "process_relation() function",
-        m_calling_context != calling_context::process_relation);
+    check_context_and_state("as_geometrycollection", "relation",
+                            m_calling_context !=
+                                calling_context::process_relation);
 
     m_relation_cache.add_members(middle());
 
@@ -692,8 +691,7 @@ int output_flex_t::table_insert()
         lua_pushboolean(lua_state(), false);
         lua_pushstring(lua_state(), "null value in not null column.");
         lua_pushstring(lua_state(), e.column().name().c_str());
-        push_osm_object_to_lua_stack(lua_state(), object,
-                                     get_options()->extra_attributes);
+        push_osm_object_to_lua_stack(lua_state(), object);
         table_connection.increment_not_null_error_counter();
         return 4;
     }
@@ -820,9 +818,7 @@ void output_flex_t::call_lua_function(prepared_lua_function_t func,
     m_calling_context = func.context();
 
     lua_pushvalue(lua_state(), func.index()); // the function to call
-    push_osm_object_to_lua_stack(
-        lua_state(), object,
-        get_options()->extra_attributes); // the single argument
+    push_osm_object_to_lua_stack(lua_state(), object); // the single argument
 
     luaX_set_context(lua_state(), this);
     if (luaX_pcall(lua_state(), 1, func.nresults())) {
@@ -1053,12 +1049,15 @@ void output_flex_t::wait()
 
 void output_flex_t::node_add(osmium::Node const &node)
 {
-    if (!m_process_node) {
+    auto const &func =
+        node.tags().empty() ? m_process_untagged_node : m_process_node;
+
+    if (!func) {
         return;
     }
 
     m_context_node = &node;
-    get_mutex_and_call_lua_function(m_process_node, node);
+    get_mutex_and_call_lua_function(func, node);
     m_context_node = nullptr;
 }
 
@@ -1066,23 +1065,29 @@ void output_flex_t::way_add(osmium::Way *way)
 {
     assert(way);
 
-    if (!m_process_way) {
+    auto const &func =
+        way->tags().empty() ? m_process_untagged_way : m_process_way;
+
+    if (!func) {
         return;
     }
 
     m_way_cache.init(way);
-    get_mutex_and_call_lua_function(m_process_way, m_way_cache.get());
+    get_mutex_and_call_lua_function(func, m_way_cache.get());
 }
 
 void output_flex_t::relation_add(osmium::Relation const &relation)
 {
-    if (!m_process_relation) {
+    auto const &func = relation.tags().empty() ? m_process_untagged_relation
+                                               : m_process_relation;
+
+    if (!func) {
         return;
     }
 
     m_relation_cache.init(relation);
     select_relation_members();
-    get_mutex_and_call_lua_function(m_process_relation, relation);
+    get_mutex_and_call_lua_function(func, relation);
 }
 
 void output_flex_t::delete_from_table(table_connection_t *table_connection,
@@ -1177,6 +1182,9 @@ output_flex_t::output_flex_t(output_flex_t const *other,
   m_area_buffer(1024, osmium::memory::Buffer::auto_grow::yes),
   m_process_node(other->m_process_node), m_process_way(other->m_process_way),
   m_process_relation(other->m_process_relation),
+  m_process_untagged_node(other->m_process_untagged_node),
+  m_process_untagged_way(other->m_process_untagged_way),
+  m_process_untagged_relation(other->m_process_untagged_relation),
   m_select_relation_members(other->m_select_relation_members),
   m_after_nodes(other->m_after_nodes), m_after_ways(other->m_after_ways),
   m_after_relations(other->m_after_relations)
@@ -1408,9 +1416,19 @@ void output_flex_t::init_lua(std::string const &filename,
         lua_state(), calling_context::process_way, "process_way"};
     m_process_relation = prepared_lua_function_t{
         lua_state(), calling_context::process_relation, "process_relation"};
+
+    m_process_untagged_node = prepared_lua_function_t{
+        lua_state(), calling_context::process_node, "process_untagged_node"};
+    m_process_untagged_way = prepared_lua_function_t{
+        lua_state(), calling_context::process_way, "process_untagged_way"};
+    m_process_untagged_relation =
+        prepared_lua_function_t{lua_state(), calling_context::process_relation,
+                                "process_untagged_relation"};
+
     m_select_relation_members = prepared_lua_function_t{
         lua_state(), calling_context::select_relation_members,
         "select_relation_members", 1};
+
     m_after_nodes = prepared_lua_function_t{lua_state(), calling_context::main,
                                             "after_nodes"};
     m_after_ways = prepared_lua_function_t{lua_state(), calling_context::main,

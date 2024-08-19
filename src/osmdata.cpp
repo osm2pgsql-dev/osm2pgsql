@@ -31,7 +31,9 @@ osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid,
 : m_mid(std::move(mid)), m_output(std::move(output)),
   m_connection_params(options.connection_params), m_bbox(options.bbox),
   m_num_procs(options.num_procs), m_append(options.append),
-  m_droptemp(options.droptemp), m_with_extra_attrs(options.extra_attributes)
+  m_droptemp(options.droptemp),
+  m_with_extra_attrs(options.extra_attributes ||
+                     options.output_backend == "flex")
 {
     assert(m_mid);
     assert(m_output);

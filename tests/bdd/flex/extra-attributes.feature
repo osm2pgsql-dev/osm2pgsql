@@ -36,8 +36,8 @@ Feature: Tests for including extra attributes
             | --slim |
 
         Then table osm2pgsql_test_attr contains
-            | type | way_id | tags->'highway' | tags->'osm_version' |  version | changeset | timestamp | uid  | "user" |
-            | way  | 20     | primary         | NULL                |  NULL    | NULL      | NULL      | NULL | NULL   |
+            | type | way_id | tags->'highway' | tags->'osm_version' | version | changeset | timestamp  | uid  | "user" |
+            | way  | 20     | primary         | NULL                | 1       | 31        | 1578832496 | 17   | test   |
 
         Given the grid
             |    |    |

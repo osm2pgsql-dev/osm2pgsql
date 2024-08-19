@@ -301,7 +301,13 @@ private:
     prepared_lua_function_t m_process_node{};
     prepared_lua_function_t m_process_way{};
     prepared_lua_function_t m_process_relation{};
+
+    prepared_lua_function_t m_process_untagged_node{};
+    prepared_lua_function_t m_process_untagged_way{};
+    prepared_lua_function_t m_process_untagged_relation{};
+
     prepared_lua_function_t m_select_relation_members{};
+
     prepared_lua_function_t m_after_nodes{};
     prepared_lua_function_t m_after_ways{};
     prepared_lua_function_t m_after_relations{};
