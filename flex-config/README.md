@@ -34,6 +34,22 @@ pgsql (C transform) output:
 
 * [compatible.lua](compatible.lua)
 
+The other files demonstrate some specific functionality, look at these if
+and when you need that functionality.
+
+* [addresses.lua](addresses.lua) -- Get all objects with addresses and store
+  as point objects in the database
+* [bbox.lua](bbox.lua) -- Use of the `get_bbox()` function to get the bounding
+  boxes of features
+* [expire.lua](expire.lua) -- Tile expiry configuration
+* [indexes.lua](indexes.lua) -- Various options around index creation
+* [labelpoint.lua](labelpoint.lua) -- How to get good labelling points using
+  the `centroid()` and `pole_of_inaccessibility()` functions.
+* [untagged](untagged.lua) -- How to access untagged objects.
+
+The subdirectory [gen](gen/) contains example configurations for
+generalization support.
+
 ## Dependencies
 
 Some of the example files use the `inspect` Lua library to show debugging

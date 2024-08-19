@@ -6,20 +6,20 @@ We operate the "Fork & Pull" model explained at
 
 https://help.github.com/articles/using-pull-requests
 
-You should fork the project into your own repo, create a topic branch
-there and then make one or more pull requests back to the OpenStreetMap repository.
-Your pull requests will then be reviewed and discussed.
+You should fork the project into your own repo, create a topic branch there and
+then make one or more pull requests back to the OpenStreetMap repository. Your
+pull requests will then be reviewed and discussed.
 
 ## History
 
-To understand the osm2pgsql code, it helps to know some history on it. Osm2pgsql
-was written in C in 2007 as a port of an older Python utility. In 2014 it was
-ported to C++ by MapQuest and the last C version was released as 0.86.0. In it's
-time, it has had varying contribution activity, including times with no
-maintainer or active developers.
+To understand the osm2pgsql code, it helps to know some history on it.
+Osm2pgsql was written in C in 2007 as a port of an older Python utility. In
+2014 it was ported to C++ by MapQuest and the last C version was released as
+0.86.0. In its time, it has had varying contribution activity, including times
+with no maintainer or active developers.
 
-Parts of the codebase still clearly show their C origin and could use rewriting
-in modern C++, making use of data structures in the standard library.
+Very few parts of the code now show their C origin, most has been transformed
+to modern C++. We are currently targeting C++17.
 
 ## Versioning
 
@@ -35,15 +35,20 @@ Code must be written in the
 4 spaces indentation. Tabs should never be used in the C++ code. Braces must
 always be used for code blocks, even one-liners.
 
-Names should use underscores, not camel case, with class/struct names ending in `_t`.
-Template parameters must use all upper case.
+Names should use underscores, not camel case, with class/struct names ending in
+`_t`. Template parameters must use all upper case.
 
-Headers should be included in the order C++ standard library headers,
-C library headers, Boost headers, and last osm2pgsql files.
+Header files should be included in the following order, each group in their own
+block:
 
-There is a .clang-format configuration available and all code must be run through
-clang-format before submitting. You can use git-clang-format after staging all
-your changes:
+* The corresponding .hpp file (in .cpp files only)
+* Other osm2pgsql header files
+* Header files from external libraries, each in their own block
+* C++/C C++ standard library header files
+
+There is a .clang-format configuration available and all code must be run
+through clang-format before submitting. You can use git-clang-format after
+staging all your changes:
 
     git-clang-format src/*pp tests/*pp
 
@@ -74,12 +79,18 @@ Results should be checked into the repository.
 
 ## Platforms targeted
 
-Ideally osm2pgsql should compile on Linux, OS X, FreeBSD and Windows. It is
-actively tested on Debian, Ubuntu and FreeBSD by the maintainers.
+Osm2pgsql must compile and pass all tests at least on Linux, OS X and Windows.
+Tests run on Github action to make sure that it does.
+
+On Linux the latest stable versions of popular distributions and the stable
+version before that are supported if possible.
+
+All maintained versions of PostgreSQL are supported.
 
 ## Testing
 
-osm2pgsql is tested with two types of tests: Classic tests written in C++ and BDD (Behavior Driven Development) tests written in Python.
+osm2pgsql is tested with two types of tests: Classic tests written in C++ and
+BDD (Behavior Driven Development) tests written in Python.
 
 ### Classic Tests
 
@@ -186,11 +197,6 @@ stdout_capture=False
 stderr_capture=False
 log_capture=False
 ```
-
-### Performance testing
-
-If performance testing with a full planet import is required, indicate what
-needs testing in a pull request.
 
 ## Coverage reports
 
