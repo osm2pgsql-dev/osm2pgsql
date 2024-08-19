@@ -305,8 +305,10 @@ void output_flex_t::check_context_and_state(char const *name,
                                             char const *context, bool condition)
 {
     if (condition) {
-        throw fmt_error("The function {}() can only be called from the {}.",
-                        name, context);
+        throw fmt_error(
+            "The function {}() can only be called (directly or indirectly) "
+            "from the process_[untagged]_{}() functions.",
+            name, context);
     }
 
     if (lua_gettop(lua_state()) > 1) {
@@ -317,7 +319,7 @@ void output_flex_t::check_context_and_state(char const *name,
 int output_flex_t::app_get_bbox()
 {
     check_context_and_state(
-        "get_bbox", "process_node/way/relation() functions",
+        "get_bbox", "node/way/relation",
         m_calling_context != calling_context::process_node &&
             m_calling_context != calling_context::process_way &&
             m_calling_context != calling_context::process_relation);
@@ -367,7 +369,7 @@ int output_flex_t::app_get_bbox()
 
 int output_flex_t::app_as_point()
 {
-    check_context_and_state("as_point", "process_node() function",
+    check_context_and_state("as_point", "node",
                             m_calling_context != calling_context::process_node);
 
     auto *geom = create_lua_geometry_object(lua_state());
@@ -378,7 +380,7 @@ int output_flex_t::app_as_point()
 
 int output_flex_t::app_as_linestring()
 {
-    check_context_and_state("as_linestring", "process_way() function",
+    check_context_and_state("as_linestring", "way",
                             m_calling_context != calling_context::process_way);
 
     m_way_cache.add_nodes(middle());
@@ -391,7 +393,7 @@ int output_flex_t::app_as_linestring()
 
 int output_flex_t::app_as_polygon()
 {
-    check_context_and_state("as_polygon", "process_way() function",
+    check_context_and_state("as_polygon", "way",
                             m_calling_context != calling_context::process_way);
 
     m_way_cache.add_nodes(middle());
@@ -405,7 +407,7 @@ int output_flex_t::app_as_polygon()
 int output_flex_t::app_as_multipoint()
 {
     check_context_and_state(
-        "as_multipoint", "process_node/relation() functions",
+        "as_multipoint", "node/relation",
         m_calling_context != calling_context::process_node &&
             m_calling_context != calling_context::process_relation);
 
@@ -423,10 +425,10 @@ int output_flex_t::app_as_multipoint()
 
 int output_flex_t::app_as_multilinestring()
 {
-    check_context_and_state(
-        "as_multilinestring", "process_way/relation() functions",
-        m_calling_context != calling_context::process_way &&
-            m_calling_context != calling_context::process_relation);
+    check_context_and_state("as_multilinestring", "way/relation",
+                            m_calling_context != calling_context::process_way &&
+                                m_calling_context !=
+                                    calling_context::process_relation);
 
     if (m_calling_context == calling_context::process_way) {
         m_way_cache.add_nodes(middle());
@@ -447,10 +449,10 @@ int output_flex_t::app_as_multilinestring()
 
 int output_flex_t::app_as_multipolygon()
 {
-    check_context_and_state(
-        "as_multipolygon", "process_way/relation() functions",
-        m_calling_context != calling_context::process_way &&
-            m_calling_context != calling_context::process_relation);
+    check_context_and_state("as_multipolygon", "way/relation",
+                            m_calling_context != calling_context::process_way &&
+                                m_calling_context !=
+                                    calling_context::process_relation);
 
     if (m_calling_context == calling_context::process_way) {
         m_way_cache.add_nodes(middle());
@@ -473,9 +475,9 @@ int output_flex_t::app_as_multipolygon()
 
 int output_flex_t::app_as_geometrycollection()
 {
-    check_context_and_state(
-        "as_geometrycollection", "process_relation() function",
-        m_calling_context != calling_context::process_relation);
+    check_context_and_state("as_geometrycollection", "relation",
+                            m_calling_context !=
+                                calling_context::process_relation);
 
     m_relation_cache.add_members(middle());
 
