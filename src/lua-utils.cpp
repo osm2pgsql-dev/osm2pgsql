@@ -58,6 +58,11 @@ void *luaX_get_context(lua_State *lua_state) noexcept
 
 #endif
 
+void luaX_pushstring(lua_State *lua_state, std::string_view str) noexcept
+{
+    lua_pushlstring(lua_state, str.data(), str.size());
+}
+
 void luaX_add_table_str(lua_State *lua_state, char const *key,
                         char const *value) noexcept
 {

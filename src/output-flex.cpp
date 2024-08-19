@@ -47,6 +47,7 @@
 #include <mutex>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 
 // Mutex used to coordinate access to Lua code
 static std::mutex lua_mutex;
@@ -97,9 +98,6 @@ TRAMPOLINE(expire_output_schema, schema)
 TRAMPOLINE(expire_output_table, table)
 TRAMPOLINE(expire_output_tostring, __tostring)
 
-static char const *const osm2pgsql_object_metatable =
-    "osm2pgsql.object_metatable";
-
 prepared_lua_function_t::prepared_lua_function_t(lua_State *lua_state,
                                                  calling_context context,
                                                  char const *name, int nresults)
@@ -124,6 +122,8 @@ prepared_lua_function_t::prepared_lua_function_t(lua_State *lua_state,
 }
 
 namespace {
+
+std::string_view const osm2pgsql_object_metatable = "osm2pgsql.OSMObject";
 
 void push_osm_object_to_lua_stack(lua_State *lua_state,
                                   osmium::OSMObject const &object)
@@ -191,7 +191,7 @@ void push_osm_object_to_lua_stack(lua_State *lua_state,
     lua_rawset(lua_state, -3);
 
     // Set the metatable of this object
-    lua_pushlightuserdata(lua_state, (void *)osm2pgsql_object_metatable);
+    luaX_pushstring(lua_state, osm2pgsql_object_metatable);
     lua_gettable(lua_state, LUA_REGISTRYINDEX);
     lua_setmetatable(lua_state, -2);
 }
@@ -530,7 +530,7 @@ int output_flex_t::table_tostring()
     auto const &table = get_table_from_param();
 
     std::string const str{fmt::format("osm2pgsql.Table[{}]", table.name())};
-    lua_pushstring(lua_state(), str.c_str());
+    luaX_pushstring(lua_state(), str);
 
     return 1;
 }
@@ -689,8 +689,8 @@ int output_flex_t::table_insert()
     } catch (not_null_exception const &e) {
         copy_mgr->rollback_line();
         lua_pushboolean(lua_state(), false);
-        lua_pushstring(lua_state(), "null value in not null column.");
-        lua_pushstring(lua_state(), e.column().name().c_str());
+        lua_pushliteral(lua_state(), "null value in not null column.");
+        luaX_pushstring(lua_state(), e.column().name());
         push_osm_object_to_lua_stack(lua_state(), object);
         table_connection.increment_not_null_error_counter();
         return 4;
@@ -730,14 +730,14 @@ int output_flex_t::table_columns()
 int output_flex_t::table_name()
 {
     auto const &table = get_table_from_param();
-    lua_pushstring(lua_state(), table.name().c_str());
+    luaX_pushstring(lua_state(), table.name());
     return 1;
 }
 
 int output_flex_t::table_schema()
 {
     auto const &table = get_table_from_param();
-    lua_pushstring(lua_state(), table.schema().c_str());
+    luaX_pushstring(lua_state(), table.schema());
     return 1;
 }
 
@@ -758,7 +758,7 @@ int output_flex_t::expire_output_tostring()
                     expire_output.minzoom(), expire_output.maxzoom(),
                     expire_output.filename(), expire_output.schema(),
                     expire_output.table());
-    lua_pushstring(lua_state(), str.c_str());
+    luaX_pushstring(lua_state(), str);
 
     return 1;
 }
@@ -783,7 +783,7 @@ int output_flex_t::expire_output_filename()
 {
     auto const &expire_output = get_expire_output_from_param();
 
-    lua_pushstring(lua_state(), expire_output.filename().c_str());
+    luaX_pushstring(lua_state(), expire_output.filename());
     return 1;
 }
 
@@ -791,7 +791,7 @@ int output_flex_t::expire_output_schema()
 {
     auto const &expire_output = get_expire_output_from_param();
 
-    lua_pushstring(lua_state(), expire_output.schema().c_str());
+    luaX_pushstring(lua_state(), expire_output.schema());
     return 1;
 }
 
@@ -799,7 +799,7 @@ int output_flex_t::expire_output_table()
 {
     auto const &expire_output = get_expire_output_from_param();
 
-    lua_pushstring(lua_state(), expire_output.table().c_str());
+    luaX_pushstring(lua_state(), expire_output.table());
     return 1;
 }
 
@@ -1338,7 +1338,7 @@ void output_flex_t::init_lua(std::string const &filename,
 
     luaX_add_table_int(lua_state(), "stage", 1);
 
-    lua_pushstring(lua_state(), "properties");
+    lua_pushliteral(lua_state(), "properties");
     lua_createtable(lua_state(), 0, (int)properties.size());
     for (auto const &property : properties) {
         luaX_add_table_str(lua_state(), property.first.c_str(),
@@ -1370,6 +1370,8 @@ void output_flex_t::init_lua(std::string const &filename,
 
     // Store the methods on OSM objects in its metatable.
     lua_getglobal(lua_state(), "object_metatable");
+    luaX_pushstring(lua_state(), osm2pgsql_object_metatable);
+    lua_setfield(lua_state(), -2, "__name");
     lua_getfield(lua_state(), -1, "__index");
     luaX_add_table_func(lua_state(), "get_bbox", lua_trampoline_app_get_bbox);
     luaX_add_table_func(lua_state(), "as_linestring",
@@ -1391,7 +1393,7 @@ void output_flex_t::init_lua(std::string const &filename,
     // Store the global object "object_metatable" defined in the init.lua
     // script in the registry and then remove the global object. It will
     // later be used as metatable for OSM objects.
-    lua_pushlightuserdata(lua_state(), (void *)osm2pgsql_object_metatable);
+    luaX_pushstring(lua_state(), osm2pgsql_object_metatable);
     lua_getglobal(lua_state(), "object_metatable");
     lua_settable(lua_state(), LUA_REGISTRYINDEX);
     lua_pushnil(lua_state());

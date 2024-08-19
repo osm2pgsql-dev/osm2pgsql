@@ -17,10 +17,13 @@
 
 #include <cassert>
 #include <cstdint>
+#include <string_view>
 #include <utility>
 
 void luaX_set_context(lua_State *lua_state, void *ptr) noexcept;
 void *luaX_get_context(lua_State *lua_state) noexcept;
+
+void luaX_pushstring(lua_State *lua_state, std::string_view str) noexcept;
 
 void luaX_add_table_str(lua_State *lua_state, char const *key,
                         char const *value) noexcept;
