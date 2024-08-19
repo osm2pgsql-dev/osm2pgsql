@@ -49,8 +49,10 @@
 #include <string>
 #include <string_view>
 
+namespace {
+
 // Mutex used to coordinate access to Lua code
-static std::mutex lua_mutex;
+std::mutex lua_mutex;
 
 // Lua can't call functions on C++ objects directly. This macro defines simple
 // C "trampoline" functions which are called from Lua which get the current
@@ -58,7 +60,7 @@ static std::mutex lua_mutex;
 // context object.
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TRAMPOLINE(func_name, lua_name)                                        \
-    static int lua_trampoline_##func_name(lua_State *lua_state)                \
+    int lua_trampoline_##func_name(lua_State *lua_state)                       \
     {                                                                          \
         try {                                                                  \
             return static_cast<output_flex_t *>(luaX_get_context(lua_state))   \
@@ -97,6 +99,8 @@ TRAMPOLINE(expire_output_filename, filename)
 TRAMPOLINE(expire_output_schema, schema)
 TRAMPOLINE(expire_output_table, table)
 TRAMPOLINE(expire_output_tostring, __tostring)
+
+} // anonymous namespace
 
 prepared_lua_function_t::prepared_lua_function_t(lua_State *lua_state,
                                                  calling_context context,

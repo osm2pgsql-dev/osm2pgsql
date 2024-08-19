@@ -60,7 +60,7 @@
 // context object.
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TRAMPOLINE(func_name, lua_name)                                        \
-    static int lua_trampoline_##func_name(lua_State *lua_state)                \
+    int lua_trampoline_##func_name(lua_State *lua_state)                       \
     {                                                                          \
         try {                                                                  \
             return static_cast<genproc_t *>(luaX_get_context(lua_state))       \

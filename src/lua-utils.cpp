@@ -33,8 +33,12 @@ void *luaX_get_context(lua_State *lua_state) noexcept
 
 #else
 
+namespace {
+
 // Unique key for lua registry
-static char const *osm2pgsql_output_flex = "osm2pgsql_output_flex";
+constexpr char const *const osm2pgsql_output_flex = "osm2pgsql_output_flex";
+
+} // anonymous namespace
 
 void luaX_set_context(lua_State *lua_state, void *ptr) noexcept
 {
