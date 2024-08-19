@@ -703,22 +703,12 @@ INSERT INTO osm2pgsql_changed_ways
         )");
     }
 
-    if (m_options->middle_database_format == 1) {
-        queries.emplace_back(R"(
-INSERT INTO osm2pgsql_changed_relations
-  SELECT r.id
-    FROM {schema}"{prefix}_rels" r, osm2pgsql_changed_nodes n
-    WHERE r.parts && ARRAY[n.id]
-      AND r.parts[1:way_off] && ARRAY[n.id]
-        )");
-    } else {
-        queries.emplace_back(R"(
+    queries.emplace_back(R"(
 INSERT INTO osm2pgsql_changed_relations
   SELECT r.id
     FROM {schema}"{prefix}_rels" r, osm2pgsql_changed_nodes c
     WHERE {schema}"{prefix}_member_ids"(r.members, 'N'::char) && ARRAY[c.id];
-        )");
-    }
+    )");
 
     for (auto const &query : queries) {
         m_db_connection.exec(build_sql(*m_options, query));
@@ -755,22 +745,12 @@ void middle_pgsql_t::get_way_parents(idlist_t const &changed_ways,
 
     m_db_connection.exec("ANALYZE osm2pgsql_changed_ways");
 
-    if (m_options->middle_database_format == 1) {
-        m_db_connection.exec(build_sql(*m_options, R"(
-INSERT INTO osm2pgsql_changed_relations
-  SELECT DISTINCT r.id
-    FROM {schema}"{prefix}_rels" r, osm2pgsql_changed_ways w
-    WHERE r.parts && ARRAY[w.id]
-      AND r.parts[way_off+1:rel_off] && ARRAY[w.id]
-        )"));
-    } else {
-        m_db_connection.exec(build_sql(*m_options, R"(
+    m_db_connection.exec(build_sql(*m_options, R"(
 INSERT INTO osm2pgsql_changed_relations
   SELECT DISTINCT r.id
     FROM {schema}"{prefix}_rels" r, osm2pgsql_changed_ways c
     WHERE {schema}"{prefix}_member_ids"(r.members, 'W'::char) && ARRAY[c.id];
-        )"));
-    }
+    )"));
 
     load_id_list(m_db_connection, "osm2pgsql_changed_relations",
                  parent_relations);
