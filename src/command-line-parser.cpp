@@ -183,6 +183,10 @@ void check_options_output_null(CLI::App const &app)
 
 void check_options_output_pgsql(CLI::App const &app, options_t *options)
 {
+    log_warn("The pgsql (default) output is deprecated. For details see "
+             "https://osm2pgsql.org/doc/"
+             "faq.html#the-pgsql-output-is-deprecated-what-does-that-mean");
+
     if (app.count("--latlong") + app.count("--merc") + app.count("--proj") >
         1) {
         throw std::runtime_error{"You can only use one of --latlong, -l, "
