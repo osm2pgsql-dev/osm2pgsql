@@ -17,7 +17,11 @@
 #include <cassert>
 #include <cstdlib>
 
-static constexpr char const *const properties_table = "osm2pgsql_properties";
+namespace {
+
+constexpr char const *const properties_table = "osm2pgsql_properties";
+
+} // anonymous namespace
 
 properties_t::properties_t(connection_params_t connection_params,
                            std::string schema)

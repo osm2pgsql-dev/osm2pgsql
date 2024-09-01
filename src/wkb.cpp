@@ -576,7 +576,9 @@ geom::geometry_t ewkb_to_geom(std::string_view wkb)
     return geom;
 }
 
-static constexpr std::array<char, 256> const hex_table = {
+namespace {
+
+constexpr std::array<char, 256> const hex_table = {
     0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,
     0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,
     0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,
@@ -586,6 +588,8 @@ static constexpr std::array<char, 256> const hex_table = {
     0,  0,  0,  0,    0,  0,  0, 0,   0, 0, 0, 0,   0, 0, 0, 0,
     0, 10, 11, 12,   13, 14, 15, 0,   0, 0, 0, 0,   0, 0, 0, 0,
 };
+
+} // anonymous namespace
 
 unsigned char decode_hex_char(char c) noexcept
 {
