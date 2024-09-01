@@ -136,12 +136,8 @@ void parse_expire_tiles_param(char const *arg, uint32_t *expire_tiles_zoom_min,
 void check_options_non_slim(CLI::App const &app)
 {
     std::vector<std::string> const slim_options = {
-        "--cache",
-        "--middle-schema",
-        "--middle-with-nodes",
-        "--middle-way-node-index-id-shift",
-        "--tablespace-slim-data",
-        "--tablespace-slim-index"};
+        "--cache", "--middle-schema", "--middle-with-nodes",
+        "--tablespace-slim-data", "--tablespace-slim-index"};
 
     for (auto const &opt : slim_options) {
         if (app.count(opt) > 0) {
@@ -573,13 +569,6 @@ options_t parse_command_line(int argc, char *argv[])
     app.add_flag_function("-I,--disable-parallel-indexing",
                           [&](int64_t) { options.parallel_indexing = false; })
         ->description("Disable concurrent index creation.")
-        ->group("Advanced options");
-
-    // --middle-way-node-index-id-shift
-    app.add_option("--middle-way-node-index-id-shift",
-                   options.way_node_index_id_shift)
-        ->description("Set ID shift for bucket index.")
-        ->type_name("N")
         ->group("Advanced options");
 
     // --number-processes

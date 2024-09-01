@@ -46,17 +46,6 @@
 
 namespace {
 
-bool check_bucket_index(pg_conn_t const *db_connection,
-                        std::string const &prefix)
-{
-    auto const res =
-        db_connection->exec("SELECT relname FROM pg_class"
-                            " WHERE relkind='i'"
-                            " AND relname = '{}_ways_nodes_bucket_idx'",
-                            prefix);
-    return res.num_tuples() > 0;
-}
-
 void send_id_list(pg_conn_t const &db_connection,
                          std::string const &table, idlist_t const &ids)
 {
@@ -97,7 +86,7 @@ std::string build_sql(options_t const &options, std::string const &templ)
         fmt::arg("using_tablespace", using_tablespace),
         fmt::arg("data_tablespace", tablespace_clause(options.tblsslim_data)),
         fmt::arg("index_tablespace", tablespace_clause(options.tblsslim_index)),
-        fmt::arg("way_node_index_id_shift", options.way_node_index_id_shift),
+        fmt::arg("way_node_index_id_shift", 5),
         fmt::arg("attribute_columns_definition",
                  options.extra_attributes ? " created timestamp with time zone,"
                                             " version int4,"
@@ -663,17 +652,13 @@ void middle_pgsql_t::get_node_parents(idlist_t const &changed_nodes,
 
     queries.emplace_back("ANALYZE osm2pgsql_changed_nodes");
 
-    bool const has_bucket_index =
-        check_bucket_index(&m_db_connection, m_options->prefix);
-
-    if (has_bucket_index) {
-        // The query to get the parent ways of changed nodes is "hidden"
-        // inside a PL/pgSQL function so that the query planner only sees
-        // a single node id that is being queried for. If we ask for all
-        // nodes at the same time the query planner sometimes thinks it is
-        // better to do a full table scan which totally destroys performance.
-        // This is due to the PostgreSQL statistics on ARRAYs being way off.
-        queries.emplace_back(R"(
+    // The query to get the parent ways of changed nodes is "hidden"
+    // inside a PL/pgSQL function so that the query planner only sees
+    // a single node id that is being queried for. If we ask for all
+    // nodes at the same time the query planner sometimes thinks it is
+    // better to do a full table scan which totally destroys performance.
+    // This is due to the PostgreSQL statistics on ARRAYs being way off.
+    queries.emplace_back(R"(
 CREATE OR REPLACE FUNCTION osm2pgsql_find_changed_ways() RETURNS void AS $$
 DECLARE
   changed_buckets RECORD;
@@ -692,16 +677,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql
 )");
-        queries.emplace_back("SELECT osm2pgsql_find_changed_ways()");
-        queries.emplace_back("DROP FUNCTION osm2pgsql_find_changed_ways()");
-    } else {
-        queries.emplace_back(R"(
-INSERT INTO osm2pgsql_changed_ways
-  SELECT w.id
-    FROM {schema}"{prefix}_ways" w, osm2pgsql_changed_nodes n
-    WHERE w.nodes && ARRAY[n.id]
-        )");
-    }
+    queries.emplace_back("SELECT osm2pgsql_find_changed_ways()");
+    queries.emplace_back("DROP FUNCTION osm2pgsql_find_changed_ways()");
 
     queries.emplace_back(R"(
 INSERT INTO osm2pgsql_changed_relations
@@ -1176,7 +1153,7 @@ table_sql sql_for_nodes(middle_pgsql_options const &options)
     return sql;
 }
 
-table_sql sql_for_ways(middle_pgsql_options const &options)
+table_sql sql_for_ways()
 {
     table_sql sql{};
 
@@ -1200,23 +1177,17 @@ table_sql sql_for_ways(middle_pgsql_options const &options)
                            "  {users_table_access}"
                            " WHERE o.id = ANY($1::int8[])"};
 
-    if (options.way_node_index_id_shift == 0) {
-        sql.create_fw_dep_indexes = {
-            "CREATE INDEX ON {schema}\"{prefix}_ways\" USING GIN (nodes)"
-            "  WITH (fastupdate = off) {index_tablespace}"};
-    } else {
-        sql.create_fw_dep_indexes = {
-            "CREATE OR REPLACE FUNCTION"
-            "    {schema}\"{prefix}_index_bucket\"(int8[])"
-            "  RETURNS int8[] AS $$"
-            "  SELECT ARRAY(SELECT DISTINCT"
-            "    unnest($1) >> {way_node_index_id_shift})"
-            "$$ LANGUAGE SQL IMMUTABLE",
-            "CREATE INDEX \"{prefix}_ways_nodes_bucket_idx\""
-            "  ON {schema}\"{prefix}_ways\""
-            "  USING GIN ({schema}\"{prefix}_index_bucket\"(nodes))"
-            "  WITH (fastupdate = off) {index_tablespace}"};
-    }
+    sql.create_fw_dep_indexes = {
+        "CREATE OR REPLACE FUNCTION"
+        "    {schema}\"{prefix}_index_bucket\"(int8[])"
+        "  RETURNS int8[] AS $$"
+        "  SELECT ARRAY(SELECT DISTINCT"
+        "    unnest($1) >> {way_node_index_id_shift})"
+        "$$ LANGUAGE SQL IMMUTABLE",
+        "CREATE INDEX \"{prefix}_ways_nodes_bucket_idx\""
+        "  ON {schema}\"{prefix}_ways\""
+        "  USING GIN ({schema}\"{prefix}_index_bucket\"(nodes))"
+        "  WITH (fastupdate = off) {index_tablespace}"};
 
     return sql;
 }
@@ -1272,7 +1243,6 @@ middle_pgsql_t::middle_pgsql_t(std::shared_ptr<thread_pool_t> thread_pool,
   m_db_copy(m_copy_thread), m_append(options->append)
 {
     m_store_options.with_attributes = options->extra_attributes;
-    m_store_options.way_node_index_id_shift = options->way_node_index_id_shift;
 
     if (options->middle_with_nodes) {
         m_store_options.nodes = true;
@@ -1289,15 +1259,8 @@ middle_pgsql_t::middle_pgsql_t(std::shared_ptr<thread_pool_t> thread_pool,
 
     log_debug("Mid: pgsql, cache={}", options->cache);
 
-    bool const has_bucket_index =
-        check_bucket_index(&m_db_connection, options->prefix);
-
-    if (!has_bucket_index && options->append) {
-        log_debug("You don't have a bucket index. See manual for details.");
-    }
-
     m_tables.nodes() = table_desc{*options, sql_for_nodes(m_store_options)};
-    m_tables.ways() = table_desc{*options, sql_for_ways(m_store_options)};
+    m_tables.ways() = table_desc{*options, sql_for_ways()};
     m_tables.relations() = table_desc{*options, sql_for_relations()};
 
     m_users_table = table_desc{*options, sql_for_users(m_store_options)};
@@ -1310,8 +1273,6 @@ void middle_pgsql_t::set_requirements(
     log_debug("  nodes: {}", m_store_options.nodes);
     log_debug("  untagged_nodes: {}", m_store_options.untagged_nodes);
     log_debug("  use_flat_node_file: {}", m_store_options.use_flat_node_file);
-    log_debug("  way_node_index_id_shift: {}",
-              m_store_options.way_node_index_id_shift);
     log_debug("  with_attributes: {}", m_store_options.with_attributes);
 }
 
