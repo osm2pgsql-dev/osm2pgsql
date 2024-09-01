@@ -259,7 +259,7 @@ void check_options_expire(options_t *options) {
 
 void print_version()
 {
-    fmt::print(stderr, "osm2pgsql version {}", get_osm2pgsql_version());
+    fmt::print(stderr, "osm2pgsql version {}\n", get_osm2pgsql_version());
     fmt::print(stderr, "Build: {}\n", get_build_type());
     fmt::print(stderr, "Compiled using the following library versions:\n");
     fmt::print(stderr, "Libosmium {}\n", LIBOSMIUM_VERSION_STRING);
