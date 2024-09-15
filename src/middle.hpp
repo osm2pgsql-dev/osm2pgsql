@@ -51,10 +51,21 @@ struct middle_query_t : std::enable_shared_from_this<middle_query_t>
     virtual size_t nodes_get_list(osmium::WayNodeList *nodes) const = 0;
 
     /**
+     * Retrieves a single node from the nodes storage
+     * and stores it in the given osmium buffer.
+     *
+     * \param id     id of the node to retrieve
+     * \param buffer osmium buffer where to put the node
+     *
+     * \return true if the node was retrieved
+     */
+    virtual bool node_get(osmid_t id, osmium::memory::Buffer *buffer) const = 0;
+
+    /**
      * Retrieves a single way from the ways storage
      * and stores it in the given osmium buffer.
      *
-     * \param id     id of the way to retrive
+     * \param id     id of the way to retrieve
      * \param buffer osmium buffer where to put the way
      *
      * The function does not retrieve the node locations.
@@ -78,10 +89,10 @@ struct middle_query_t : std::enable_shared_from_this<middle_query_t>
                     osmium::osm_entity_bits::type types) const = 0;
 
     /**
-     * Retrives a single relation from the relation storage
+     * Retrieves a single relation from the relation storage
      * and stores it in the given osmium buffer.
      *
-     * \param id     id of the relation to retrive
+     * \param id     id of the relation to retrieve
      * \param buffer osmium buffer where to put the relation
      *
      * \return true if the relation was retrieved

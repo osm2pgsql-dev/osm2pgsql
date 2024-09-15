@@ -46,6 +46,16 @@ function osm2pgsql.define_area_table(_name, _columns, _options)
     return _define_table_impl('area', _name, _columns, _options)
 end
 
+function osm2pgsql.node_member_ids(relation)
+    local ids = {}
+    for _, member in ipairs(relation.members) do
+        if member.type == 'n' then
+            ids[#ids + 1] = member.ref
+        end
+    end
+    return ids
+end
+
 function osm2pgsql.way_member_ids(relation)
     local ids = {}
     for _, member in ipairs(relation.members) do

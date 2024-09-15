@@ -127,7 +127,9 @@ public:
 
     void wait() override;
 
+    idlist_t const &get_marked_node_ids() override;
     idlist_t const &get_marked_way_ids() override;
+
     void reprocess_marked() override;
 
     void pending_way(osmid_t id) override;
@@ -280,8 +282,9 @@ private:
     /// The connection to the database server.
     pg_conn_t m_db_connection;
 
-    // This is shared between all clones of the output and must only be
+    // These are shared between all clones of the output and must only be
     // accessed while protected using the lua_mutex.
+    std::shared_ptr<idlist_t> m_stage2_node_ids = std::make_shared<idlist_t>();
     std::shared_ptr<idlist_t> m_stage2_way_ids = std::make_shared<idlist_t>();
 
     std::shared_ptr<db_copy_thread_t> m_copy_thread;
