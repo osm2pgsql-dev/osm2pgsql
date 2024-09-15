@@ -53,10 +53,8 @@ public:
      *
      * \param property Name of the property
      * \param value Value of the property
-     * \param update_database Update database with this value immediately.
      */
-    void set_string(std::string property, std::string value,
-                    bool update_database = false);
+    void set_string(std::string property, std::string value);
 
     /**
      * Set property to integer value. The integer will be converted to a string
@@ -64,10 +62,8 @@ public:
      *
      * \param property Name of the property
      * \param value Value of the property
-     * \param update_database Update database with this value immediately.
      */
-    void set_int(std::string property, int64_t value,
-                 bool update_database = false);
+    void set_int(std::string property, int64_t value);
 
     /**
      * Set property to boolean value. In the database this will show up as the
@@ -75,15 +71,18 @@ public:
      *
      * \param property Name of the property
      * \param value Value of the property
-     * \param update_database Update database with this value immediately.
      */
-    void set_bool(std::string property, bool value,
-                  bool update_database = false);
+    void set_bool(std::string property, bool value);
 
     /**
-     * Store all properties in the database. Creates the properties table in
-     * the database if needed. Removes any properties that might already be
-     * stored in the database.
+     * Initialize the database table 'osm2pgsql_properties'. It is created if
+     * it does not exist and truncated.
+     */
+    void init_table();
+
+    /**
+     * Store all properties in the database that changed since the last store.
+     * Overwrites any properties that might already be stored in the database.
      */
     void store();
 
@@ -102,7 +101,13 @@ public:
 private:
     std::string table_name() const;
 
+    // The properties
     std::map<std::string, std::string> m_properties;
+
+    // Temporary storage of all properties that need to be updated in the
+    // database.
+    std::map<std::string, std::string> m_to_update;
+
     connection_params_t m_connection_params;
     std::string m_schema;
     bool m_has_properties_table;

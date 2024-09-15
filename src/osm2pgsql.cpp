@@ -206,7 +206,7 @@ void check_and_update_flat_node_file(properties_t *properties,
                 "Using the flat node file you specified on the command line"
                 " ('{}') instead of the one used on import ('{}').",
                 absolute_path, flat_node_file_from_import);
-            properties->set_string("flat_node_file", absolute_path, true);
+            properties->set_string("flat_node_file", absolute_path);
         }
     }
 }
@@ -291,7 +291,7 @@ void check_and_update_style_file(properties_t *properties, options_t *options)
     log_info("Using the style file you specified on the command line"
              " ('{}') instead of the one used on import ('{}').",
              absolute_path, style_file_from_import);
-    properties->set_string("style", absolute_path, true);
+    properties->set_string("style", absolute_path);
 }
 
 // This is called in "append" mode to check that the command line options are
@@ -356,6 +356,7 @@ int main(int argc, char *argv[])
             }
 
             check_and_update_properties(&properties, &options);
+            properties.store();
 
             auto const finfo = run(options, properties);
 
@@ -367,10 +368,12 @@ int main(int argc, char *argv[])
                     (finfo.last_timestamp >
                      osmium::Timestamp{current_timestamp})) {
                     properties.set_string("current_timestamp",
-                                          finfo.last_timestamp.to_iso(), true);
+                                          finfo.last_timestamp.to_iso());
+                    properties.store();
                 }
             }
         } else {
+            properties.init_table();
             set_option_defaults(&options);
             store_properties(&properties, options);
             auto const finfo = run(options, properties);

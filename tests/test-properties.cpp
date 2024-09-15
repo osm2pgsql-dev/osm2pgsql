@@ -46,13 +46,15 @@ TEST_CASE("Store and retrieve properties (with database)")
 {
     for (std::string const schema : {"public", "middleschema"}) {
         testing::pg::tempdb_t const db;
-        auto conn = db.connect();
+        auto const conn = db.connect();
+
         if (schema != "public") {
             conn.exec("CREATE SCHEMA IF NOT EXISTS {};", schema);
         }
 
         {
             properties_t properties{db.connection_params(), schema};
+            properties.init_table();
 
             properties.set_string("foo", "bar");
             properties.set_string("empty", "");
@@ -103,10 +105,11 @@ TEST_CASE("Store and retrieve properties (with database)")
 TEST_CASE("Update existing properties in database")
 {
     testing::pg::tempdb_t const db;
-    auto conn = db.connect();
+    auto const conn = db.connect();
 
     {
         properties_t properties{db.connection_params(), "public"};
+        properties.init_table();
 
         properties.set_string("a", "xxx");
         properties.set_string("b", "yyy");
@@ -124,12 +127,14 @@ TEST_CASE("Update existing properties in database")
         REQUIRE(properties.get_string("a", "def") == "xxx");
         REQUIRE(properties.get_string("b", "def") == "yyy");
 
-        properties.set_string("a", "zzz", false);
-        properties.set_string("b", "zzz", true);
+        properties.set_string("a", "zzz");
+        properties.set_string("b", "zzz");
 
         // both are updated in memory
         REQUIRE(properties.get_string("a", "def") == "zzz");
         REQUIRE(properties.get_string("b", "def") == "zzz");
+
+        properties.store();
     }
 
     {
@@ -138,8 +143,8 @@ TEST_CASE("Update existing properties in database")
         properties_t properties{db.connection_params(), "public"};
         REQUIRE(properties.load());
 
-        // only "b" was updated in the database
-        REQUIRE(properties.get_string("a", "def") == "xxx");
+        // both are updated in the database
+        REQUIRE(properties.get_string("a", "def") == "zzz");
         REQUIRE(properties.get_string("b", "def") == "zzz");
     }
 }
@@ -147,7 +152,7 @@ TEST_CASE("Update existing properties in database")
 TEST_CASE("Load returns false if there are no properties in database")
 {
     testing::pg::tempdb_t const db;
-    auto conn = db.connect();
+    auto const conn = db.connect();
     init_database_capabilities(conn);
 
     properties_t properties{db.connection_params(), "public"};
