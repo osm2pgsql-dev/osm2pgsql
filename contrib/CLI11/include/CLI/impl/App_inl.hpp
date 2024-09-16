@@ -6,11 +6,13 @@
 
 #pragma once
 
-// This include is only needed for IDEs to discover symbols
-#include <CLI/App.hpp>
+// IWYU pragma: private, include "CLI/CLI.hpp"
 
-#include <CLI/Argv.hpp>
-#include <CLI/Encoding.hpp>
+// This include is only needed for IDEs to discover symbols
+#include "../App.hpp"
+
+#include "../Argv.hpp"
+#include "../Encoding.hpp"
 
 // [CLI11:public_includes:set]
 #include <algorithm>
@@ -279,8 +281,8 @@ App::set_version_flag(std::string flag_name, std::function<std::string()> vfunc,
 
     // Empty name will simply remove the version flag
     if(!flag_name.empty()) {
-        version_ptr_ = add_flag_callback(
-            flag_name, [vfunc]() { throw(CLI::CallForVersion(vfunc(), 0)); }, version_help);
+        version_ptr_ =
+            add_flag_callback(flag_name, [vfunc]() { throw(CLI::CallForVersion(vfunc(), 0)); }, version_help);
         version_ptr_->configurable(false);
     }
 
@@ -455,6 +457,10 @@ CLI11_NODISCARD CLI11_INLINE App *App::get_subcommand(std::string subcom) const 
     if(subc == nullptr)
         throw OptionNotFound(subcom);
     return subc;
+}
+
+CLI11_NODISCARD CLI11_INLINE App *App::get_subcommand_no_throw(std::string subcom) const noexcept {
+    return _find_subcommand(subcom, false, false);
 }
 
 CLI11_NODISCARD CLI11_INLINE App *App::get_subcommand(int index) const {
@@ -796,7 +802,7 @@ CLI11_INLINE std::vector<Option *> App::get_options(const std::function<bool(Opt
     return options;
 }
 
-CLI11_INLINE Option *App::get_option_no_throw(std::string option_name) noexcept {
+CLI11_NODISCARD CLI11_INLINE Option *App::get_option_no_throw(std::string option_name) noexcept {
     for(Option_p &opt : options_) {
         if(opt->check_name(option_name)) {
             return opt.get();
@@ -1136,11 +1142,9 @@ CLI11_INLINE void App::_process_env() {
     }
 
     for(App_p &sub : subcommands_) {
-        if(sub->get_name().empty() || !sub->parse_complete_callback_) {
-            if(sub->count_all() > 0) {
-                // only process environment variables if the callback has actually been triggered already
-                sub->_process_env();
-            }
+        if(sub->get_name().empty() || (sub->count_all() > 0 && !sub->parse_complete_callback_)) {
+            // only process environment variables if the callback has actually been triggered already
+            sub->_process_env();
         }
     }
 }
@@ -1443,12 +1447,8 @@ CLI11_INLINE void App::_parse_config(const std::vector<ConfigItem> &args) {
 CLI11_INLINE bool App::_parse_single_config(const ConfigItem &item, std::size_t level) {
 
     if(level < item.parents.size()) {
-        try {
-            auto *subcom = get_subcommand(item.parents.at(level));
-            return subcom->_parse_single_config(item, level + 1);
-        } catch(const OptionNotFound &) {
-            return false;
-        }
+        auto *subcom = get_subcommand_no_throw(item.parents.at(level));
+        return (subcom != nullptr) ? subcom->_parse_single_config(item, level + 1) : false;
     }
     // check for section open
     if(item.name == "++") {
@@ -1482,11 +1482,12 @@ CLI11_INLINE bool App::_parse_single_config(const ConfigItem &item, std::size_t 
 
     if(op == nullptr) {
         // If the option was not present
-        if(get_allow_config_extras() == config_extras_mode::capture)
+        if(get_allow_config_extras() == config_extras_mode::capture) {
             // Should we worry about classifying the extras properly?
             missing_.emplace_back(detail::Classifier::NONE, item.fullname());
-        for(const auto &input : item.inputs) {
-            missing_.emplace_back(detail::Classifier::NONE, input);
+            for(const auto &input : item.inputs) {
+                missing_.emplace_back(detail::Classifier::NONE, input);
+            }
         }
         return false;
     }
