@@ -278,7 +278,7 @@ endif()
 
 message(STATUS "Looking for clang-tidy")
 find_program(CLANG_TIDY
-             NAMES clang-tidy clang-tidy-16 clang-tidy-15 clang-tidy-14 clang-tidy-13 clang-tidy-12 clang-tidy-11)
+             NAMES clang-tidy clang-tidy-19 clang-tidy-18 clang-tidy-17 clang-tidy-16 clang-tidy-15)
 
 if (CLANG_TIDY)
     message(STATUS "Looking for clang-tidy - found ${CLANG_TIDY}")
