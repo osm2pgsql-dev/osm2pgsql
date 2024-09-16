@@ -8,6 +8,7 @@ runs:
       run: ctest --output-on-failure -C Release
       env:
         PYTHONUTF8: 1
+        PROJ_DATA: c:/vcpkg/installed/x64-windows/share/proj/ # so proj finds proj.db
       shell: bash
       working-directory: build
 
