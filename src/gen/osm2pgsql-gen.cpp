@@ -327,10 +327,9 @@ public:
 
         log_debug("Timers:");
         for (auto const &timer : generalizer->timers()) {
-            log_debug(fmt::format(
-                "  {:10} {:>10L}", timer.name() + ":",
-                std::chrono::duration_cast<std::chrono::milliseconds>(
-                    timer.elapsed())));
+            log_debug("  {:10} {:>10L}", timer.name() + ":",
+                      std::chrono::duration_cast<std::chrono::milliseconds>(
+                          timer.elapsed()));
         }
         log_info("Finished generalizer '{}' in {}.", generalizer->name(),
                  util::human_readable_duration(timer_gen.stop()));
