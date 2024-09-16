@@ -67,7 +67,7 @@ endif()
 set(MINIMUM_POSTGRESQL_SERVER_VERSION "9.6")
 set(MINIMUM_POSTGRESQL_SERVER_VERSION_NUM "90600")
 
-set(PostgreSQL_ADDITIONAL_VERSIONS "15" "14" "13" "12" "11" "10" "9.6")
+set(PostgreSQL_ADDITIONAL_VERSIONS "17" "16" "15" "14" "13" "12" "11" "10" "9.6")
 
 #############################################################
 # Version
