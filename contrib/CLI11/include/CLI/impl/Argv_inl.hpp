@@ -6,10 +6,12 @@
 
 #pragma once
 
-// This include is only needed for IDEs to discover symbols
-#include <CLI/Argv.hpp>
+// IWYU pragma: private, include "CLI/CLI.hpp"
 
-#include <CLI/Encoding.hpp>
+// This include is only needed for IDEs to discover symbols
+#include "../Argv.hpp"
+
+#include "../Encoding.hpp"
 
 // [CLI11:public_includes:set]
 #include <algorithm>
