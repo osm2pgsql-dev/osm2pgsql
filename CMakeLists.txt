@@ -46,7 +46,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 if (MSVC)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX)
-    add_compile_options(-wd4996)
+    add_compile_options(-wd4996 -utf-8)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /ignore:4099")
 else()
     add_compile_options(-Wall)
