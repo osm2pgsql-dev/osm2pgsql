@@ -60,11 +60,11 @@ public:
 
     std::string context();
 
-    template <typename... ARGS>
-    void log_gen(ARGS... args)
+    template <typename... TArgs>
+    void log_gen(fmt::format_string<TArgs...> format_str, TArgs &&...args)
     {
         if (m_debug) {
-            log_debug(args...);
+            log_debug(format_str, std::forward<TArgs>(args)...);
         }
     }
 

@@ -118,7 +118,7 @@ void write_to_debug_log(params_t const &params, char const *message)
     if (!get_logger().debug_enabled()) {
         return;
     }
-    log_debug(message);
+    log_debug("{}", message);
     for (auto const &[key, value] : params) {
         log_debug("  {}={}", key, to_string(value));
     }
