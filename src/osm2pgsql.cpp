@@ -44,7 +44,7 @@ void show_memory_usage()
     }
 }
 
-file_info run(options_t const &options, properties_t const &properties)
+file_info run(options_t const &options, properties_t *properties)
 {
     auto const files = prepare_input_files(
         options.input_files, options.input_format, options.append);
@@ -57,9 +57,14 @@ file_info run(options_t const &options, properties_t const &properties)
     middle->start();
 
     auto output = output_t::create_output(middle->get_query_instance(),
-                                          thread_pool, options, properties);
+                                          thread_pool, options, *properties);
 
     middle->set_requirements(output->get_requirements());
+
+    if (!options.append) {
+        properties->init_table();
+    }
+    properties->store();
 
     osmdata_t osmdata{middle, output, options};
 
@@ -93,8 +98,8 @@ void check_db(options_t const &options)
     check_schema(options.output_dbschema);
 }
 
-// This is called in "create" mode to store properties into the database.
-void store_properties(properties_t *properties, options_t const &options)
+// This is called in "create" mode to initialize properties.
+void set_up_properties(properties_t *properties, options_t const &options)
 {
     properties->set_bool("attributes", options.extra_attributes);
 
@@ -121,8 +126,6 @@ void store_properties(properties_t *properties, options_t const &options)
             std::filesystem::absolute(std::filesystem::path{options.style})
                 .string());
     }
-
-    properties->store();
 }
 
 void store_data_properties(properties_t *properties, file_info const &finfo)
@@ -139,8 +142,6 @@ void store_data_properties(properties_t *properties, file_info const &finfo)
             properties->set_string("replication_" + s, value);
         }
     }
-
-    properties->store();
 }
 
 void check_updatable(properties_t const &properties)
@@ -206,7 +207,7 @@ void check_and_update_flat_node_file(properties_t *properties,
                 "Using the flat node file you specified on the command line"
                 " ('{}') instead of the one used on import ('{}').",
                 absolute_path, flat_node_file_from_import);
-            properties->set_string("flat_node_file", absolute_path, true);
+            properties->set_string("flat_node_file", absolute_path);
         }
     }
 }
@@ -291,7 +292,7 @@ void check_and_update_style_file(properties_t *properties, options_t *options)
     log_info("Using the style file you specified on the command line"
              " ('{}') instead of the one used on import ('{}').",
              absolute_path, style_file_from_import);
-    properties->set_string("style", absolute_path, true);
+    properties->set_string("style", absolute_path);
 }
 
 // This is called in "append" mode to check that the command line options are
@@ -348,6 +349,7 @@ int main(int argc, char *argv[])
 
         properties_t properties{options.connection_params,
                                 options.middle_dbschema};
+
         if (options.append) {
             if (!properties.load()) {
                 throw std::runtime_error{
@@ -356,8 +358,9 @@ int main(int argc, char *argv[])
             }
 
             check_and_update_properties(&properties, &options);
+            properties.store();
 
-            auto const finfo = run(options, properties);
+            auto const finfo = run(options, &properties);
 
             if (finfo.last_timestamp.valid()) {
                 auto const current_timestamp =
@@ -367,15 +370,17 @@ int main(int argc, char *argv[])
                     (finfo.last_timestamp >
                      osmium::Timestamp{current_timestamp})) {
                     properties.set_string("current_timestamp",
-                                          finfo.last_timestamp.to_iso(), true);
+                                          finfo.last_timestamp.to_iso());
                 }
             }
         } else {
             set_option_defaults(&options);
-            store_properties(&properties, options);
-            auto const finfo = run(options, properties);
+            set_up_properties(&properties, options);
+            auto const finfo = run(options, &properties);
             store_data_properties(&properties, finfo);
         }
+
+        properties.store();
 
         show_memory_usage();
         log_info("osm2pgsql took {} overall.",

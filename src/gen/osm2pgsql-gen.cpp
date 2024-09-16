@@ -730,7 +730,11 @@ int main(int argc, char *argv[])
         }
 
         properties_t properties{connection_params, middle_dbschema};
-        properties.load();
+        if (!properties.load()) {
+            throw std::runtime_error{
+                "Did not find table 'osm2pgsql_properties' in database. "
+                "Database too old? Wrong schema?"};
+        }
 
         if (style.empty()) {
             style = properties.get_string("style", "");

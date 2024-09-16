@@ -83,66 +83,55 @@ bool properties_t::get_bool(std::string const &property,
                     property);
 }
 
-void properties_t::set_string(std::string property, std::string value,
-                              bool update_database)
+void properties_t::set_string(std::string property, std::string value)
 {
-    auto const r =
-        m_properties.insert_or_assign(std::move(property), std::move(value));
-
-    if (!update_database || !m_has_properties_table) {
-        return;
-    }
-
-    auto const &inserted = *(r.first);
-    log_debug("  Storing {}='{}'", inserted.first, inserted.second);
-
-    pg_conn_t const db_connection{m_connection_params, "prop.set"};
-    db_connection.exec(
-        "PREPARE set_property(text, text) AS"
-        " INSERT INTO {} (property, value) VALUES ($1, $2)"
-        " ON CONFLICT (property) DO UPDATE SET value = EXCLUDED.value",
-        table_name());
-    db_connection.exec_prepared("set_property", inserted.first,
-                                inserted.second);
+    m_properties[property] = value;
+    m_to_update[property] = value;
 }
 
-void properties_t::set_int(std::string property, int64_t value,
-                           bool update_database)
+void properties_t::set_int(std::string property, int64_t value)
 {
-    set_string(std::move(property), std::to_string(value), update_database);
+    set_string(std::move(property), std::to_string(value));
 }
 
-void properties_t::set_bool(std::string property, bool value,
-                            bool update_database)
+void properties_t::set_bool(std::string property, bool value)
 {
-    set_string(std::move(property), value ? "true" : "false", update_database);
+    set_string(std::move(property), value ? "true" : "false");
+}
+
+void properties_t::init_table()
+{
+    auto const table = table_name();
+    log_info("Initializing properties table '{}'.", table);
+
+    pg_conn_t const db_connection{m_connection_params, "prop.store"};
+    db_connection.exec("CREATE TABLE IF NOT EXISTS {} ("
+                       " property TEXT NOT NULL PRIMARY KEY,"
+                       " value TEXT NOT NULL)",
+                       table);
+    db_connection.exec("TRUNCATE {}", table);
+    m_has_properties_table = true;
 }
 
 void properties_t::store()
 {
     auto const table = table_name();
-
     log_info("Storing properties to table '{}'.", table);
+
     pg_conn_t const db_connection{m_connection_params, "prop.store"};
 
-    if (m_has_properties_table) {
-        db_connection.exec("TRUNCATE {}", table);
-    } else {
-        db_connection.exec("CREATE TABLE {} ("
-                           " property TEXT NOT NULL PRIMARY KEY,"
-                           " value TEXT NOT NULL)",
-                           table);
-        m_has_properties_table = true;
-    }
+    db_connection.exec(
+        "PREPARE set_property(text, text) AS"
+        " INSERT INTO {} (property, value) VALUES ($1, $2)"
+        " ON CONFLICT (property) DO UPDATE SET value = EXCLUDED.value",
+        table);
 
-    db_connection.exec("PREPARE set_property(text, text) AS"
-                       " INSERT INTO {} (property, value) VALUES ($1, $2)",
-                       table);
-
-    for (auto const &[k, v] : m_properties) {
+    for (auto const &[k, v] : m_to_update) {
         log_debug("  Storing {}='{}'", k, v);
         db_connection.exec_prepared("set_property", k, v);
     }
+
+    m_to_update.clear();
 }
 
 bool properties_t::load()
