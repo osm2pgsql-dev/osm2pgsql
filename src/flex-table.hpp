@@ -23,6 +23,7 @@
 #include <cassert>
 #include <chrono>
 #include <cstddef>
+#include <cstdint>
 #include <future>
 #include <limits>
 #include <memory>
@@ -35,7 +36,7 @@
  * output. This is not a real primary key, because the values are not
  * necessarily unique.
  */
-enum class flex_table_index_type {
+enum class flex_table_index_type : uint8_t {
     no_index,
     node, // index by node id
     way, // index by way id
@@ -57,7 +58,7 @@ public:
      * Table creation type: interim tables are created as UNLOGGED and with
      * autovacuum disabled.
      */
-    enum class table_type {
+    enum class table_type : uint8_t {
         interim,
         permanent
     };

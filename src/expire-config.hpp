@@ -10,9 +10,10 @@
  * For a full list of authors see the git log.
  */
 
+#include <cstdint>
 #include <cstdlib>
 
-enum class expire_mode
+enum class expire_mode : uint8_t
 {
     full_area,     // Expire all tiles covered by polygon.
     boundary_only, // Expire only tiles covered by polygon boundary.

@@ -13,6 +13,7 @@
 #include <osmium/memory/buffer.hpp>
 #include <osmium/osm/entity_bits.hpp>
 
+#include <cstdint>
 #include <memory>
 
 #include "osmtypes.hpp"
@@ -171,7 +172,7 @@ protected:
     }
 
 #ifndef NDEBUG
-    enum class middle_state
+    enum class middle_state : uint8_t
     {
         constructed,
         started,

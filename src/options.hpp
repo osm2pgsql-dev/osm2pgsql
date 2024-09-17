@@ -21,7 +21,7 @@
 
 class reprojection;
 
-enum class command_t
+enum class command_t : uint8_t
 {
     help,
     version,
