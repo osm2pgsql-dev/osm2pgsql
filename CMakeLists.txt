@@ -46,7 +46,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 if (MSVC)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX)
-    add_compile_options(-wd4996)
+    add_compile_options(-wd4996 -utf-8)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /ignore:4099")
 else()
     add_compile_options(-Wall)
@@ -67,7 +67,7 @@ endif()
 set(MINIMUM_POSTGRESQL_SERVER_VERSION "9.6")
 set(MINIMUM_POSTGRESQL_SERVER_VERSION_NUM "90600")
 
-set(PostgreSQL_ADDITIONAL_VERSIONS "15" "14" "13" "12" "11" "10" "9.6")
+set(PostgreSQL_ADDITIONAL_VERSIONS "17" "16" "15" "14" "13" "12" "11" "10" "9.6")
 
 #############################################################
 # Version
@@ -278,7 +278,7 @@ endif()
 
 message(STATUS "Looking for clang-tidy")
 find_program(CLANG_TIDY
-             NAMES clang-tidy clang-tidy-16 clang-tidy-15 clang-tidy-14 clang-tidy-13 clang-tidy-12 clang-tidy-11)
+             NAMES clang-tidy clang-tidy-19 clang-tidy-18 clang-tidy-17 clang-tidy-16 clang-tidy-15)
 
 if (CLANG_TIDY)
     message(STATUS "Looking for clang-tidy - found ${CLANG_TIDY}")
