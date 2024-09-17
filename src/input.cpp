@@ -122,9 +122,9 @@ private:
     using iterator = osmium::memory::Buffer::t_iterator<osmium::OSMObject>;
 
     std::unique_ptr<osmium::io::Reader> m_reader;
-    osmium::memory::Buffer m_buffer{};
-    iterator m_it{};
-    iterator m_end{};
+    osmium::memory::Buffer m_buffer;
+    iterator m_it;
+    iterator m_end;
     type_id m_last = {osmium::item_type::node, 0};
 
 }; // class data_source_t
