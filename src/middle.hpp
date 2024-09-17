@@ -89,8 +89,6 @@ struct middle_query_t : std::enable_shared_from_this<middle_query_t>
                               osmium::memory::Buffer *buffer) const = 0;
 };
 
-inline middle_query_t::~middle_query_t() = default;
-
 /**
  * Interface for storing "raw" OSM data in an intermediate object store and
  * getting it back.
@@ -190,8 +188,6 @@ protected:
 private:
     std::shared_ptr<thread_pool_t> m_thread_pool;
 }; // class middle_t
-
-inline middle_t::~middle_t() = default;
 
 /// Factory function: Instantiate the middle based on the command line options.
 std::shared_ptr<middle_t>
