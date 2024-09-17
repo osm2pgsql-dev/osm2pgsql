@@ -18,10 +18,11 @@
 #include <fmt/color.h>
 
 #include <atomic>
+#include <cstdint>
 #include <cstdio>
 #include <utility>
 
-enum class log_level
+enum class log_level : uint8_t
 {
     debug = 1,
     info = 2,

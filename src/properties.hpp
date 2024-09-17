@@ -54,7 +54,7 @@ public:
      * \param property Name of the property
      * \param value Value of the property
      */
-    void set_string(std::string property, std::string value);
+    void set_string(std::string const &property, std::string const &value);
 
     /**
      * Set property to integer value. The integer will be converted to a string

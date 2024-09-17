@@ -21,7 +21,7 @@
 
 class reprojection;
 
-enum class command_t
+enum class command_t : uint8_t
 {
     help,
     version,
@@ -53,30 +53,30 @@ struct options_t
     bool prefix_is_set = false;
 
     /// Pg Tablespace to store indexes on main tables (no default TABLESPACE)
-    std::string tblsmain_index{};
+    std::string tblsmain_index;
 
     /// Pg Tablespace to store indexes on slim tables (no default TABLESPACE)
-    std::string tblsslim_index{};
+    std::string tblsslim_index;
 
     /// Pg Tablespace to store main tables (no default TABLESPACE)
-    std::string tblsmain_data{};
+    std::string tblsmain_data;
 
     /// Pg Tablespace to store slim tables (no default TABLESPACE)
-    std::string tblsslim_data{};
+    std::string tblsslim_data;
 
     /// Default Pg schema.
     std::string dbschema{"public"};
 
     /// Pg schema to store middle tables in.
-    std::string middle_dbschema{};
+    std::string middle_dbschema;
 
     /// Pg schema to store output tables in.
-    std::string output_dbschema{};
+    std::string output_dbschema;
 
-    std::string style{}; ///< style file to use
+    std::string style; ///< style file to use
 
     /// Name of the flat node file used. Empty if flat node file is not enabled.
-    std::string flat_node_file{};
+    std::string flat_node_file;
 
     std::string tag_transform_script;
 

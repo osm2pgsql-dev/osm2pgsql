@@ -13,6 +13,7 @@
 #include <osmium/memory/buffer.hpp>
 #include <osmium/osm/entity_bits.hpp>
 
+#include <cstdint>
 #include <memory>
 
 #include "osmtypes.hpp"
@@ -88,8 +89,6 @@ struct middle_query_t : std::enable_shared_from_this<middle_query_t>
     virtual bool relation_get(osmid_t id,
                               osmium::memory::Buffer *buffer) const = 0;
 };
-
-inline middle_query_t::~middle_query_t() = default;
 
 /**
  * Interface for storing "raw" OSM data in an intermediate object store and
@@ -173,7 +172,7 @@ protected:
     }
 
 #ifndef NDEBUG
-    enum class middle_state
+    enum class middle_state : uint8_t
     {
         constructed,
         started,
@@ -190,8 +189,6 @@ protected:
 private:
     std::shared_ptr<thread_pool_t> m_thread_pool;
 }; // class middle_t
-
-inline middle_t::~middle_t() = default;
 
 /// Factory function: Instantiate the middle based on the command line options.
 std::shared_ptr<middle_t>

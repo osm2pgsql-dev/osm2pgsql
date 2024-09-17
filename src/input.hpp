@@ -35,8 +35,8 @@ struct type_id
 
 struct file_info
 {
-    osmium::io::Header header{};
-    osmium::Timestamp last_timestamp{};
+    osmium::io::Header header;
+    osmium::Timestamp last_timestamp;
 };
 
 /**

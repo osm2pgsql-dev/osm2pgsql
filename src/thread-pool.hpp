@@ -60,7 +60,7 @@ public:
     std::chrono::microseconds runtime() const noexcept { return m_result; }
 
 private:
-    std::future<std::chrono::microseconds> m_future{};
+    std::future<std::chrono::microseconds> m_future;
     std::chrono::microseconds m_result{};
 }; // class task_result_t
 

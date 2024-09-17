@@ -83,7 +83,8 @@ bool properties_t::get_bool(std::string const &property,
                     property);
 }
 
-void properties_t::set_string(std::string property, std::string value)
+void properties_t::set_string(std::string const &property,
+                              std::string const &value)
 {
     m_properties[property] = value;
     m_to_update[property] = value;

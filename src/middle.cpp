@@ -12,6 +12,10 @@
 #include "middle.hpp"
 #include "options.hpp"
 
+middle_query_t::~middle_query_t() = default;
+
+middle_t::~middle_t() = default;
+
 std::shared_ptr<middle_t>
 create_middle(std::shared_ptr<thread_pool_t> thread_pool,
               options_t const &options)
