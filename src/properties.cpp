@@ -90,14 +90,14 @@ void properties_t::set_string(std::string const &property,
     m_to_update[property] = value;
 }
 
-void properties_t::set_int(std::string property, int64_t value)
+void properties_t::set_int(std::string const &property, int64_t value)
 {
-    set_string(std::move(property), std::to_string(value));
+    set_string(property, std::to_string(value));
 }
 
-void properties_t::set_bool(std::string property, bool value)
+void properties_t::set_bool(std::string const &property, bool value)
 {
-    set_string(std::move(property), value ? "true" : "false");
+    set_string(property, value ? "true" : "false");
 }
 
 void properties_t::init_table()
