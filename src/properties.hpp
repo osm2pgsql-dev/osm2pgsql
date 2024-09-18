@@ -63,7 +63,7 @@ public:
      * \param property Name of the property
      * \param value Value of the property
      */
-    void set_int(std::string property, int64_t value);
+    void set_int(std::string const &property, int64_t value);
 
     /**
      * Set property to boolean value. In the database this will show up as the
@@ -72,7 +72,7 @@ public:
      * \param property Name of the property
      * \param value Value of the property
      */
-    void set_bool(std::string property, bool value);
+    void set_bool(std::string const &property, bool value);
 
     /**
      * Initialize the database table 'osm2pgsql_properties'. It is created if
