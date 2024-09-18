@@ -691,7 +691,10 @@ INSERT INTO osm2pgsql_changed_relations
         m_db_connection.exec(build_sql(*m_options, query));
     }
 
-    load_id_list(m_db_connection, "osm2pgsql_changed_ways", parent_ways);
+    if (parent_ways) {
+        load_id_list(m_db_connection, "osm2pgsql_changed_ways", parent_ways);
+    }
+
     load_id_list(m_db_connection, "osm2pgsql_changed_relations",
                  parent_relations);
 
@@ -700,9 +703,17 @@ INSERT INTO osm2pgsql_changed_relations
     timer.stop();
 
     log_debug("Found {} new/changed nodes in input.", changed_nodes.size());
-    log_debug("  Found in {} their {} parent ways and {} parent relations.",
-              std::chrono::duration_cast<std::chrono::seconds>(timer.elapsed()),
-              parent_ways->size(), parent_relations->size());
+
+    auto const elapsed_sec =
+        std::chrono::duration_cast<std::chrono::seconds>(timer.elapsed());
+
+    if (parent_ways) {
+        log_debug("  Found in {} their {} parent ways and {} parent relations.",
+                  elapsed_sec, parent_ways->size(), parent_relations->size());
+    } else {
+        log_debug("  Found in {} their {} parent relations.", elapsed_sec,
+                  parent_relations->size());
+    }
 }
 
 void middle_pgsql_t::get_way_parents(idlist_t const &changed_ways,
@@ -772,6 +783,21 @@ void middle_pgsql_t::way_set(osmium::Way const &way)
 namespace {
 
 /**
+ * Build node in buffer from database results.
+ */
+void build_node(osmid_t id, pg_result_t const &res, int res_num, int offset,
+                osmium::memory::Buffer *buffer, bool with_attributes)
+{
+    osmium::builder::NodeBuilder builder{*buffer};
+    builder.set_id(id);
+
+    if (with_attributes) {
+        set_attributes_on_builder(&builder, res, res_num, offset);
+    }
+    pgsql_parse_json_tags(res.get_value(res_num, offset + 1), buffer, &builder);
+}
+
+/**
  * Build way in buffer from database results.
  */
 void build_way(osmid_t id, pg_result_t const &res, int res_num, int offset,
@@ -788,6 +814,24 @@ void build_way(osmid_t id, pg_result_t const &res, int res_num, int offset,
 }
 
 } // anonymous namespace
+
+bool middle_query_pgsql_t::node_get(osmid_t id,
+                                    osmium::memory::Buffer *buffer) const
+{
+    assert(buffer);
+
+    auto const res = m_db_connection.exec_prepared("get_node", id);
+
+    if (res.num_tuples() != 1) {
+        return false;
+    }
+
+    build_node(id, res, 0, 0, buffer, m_store_options.with_attributes);
+
+    buffer->commit();
+
+    return true;
+}
 
 bool middle_query_pgsql_t::way_get(osmid_t id,
                                    osmium::memory::Buffer *buffer) const

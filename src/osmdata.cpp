@@ -413,13 +413,15 @@ void osmdata_t::process_dependents()
     }
 
     // stage 1c processing: mark parent relations of marked objects as changed
+    auto const &marked_nodes = m_output->get_marked_node_ids();
     auto const &marked_ways = m_output->get_marked_way_ids();
-    if (marked_ways.empty()) {
+    if (marked_nodes.empty() && marked_ways.empty()) {
         return;
     }
 
-    // process parent relations of marked ways
+    // process parent relations of marked nodes and ways
     idlist_t rels_pending_tracker{};
+    m_mid->get_node_parents(marked_nodes, nullptr, &rels_pending_tracker);
     m_mid->get_way_parents(marked_ways, &rels_pending_tracker);
 
     if (rels_pending_tracker.empty()) {

@@ -17,6 +17,8 @@ following order (from easiest to understand to the more complex ones):
 
 After that you can dive into more advanced topics:
 
+* [public-transport.lua](public-transport.lua) -- Use multi-stage processing
+  to bring tags from public transport relations to member nodes and ways
 * [route-relations.lua](route-relations.lua) -- Use multi-stage processing
   to bring tags from relations to member ways
 * [unitable.lua](unitable.lua) -- Put all OSM data into a single table

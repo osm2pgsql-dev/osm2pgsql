@@ -899,6 +899,54 @@ void output_flex_t::pending_way(osmid_t id)
     get_mutex_and_call_lua_function(m_process_way, m_way_cache.get());
 }
 
+/**
+ * Expects a Lua (hash) table on the stack, reads the field with name of the
+ * 'type' parameter which must be either nil or a Lua (array) table, in which
+ * case all (integer) ids in that table are reads into the 'ids' out
+ * parameter.
+ */
+void get_object_ids(lua_State *lua_state, char const *const type, idlist_t *ids)
+{
+    lua_getfield(lua_state, -1, type);
+    int const ltype = lua_type(lua_state, -1);
+
+    if (ltype == LUA_TNIL) {
+        lua_pop(lua_state, 1);
+        return;
+    }
+
+    if (ltype != LUA_TTABLE) {
+        lua_pop(lua_state, 1);
+        throw fmt_error(
+            "Table returned from select_relation_members() contains '{}' "
+            "field, but it isn't an array table.",
+            type);
+    }
+
+    if (!luaX_is_array(lua_state)) {
+        lua_pop(lua_state, 1);
+        throw fmt_error(
+            "Table returned from select_relation_members() contains '{}' "
+            "field, but it isn't an array table.",
+            type);
+    }
+
+    luaX_for_each(lua_state, [&]() {
+        osmid_t const id = lua_tointeger(lua_state, -1);
+        if (id == 0) {
+            throw fmt_error(
+                "Table returned from select_relation_members() contains "
+                "'{}' field, which must contain an array of non-zero "
+                "integer node ids.",
+                type);
+        }
+
+        ids->push_back(id);
+    });
+
+    lua_pop(lua_state, 1);
+}
+
 void output_flex_t::select_relation_members()
 {
     if (!m_select_relation_members) {
@@ -921,43 +969,13 @@ void output_flex_t::select_relation_members()
                                  "other than nil or a table."};
     }
 
-    // We have established that we have a table. Get the 'ways' field...
-    lua_getfield(lua_state(), -1, "ways");
-    int const ltype = lua_type(lua_state(), -1);
+    // We have established that we have a table...
 
-    // No 'ways' field, that is okay, nothing to be marked.
-    if (ltype == LUA_TNIL) {
-        lua_pop(lua_state(), 2); // return value (a table), ways field (nil)
-        return;
-    }
+    // Get the 'nodes' and 'ways' fields...
+    get_object_ids(lua_state(), "nodes", m_stage2_node_ids.get());
+    get_object_ids(lua_state(), "ways", m_stage2_way_ids.get());
 
-    if (ltype != LUA_TTABLE) {
-        throw std::runtime_error{
-            "Table returned from select_relation_members() contains 'ways' "
-            "field, but it isn't an array table."};
-    }
-
-    // Iterate over the 'ways' table to get all ids...
-    if (!luaX_is_array(lua_state())) {
-        throw std::runtime_error{
-            "Table returned from select_relation_members() contains 'ways' "
-            "field, but it isn't an array table."};
-    }
-
-    luaX_for_each(
-        lua_state(), [&]() {
-            osmid_t const id = lua_tointeger(lua_state(), -1);
-            if (id == 0) {
-                throw std::runtime_error{
-                    "Table returned from select_relation_members() contains "
-                    "'ways' field, which must contain an array of non-zero "
-                    "integer way ids."};
-            }
-
-            m_stage2_way_ids->push_back(id);
-        });
-
-    lua_pop(lua_state(), 2); // return value (a table), ways field (a table)
+    lua_pop(lua_state(), 1); // return value (a table)
 }
 
 void output_flex_t::select_relation_members(osmid_t id)
@@ -1261,8 +1279,9 @@ output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
 
     // If the osm2pgsql.select_relation_members() Lua function is defined
     // it means we need two-stage processing which in turn means we need
-    // the full ways stored in the middle.
+    // the full nodes and ways stored in the middle.
     if (m_select_relation_members) {
+        access_requirements().full_nodes = true;
         access_requirements().full_ways = true;
     }
 
@@ -1482,10 +1501,23 @@ void output_flex_t::init_lua(std::string const &filename,
     lua_remove(lua_state(), 1); // global "osm2pgsql"
 }
 
+idlist_t const &output_flex_t::get_marked_node_ids()
+{
+    if (m_stage2_node_ids->empty()) {
+        log_info("Skipping stage 1c for nodes (no marked nodes).");
+    } else {
+        log_info("Entering stage 1c processing of {} nodes...",
+                 m_stage2_node_ids->size());
+        m_stage2_node_ids->sort_unique();
+    }
+
+    return *m_stage2_node_ids;
+}
+
 idlist_t const &output_flex_t::get_marked_way_ids()
 {
     if (m_stage2_way_ids->empty()) {
-        log_info("Skipping stage 1c (no marked ways).");
+        log_info("Skipping stage 1c for ways (no marked ways).");
     } else {
         log_info("Entering stage 1c processing of {} ways...",
                  m_stage2_way_ids->size());
@@ -1497,12 +1529,12 @@ idlist_t const &output_flex_t::get_marked_way_ids()
 
 void output_flex_t::reprocess_marked()
 {
-    if (m_stage2_way_ids->empty()) {
-        log_info("No marked ways (Skipping stage 2).");
+    if (m_stage2_node_ids->empty() && m_stage2_way_ids->empty()) {
+        log_info("No marked nodes or ways (Skipping stage 2).");
         return;
     }
 
-    log_info("Reprocess marked ways (stage 2)...");
+    log_info("Reprocess marked nodes/ways (stage 2)...");
 
     if (!get_options()->append) {
         util::timer_t timer;
@@ -1528,7 +1560,29 @@ void output_flex_t::reprocess_marked()
     lua_setfield(lua_state(), -2, "stage");
     lua_pop(lua_state(), 1); // osm2pgsql
 
+    m_stage2_node_ids->sort_unique();
     m_stage2_way_ids->sort_unique();
+
+    log_info("There are {} nodes to reprocess...", m_stage2_node_ids->size());
+    {
+        osmium::memory::Buffer node_buffer{
+            1024, osmium::memory::Buffer::auto_grow::yes};
+
+        for (osmid_t const id : *m_stage2_node_ids) {
+            if (middle().node_get(id, &node_buffer)) {
+                node_delete(id);
+                if (m_process_node) {
+                    auto const &node = node_buffer.get<osmium::Node>(0);
+                    m_context_node = &node;
+                    get_mutex_and_call_lua_function(m_process_node, node);
+                }
+            }
+            node_buffer.clear();
+        }
+    }
+
+    // We don't need these any more so can free the memory.
+    m_stage2_node_ids->clear();
 
     log_info("There are {} ways to reprocess...", m_stage2_way_ids->size());
 

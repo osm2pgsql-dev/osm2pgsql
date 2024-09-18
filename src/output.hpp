@@ -70,6 +70,12 @@ public:
 
     virtual void wait() {}
 
+    virtual idlist_t const &get_marked_node_ids()
+    {
+        static idlist_t const ids{};
+        return ids;
+    }
+
     virtual idlist_t const &get_marked_way_ids()
     {
         static idlist_t const ids{};

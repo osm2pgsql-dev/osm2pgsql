@@ -59,6 +59,8 @@ public:
 
     size_t nodes_get_list(osmium::WayNodeList *nodes) const override;
 
+    bool node_get(osmid_t id, osmium::memory::Buffer *buffer) const override;
+
     bool way_get(osmid_t id, osmium::memory::Buffer *buffer) const override;
 
     size_t rel_members_get(osmium::Relation const &rel,

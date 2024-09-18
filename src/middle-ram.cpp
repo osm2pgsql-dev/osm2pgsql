@@ -278,6 +278,16 @@ std::size_t middle_ram_t::nodes_get_list(osmium::WayNodeList *nodes) const
     return count;
 }
 
+bool middle_ram_t::node_get(osmid_t id, osmium::memory::Buffer *buffer) const
+{
+    assert(buffer);
+
+    if (m_store_options.nodes) {
+        return get_object(osmium::item_type::node, id, buffer);
+    }
+    return false;
+}
+
 bool middle_ram_t::way_get(osmid_t id, osmium::memory::Buffer *buffer) const
 {
     assert(buffer);
