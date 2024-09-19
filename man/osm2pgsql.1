@@ -1,4 +1,4 @@
-.TH "OSM2PGSQL" "1" "1.11.0" "" ""
+.TH "OSM2PGSQL" "1" "2.0.0" "" ""
 .SH NAME
 .PP
 osm2pgsql - OpenStreetMap data to PostgreSQL converter
@@ -170,17 +170,12 @@ Include attributes of each object in the middle tables and make them
 available to the outputs.
 Attributes are: user name, user id, changeset id, timestamp and version.
 .TP
---flat-nodes=FILENAME
-The flat-nodes mode is a separate method to store slim mode node
-information on disk.
-Instead of storing this information in the main PostgreSQL database,
-this mode creates its own separate custom database to store the
-information.
-As this custom database has application level knowledge about the data
-to store and is not general purpose, it can store the data much more
-efficiently.
+-F, --flat-nodes=FILENAME
+Use a file on disk to store node locations instead of storing them in
+memory (in non-slim mode) or in the database (in slim mode).
+This is much more efficient than storing the data in the database.
 Storing the node information for the full planet requires more than
-300GB in PostgreSQL, the same data is stored in \[lq]only\[rq] 50GB
+500GB in PostgreSQL, the same data is stored in \[lq]only\[rq] 90GB
 using the flat-nodes mode.
 This can also increase the speed of applying diff files.
 This option activates the flat-nodes mode and specifies the location of
@@ -189,6 +184,8 @@ It is a single large file.
 This mode is only recommended for full planet imports as it doesn\[cq]t
 work well with small imports.
 The default is disabled.
+The file will stay on disk after import, use --drop to remove it (but
+you can\[cq]t do updates then).
 .TP
 --middle-schema=SCHEMA
 Use PostgreSQL schema SCHEMA for all tables, indexes, and functions in
@@ -198,15 +195,9 @@ user.
 By default the schema set with \f[V]--schema\f[R] is used, or
 \f[V]public\f[R] if that is not set.
 .TP
---middle-way-node-index-id-shift=SHIFT
-Set ID shift for way node bucket index in middle.
-Experts only.
-See documentation for details.
-.TP
 --middle-with-nodes
-Used together with the \f[B]new\f[R] middle database format when a flat
-nodes file is used to force storing nodes with tags in the database,
-too.
+When a flat nodes file is used, nodes are not stored in the database.
+Use this option to force storing nodes with tags in the database, too.
 .SH OUTPUT OPTIONS
 .TP
 -O, --output=OUTPUT
