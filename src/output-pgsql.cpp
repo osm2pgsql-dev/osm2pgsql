@@ -442,6 +442,10 @@ output_pgsql_t::output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
   m_rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes),
   m_area_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
 {
+    log_warn("The pgsql (default) output is deprecated. For details see "
+             "https://osm2pgsql.org/doc/"
+             "faq.html#the-pgsql-output-is-deprecated-what-does-that-mean");
+
     m_expire_config.full_area_limit = get_options()->expire_tiles_max_bbox;
     if (get_options()->expire_tiles_max_bbox > 0.0) {
         m_expire_config.mode = expire_mode::hybrid;
