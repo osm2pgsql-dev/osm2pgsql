@@ -77,16 +77,6 @@ private:
     void process_dependents();
 
     /**
-     * Run stage 2 processing: Reprocess objects marked in stage 1 (if any).
-     */
-    void reprocess_marked() const;
-
-    /**
-     * Run postprocessing on database: Clustering and index creation.
-     */
-    void postprocess_database() const;
-
-    /**
      * In append mode all new and changed nodes will be added to this. After
      * all nodes are read this is used to figure out which parent ways and
      * relations reference these nodes. Deleted nodes are not stored in here,

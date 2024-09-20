@@ -432,10 +432,16 @@ void osmdata_t::process_dependents()
     proc.process_relations_stage1c(std::move(rels_pending_tracker));
 }
 
-void osmdata_t::reprocess_marked() const { m_output->reprocess_marked(); }
-
-void osmdata_t::postprocess_database() const
+void osmdata_t::stop()
 {
+    if (m_append) {
+        process_dependents();
+    }
+
+    // Run stage 2 processing: Reprocess objects marked in stage 1 (if any).
+    m_output->reprocess_marked();
+
+    // Run postprocessing on database: Clustering and index creation.
     m_output->free_middle_references();
 
     if (m_droptemp) {
@@ -457,15 +463,4 @@ void osmdata_t::postprocess_database() const
     // Waiting here for pool to execute all tasks.
     m_mid->wait();
     m_output->wait();
-}
-
-void osmdata_t::stop()
-{
-    if (m_append) {
-        process_dependents();
-    }
-
-    reprocess_marked();
-
-    postprocess_database();
 }
