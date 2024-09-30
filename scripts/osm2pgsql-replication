@@ -111,8 +111,8 @@ class DBError(Exception):
 
 class DBConnection:
 
-    def __init__(self, args):
-        self.schema = args.middle_schema
+    def __init__(self, schema, args):
+        self.schema = schema
 
         # If dbname looks like a conninfo string use it as such
         if args.database and any(part in args.database for part in ['=', '://']):
@@ -535,8 +535,10 @@ def update(props, args):
 
     osm2pgsql = [args.osm2pgsql_cmd, '--append', '--slim', '--prefix', args.prefix]
     osm2pgsql.extend(args.extra_params)
-    if args.middle_schema != 'public':
+    if args.middle_schema:
         osm2pgsql.extend(('--middle-schema', args.middle_schema))
+    if args.schema:
+        osm2pgsql.extend(('--schema', args.schema))
     if args.database:
         osm2pgsql.extend(('-d', args.database))
     if args.username:
@@ -717,16 +719,16 @@ def main(prog_args=None):
                         datefmt='%Y-%m-%d %H:%M:%S',
                         level=max(4 - args.verbose, 1) * 10)
 
-    args.middle_schema = args.middle_schema or args.schema or 'public'
+    prop_table_schema = args.middle_schema or args.schema or 'public'
 
-    with DBConnection(args) as db:
+    with DBConnection(prop_table_schema, args) as db:
         if db.table_exists(Osm2pgsqlProperties.PROP_TABLE_NAME):
             props = Osm2pgsqlProperties(db)
         else:
             props = LegacyProperties(db, args.prefix)
 
         if not props.is_updatable:
-            LOG.fatal(f'osm2pgsql middle table "{args.middle_schema}.{args.prefix}_ways" not found in database "{db.name}". '
+            LOG.fatal(f'osm2pgsql middle table "{prop_table_schema}.{args.prefix}_ways" not found in database "{db.name}". '
                        'Database needs to be imported in --slim mode.')
             return 1
 
