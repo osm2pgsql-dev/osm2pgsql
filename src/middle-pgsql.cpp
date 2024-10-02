@@ -659,7 +659,7 @@ void middle_pgsql_t::get_node_parents(idlist_t const &changed_nodes,
     // better to do a full table scan which totally destroys performance.
     // This is due to the PostgreSQL statistics on ARRAYs being way off.
     queries.emplace_back(R"(
-CREATE OR REPLACE FUNCTION osm2pgsql_find_changed_ways() RETURNS void AS $$
+CREATE OR REPLACE FUNCTION {schema}osm2pgsql_find_changed_ways() RETURNS void AS $$
 DECLARE
   changed_buckets RECORD;
 BEGIN
@@ -677,8 +677,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql
 )");
-    queries.emplace_back("SELECT osm2pgsql_find_changed_ways()");
-    queries.emplace_back("DROP FUNCTION osm2pgsql_find_changed_ways()");
+    queries.emplace_back("SELECT {schema}osm2pgsql_find_changed_ways()");
+    queries.emplace_back("DROP FUNCTION {schema}osm2pgsql_find_changed_ways()");
 
     queries.emplace_back(R"(
 INSERT INTO osm2pgsql_changed_relations
