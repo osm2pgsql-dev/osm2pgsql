@@ -89,6 +89,21 @@ public:
         return *this;
     }
 
+    opt_t &schema(char const *schema_name)
+    {
+        m_opt.dbschema = schema_name;
+        m_opt.middle_dbschema = schema_name;
+        m_opt.output_dbschema = schema_name;
+        return *this;
+    }
+
+    opt_t &user(char const *user, char const *password)
+    {
+        m_opt.connection_params.set("user", user);
+        m_opt.connection_params.set("password", password);
+        return *this;
+    }
+
 private:
     options_t m_opt;
 };
