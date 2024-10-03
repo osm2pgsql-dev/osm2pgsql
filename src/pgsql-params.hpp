@@ -34,6 +34,13 @@ public:
 
     auto end() const noexcept { return m_params.end(); }
 
+    void merge_with(connection_params_t const &other)
+    {
+        for (auto const &p : other.m_params) {
+            m_params[p.first] = p.second;
+        }
+    }
+
 private:
     std::map<std::string, std::string> m_params;
 

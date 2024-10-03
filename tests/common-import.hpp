@@ -131,7 +131,7 @@ public:
                     std::initializer_list<std::string> input_data,
                     std::string const &format = "opl")
     {
-        options.connection_params = m_db.connection_params();
+        options.connection_params.merge_with(m_db.connection_params());
 
         properties_t const properties{options.connection_params,
                                       options.middle_dbschema};
@@ -165,7 +165,7 @@ public:
 
     void run_file(options_t options, char const *file = nullptr)
     {
-        options.connection_params = m_db.connection_params();
+        options.connection_params.merge_with(m_db.connection_params());
 
         properties_t const properties{options.connection_params,
                                       options.middle_dbschema};
