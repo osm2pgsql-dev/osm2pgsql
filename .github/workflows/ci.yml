@@ -3,50 +3,6 @@ name: CI
 on: [ push, pull_request ]
 
 jobs:
-  macos:
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - "macos-13"
-          - "macos-14" # latest
-    runs-on: ${{ matrix.os }}
-
-    env:
-      LUA_VERSION: 5.4
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install prerequisites
-        run: |
-          # Workaround for github/brew problem. Python is already install
-          # on the Github action runner and then homebrew comes along...
-          # See also: https://github.com/Homebrew/homebrew-core/issues/173191
-          rm -f /usr/local/bin/2to3* /usr/local/bin/idle3* /usr/local/bin/pydoc3* /usr/local/bin/python3*
-          brew install boost lua nlohmann-json opencv pandoc postgis potrace python3
-          # --break-system-packages is needed on macOS 14
-          pip3 install --break-system-packages psycopg2 behave osmium
-          mkdir ~/postgres
-          pg_ctl -D ~/postgres init
-          pg_ctl -D ~/postgres start
-        shell: bash
-
-      - name: Setup database
-        run: |
-          psql -d postgres -c 'CREATE EXTENSION postgis'
-          psql -d postgres -c 'CREATE EXTENSION hstore'
-          psql -d postgres -c 'SELECT PostGIS_Full_Version()'
-          mkdir -m 700 $GITHUB_WORKSPACE/tablespacetest
-          psql -d postgres -c "CREATE TABLESPACE tablespacetest LOCATION '$GITHUB_WORKSPACE/tablespacetest'"
-        shell: bash
-
-      - uses: ./.github/actions/linux-cmake
-      - uses: ./.github/actions/build-and-test
-        with:
-          test-wrapper: ''
-        env:
-          PGHOST: /tmp
 
   ubuntu20-pg96-gcc10-jit:
     runs-on: ubuntu-20.04
