@@ -116,11 +116,10 @@ CREATE TABLE IF NOT EXISTS "{}" (
     }
 
     if (get_params().get_bool("make_valid")) {
-        params->set(
-            "geom_sql",
-            "(ST_Dump(ST_CollectionExtract(ST_MakeValid($1), 3))).geom");
+        params->set("geom_sql", "(ST_Dump(ST_CollectionExtract("
+                                " ST_MakeValid($1::geometry), 3))).geom");
     } else {
-        params->set("geom_sql", "$1");
+        params->set("geom_sql", "$1::geometry");
     }
 
     if ((m_image_extent & (m_image_extent - 1)) != 0) {
@@ -142,26 +141,24 @@ CREATE TABLE IF NOT EXISTS "{}" (
     std::string prepare;
     if (with_group_by()) {
         prepare = R"(
-PREPARE get_geoms (real, real, real, real) AS
- SELECT "{geom_column}", "{group_by_column}"
+SELECT "{geom_column}", "{group_by_column}"
  FROM {src}
- WHERE "{geom_column}" && ST_MakeEnvelope($1, $2, $3, $4, 3857)
+ WHERE "{geom_column}" &&
+       ST_MakeEnvelope($1::real, $2::real, $3::real, $4::real, 3857)
 )";
-        dbexec(R"(
-PREPARE insert_geoms (geometry, int, int, text) AS
- INSERT INTO {dest} ("{geom_column}", x, y, "{group_by_column}")
- VALUES ({geom_sql}, $2, $3, $4)
+        dbprepare("insert_geoms", R"(
+INSERT INTO {dest} ("{geom_column}", x, y, "{group_by_column}")
+ VALUES ({geom_sql}, $2::int, $3::int, $4::text)
 )");
     } else {
         prepare = R"(
-PREPARE get_geoms (real, real, real, real) AS
- SELECT "{geom_column}", NULL AS param
+SELECT "{geom_column}", NULL AS param
  FROM {src}
- WHERE "{geom_column}" && ST_MakeEnvelope($1, $2, $3, $4, 3857)
+ WHERE "{geom_column}" &&
+       ST_MakeEnvelope($1::real, $2::real, $3::real, $4::real, 3857)
 )";
-        dbexec(R"(
-PREPARE insert_geoms (geometry, int, int, text) AS
- INSERT INTO {dest} ("{geom_column}", x, y) VALUES ({geom_sql}, $2, $3)
+        dbprepare("insert_geoms", R"(
+INSERT INTO {dest} ("{geom_column}", x, y) VALUES ({geom_sql}, $2::int, $3::int)
 )");
     }
 
@@ -169,7 +166,7 @@ PREPARE insert_geoms (geometry, int, int, text) AS
         prepare.append(fmt::format(" AND ({})", where_condition));
     }
 
-    dbexec(prepare);
+    dbprepare("get_geoms", prepare);
 }
 
 void gen_tile_raster_union_t::process(tile_t const &tile)

@@ -334,9 +334,8 @@ SELECT "{id_column}", "{width_column}", "{name_column}", "{geom_column}"
     }
 
     log_gen("Writing results to destination table...");
-    dbexec("PREPARE ins (int8, real, text, geometry) AS"
-           " INSERT INTO {dest} ({id_column}, width, name, geom)"
-           " VALUES ($1, $2, $3, $4)");
+    dbprepare("ins", "INSERT INTO {dest} ({id_column}, width, name, geom)"
+                     " VALUES ($1::int8, $2::real, $3::text, $4::geometry)");
 
     timer(m_timer_write).start();
     connection().exec("BEGIN");

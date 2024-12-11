@@ -23,8 +23,8 @@ gen_tile_t::gen_tile_t(pg_conn_t *connection, bool append, params_t *params)
     m_with_group_by = !get_params().get_identifier("group_by_column").empty();
 
     if (append_mode()) {
-        dbexec("PREPARE del_geoms (int, int) AS"
-               " DELETE FROM {dest} WHERE x=$1 AND y=$2");
+        dbprepare("del_geoms",
+                  "DELETE FROM {dest} WHERE x=$1::int AND y=$2::int");
     }
 }
 
