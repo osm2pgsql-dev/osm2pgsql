@@ -11,8 +11,7 @@
 
 #include "format.hpp"
 #include "params.hpp"
-
-#include <fmt/args.h>
+#include "template.hpp"
 
 #include <cassert>
 
@@ -84,43 +83,20 @@ std::string gen_base_t::context()
     return gen_name.empty() ? "" : fmt::format(" '{}'", gen_name);
 }
 
-namespace {
-
-pg_result_t dbexec_internal(
-    pg_conn_t const &connection, std::string const &templ,
-    fmt::dynamic_format_arg_store<fmt::format_context> const &format_store)
-{
-    try {
-        auto const sql = fmt::vformat(templ, format_store);
-        return connection.exec(sql);
-    } catch (fmt::format_error const &e) {
-        log_error("Missing parameter for template: '{}'", templ);
-        throw;
-    }
-}
-
-} // anonymous namespace
-
 pg_result_t gen_base_t::dbexec(std::string const &templ)
 {
-    fmt::dynamic_format_arg_store<fmt::format_context> format_store;
-    for (auto const &[key, value] : get_params()) {
-        format_store.push_back(fmt::arg(key.c_str(), to_string(value)));
-    }
-    return dbexec_internal(connection(), templ, format_store);
+    template_t sql_template{templ};
+    sql_template.set_params(get_params());
+    return connection().exec(sql_template.render());
 }
 
 pg_result_t gen_base_t::dbexec(params_t const &tmp_params,
                                std::string const &templ)
 {
-    fmt::dynamic_format_arg_store<fmt::format_context> format_store;
-    for (auto const &[key, value] : get_params()) {
-        format_store.push_back(fmt::arg(key.c_str(), to_string(value)));
-    }
-    for (auto const &[key, value] : tmp_params) {
-        format_store.push_back(fmt::arg(key.c_str(), to_string(value)));
-    }
-    return dbexec_internal(connection(), templ, format_store);
+    template_t sql_template{templ};
+    sql_template.set_params(get_params());
+    sql_template.set_params(tmp_params);
+    return connection().exec(sql_template.render());
 }
 
 void gen_base_t::raster_table_preprocess(std::string const &table)

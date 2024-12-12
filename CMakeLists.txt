@@ -268,6 +268,7 @@ else()
                 src/gen/gen-tile.cpp
                 src/gen/params.cpp
                 src/gen/raster.cpp
+                src/gen/template.cpp
                 src/gen/tracer.cpp)
     target_link_libraries(osm2pgsql-gen osm2pgsql_lib ${LIBS} ${POTRACE_LIBRARY} ${OpenCV_LIBS})
 endif()
