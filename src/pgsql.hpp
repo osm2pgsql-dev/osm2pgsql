@@ -180,6 +180,24 @@ public:
     }
 
     /**
+     * Prepare SQL query.
+     *
+     * \param stmt Name of the prepared query.
+     * \param sql SQL query.
+     * \param params Any number of arguments for the fmt lib.
+     * \throws std::runtime_exception If the command failed (didn't return
+     *         status code PGRES_COMMAND_OK).
+     */
+    template <typename... TArgs>
+    void prepare(std::string_view stmt, fmt::format_string<TArgs...> sql,
+                 TArgs... params) const
+    {
+        std::string const query =
+            fmt::format(sql, std::forward<TArgs>(params)...);
+        prepare_internal(stmt, query);
+    }
+
+    /**
      * Run the named prepared SQL statement and return the results in text
      * format.
      *
@@ -228,6 +246,8 @@ public:
     void close();
 
 private:
+    void prepare_internal(std::string_view stmt, std::string_view sql) const;
+
     pg_result_t exec_prepared_internal(char const *stmt, int num_params,
                                        char const *const *param_values,
                                        int *param_lengths, int *param_formats,

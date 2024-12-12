@@ -167,15 +167,12 @@ std::string flex_table_t::build_sql_prepare_get_wkb() const
 
     if (has_multicolumn_id_index()) {
         return fmt::format(
-            R"(PREPARE get_wkb_{}(char(1), bigint) AS)"
-            R"( SELECT {} FROM {} WHERE "{}" = $1 AND "{}" = $2)",
-            m_table_num, columns, full_name(), m_columns[0].name(),
-            m_columns[1].name());
+            R"(SELECT {} FROM {} WHERE "{}" = $1::char(1) AND "{}" = $2::bigint)",
+            columns, full_name(), m_columns[0].name(), m_columns[1].name());
     }
 
-    return fmt::format(R"(PREPARE get_wkb_{}(bigint) AS)"
-                       R"( SELECT {} FROM {} WHERE "{}" = $1)",
-                       m_table_num, columns, full_name(), id_column_names());
+    return fmt::format(R"(SELECT {} FROM {} WHERE "{}" = $1::bigint)", columns,
+                       full_name(), id_column_names());
 }
 
 std::string
@@ -246,7 +243,8 @@ bool flex_table_t::has_columns_with_expire() const noexcept
 void flex_table_t::prepare(pg_conn_t const &db_connection) const
 {
     if (has_id_column() && has_columns_with_expire()) {
-        db_connection.exec(build_sql_prepare_get_wkb());
+        auto const stmt = fmt::format("get_wkb_{}", m_table_num);
+        db_connection.prepare(stmt, fmt::runtime(build_sql_prepare_get_wkb()));
     }
 }
 

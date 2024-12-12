@@ -121,9 +121,9 @@ void properties_t::store()
 
     pg_conn_t const db_connection{m_connection_params, "prop.store"};
 
-    db_connection.exec(
-        "PREPARE set_property(text, text) AS"
-        " INSERT INTO {} (property, value) VALUES ($1, $2)"
+    db_connection.prepare(
+        "set_property",
+        "INSERT INTO {} (property, value) VALUES ($1::text, $2::text)"
         " ON CONFLICT (property) DO UPDATE SET value = EXCLUDED.value",
         table);
 

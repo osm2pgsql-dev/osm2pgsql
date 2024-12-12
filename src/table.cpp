@@ -143,9 +143,8 @@ void table_t::prepare()
 {
     //let postgres cache this query as it will presumably happen a lot
     auto const qual_name = qualified_name(m_target->schema(), m_target->name());
-    m_db_connection->exec("PREPARE get_wkb(int8) AS"
-                          " SELECT way FROM {} WHERE osm_id = $1",
-                          qual_name);
+    m_db_connection->prepare(
+        "get_wkb", "SELECT way FROM {} WHERE osm_id = $1::int8", qual_name);
 }
 
 void table_t::generate_copy_column_list()

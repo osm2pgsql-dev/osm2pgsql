@@ -1105,10 +1105,11 @@ void middle_pgsql_t::update_users_table()
     log_info("Writing {} entries to table '{}'...", m_users.size(),
              m_users_table.name());
 
-    m_db_connection.exec("PREPARE insert_user(int8, text) AS"
-                         " INSERT INTO {}.\"{}\" (id, name) VALUES ($1, $2)"
-                         " ON CONFLICT (id) DO UPDATE SET id=EXCLUDED.id",
-                         m_users_table.schema(), m_users_table.name());
+    m_db_connection.prepare(
+        "insert_user",
+        "INSERT INTO {}.\"{}\" (id, name) VALUES ($1::int8, $2::text)"
+        " ON CONFLICT (id) DO UPDATE SET id=EXCLUDED.id",
+        m_users_table.schema(), m_users_table.name());
 
     for (auto const &[id, name] : m_users) {
         m_db_connection.exec_prepared("insert_user", id, name);

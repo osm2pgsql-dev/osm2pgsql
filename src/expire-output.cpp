@@ -65,17 +65,19 @@ std::size_t expire_output_t::output_tiles_to_table(
 
     if (result.num_fields() == 3) {
         // old format with fields: zoom, x, y
-        db_connection.exec("PREPARE insert_tiles(int4, int4, int4) AS"
-                           " INSERT INTO {} (zoom, x, y) VALUES ($1, $2, $3)"
-                           " ON CONFLICT DO NOTHING",
-                           qn);
+        db_connection.prepare("insert_tiles",
+                              "INSERT INTO {} (zoom, x, y)"
+                              " VALUES ($1::int4, $2::int4, $3::int4)"
+                              " ON CONFLICT DO NOTHING",
+                              qn);
     } else {
         // new format with fields: zoom, x, y, first, last
-        db_connection.exec("PREPARE insert_tiles(int4, int4, int4) AS"
-                           " INSERT INTO {} (zoom, x, y) VALUES ($1, $2, $3)"
-                           " ON CONFLICT (zoom, x, y)"
-                           " DO UPDATE SET last = CURRENT_TIMESTAMP(0)",
-                           qn);
+        db_connection.prepare("insert_tiles",
+                              "INSERT INTO {} (zoom, x, y)"
+                              " VALUES ($1::int4, $2::int4, $3::int4)"
+                              " ON CONFLICT (zoom, x, y)"
+                              " DO UPDATE SET last = CURRENT_TIMESTAMP(0)",
+                              qn);
     }
 
     auto const count = for_each_tile(
