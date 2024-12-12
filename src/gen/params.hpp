@@ -24,9 +24,6 @@ using null_param_t = std::monostate;
 using param_value_t =
     std::variant<null_param_t, std::string, int64_t, double, bool>;
 
-/// Convert a parameter value into a string.
-std::string to_string(param_value_t const &value);
-
 /**
  * A collection of parameters.
  */
@@ -79,8 +76,7 @@ private:
         }
 
         if (!std::holds_alternative<T>(it->second)) {
-            throw fmt_error("Invalid value '{}' for {}.", to_string(it->second),
-                            key);
+            throw fmt_error("Invalid value '{}' for {}.", it->second, key);
         }
         return std::get<T>(it->second);
     }
