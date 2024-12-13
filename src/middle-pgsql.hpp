@@ -26,6 +26,7 @@
 #include "db-copy-mgr.hpp"
 #include "idlist.hpp"
 #include "middle.hpp"
+#include "params.hpp"
 #include "pgsql.hpp"
 
 class node_locations_t;
@@ -88,7 +89,6 @@ private:
 struct table_sql
 {
     std::string name;
-    std::string create_table;
     std::vector<std::string> prepare_queries;
     std::vector<std::string> create_fw_dep_indexes;
 };
@@ -151,8 +151,6 @@ struct middle_pgsql_t : public middle_t
 
         std::chrono::microseconds task_wait() { return m_task_result.wait(); }
 
-        void create_table(pg_conn_t const &db_connection) const;
-
         void init_max_id(pg_conn_t const &db_connection);
 
         osmid_t max_id() const noexcept { return m_max_id; }
@@ -163,7 +161,6 @@ struct middle_pgsql_t : public middle_t
         }
 
     private:
-        std::string m_create_table;
         std::vector<std::string> m_create_fw_dep_indexes;
         std::vector<std::string> m_prepare_queries;
         std::shared_ptr<db_target_descr_t> m_copy_target;
@@ -193,6 +190,9 @@ private:
     void write_users_table();
     void update_users_table();
 
+    std::string render_template(std::string_view templ) const;
+    void dbexec(std::string_view templ) const;
+
     std::map<osmium::user_id_type, std::string> m_users;
     osmium::nwr_array<table_desc> m_tables;
     table_desc m_users_table;
@@ -210,6 +210,8 @@ private:
 
     /// Options for this middle.
     middle_pgsql_options m_store_options;
+
+    params_t m_params;
 
     bool m_append;
 };
