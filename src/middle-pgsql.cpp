@@ -130,8 +130,7 @@ std::vector<std::string> build_sql(options_t const &options,
 
 middle_pgsql_t::table_desc::table_desc(options_t const &options,
                                        table_sql const &ts)
-: m_prepare_queries(build_sql(options, ts.prepare_queries)),
-  m_copy_target(std::make_shared<db_target_descr_t>(
+: m_copy_target(std::make_shared<db_target_descr_t>(
       options.middle_dbschema, build_sql(options, ts.name), "id"))
 {
     m_create_fw_dep_indexes = build_sql(options, ts.create_fw_dep_indexes);
@@ -149,9 +148,10 @@ void middle_pgsql_t::dbexec(std::string_view templ) const
     m_db_connection.exec(render_template(templ));
 }
 
-void middle_query_pgsql_t::exec_sql(std::string const &sql_cmd) const
+void middle_query_pgsql_t::prepare(std::string_view stmt,
+                                   std::string const &sql_cmd) const
 {
-    m_db_connection.exec(sql_cmd);
+    m_db_connection.prepare(stmt, fmt::runtime(sql_cmd));
 }
 
 void middle_pgsql_t::table_desc::drop_table(
@@ -1203,16 +1203,6 @@ table_sql sql_for_nodes(middle_pgsql_options const &options)
 
     sql.name = "{prefix}_nodes";
 
-    if (options.nodes) {
-        sql.prepare_queries = {
-            "PREPARE get_node_list(int8[]) AS"
-            " SELECT id, lon, lat FROM {schema}\"{prefix}_nodes\""
-            " WHERE id = ANY($1::int8[])",
-            "PREPARE get_node(int8) AS"
-            " SELECT id, lon, lat FROM {schema}\"{prefix}_nodes\""
-            " WHERE id = $1"};
-    }
-
     return sql;
 }
 
@@ -1221,17 +1211,6 @@ table_sql sql_for_ways()
     table_sql sql{};
 
     sql.name = "{prefix}_ways";
-
-    sql.prepare_queries = {"PREPARE get_way(int8) AS"
-                           " SELECT nodes, tags{attribute_columns_use}"
-                           " FROM {schema}\"{prefix}_ways\" o"
-                           " {users_table_access}"
-                           " WHERE o.id = $1",
-                           "PREPARE get_way_list(int8[]) AS"
-                           " SELECT o.id, nodes, tags{attribute_columns_use}"
-                           " FROM {schema}\"{prefix}_ways\" o"
-                           "  {users_table_access}"
-                           " WHERE o.id = ANY($1::int8[])"};
 
     sql.create_fw_dep_indexes = {
         "CREATE OR REPLACE FUNCTION"
@@ -1253,12 +1232,6 @@ table_sql sql_for_relations()
     table_sql sql{};
 
     sql.name = "{prefix}_rels";
-
-    sql.prepare_queries = {"PREPARE get_rel(int8) AS"
-                           " SELECT members, tags{attribute_columns_use}"
-                           " FROM {schema}\"{prefix}_rels\" o"
-                           " {users_table_access}"
-                           " WHERE o.id = $1"};
 
     sql.create_fw_dep_indexes = {
         "CREATE OR REPLACE FUNCTION"
@@ -1373,12 +1346,36 @@ middle_pgsql_t::get_query_instance()
         m_options->connection_params, m_cache, m_persistent_cache,
         m_store_options);
 
-    // We use a connection per table to enable the use of COPY
-    for (auto &table : m_tables) {
-        for (auto const &query : table.prepare_queries()) {
-            mid->exec_sql(query);
-        }
+    if (m_store_options.nodes) {
+        mid->prepare("get_node",
+                     render_template(
+                         "SELECT id, lon, lat FROM {schema}\"{prefix}_nodes\""
+                         " WHERE id = $1::int8"));
+
+        mid->prepare("get_node_list",
+                     render_template(
+                         "SELECT id, lon, lat FROM {schema}\"{prefix}_nodes\""
+                         " WHERE id = ANY($1::int8[])"));
     }
+
+    mid->prepare("get_way",
+                 render_template("SELECT nodes, tags{attribute_columns_use}"
+                                 " FROM {schema}\"{prefix}_ways\" o"
+                                 " {users_table_access}"
+                                 " WHERE o.id = $1::int8"));
+
+    mid->prepare(
+        "get_way_list",
+        render_template("SELECT o.id, nodes, tags{attribute_columns_use}"
+                        " FROM {schema}\"{prefix}_ways\" o"
+                        "  {users_table_access}"
+                        " WHERE o.id = ANY($1::int8[])"));
+
+    mid->prepare("get_rel",
+                 render_template("SELECT members, tags{attribute_columns_use}"
+                                 " FROM {schema}\"{prefix}_rels\" o"
+                                 " {users_table_access}"
+                                 " WHERE o.id = $1::int8"));
 
     return std::shared_ptr<middle_query_t>(mid.release());
 }

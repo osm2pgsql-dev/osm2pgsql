@@ -71,7 +71,7 @@ public:
     bool relation_get(osmid_t id,
                       osmium::memory::Buffer *buffer) const override;
 
-    void exec_sql(std::string const &sql_cmd) const;
+    void prepare(std::string_view stmt, std::string const &sql_cmd) const;
 
 private:
     osmium::Location get_node_location_flatnodes(osmid_t id) const;
@@ -89,7 +89,6 @@ private:
 struct table_sql
 {
     std::string name;
-    std::vector<std::string> prepare_queries;
     std::vector<std::string> create_fw_dep_indexes;
 };
 
@@ -155,14 +154,8 @@ struct middle_pgsql_t : public middle_t
 
         osmid_t max_id() const noexcept { return m_max_id; }
 
-        std::vector<std::string> const &prepare_queries() const noexcept
-        {
-            return m_prepare_queries;
-        }
-
     private:
         std::vector<std::string> m_create_fw_dep_indexes;
-        std::vector<std::string> m_prepare_queries;
         std::shared_ptr<db_target_descr_t> m_copy_target;
         task_result_t m_task_result;
 
