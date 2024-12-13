@@ -89,7 +89,6 @@ private:
 struct table_sql
 {
     std::string name;
-    std::vector<std::string> create_fw_dep_indexes;
 };
 
 struct middle_pgsql_t : public middle_t
@@ -140,9 +139,6 @@ struct middle_pgsql_t : public middle_t
         ///< Drop table from database using existing database connection.
         void drop_table(pg_conn_t const &db_connection) const;
 
-        ///< Open a new database connection and build index on this table.
-        void build_index(connection_params_t const &connection_params) const;
-
         void task_set(std::future<std::chrono::microseconds> &&future)
         {
             m_task_result.set(std::move(future));
@@ -155,7 +151,6 @@ struct middle_pgsql_t : public middle_t
         osmid_t max_id() const noexcept { return m_max_id; }
 
     private:
-        std::vector<std::string> m_create_fw_dep_indexes;
         std::shared_ptr<db_target_descr_t> m_copy_target;
         task_result_t m_task_result;
 
