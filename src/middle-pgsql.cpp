@@ -113,19 +113,6 @@ std::string build_sql(options_t const &options, std::string const &templ)
     return sql_template.render();
 }
 
-std::vector<std::string> build_sql(options_t const &options,
-                                   std::vector<std::string> const &templs)
-{
-    std::vector<std::string> out;
-    out.reserve(templs.size());
-
-    for (auto const &templ : templs) {
-        out.push_back(build_sql(options, templ));
-    }
-
-    return out;
-}
-
 } // anonymous namespace
 
 middle_pgsql_t::table_desc::table_desc(options_t const &options,
@@ -133,7 +120,6 @@ middle_pgsql_t::table_desc::table_desc(options_t const &options,
 : m_copy_target(std::make_shared<db_target_descr_t>(
       options.middle_dbschema, build_sql(options, ts.name), "id"))
 {
-    m_create_fw_dep_indexes = build_sql(options, ts.create_fw_dep_indexes);
 }
 
 std::string middle_pgsql_t::render_template(std::string_view templ) const
@@ -163,23 +149,6 @@ void middle_pgsql_t::table_desc::drop_table(
     drop_table_if_exists(db_connection, schema(), name());
     log_info("Table '{}' dropped in {}", name(),
              util::human_readable_duration(timer.stop()));
-}
-
-void middle_pgsql_t::table_desc::build_index(
-    connection_params_t const &connection_params) const
-{
-    if (m_create_fw_dep_indexes.empty()) {
-        return;
-    }
-
-    // Use a temporary connection here because we might run in a separate
-    // thread context.
-    pg_conn_t const db_connection{connection_params, "middle.index"};
-
-    log_info("Building index on table '{}'", name());
-    for (auto const &query : m_create_fw_dep_indexes) {
-        db_connection.exec(query);
-    }
 }
 
 void middle_pgsql_t::table_desc::init_max_id(pg_conn_t const &db_connection)
@@ -1169,11 +1138,55 @@ void middle_pgsql_t::stop()
             table.drop_table(m_db_connection);
         }
     } else if (!m_options->append) {
-        // Building the indexes takes time, so do it asynchronously.
-        for (auto &table : m_tables) {
-            table.task_set(thread_pool().submit(
-                [&]() { table.build_index(m_options->connection_params); }));
-        }
+        dbexec("CREATE OR REPLACE FUNCTION"
+               "    {schema}\"{prefix}_index_bucket\"(int8[])"
+               "  RETURNS int8[] AS $$"
+               "  SELECT ARRAY(SELECT DISTINCT"
+               "    unnest($1) >> {way_node_index_id_shift})"
+               "$$ LANGUAGE SQL IMMUTABLE");
+
+        auto const create_ways_index = render_template(
+            "CREATE INDEX \"{prefix}_ways_nodes_bucket_idx\""
+            " ON {schema}\"{prefix}_ways\""
+            " USING GIN ({schema}\"{prefix}_index_bucket\"(nodes))"
+            " WITH (fastupdate = off) {index_tablespace}");
+
+        log_info("Building index on middle ways table");
+        m_tables.ways().task_set(thread_pool().submit([&, create_ways_index]() {
+            pg_conn_t const db_connection{m_options->connection_params,
+                                          "middle.index.ways"};
+            db_connection.exec(create_ways_index);
+        }));
+
+        dbexec("CREATE OR REPLACE FUNCTION"
+               " {schema}\"{prefix}_member_ids\"(jsonb, char)"
+               " RETURNS int8[] AS $$"
+               "  SELECT array_agg((el->>'ref')::int8)"
+               "   FROM jsonb_array_elements($1) AS el"
+               "    WHERE el->>'type' = $2"
+               "$$ LANGUAGE SQL IMMUTABLE");
+
+        auto const create_rels_index_node_members = render_template(
+            "CREATE INDEX \"{prefix}_rels_node_members_idx\""
+            " ON {schema}\"{prefix}_rels\" USING GIN"
+            " (({schema}\"{prefix}_member_ids\"(members, 'N'::char)))"
+            " WITH (fastupdate = off) {index_tablespace}");
+
+        auto const create_rels_index_way_members = render_template(
+            "CREATE INDEX \"{prefix}_rels_way_members_idx\""
+            " ON {schema}\"{prefix}_rels\" USING GIN"
+            " (({schema}\"{prefix}_member_ids\"(members, 'W'::char)))"
+            " WITH (fastupdate = off) {index_tablespace}");
+
+        log_info("Building indexes on middle rels table");
+        m_tables.relations().task_set(
+            thread_pool().submit([&, create_rels_index_node_members,
+                                  create_rels_index_way_members]() {
+                pg_conn_t const db_connection{m_options->connection_params,
+                                              "middle.index.rels"};
+                db_connection.exec(create_rels_index_node_members);
+                db_connection.exec(create_rels_index_way_members);
+            }));
     }
 }
 
@@ -1212,18 +1225,6 @@ table_sql sql_for_ways()
 
     sql.name = "{prefix}_ways";
 
-    sql.create_fw_dep_indexes = {
-        "CREATE OR REPLACE FUNCTION"
-        "    {schema}\"{prefix}_index_bucket\"(int8[])"
-        "  RETURNS int8[] AS $$"
-        "  SELECT ARRAY(SELECT DISTINCT"
-        "    unnest($1) >> {way_node_index_id_shift})"
-        "$$ LANGUAGE SQL IMMUTABLE",
-        "CREATE INDEX \"{prefix}_ways_nodes_bucket_idx\""
-        "  ON {schema}\"{prefix}_ways\""
-        "  USING GIN ({schema}\"{prefix}_index_bucket\"(nodes))"
-        "  WITH (fastupdate = off) {index_tablespace}"};
-
     return sql;
 }
 
@@ -1232,23 +1233,6 @@ table_sql sql_for_relations()
     table_sql sql{};
 
     sql.name = "{prefix}_rels";
-
-    sql.create_fw_dep_indexes = {
-        "CREATE OR REPLACE FUNCTION"
-        " {schema}\"{prefix}_member_ids\"(jsonb, char)"
-        " RETURNS int8[] AS $$"
-        "  SELECT array_agg((el->>'ref')::int8)"
-        "   FROM jsonb_array_elements($1) AS el"
-        "    WHERE el->>'type' = $2"
-        "$$ LANGUAGE SQL IMMUTABLE",
-        "CREATE INDEX \"{prefix}_rels_node_members_idx\""
-        "  ON {schema}\"{prefix}_rels\" USING GIN"
-        "  (({schema}\"{prefix}_member_ids\"(members, 'N'::char)))"
-        "  WITH (fastupdate = off) {index_tablespace}",
-        "CREATE INDEX \"{prefix}_rels_way_members_idx\""
-        "  ON {schema}\"{prefix}_rels\" USING GIN"
-        "  (({schema}\"{prefix}_member_ids\"(members, 'W'::char)))"
-        "  WITH (fastupdate = off) {index_tablespace}"};
 
     return sql;
 }
