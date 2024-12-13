@@ -36,48 +36,48 @@ gen_tile_vector_union_t::gen_tile_vector_union_t(pg_conn_t *connection,
     }
 
     if (with_group_by()) {
-        dbexec(R"(
-PREPARE gen_geoms (int, int, int) AS
- WITH gen_tile_input AS (
-  SELECT "{group_by_column}" AS col, "{geom_column}" AS geom FROM {src}
-   WHERE "{geom_column}" && ST_TileEnvelope($1, $2, $3, margin => {margin})
- ),
- buffered AS (
-  SELECT col, ST_Buffer(geom, {buffer_size}) AS geom
-   FROM gen_tile_input
- ),
- merged AS (
-  SELECT col, ST_Union(geom) AS geom
-   FROM buffered GROUP BY col
- ),
- unbuffered AS (
-  SELECT col, ST_Buffer(ST_Buffer(geom, -2 * {buffer_size}), {buffer_size}) AS geom
-   FROM merged
- )
- INSERT INTO {dest} (x, y, "{group_by_column}", "{geom_column}")
-  SELECT $2, $3, col, (ST_Dump(geom)).geom FROM unbuffered
+        dbprepare("gen_geoms", R"(
+WITH gen_tile_input AS (
+ SELECT "{group_by_column}" AS col, "{geom_column}" AS geom FROM {src}
+  WHERE "{geom_column}" &&
+        ST_TileEnvelope($1::int, $2::int, $3::int, margin => {margin})
+),
+buffered AS (
+ SELECT col, ST_Buffer(geom, {buffer_size}) AS geom
+  FROM gen_tile_input
+),
+merged AS (
+ SELECT col, ST_Union(geom) AS geom
+  FROM buffered GROUP BY col
+),
+unbuffered AS (
+ SELECT col, ST_Buffer(ST_Buffer(geom, -2 * {buffer_size}), {buffer_size}) AS geom
+  FROM merged
+)
+INSERT INTO {dest} (x, y, "{group_by_column}", "{geom_column}")
+ SELECT $2::int, $3::int, col, (ST_Dump(geom)).geom FROM unbuffered
 )");
     } else {
-        dbexec(R"(
-PREPARE gen_geoms (int, int, int) AS
- WITH gen_tile_input AS (
-  SELECT "{geom_column}" AS geom FROM {src}
-   WHERE "{geom_column}" && ST_TileEnvelope($1, $2, $3, margin => {margin})
- ),
- buffered AS (
-  SELECT ST_Buffer(geom, {buffer_size}) AS geom
-   FROM gen_tile_input
- ),
- merged AS (
-  SELECT ST_Union(geom) AS geom
-   FROM buffered
- ),
- unbuffered AS (
-  SELECT ST_Buffer(ST_Buffer(geom, -2 * {buffer_size}), {buffer_size}) AS geom
-   FROM merged
- )
- INSERT INTO {dest} (x, y, "{geom_column}")
-  SELECT $2, $3, (ST_Dump(geom)).geom FROM unbuffered
+        dbprepare("gen_geoms", R"(
+WITH gen_tile_input AS (
+ SELECT "{geom_column}" AS geom FROM {src}
+  WHERE "{geom_column}" &&
+        ST_TileEnvelope($1::int, $2::int, $3::int, margin => {margin})
+),
+buffered AS (
+ SELECT ST_Buffer(geom, {buffer_size}) AS geom
+  FROM gen_tile_input
+),
+merged AS (
+ SELECT ST_Union(geom) AS geom
+  FROM buffered
+),
+unbuffered AS (
+ SELECT ST_Buffer(ST_Buffer(geom, -2 * {buffer_size}), {buffer_size}) AS geom
+  FROM merged
+)
+INSERT INTO {dest} (x, y, "{geom_column}")
+ SELECT $2::int, $3::int, (ST_Dump(geom)).geom FROM unbuffered
 )");
     }
 }
