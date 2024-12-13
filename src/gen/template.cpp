@@ -11,7 +11,7 @@
 
 void template_t::set_params(params_t const &params) {
     for (auto const &[key, value] : params) {
-        m_format_store.push_back(fmt::arg(key.c_str(), value));
+        m_format_store.push_back(fmt::arg(key.c_str(), to_string(value)));
     }
 }
 

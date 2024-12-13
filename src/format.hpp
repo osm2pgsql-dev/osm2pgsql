@@ -12,7 +12,6 @@
 
 #define FMT_HEADER_ONLY
 #include <fmt/format.h>
-#include <fmt/std.h>
 
 #include <stdexcept>
 

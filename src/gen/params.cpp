@@ -14,6 +14,15 @@
 #include "overloaded.hpp"
 #include "pgsql.hpp"
 
+std::string to_string(param_value_t const &value)
+{
+    return std::visit(
+        overloaded{[](null_param_t) { return std::string{}; },
+                   [](std::string val) { return val; },
+                   [](auto const &val) { return fmt::to_string(val); }},
+        value);
+}
+
 param_value_t params_t::get(std::string const &key) const
 {
     return m_map.at(key);
@@ -49,7 +58,7 @@ double params_t::get_double(std::string const &key, double default_value) const
         return static_cast<double>(std::get<int64_t>(it->second));
     }
 
-    throw fmt_error("Invalid value '{}' for {}.", it->second, key);
+    throw fmt_error("Invalid value '{}' for {}.", to_string(it->second), key);
 }
 
 std::string params_t::get_string(std::string const &key) const
@@ -58,7 +67,7 @@ std::string params_t::get_string(std::string const &key) const
     if (it == m_map.end()) {
         throw fmt_error("Missing parameter '{}' on generalizer.", key);
     }
-    return fmt::format("{}", it->second);
+    return to_string(it->second);
 }
 
 std::string params_t::get_string(std::string const &key,
@@ -73,7 +82,7 @@ std::string params_t::get_identifier(std::string const &key) const
     if (it == m_map.end()) {
         return {};
     }
-    std::string result = fmt::format("{}", it->second);
+    std::string result = to_string(it->second);
     check_identifier(result, key.c_str());
     return result;
 }
@@ -85,7 +94,7 @@ void params_t::check_identifier_with_default(std::string const &key,
     if (it == m_map.end()) {
         m_map.emplace(key, std::move(default_value));
     } else {
-        check_identifier(fmt::format("{}", it->second), key.c_str());
+        check_identifier(to_string(it->second), key.c_str());
     }
 }
 
@@ -111,6 +120,6 @@ void write_to_debug_log(params_t const &params, char const *message)
     }
     log_debug("{}", message);
     for (auto const &[key, value] : params) {
-        log_debug("  {}={}", key, value);
+        log_debug("  {}={}", key, to_string(value));
     }
 }
