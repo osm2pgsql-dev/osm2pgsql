@@ -45,6 +45,15 @@ node_persistent_cache::node_persistent_cache(std::string file_name,
     }
 
     m_index = std::make_unique<index_t>(m_fd);
+
+    // First location must always be the undefined location, otherwise we
+    // might be looking at a different kind of file. This check here is for
+    // forwards compatibility. If and when we change the file format, we
+    // can use the first 8 bytes to differentiate the file format.
+    auto const loc = get(0);
+    if (loc.is_defined()) {
+        throw fmt_error("Not a version 1 flatnode file '{}'", m_file_name);
+    }
 }
 
 node_persistent_cache::~node_persistent_cache() noexcept
