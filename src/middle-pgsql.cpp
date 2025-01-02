@@ -1086,10 +1086,12 @@ void middle_pgsql_t::start()
 
 void middle_pgsql_t::write_users_table()
 {
-    log_info("Writing {} entries to table '{}'...", m_users.size(),
-             m_users_table.name());
+    auto const table_name = m_options->prefix + "_users";
+
+    log_info("Writing {} entries to table '{}'...", m_users.size(), table_name);
+
     auto const users_table = std::make_shared<db_target_descr_t>(
-        m_users_table.schema(), m_users_table.name(), "id");
+        m_options->dbschema, table_name, "id");
 
     for (auto const &[id, name] : m_users) {
         m_db_copy.new_line(users_table);
@@ -1100,20 +1102,20 @@ void middle_pgsql_t::write_users_table()
 
     m_users.clear();
 
-    analyze_table(m_db_connection, m_users_table.schema(),
-                  m_users_table.name());
+    analyze_table(m_db_connection, m_options->dbschema, table_name);
 }
 
 void middle_pgsql_t::update_users_table()
 {
-    log_info("Writing {} entries to table '{}'...", m_users.size(),
-             m_users_table.name());
+    auto const table_name = m_options->prefix + "_users";
+
+    log_info("Writing {} entries to table '{}'...", m_users.size(), table_name);
 
     m_db_connection.prepare(
         "insert_user",
         "INSERT INTO {}.\"{}\" (id, name) VALUES ($1::int8, $2::text)"
         " ON CONFLICT (id) DO UPDATE SET id=EXCLUDED.id",
-        m_users_table.schema(), m_users_table.name());
+        m_options->dbschema, table_name);
 
     for (auto const &[id, name] : m_users) {
         m_db_connection.exec_prepared("insert_user", id, name);
@@ -1121,8 +1123,7 @@ void middle_pgsql_t::update_users_table()
 
     m_users.clear();
 
-    analyze_table(m_db_connection, m_users_table.schema(),
-                  m_users_table.name());
+    analyze_table(m_db_connection, m_options->dbschema, table_name);
 }
 
 void middle_pgsql_t::stop()
@@ -1272,8 +1273,6 @@ middle_pgsql_t::middle_pgsql_t(std::shared_ptr<thread_pool_t> thread_pool,
     m_tables.nodes() = table_desc{*options, "nodes"};
     m_tables.ways() = table_desc{*options, "ways"};
     m_tables.relations() = table_desc{*options, "rels"};
-
-    m_users_table = table_desc{*options, "users"};
 }
 
 void middle_pgsql_t::set_requirements(
