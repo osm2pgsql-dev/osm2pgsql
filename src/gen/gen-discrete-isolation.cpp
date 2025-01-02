@@ -132,9 +132,9 @@ FROM {src} WHERE {importance_column} > 0
     timer(m_timer_reorder).stop();
 
     log_gen("Writing results to destination table...");
-    dbexec("PREPARE update (int, real, int4, int8) AS"
-           " UPDATE {src} SET dirank = $1, discr_iso = $2, irank = $3"
-           " WHERE {id_column} = $4");
+    dbprepare("update", "UPDATE {src} SET dirank = $1::int,"
+                        " discr_iso = $2::real, irank = $3::int4"
+                        " WHERE {id_column} = $4::int8");
 
     timer(m_timer_write).start();
     connection().exec("BEGIN");
