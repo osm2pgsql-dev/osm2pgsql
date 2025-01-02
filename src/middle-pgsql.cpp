@@ -116,9 +116,10 @@ std::string build_sql(options_t const &options, std::string const &templ)
 } // anonymous namespace
 
 middle_pgsql_t::table_desc::table_desc(options_t const &options,
-                                       table_sql const &ts)
+                                       std::string_view name)
 : m_copy_target(std::make_shared<db_target_descr_t>(
-      options.middle_dbschema, build_sql(options, ts.name), "id"))
+      options.middle_dbschema, fmt::format("{}_{}", options.prefix, name),
+      "id"))
 {
 }
 
@@ -1201,42 +1202,6 @@ void middle_pgsql_t::wait()
 
 namespace {
 
-table_sql sql_for_users(middle_pgsql_options const &store_options)
-{
-    table_sql sql{};
-
-    sql.name = "{prefix}_users";
-
-    return sql;
-}
-
-table_sql sql_for_nodes(middle_pgsql_options const &options)
-{
-    table_sql sql{};
-
-    sql.name = "{prefix}_nodes";
-
-    return sql;
-}
-
-table_sql sql_for_ways()
-{
-    table_sql sql{};
-
-    sql.name = "{prefix}_ways";
-
-    return sql;
-}
-
-table_sql sql_for_relations()
-{
-    table_sql sql{};
-
-    sql.name = "{prefix}_rels";
-
-    return sql;
-}
-
 void init_params(params_t *params, options_t const &options)
 {
     std::string const schema = "\"" + options.middle_dbschema + "\".";
@@ -1304,11 +1269,11 @@ middle_pgsql_t::middle_pgsql_t(std::shared_ptr<thread_pool_t> thread_pool,
 
     init_params(&m_params, *options);
 
-    m_tables.nodes() = table_desc{*options, sql_for_nodes(m_store_options)};
-    m_tables.ways() = table_desc{*options, sql_for_ways()};
-    m_tables.relations() = table_desc{*options, sql_for_relations()};
+    m_tables.nodes() = table_desc{*options, "nodes"};
+    m_tables.ways() = table_desc{*options, "ways"};
+    m_tables.relations() = table_desc{*options, "rels"};
 
-    m_users_table = table_desc{*options, sql_for_users(m_store_options)};
+    m_users_table = table_desc{*options, "users"};
 }
 
 void middle_pgsql_t::set_requirements(

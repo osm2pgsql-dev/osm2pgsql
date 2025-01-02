@@ -86,11 +86,6 @@ private:
     middle_pgsql_options m_store_options;
 };
 
-struct table_sql
-{
-    std::string name;
-};
-
 struct middle_pgsql_t : public middle_t
 {
     middle_pgsql_t(std::shared_ptr<thread_pool_t> thread_pool,
@@ -119,7 +114,7 @@ struct middle_pgsql_t : public middle_t
     {
     public:
         table_desc() = default;
-        table_desc(options_t const &options, table_sql const &ts);
+        table_desc(options_t const &options, std::string_view name);
 
         std::string const &schema() const noexcept
         {
