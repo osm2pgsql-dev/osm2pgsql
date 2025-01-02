@@ -178,7 +178,6 @@ private:
 
     std::map<osmium::user_id_type, std::string> m_users;
     osmium::nwr_array<table_desc> m_tables;
-    table_desc m_users_table;
 
     options_t const *m_options;
 
