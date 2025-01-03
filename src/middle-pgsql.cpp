@@ -71,48 +71,6 @@ void load_id_list(pg_conn_t const &db_connection, std::string const &table,
     }
 }
 
-std::string build_sql(options_t const &options, std::string const &templ)
-{
-    std::string const schema = "\"" + options.middle_dbschema + "\".";
-
-    params_t params;
-    params.set("prefix", options.prefix);
-    params.set("schema", schema);
-    params.set("unlogged", options.droptemp ? "UNLOGGED" : "");
-    params.set("data_tablespace", tablespace_clause(options.tblsslim_data));
-    params.set("index_tablespace", tablespace_clause(options.tblsslim_index));
-    params.set("way_node_index_id_shift", 5);
-
-    if (options.tblsslim_index.empty()) {
-        params.set("using_tablespace", "");
-    } else {
-        params.set("using_tablespace",
-                   "USING INDEX TABLESPACE " + options.tblsslim_index);
-    }
-
-    if (options.extra_attributes) {
-        params.set("attribute_columns_definition",
-                   " created timestamp with time zone,"
-                   " version int4,"
-                   " changeset_id int4,"
-                   " user_id int4,");
-        params.set("attribute_columns_use",
-                   ", EXTRACT(EPOCH FROM created) AS created, version, "
-                   "changeset_id, user_id, u.name");
-        params.set("users_table_access", "LEFT JOIN " + schema + '"' +
-                                             options.prefix +
-                                             "_users\" u ON o.user_id = u.id");
-    } else {
-        params.set("attribute_columns_definition", "");
-        params.set("attribute_columns_use", "");
-        params.set("users_table_access", "");
-    }
-
-    template_t sql_template{templ};
-    sql_template.set_params(params);
-    return sql_template.render();
-}
-
 } // anonymous namespace
 
 middle_pgsql_t::table_desc::table_desc(options_t const &options,
