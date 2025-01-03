@@ -40,6 +40,48 @@ public:
     }
 
     template <typename K>
+    void set_null(K &&key)
+    {
+        m_map.insert_or_assign(std::forward<K>(key), null_param_t{});
+    }
+
+    template <typename K>
+    void set_string(K &&key, char const *value)
+    {
+        m_map.insert_or_assign(std::forward<K>(key), value);
+    }
+
+    template <typename K>
+    void set_string(K &&key, std::string const &value)
+    {
+        m_map.insert_or_assign(std::forward<K>(key), value);
+    }
+
+    template <typename K>
+    void set_string(K &&key, std::string_view value)
+    {
+        m_map.insert_or_assign(std::forward<K>(key), value);
+    }
+
+    template <typename K>
+    void set_int64(K &&key, int64_t value)
+    {
+        m_map.insert_or_assign(std::forward<K>(key), value);
+    }
+
+    template <typename K>
+    void set_double(K &&key, double value)
+    {
+        m_map.insert_or_assign(std::forward<K>(key), value);
+    }
+
+    template <typename K>
+    void set_bool(K &&key, bool value)
+    {
+        m_map.insert_or_assign(std::forward<K>(key), value);
+    }
+
+    template <typename K>
     void remove(K &&key)
     {
         m_map.erase(std::forward<K>(key));
