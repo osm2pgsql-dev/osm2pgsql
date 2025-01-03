@@ -26,6 +26,7 @@
 #include "db-copy-mgr.hpp"
 #include "idlist.hpp"
 #include "middle.hpp"
+#include "params.hpp"
 #include "pgsql.hpp"
 
 class node_locations_t;
@@ -70,7 +71,7 @@ public:
     bool relation_get(osmid_t id,
                       osmium::memory::Buffer *buffer) const override;
 
-    void exec_sql(std::string const &sql_cmd) const;
+    void prepare(std::string_view stmt, std::string const &sql_cmd) const;
 
 private:
     osmium::Location get_node_location_flatnodes(osmid_t id) const;
@@ -83,14 +84,6 @@ private:
     std::shared_ptr<node_persistent_cache> m_persistent_cache;
 
     middle_pgsql_options m_store_options;
-};
-
-struct table_sql
-{
-    std::string name;
-    std::string create_table;
-    std::vector<std::string> prepare_queries;
-    std::vector<std::string> create_fw_dep_indexes;
 };
 
 struct middle_pgsql_t : public middle_t
@@ -121,7 +114,7 @@ struct middle_pgsql_t : public middle_t
     {
     public:
         table_desc() = default;
-        table_desc(options_t const &options, table_sql const &ts);
+        table_desc(options_t const &options, std::string_view name);
 
         std::string const &schema() const noexcept
         {
@@ -141,9 +134,6 @@ struct middle_pgsql_t : public middle_t
         ///< Drop table from database using existing database connection.
         void drop_table(pg_conn_t const &db_connection) const;
 
-        ///< Open a new database connection and build index on this table.
-        void build_index(connection_params_t const &connection_params) const;
-
         void task_set(std::future<std::chrono::microseconds> &&future)
         {
             m_task_result.set(std::move(future));
@@ -151,21 +141,11 @@ struct middle_pgsql_t : public middle_t
 
         std::chrono::microseconds task_wait() { return m_task_result.wait(); }
 
-        void create_table(pg_conn_t const &db_connection) const;
-
         void init_max_id(pg_conn_t const &db_connection);
 
         osmid_t max_id() const noexcept { return m_max_id; }
 
-        std::vector<std::string> const &prepare_queries() const noexcept
-        {
-            return m_prepare_queries;
-        }
-
     private:
-        std::string m_create_table;
-        std::vector<std::string> m_create_fw_dep_indexes;
-        std::vector<std::string> m_prepare_queries;
         std::shared_ptr<db_target_descr_t> m_copy_target;
         task_result_t m_task_result;
 
@@ -193,9 +173,11 @@ private:
     void write_users_table();
     void update_users_table();
 
+    std::string render_template(std::string_view templ) const;
+    void dbexec(std::string_view templ) const;
+
     std::map<osmium::user_id_type, std::string> m_users;
     osmium::nwr_array<table_desc> m_tables;
-    table_desc m_users_table;
 
     options_t const *m_options;
 
@@ -210,6 +192,8 @@ private:
 
     /// Options for this middle.
     middle_pgsql_options m_store_options;
+
+    params_t m_params;
 
     bool m_append;
 };
