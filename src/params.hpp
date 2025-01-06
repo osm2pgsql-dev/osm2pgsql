@@ -33,10 +33,43 @@ std::string to_string(param_value_t const &value);
 class params_t
 {
 public:
-    template <typename K, typename V>
+    // It seems superfluous to have all these implementations of the set()
+    // function, but there are some problems with MSVC 2019, and this is the
+    // workaround. See https://developercommunity.visualstudio.com/t/10242620
+    template <typename K>
+    void set(K &&key, bool value)
+    {
+        m_map.insert_or_assign(std::forward<K>(key), value);
+    }
+
+    template <typename K>
+    void set(K &&key, double value)
+    {
+        m_map.insert_or_assign(std::forward<K>(key), value);
+    }
+
+    template <typename K>
+    void set(K &&key, float value)
+    {
+        m_map.insert_or_assign(std::forward<K>(key), value);
+    }
+
+    template <typename K, typename V,
+              std::enable_if_t<std::is_integral_v<std::remove_reference_t<V>>,
+                               bool> = true>
+    void set(K &&key, V value)
+    {
+        m_map.insert_or_assign(std::forward<K>(key),
+                               static_cast<int64_t>(value));
+    }
+
+    template <
+        typename K, typename V,
+        std::enable_if_t<!std::is_arithmetic_v<std::remove_reference_t<V>>,
+                         bool> = true>
     void set(K &&key, V &&value)
     {
-        m_map.insert_or_assign(std::forward<K>(key), std::forward<V>(value));
+        m_map.insert_or_assign(std::forward<K>(key), std::string(value));
     }
 
     template <typename K>

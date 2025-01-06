@@ -47,6 +47,7 @@ target_sources(osm2pgsql_lib PRIVATE
     output-null.cpp
     output-pgsql.cpp
     output.cpp
+    params.cpp
     pgsql-capabilities.cpp
     pgsql-helper.cpp
     pgsql.cpp
@@ -58,6 +59,7 @@ target_sources(osm2pgsql_lib PRIVATE
     tagtransform-c.cpp
     tagtransform-lua.cpp
     tagtransform.cpp
+    template.cpp
     thread-pool.cpp
     tile.cpp
     util.cpp

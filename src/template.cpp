@@ -19,7 +19,7 @@ std::string template_t::render() const
 {
     try {
         return fmt::vformat(m_template, m_format_store);
-    } catch (fmt::format_error const &e) {
+    } catch (fmt::format_error const &) {
         log_error("Missing parameter for template: '{}'", m_template);
         throw;
     }
