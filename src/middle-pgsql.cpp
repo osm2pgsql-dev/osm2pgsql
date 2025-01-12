@@ -1084,6 +1084,61 @@ void middle_pgsql_t::update_users_table()
     analyze_table(m_db_connection, m_options->dbschema, table_name);
 }
 
+void middle_pgsql_t::build_way_node_index()
+{
+    dbexec("CREATE OR REPLACE FUNCTION"
+           "    {schema}\"{prefix}_index_bucket\"(int8[])"
+           "  RETURNS int8[] AS $$"
+           "  SELECT ARRAY(SELECT DISTINCT"
+           "    unnest($1) >> {way_node_index_id_shift})"
+           "$$ LANGUAGE SQL IMMUTABLE");
+
+    auto const create_ways_index =
+        render_template("CREATE INDEX \"{prefix}_ways_nodes_bucket_idx\""
+                        " ON {schema}\"{prefix}_ways\""
+                        " USING GIN ({schema}\"{prefix}_index_bucket\"(nodes))"
+                        " WITH (fastupdate = off) {index_tablespace}");
+
+    log_info("Building index on middle ways table");
+    m_tables.ways().task_set(thread_pool().submit([&, create_ways_index]() {
+        pg_conn_t const db_connection{m_options->connection_params,
+                                      "middle.index.ways"};
+        db_connection.exec(create_ways_index);
+    }));
+}
+
+void middle_pgsql_t::build_relation_member_indexes()
+{
+    dbexec("CREATE OR REPLACE FUNCTION"
+           " {schema}\"{prefix}_member_ids\"(jsonb, char)"
+           " RETURNS int8[] AS $$"
+           "  SELECT array_agg((el->>'ref')::int8)"
+           "   FROM jsonb_array_elements($1) AS el"
+           "    WHERE el->>'type' = $2"
+           "$$ LANGUAGE SQL IMMUTABLE");
+
+    auto const create_rels_index_node_members = render_template(
+        "CREATE INDEX \"{prefix}_rels_node_members_idx\""
+        " ON {schema}\"{prefix}_rels\" USING GIN"
+        " (({schema}\"{prefix}_member_ids\"(members, 'N'::char)))"
+        " WITH (fastupdate = off) {index_tablespace}");
+
+    auto const create_rels_index_way_members = render_template(
+        "CREATE INDEX \"{prefix}_rels_way_members_idx\""
+        " ON {schema}\"{prefix}_rels\" USING GIN"
+        " (({schema}\"{prefix}_member_ids\"(members, 'W'::char)))"
+        " WITH (fastupdate = off) {index_tablespace}");
+
+    log_info("Building indexes on middle rels table");
+    m_tables.relations().task_set(thread_pool().submit(
+        [&, create_rels_index_node_members, create_rels_index_way_members]() {
+            pg_conn_t const db_connection{m_options->connection_params,
+                                          "middle.index.rels"};
+            db_connection.exec(create_rels_index_node_members);
+            db_connection.exec(create_rels_index_way_members);
+        }));
+}
+
 void middle_pgsql_t::stop()
 {
     assert(m_middle_state == middle_state::done);
@@ -1098,55 +1153,8 @@ void middle_pgsql_t::stop()
             table.drop_table(m_db_connection);
         }
     } else if (!m_options->append) {
-        dbexec("CREATE OR REPLACE FUNCTION"
-               "    {schema}\"{prefix}_index_bucket\"(int8[])"
-               "  RETURNS int8[] AS $$"
-               "  SELECT ARRAY(SELECT DISTINCT"
-               "    unnest($1) >> {way_node_index_id_shift})"
-               "$$ LANGUAGE SQL IMMUTABLE");
-
-        auto const create_ways_index = render_template(
-            "CREATE INDEX \"{prefix}_ways_nodes_bucket_idx\""
-            " ON {schema}\"{prefix}_ways\""
-            " USING GIN ({schema}\"{prefix}_index_bucket\"(nodes))"
-            " WITH (fastupdate = off) {index_tablespace}");
-
-        log_info("Building index on middle ways table");
-        m_tables.ways().task_set(thread_pool().submit([&, create_ways_index]() {
-            pg_conn_t const db_connection{m_options->connection_params,
-                                          "middle.index.ways"};
-            db_connection.exec(create_ways_index);
-        }));
-
-        dbexec("CREATE OR REPLACE FUNCTION"
-               " {schema}\"{prefix}_member_ids\"(jsonb, char)"
-               " RETURNS int8[] AS $$"
-               "  SELECT array_agg((el->>'ref')::int8)"
-               "   FROM jsonb_array_elements($1) AS el"
-               "    WHERE el->>'type' = $2"
-               "$$ LANGUAGE SQL IMMUTABLE");
-
-        auto const create_rels_index_node_members = render_template(
-            "CREATE INDEX \"{prefix}_rels_node_members_idx\""
-            " ON {schema}\"{prefix}_rels\" USING GIN"
-            " (({schema}\"{prefix}_member_ids\"(members, 'N'::char)))"
-            " WITH (fastupdate = off) {index_tablespace}");
-
-        auto const create_rels_index_way_members = render_template(
-            "CREATE INDEX \"{prefix}_rels_way_members_idx\""
-            " ON {schema}\"{prefix}_rels\" USING GIN"
-            " (({schema}\"{prefix}_member_ids\"(members, 'W'::char)))"
-            " WITH (fastupdate = off) {index_tablespace}");
-
-        log_info("Building indexes on middle rels table");
-        m_tables.relations().task_set(
-            thread_pool().submit([&, create_rels_index_node_members,
-                                  create_rels_index_way_members]() {
-                pg_conn_t const db_connection{m_options->connection_params,
-                                              "middle.index.rels"};
-                db_connection.exec(create_rels_index_node_members);
-                db_connection.exec(create_rels_index_way_members);
-            }));
+        build_way_node_index();
+        build_relation_member_indexes();
     }
 }
 
