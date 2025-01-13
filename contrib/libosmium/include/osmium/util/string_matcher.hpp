@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2023 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2025 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -419,8 +419,8 @@ namespace osmium {
          *                  equal, prefix, substring, regex or list.
          */
         // cppcheck-suppress noExplicitConstructor
-        template <typename TMatcher, typename X = typename std::enable_if<
-            std::is_base_of<matcher, TMatcher>::value, void>::type>
+        template <typename TMatcher, typename X = std::enable_if_t<
+            std::is_base_of<matcher, TMatcher>::value, void>>
         StringMatcher(TMatcher&& matcher) : // NOLINT(google-explicit-constructor, hicpp-explicit-conversions)
             m_matcher(std::forward<TMatcher>(matcher)) {
         }
