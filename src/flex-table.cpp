@@ -223,6 +223,15 @@ std::string flex_table_t::build_sql_column_list() const
 
 std::string flex_table_t::build_sql_create_id_index() const
 {
+    if (m_primary_key_index) {
+        auto ts = tablespace_clause(index_tablespace());
+        if (!ts.empty()) {
+            ts = " USING INDEX" + ts;
+        }
+        return fmt::format("ALTER TABLE {} ADD PRIMARY KEY ({}){}", full_name(),
+                           id_column_names(), ts);
+    }
+
     return fmt::format("CREATE {}INDEX ON {} USING BTREE ({}) {}",
                        m_build_unique_id_index ? "UNIQUE " : "", full_name(),
                        id_column_names(),
