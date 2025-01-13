@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2023 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2025 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -49,7 +49,7 @@ namespace osmium {
     namespace detail {
 
         template <typename T, typename U>
-        using ConstIfConst = typename std::conditional<std::is_const<T>::value, typename std::add_const<U>::type, U>::type;
+        using ConstIfConst = std::conditional_t<std::is_const<T>::value, std::add_const_t<U>, U>;
 
         template <typename THandler, typename TItem>
         inline void apply_item_impl(TItem& item, THandler&& handler) {
@@ -286,18 +286,18 @@ namespace osmium {
 
         // Is the class T derived from osmium::handler::Handler?
         template <typename T>
-        using is_handler = std::is_base_of<osmium::handler::Handler, typename std::remove_reference<T>::type>;
+        using is_handler = std::is_base_of<osmium::handler::Handler, std::remove_reference_t<T>>;
 
         // This is already a handler, use it as it is.
-        template <typename T, typename = typename std::enable_if<is_handler<T>::value>::type>
+        template <typename T, typename = std::enable_if_t<is_handler<T>::value>>
         T make_handler(T&& func) {
             return std::forward<T>(func);
         }
 
         // This is not a handler, but a functor. Wrap a handler around it.
-        template <typename T, typename = typename std::enable_if<!is_handler<T>::value>::type>
-        wrapper_handler<typename std::decay<T>::type> make_handler(T&& func) {
-            return wrapper_handler<typename std::decay<T>::type>(std::forward<T>(func));
+        template <typename T, typename = std::enable_if_t<!is_handler<T>::value>>
+        wrapper_handler<std::decay_t<T>> make_handler(T&& func) {
+            return wrapper_handler<std::decay_t<T>>(std::forward<T>(func));
         }
 
     } // namespace detail
