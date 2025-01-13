@@ -194,9 +194,10 @@ public:
         return m_always_build_id_index;
     }
 
-    void set_build_unique_id_index() noexcept
+    void set_build_unique_id_index(bool as_primary_key) noexcept
     {
         m_build_unique_id_index = true;
+        m_primary_key_index = as_primary_key;
     }
 
     bool build_unique_id_index() const noexcept
@@ -264,6 +265,9 @@ private:
 
     /// Build the index as a unique index.
     bool m_build_unique_id_index = false;
+
+    /// Index should be a primary key.
+    bool m_primary_key_index = false;
 
 }; // class flex_table_t
 

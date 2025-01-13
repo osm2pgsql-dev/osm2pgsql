@@ -112,7 +112,10 @@ void parse_create_index(lua_State *lua_state, flex_table_t *table)
         table->set_always_build_id_index();
     } else if (create_index == "unique") {
         table->set_always_build_id_index();
-        table->set_build_unique_id_index();
+        table->set_build_unique_id_index(false);
+    } else if (create_index == "primary_key") {
+        table->set_always_build_id_index();
+        table->set_build_unique_id_index(true);
     } else if (create_index != "auto") {
         throw fmt_error("Unknown value '{}' for 'create_index' field of ids",
                         create_index);
