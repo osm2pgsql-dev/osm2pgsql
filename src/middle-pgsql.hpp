@@ -176,6 +176,9 @@ private:
     std::string render_template(std::string_view templ) const;
     void dbexec(std::string_view templ) const;
 
+    void build_way_node_index();
+    void build_relation_member_indexes();
+
     std::map<osmium::user_id_type, std::string> m_users;
     osmium::nwr_array<table_desc> m_tables;
 
