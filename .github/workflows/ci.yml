@@ -341,7 +341,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2019, windows-2022]
+        os: [windows-2019, windows-2022, windows-2025]
     runs-on: ${{ matrix.os }}
 
     env:
@@ -356,11 +356,6 @@ jobs:
           key: vcpkg-binary-cache-${{ matrix.os }}-${{ github.run_id }}
           restore-keys: |
             vcpkg-binary-cache-${{ matrix.os }}
-      - uses: actions/cache@v4
-        with:
-          path: |
-            C:/postgis.zip
-          key: postgis-cache
       - name: Prepare cache
         run: if [ ! -d C:/vcpkg_binary_cache ]; then mkdir C:/vcpkg_binary_cache; fi
         shell: bash
@@ -393,11 +388,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/cache@v4
-        with:
-          path: |
-            C:/postgis.zip
-          key: postgis-cache
       - uses: actions/download-artifact@v4
         with:
           name: osm2pgsql-win64
