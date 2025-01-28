@@ -522,7 +522,7 @@ std::size_t middle_query_pgsql_t::get_way_node_locations_flatnodes(
 
 osmium::Location middle_query_pgsql_t::get_node_location_db(osmid_t id) const
 {
-    auto const res = m_db_connection.exec_prepared("get_node", id);
+    auto const res = m_db_connection.exec_prepared("get_node_location", id);
     if (res.num_tuples() == 0) {
         return osmium::Location{};
     }
@@ -729,11 +729,14 @@ void build_node(osmid_t id, pg_result_t const &res, int res_num, int offset,
 {
     osmium::builder::NodeBuilder builder{*buffer};
     builder.set_id(id);
+    builder.set_location(osmium::Location{
+        (int)std::strtol(res.get_value(res_num, offset + 0), nullptr, 10),
+        (int)std::strtol(res.get_value(res_num, offset + 1), nullptr, 10)});
 
     if (with_attributes) {
-        set_attributes_on_builder(&builder, res, res_num, offset);
+        set_attributes_on_builder(&builder, res, res_num, offset + 3);
     }
-    pgsql_parse_json_tags(res.get_value(res_num, offset + 1), buffer, &builder);
+    pgsql_parse_json_tags(res.get_value(res_num, offset + 2), buffer, &builder);
 }
 
 /**
@@ -1261,7 +1264,7 @@ middle_pgsql_t::get_query_instance()
         m_store_options);
 
     if (m_store_options.nodes) {
-        mid->prepare("get_node",
+        mid->prepare("get_node_location",
                      render_template(
                          "SELECT id, lon, lat FROM {schema}\"{prefix}_nodes\""
                          " WHERE id = $1::int8"));
@@ -1270,6 +1273,13 @@ middle_pgsql_t::get_query_instance()
                      render_template(
                          "SELECT id, lon, lat FROM {schema}\"{prefix}_nodes\""
                          " WHERE id = ANY($1::int8[])"));
+
+        mid->prepare(
+            "get_node",
+            render_template("SELECT lon, lat, tags{attribute_columns_use}"
+                            " FROM {schema}\"{prefix}_nodes\" o"
+                            " {users_table_access}"
+                            " WHERE o.id = $1::int8"));
     }
 
     mid->prepare("get_way",
