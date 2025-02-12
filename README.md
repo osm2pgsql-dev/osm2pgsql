@@ -66,12 +66,12 @@ with other versions of those libraries (set the `EXTERNAL_*libname*` option to
 * [protozero](https://github.com/mapbox/protozero) (>= 1.6.3)
 
 It also requires access to a database server running
-[PostgreSQL](https://www.postgresql.org/) (version 9.6+ works, 13+ strongly
-recommended) and [PostGIS](https://www.postgis.net/) (version 2.5+).
+[PostgreSQL](https://www.postgresql.org/) (version 11+ works, 13+ strongly
+recommended) and [PostGIS](https://www.postgis.net/) (version 3.0+).
 
 Make sure you have installed the development packages for the libraries
 mentioned in the requirements section and a C++ compiler which supports C++17.
-We officially support gcc >= 8.0 and clang >= 8.
+We officially support gcc >= 10.0 and clang >= 13.
 
 To rebuild the included man page you'll need the [pandoc](https://pandoc.org/)
 tool.

@@ -89,8 +89,8 @@ void check_db(options_t const &options)
     init_database_capabilities(db_connection);
 
     auto const pv = get_postgis_version();
-    if (pv.major < 2 || (pv.major == 2 && pv.minor < 5)) {
-        throw std::runtime_error{"Need at least PostGIS version 2.5"};
+    if (pv.major < 3) {
+        throw std::runtime_error{"Need at least PostGIS version 3.0"};
     }
 
     check_schema(options.dbschema);
