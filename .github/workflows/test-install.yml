@@ -4,7 +4,7 @@ on: [ push, pull_request ]
 
 jobs:
   ubuntu-test-install:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     strategy:
       matrix:
@@ -19,7 +19,7 @@ jobs:
 
     env:
       LUA_VERSION: 5.3
-      POSTGRESQL_VERSION: 14
+      POSTGRESQL_VERSION: 16
       POSTGIS_VERSION: 3
       BUILD_TYPE: Release
       CXXFLAGS: -pedantic -Wextra -Wno-stringop-overread -Werror

@@ -1,5 +1,5 @@
 
-cmake_minimum_required(VERSION 3.8.0)
+cmake_minimum_required(VERSION 3.10.0)
 
 project(osm2pgsql VERSION 2.0.1 LANGUAGES CXX C)
 
@@ -64,10 +64,10 @@ if (NOT WIN32 AND NOT APPLE)
     set(PostgreSQL_TYPE_INCLUDE_DIR /usr/include)
 endif()
 
-set(MINIMUM_POSTGRESQL_SERVER_VERSION "9.6")
-set(MINIMUM_POSTGRESQL_SERVER_VERSION_NUM "90600")
+set(MINIMUM_POSTGRESQL_SERVER_VERSION "11")
+set(MINIMUM_POSTGRESQL_SERVER_VERSION_NUM "110000")
 
-set(PostgreSQL_ADDITIONAL_VERSIONS "17" "16" "15" "14" "13" "12" "11" "10" "9.6")
+set(PostgreSQL_ADDITIONAL_VERSIONS "17" "16" "15" "14" "13" "12" "11")
 
 #############################################################
 # Version

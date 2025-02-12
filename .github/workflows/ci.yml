@@ -4,57 +4,17 @@ on: [ push, pull_request ]
 
 jobs:
 
-  ubuntu20-pg96-gcc10-jit:
-    runs-on: ubuntu-20.04
+  ubuntu22-pg11-gcc10-jit:
+    runs-on: ubuntu-22.04
 
     env:
       CC: gcc-10
       CXX: g++-10
-      EXTRA_FLAGS: -Wno-unused-but-set-parameter # workaround for GCC bug
       LUA_VERSION: 5.3
       LUAJIT_OPTION: ON
-      POSTGRESQL_VERSION: 9.6
-      POSTGIS_VERSION: 2.5
-      BUILD_TYPE: Release
-      PSYCOPG: 2
-
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/ubuntu-prerequisites
-      - uses: ./.github/actions/linux-cmake
-      - uses: ./.github/actions/build-and-test
-
-  ubuntu20-pg96-clang10-jit:
-    runs-on: ubuntu-20.04
-
-    env:
-      CC: clang-10
-      CXX: clang++-10
-      LUA_VERSION: 5.3
-      LUAJIT_OPTION: ON
-      POSTGRESQL_VERSION: 9.6
-      POSTGIS_VERSION: 2.5
-      BUILD_TYPE: Release
-      PSYCOPG: 2
-
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/ubuntu-prerequisites
-      - uses: ./.github/actions/linux-cmake
-      - uses: ./.github/actions/build-and-test
-
-  ubuntu20-pg10-gcc10:
-    runs-on: ubuntu-20.04
-
-    env:
-      CC: gcc-10
-      CXX: g++-10
-      EXTRA_FLAGS: -Wno-unused-but-set-parameter # workaround for GCC bug
-      LUA_VERSION: 5.3
-      LUAJIT_OPTION: OFF
-      POSTGRESQL_VERSION: 10
+      POSTGRESQL_VERSION: 11
       POSTGIS_VERSION: 3
-      BUILD_TYPE: Debug
+      BUILD_TYPE: Release
       PSYCOPG: 2
 
     steps:
@@ -63,55 +23,34 @@ jobs:
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
 
-
-  ubuntu20-pg11-clang10:
-    runs-on: ubuntu-20.04
+  ubuntu22-pg11-clang13-jit:
+    runs-on: ubuntu-22.04
 
     env:
-      CC: clang-10
-      CXX: clang++-10
+      CC: clang-13
+      CXX: clang++-13
+      LUA_VERSION: 5.3
+      LUAJIT_OPTION: ON
+      POSTGRESQL_VERSION: 11
+      POSTGIS_VERSION: 3
+      BUILD_TYPE: Release
+      PSYCOPG: 2
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/linux-cmake
+      - uses: ./.github/actions/build-and-test
+
+  ubuntu22-pg11-gcc10:
+    runs-on: ubuntu-22.04
+
+    env:
+      CC: gcc-10
+      CXX: g++-10
       LUA_VERSION: 5.3
       LUAJIT_OPTION: OFF
       POSTGRESQL_VERSION: 11
-      POSTGIS_VERSION: 2.5
-      BUILD_TYPE: Debug
-      PSYCOPG: 2
-
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/ubuntu-prerequisites
-      - uses: ./.github/actions/linux-cmake
-      - uses: ./.github/actions/build-and-test
-
-  ubuntu20-pg13-gcc10-jit:
-    runs-on: ubuntu-20.04
-
-    env:
-      CC: gcc-10
-      CXX: g++-10
-      LUA_VERSION: 5.3
-      LUAJIT_OPTION: ON
-      POSTGRESQL_VERSION: 13
-      POSTGIS_VERSION: 2.5
-      BUILD_TYPE: Debug
-      PSYCOPG: 2
-
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/ubuntu-prerequisites
-      - uses: ./.github/actions/linux-cmake
-      - uses: ./.github/actions/build-and-test
-
-
-  ubuntu20-pg15-clang10-jit:
-    runs-on: ubuntu-20.04
-
-    env:
-      CC: clang-10
-      CXX: clang++-10
-      LUA_VERSION: 5.3
-      LUAJIT_OPTION: ON
-      POSTGRESQL_VERSION: 15
       POSTGIS_VERSION: 3
       BUILD_TYPE: Debug
       PSYCOPG: 2
@@ -122,15 +61,74 @@ jobs:
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
 
-  ubuntu20-pg15-clang10-noproj:
-    runs-on: ubuntu-20.04
+
+  ubuntu22-pg11-clang13:
+    runs-on: ubuntu-22.04
 
     env:
-      CC: clang-10
-      CXX: clang++-10
+      CC: clang-13
+      CXX: clang++-13
       LUA_VERSION: 5.3
       LUAJIT_OPTION: OFF
-      POSTGRESQL_VERSION: 15
+      POSTGRESQL_VERSION: 11
+      POSTGIS_VERSION: 3
+      BUILD_TYPE: Debug
+      PSYCOPG: 2
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/linux-cmake
+      - uses: ./.github/actions/build-and-test
+
+  ubuntu22-pg13-gcc11-jit:
+    runs-on: ubuntu-22.04
+
+    env:
+      CC: gcc-11
+      CXX: g++-11
+      LUA_VERSION: 5.3
+      LUAJIT_OPTION: ON
+      POSTGRESQL_VERSION: 13
+      POSTGIS_VERSION: 3
+      BUILD_TYPE: Debug
+      PSYCOPG: 2
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/linux-cmake
+      - uses: ./.github/actions/build-and-test
+
+
+  ubuntu22-pg12-clang14-jit:
+    runs-on: ubuntu-22.04
+
+    env:
+      CC: clang-14
+      CXX: clang++-14
+      LUA_VERSION: 5.3
+      LUAJIT_OPTION: ON
+      POSTGRESQL_VERSION: 12
+      POSTGIS_VERSION: 3
+      BUILD_TYPE: Debug
+      PSYCOPG: 2
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/linux-cmake
+      - uses: ./.github/actions/build-and-test
+
+  ubuntu22-pg12-clang15-noproj:
+    runs-on: ubuntu-22.04
+
+    env:
+      CC: clang-15
+      CXX: clang++-15
+      LUA_VERSION: 5.3
+      LUAJIT_OPTION: OFF
+      POSTGRESQL_VERSION: 12
       POSTGIS_VERSION: 3
       WITH_PROJ: OFF
       BUILD_TYPE: Debug
@@ -142,12 +140,12 @@ jobs:
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
 
-  ubuntu20-pg16-clang10:
-    runs-on: ubuntu-20.04
+  ubuntu22-pg16-clang15:
+    runs-on: ubuntu-22.04
 
     env:
-      CC: clang-10
-      CXX: clang++-10
+      CC: clang-15
+      CXX: clang++-15
       LUA_VERSION: 5.3
       LUAJIT_OPTION: OFF
       POSTGRESQL_VERSION: 16
@@ -161,16 +159,17 @@ jobs:
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
 
-  ubuntu20-pg13-gcc10-release:
-    runs-on: ubuntu-20.04
+  ubuntu22-pg13-gcc12-release:
+    runs-on: ubuntu-22.04
 
     env:
-      CC: gcc-10
-      CXX: g++-10
+      CC: gcc-12
+      CXX: g++-12
+      EXTRA_FLAGS: -Wno-stringop-overread
       LUA_VERSION: 5.3
       LUAJIT_OPTION: ON
       POSTGRESQL_VERSION: 13
-      POSTGIS_VERSION: 2.5
+      POSTGIS_VERSION: 3
       BUILD_TYPE: Release
       PSYCOPG: 2
 
@@ -180,15 +179,15 @@ jobs:
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
 
-  ubuntu22-pg16-clang14-jit:
-    runs-on: ubuntu-22.04
+  ubuntu24-pg14-clang16-jit:
+    runs-on: ubuntu-24.04
 
     env:
-      CC: clang-14
-      CXX: clang++-14
+      CC: clang-16
+      CXX: clang++-16
       LUA_VERSION: 5.4
       LUAJIT_OPTION: ON
-      POSTGRESQL_VERSION: 16
+      POSTGRESQL_VERSION: 14
       POSTGIS_VERSION: 3
       BUILD_TYPE: Debug
       PSYCOPG: 2
@@ -199,15 +198,15 @@ jobs:
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
 
-  ubuntu22-pg16-clang14-proj:
-    runs-on: ubuntu-22.04
+  ubuntu24-pg14-clang17-proj:
+    runs-on: ubuntu-24.04
 
     env:
-      CC: clang-14
-      CXX: clang++-14
+      CC: clang-17
+      CXX: clang++-17
       LUA_VERSION: 5.4
       LUAJIT_OPTION: OFF
-      POSTGRESQL_VERSION: 16
+      POSTGRESQL_VERSION: 14
       POSTGIS_VERSION: 3
       BUILD_TYPE: Debug
       PSYCOPG: 2
@@ -218,15 +217,15 @@ jobs:
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
 
-  ubuntu22-pg16-clang14-noproj:
-    runs-on: ubuntu-22.04
+  ubuntu24-pg15-clang17-noproj:
+    runs-on: ubuntu-24.04
 
     env:
-      CC: clang-14
-      CXX: clang++-14
+      CC: clang-17
+      CXX: clang++-17
       LUA_VERSION: 5.3
       LUAJIT_OPTION: OFF
-      POSTGRESQL_VERSION: 16
+      POSTGRESQL_VERSION: 15
       POSTGIS_VERSION: 3
       WITH_PROJ: OFF
       BUILD_TYPE: Debug
@@ -238,12 +237,12 @@ jobs:
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
 
-  ubuntu22-pg15-clang14:
-    runs-on: ubuntu-22.04
+  ubuntu24-pg15-clang18:
+    runs-on: ubuntu-24.04
 
     env:
-      CC: clang-14
-      CXX: clang++-14
+      CC: clang-18
+      CXX: clang++-18
       LUA_VERSION: 5.4
       LUAJIT_OPTION: OFF
       POSTGRESQL_VERSION: 15
@@ -257,8 +256,8 @@ jobs:
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
 
-  ubuntu22-pg16-gcc12-release:
-    runs-on: ubuntu-22.04
+  ubuntu24-pg16-gcc12-release:
+    runs-on: ubuntu-24.04
 
     env:
       CC: gcc-12
@@ -277,15 +276,15 @@ jobs:
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
 
-  ubuntu22-pg16-clang15-cpp20:
-    runs-on: ubuntu-22.04
+  ubuntu24-pg17-clang16-cpp20:
+    runs-on: ubuntu-24.04
 
     env:
-      CC: clang-15
-      CXX: clang++-15
+      CC: clang-16
+      CXX: clang++-16
       LUA_VERSION: 5.3
       LUAJIT_OPTION: OFF
-      POSTGRESQL_VERSION: 16
+      POSTGRESQL_VERSION: 17
       POSTGIS_VERSION: 3
       CPP_VERSION: 20
       BUILD_TYPE: Debug
@@ -297,39 +296,19 @@ jobs:
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
 
-  ubuntu22-pg16-gcc12-cpp20:
-    runs-on: ubuntu-22.04
+  ubuntu24-pg17-gcc12-cpp20:
+    runs-on: ubuntu-24.04
 
     env:
       CC: gcc-12
       CXX: g++-12
       LUA_VERSION: 5.3
       LUAJIT_OPTION: OFF
-      POSTGRESQL_VERSION: 16
+      POSTGRESQL_VERSION: 17
       POSTGIS_VERSION: 3
       CPP_VERSION: 20
       BUILD_TYPE: Debug
       PSYCOPG: 3
-
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/ubuntu-prerequisites
-      - uses: ./.github/actions/linux-cmake
-      - uses: ./.github/actions/build-and-test
-
-  ubuntu24-pg16-gcc14:
-    runs-on: ubuntu-24.04
-
-    env:
-      CC: gcc-14
-      CXX: g++-14
-      LUA_VERSION: 5.4
-      LUAJIT_OPTION: OFF
-      POSTGRESQL_VERSION: 16
-      POSTGIS_VERSION: 3
-      BUILD_TYPE: Debug
-      PSYCOPG: 3
-      PIP_OPTION: --break-system-packages
 
     steps:
       - uses: actions/checkout@v4

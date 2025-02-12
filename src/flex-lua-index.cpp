@@ -105,23 +105,17 @@ void flex_lua_setup_index(lua_State *lua_state, flex_table_t *table)
     // get include columns
     std::vector<std::string> include_columns;
     lua_getfield(lua_state, -1, "include");
-    if (get_database_version() >= 110000) {
-        if (lua_isstring(lua_state, -1)) {
-            check_and_add_column(*table, &include_columns,
-                                 lua_tostring(lua_state, -1));
-        } else if (lua_istable(lua_state, -1)) {
-            check_and_add_columns(*table, &include_columns, lua_state);
-        } else if (!lua_isnil(lua_state, -1)) {
-            throw std::runtime_error{
-                "The 'include' field in an index definition must contain a "
-                "string or an array."};
-        }
-        index.set_include_columns(include_columns);
+    if (lua_isstring(lua_state, -1)) {
+        check_and_add_column(*table, &include_columns,
+                             lua_tostring(lua_state, -1));
+    } else if (lua_istable(lua_state, -1)) {
+        check_and_add_columns(*table, &include_columns, lua_state);
     } else if (!lua_isnil(lua_state, -1)) {
-        throw fmt_error("Database version ({}) doesn't support"
-                        " include columns in indexes.",
-                        get_database_version());
+        throw std::runtime_error{
+            "The 'include' field in an index definition must contain a "
+            "string or an array."};
     }
+    index.set_include_columns(include_columns);
     lua_pop(lua_state, 1);
 
     // get tablespace
