@@ -6,10 +6,8 @@ runs:
   steps:
     - name: Remove preinstalled PostgreSQL
       run: |
-        sudo apt-get remove -yq postgresql*
-        sudo apt-get install curl ca-certificates gnupg
-        curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/apt.postgresql.org.gpg >/dev/null
-        sudo sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+        sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+        sudo apt-get purge -yq postgresql*
         sudo apt-get update -qq
       shell: bash
 
@@ -32,7 +30,6 @@ runs:
           python3-setuptools \
           zlib1g-dev
         pip3 install $PIP_OPTION behave osmium
-        if [ "$CC" = clang-8 ]; then sudo apt-get install -yq --no-install-suggests --no-install-recommends clang-8; fi
         if [ "$PSYCOPG" = "2"]; then
             sudo apt-get install -yq --no-install-suggests --no-install-recommends python3-psycopg2
         else
