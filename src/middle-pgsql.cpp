@@ -762,17 +762,33 @@ bool middle_query_pgsql_t::node_get(osmid_t id,
 {
     assert(buffer);
 
-    auto const res = m_db_connection.exec_prepared("get_node", id);
+    if (m_store_options.nodes) {
+        auto const res = m_db_connection.exec_prepared("get_node", id);
 
-    if (res.num_tuples() != 1) {
-        return false;
+        if (res.num_tuples() == 1) {
+            build_node(id, res, 0, 0, buffer, m_store_options.with_attributes);
+            buffer->commit();
+            return true;
+        }
     }
 
-    build_node(id, res, 0, 0, buffer, m_store_options.with_attributes);
+    if (m_store_options.use_flat_node_file) {
+        auto const location = get_node_location_flatnodes(id);
+        if (!location.valid()) {
+            return false;
+        }
 
-    buffer->commit();
+        {
+            osmium::builder::NodeBuilder builder{*buffer};
+            builder.set_id(id);
+            builder.set_location(location);
+        }
 
-    return true;
+        buffer->commit();
+        return true;
+    }
+
+    return false;
 }
 
 bool middle_query_pgsql_t::way_get(osmid_t id,

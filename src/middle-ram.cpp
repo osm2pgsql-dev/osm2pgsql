@@ -283,8 +283,32 @@ bool middle_ram_t::node_get(osmid_t id, osmium::memory::Buffer *buffer) const
     assert(buffer);
 
     if (m_store_options.nodes) {
-        return get_object(osmium::item_type::node, id, buffer);
+        auto const got_it = get_object(osmium::item_type::node, id, buffer);
+        if (got_it) {
+            return true;
+        }
     }
+
+    if (m_store_options.locations) {
+        osmium::Location location{};
+        if (m_persistent_cache) {
+            location = m_persistent_cache->get(id);
+        }
+        if (!location.valid()) {
+            location = m_node_locations.get(id);
+        }
+        if (location.valid()) {
+            {
+                osmium::builder::NodeBuilder builder{*buffer};
+                builder.set_id(id);
+                builder.set_location(location);
+            }
+
+            buffer->commit();
+            return true;
+        }
+    }
+
     return false;
 }
 
