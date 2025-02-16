@@ -1,5 +1,5 @@
-#ifndef OSM2PGSQL_FLEX_EXPIRE_CONFIG_HPP
-#define OSM2PGSQL_FLEX_EXPIRE_CONFIG_HPP
+#ifndef OSM2PGSQL_EXPIRE_CONFIG_HPP
+#define OSM2PGSQL_EXPIRE_CONFIG_HPP
 
 /**
  * SPDX-License-Identifier: GPL-2.0-or-later
@@ -45,4 +45,4 @@ struct expire_config_t
 
 }; // struct expire_config_t
 
-#endif // OSM2PGSQL_FLEX_EXPIRE_CONFIG_HPP
+#endif // OSM2PGSQL_EXPIRE_CONFIG_HPP
