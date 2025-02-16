@@ -30,7 +30,6 @@ runs:
           python3-setuptools \
           zlib1g-dev
         pip3 install $PIP_OPTION behave osmium
-        if [ "$CC" = clang-8 ]; then sudo apt-get install -yq --no-install-suggests --no-install-recommends clang-8; fi
         if [ "$PSYCOPG" = "2"]; then
             sudo apt-get install -yq --no-install-suggests --no-install-recommends python3-psycopg2
         else
