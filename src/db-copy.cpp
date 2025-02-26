@@ -88,9 +88,6 @@ void db_deleter_by_type_and_id_t::delete_rows(std::string const &table,
 
 db_copy_thread_t::db_copy_thread_t(connection_params_t const &connection_params)
 {
-    // Connection params are captured by copy here, because we don't know
-    // whether the reference will still be valid once we get around to running
-    // the thread.
     m_worker =
         std::thread{thread_t{pg_conn_t{connection_params, "copy"}, &m_shared}};
 }
