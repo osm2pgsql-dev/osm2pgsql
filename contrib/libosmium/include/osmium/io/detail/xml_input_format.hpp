@@ -179,7 +179,7 @@ namespace osmium {
                             return;
                         }
                         try {
-                            func(xml_parser);
+                            std::forward<TFunc>(func)(xml_parser);
                         } catch (...) {
                             m_exception_ptr = std::current_exception();
                             XML_StopParser(m_parser, 0);
@@ -267,10 +267,10 @@ namespace osmium {
 
                 ExpatXMLParser* m_expat_xml_parser{nullptr};
 
-                template <typename T>
-                static void check_attributes(const XML_Char** attrs, T&& check) {
+                template <typename TFunc>
+                static void check_attributes(const XML_Char** attrs, TFunc&& check) {
                     while (*attrs) {
-                        check(attrs[0], attrs[1]);
+                        std::forward<TFunc>(check)(attrs[0], attrs[1]);
                         attrs += 2;
                     }
                 }

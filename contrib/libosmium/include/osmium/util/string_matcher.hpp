@@ -54,30 +54,6 @@ DEALINGS IN THE SOFTWARE.
 # include <boost/variant.hpp>
 #endif
 
-
-// std::regex isn't implemented properly in glibc++ (before the version
-// delivered with GCC 4.9) and libc++ before the version 3.6, so the use is
-// disabled by these checks. Checks for GLIBC were based on
-// https://stackoverflow.com/questions/12530406/is-gcc-4-8-or-earlier-buggy-about-regular-expressions
-// Checks for libc++ are simply based on compiler defines. This is probably
-// not optimal but seems to work for now.
-#if defined(__GLIBCXX__)
-# if ((__cplusplus >= 201402L) || \
-        defined(_GLIBCXX_REGEX_DFS_QUANTIFIERS_LIMIT) || \
-        defined(_GLIBCXX_REGEX_STATE_LIMIT))
-#  define OSMIUM_WITH_REGEX
-# else
-#  pragma message("Disabling regex functionality. See source code for info.")
-# endif
-#elif defined(__clang__)
-# if ((__clang_major__ > 3) || \
-      (__clang_minor__ == 3 && __clang_minor__ > 5))
-#  define OSMIUM_WITH_REGEX
-# else
-#  pragma message("Disabling regex functionality")
-# endif
-#endif
-
 namespace osmium {
 
     /**
@@ -211,7 +187,6 @@ namespace osmium {
 
         }; // class substring
 
-#ifdef OSMIUM_WITH_REGEX
         /**
          * Matches if the test string matches the regular expression.
          */
@@ -235,7 +210,6 @@ namespace osmium {
             }
 
         }; // class regex
-#endif
 
         /**
          * Matches if the test string is equal to any of the stored strings.
@@ -293,9 +267,7 @@ namespace osmium {
                  equal,
                  prefix,
                  substring,
-#ifdef OSMIUM_WITH_REGEX
                  regex,
-#endif
                  list>;
 
         matcher_type m_matcher;
@@ -388,7 +360,6 @@ namespace osmium {
             m_matcher(equal{str}) {
         }
 
-#ifdef OSMIUM_WITH_REGEX
         /**
          * Create a string matcher that will match the specified regex.
          * Shortcut for
@@ -398,7 +369,6 @@ namespace osmium {
         StringMatcher(const std::regex& aregex) : // NOLINT(google-explicit-constructor, hicpp-explicit-conversions)
             m_matcher(regex{aregex}) {
         }
-#endif
 
         /**
          * Create a string matcher that will match if any of the strings

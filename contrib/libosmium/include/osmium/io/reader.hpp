@@ -327,7 +327,7 @@ namespace osmium {
                 m_osmdata_queue(detail::get_osmdata_queue_size(), "parser_results"),
                 m_osmdata_queue_wrapper(m_osmdata_queue) {
 
-                (void)std::initializer_list<int>{(set_option(args), 0)...};
+                (void)std::initializer_list<int>{(set_option(std::forward<TArgs>(args)), 0)...};
 
                 if (!m_pool) {
                     m_pool = &thread::Pool::default_instance();
@@ -390,7 +390,7 @@ namespace osmium {
 
                 try {
                     m_read_thread_manager.close();
-                } catch (...) {
+                } catch (...) { // NOLINT(bugprone-empty-catch)
                     // Ignore any exceptions.
                 }
 

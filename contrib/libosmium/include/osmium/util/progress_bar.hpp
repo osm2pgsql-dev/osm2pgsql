@@ -132,7 +132,7 @@ namespace osmium {
             if (m_do_cleanup) {
                 try {
                     done();
-                } catch (...) {
+                } catch (...) { // NOLINT(bugprone-empty-catch)
                     // Swallow any exceptions, because a destructor should
                     // not throw.
                 }

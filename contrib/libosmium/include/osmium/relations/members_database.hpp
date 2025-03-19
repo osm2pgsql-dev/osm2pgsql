@@ -46,6 +46,7 @@ DEALINGS IN THE SOFTWARE.
 #include <limits>
 #include <tuple>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace osmium {
@@ -384,7 +385,7 @@ namespace osmium {
                     rel_handle.decrement_members();
 
                     if (rel_handle.has_all_members()) {
-                        func(rel_handle);
+                        std::forward<TFunc>(func)(rel_handle);
                     }
                 }
 
