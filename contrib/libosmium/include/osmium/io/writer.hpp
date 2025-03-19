@@ -269,7 +269,7 @@ namespace osmium {
                 assert(!m_file.buffer()); // XXX can't handle pseudo-files
 
                 options_type options;
-                (void)std::initializer_list<int>{(set_option(options, args), 0)...};
+                (void)std::initializer_list<int>{(set_option(options, std::forward<TArgs>(args)), 0)...};
 
                 if (!options.pool) {
                     options.pool = &thread::Pool::default_instance();
