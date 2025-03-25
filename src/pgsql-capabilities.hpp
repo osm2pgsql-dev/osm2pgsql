@@ -23,6 +23,8 @@ bool has_tablespace(std::string const &value);
 bool has_index_method(std::string const &value);
 bool has_table(std::string schema, std::string const &name);
 
+bool is_geometry_type(unsigned int oid);
+
 void check_schema(std::string const &schema);
 
 /// Get PostgreSQL version in the format (major * 10000 + minor).

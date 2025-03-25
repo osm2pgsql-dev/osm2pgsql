@@ -17,6 +17,7 @@
 #include "flex-table.hpp"
 #include "geom.hpp"
 #include "idlist.hpp"
+#include "locator.hpp"
 #include "output.hpp"
 
 #include <osmium/osm/item_type.hpp>
@@ -160,6 +161,7 @@ public:
     int app_as_multipolygon();
     int app_as_geometrycollection();
 
+    int app_define_locator();
     int app_define_table();
     int app_define_expire_output();
     int app_get_bbox();
@@ -171,6 +173,9 @@ public:
 
     // Get the expire output that is as first parameter on the Lua stack.
     expire_output_t &get_expire_output_from_param();
+
+    // Get the flex locator that is as first parameter on the Lua stack.
+    locator_t &get_locator_from_param();
 
 private:
     void select_relation_members();
@@ -257,6 +262,9 @@ private:
         osmium::Relation const *m_relation = nullptr;
 
     }; // relation_cache_t
+
+    std::shared_ptr<std::vector<locator_t>> m_locators =
+        std::make_shared<std::vector<locator_t>>();
 
     std::shared_ptr<std::vector<flex_table_t>> m_tables =
         std::make_shared<std::vector<flex_table_t>>();

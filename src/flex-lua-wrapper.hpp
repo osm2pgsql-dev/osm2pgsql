@@ -12,6 +12,7 @@
 
 #include "output-flex.hpp"
 
+#include <cassert>
 #include <exception>
 
 #define TRAMPOLINE_WRAPPED_OBJECT(obj_name, func_name)                         \
@@ -43,6 +44,8 @@ public:
     lua_wrapper_base(lua_State *lua_state, WRAPPED *wrapped)
     : m_lua_state(lua_state), m_self(wrapped)
     {
+        assert(lua_state);
+        assert(wrapped);
     }
 
 protected:
