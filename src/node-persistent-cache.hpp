@@ -21,7 +21,8 @@
 class node_persistent_cache
 {
 public:
-    node_persistent_cache(std::string file_name, bool remove_file);
+    node_persistent_cache(std::string file_name, bool create_file,
+                          bool remove_file);
     ~node_persistent_cache() noexcept;
 
     node_persistent_cache(node_persistent_cache const &) = delete;

@@ -1248,7 +1248,7 @@ middle_pgsql_t::middle_pgsql_t(std::shared_ptr<thread_pool_t> thread_pool,
     } else {
         m_store_options.use_flat_node_file = true;
         m_persistent_cache = std::make_shared<node_persistent_cache>(
-            options->flat_node_file, options->droptemp);
+            options->flat_node_file, !options->append, options->droptemp);
     }
 
     log_debug("Mid: pgsql, cache={}", options->cache);

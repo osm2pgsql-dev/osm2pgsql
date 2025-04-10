@@ -29,15 +29,20 @@ osmium::Location node_persistent_cache::get(osmid_t id) const noexcept
 }
 
 node_persistent_cache::node_persistent_cache(std::string file_name,
-                                             bool remove_file)
+                                             bool create_file, bool remove_file)
 : m_file_name(std::move(file_name)), m_remove_file(remove_file)
 {
     assert(!m_file_name.empty());
 
     log_debug("Loading persistent node cache from '{}'.", m_file_name);
 
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-signed-bitwise)
-    m_fd = open(m_file_name.c_str(), O_RDWR | O_CREAT, 0644);
+    int flags = O_RDWR; // NOLINT(hicpp-signed-bitwise)
+    if (create_file) {
+        flags |= O_CREAT; // NOLINT(hicpp-signed-bitwise)
+    }
+
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
+    m_fd = open(m_file_name.c_str(), flags, 0644);
     if (m_fd < 0) {
         throw std::system_error{
             errno, std::system_category(),
