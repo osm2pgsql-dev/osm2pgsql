@@ -41,6 +41,10 @@ node_persistent_cache::node_persistent_cache(std::string file_name,
         flags |= O_CREAT; // NOLINT(hicpp-signed-bitwise)
     }
 
+#ifdef _WIN32
+    flags |= O_BINARY; // NOLINT(hicpp-signed-bitwise)
+#endif
+
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
     m_fd = open(m_file_name.c_str(), flags, 0644);
     if (m_fd < 0) {
