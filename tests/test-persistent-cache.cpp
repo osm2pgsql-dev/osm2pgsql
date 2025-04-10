@@ -107,3 +107,12 @@ TEST_CASE("Persistent cache", "[NoDB]")
         read_location(cache, 9934, -179.999, 89.1);
     }
 }
+
+TEST_CASE("Opening non-existent persistent cache should fail in append mode", "[NoDB]")
+{
+    std::string const flat_node_file =
+        "test_middle_flat.nonexistent.flat.nodes.bin";
+    testing::cleanup::file_t const flatnode_cleaner{flat_node_file};
+
+    REQUIRE_THROWS(node_persistent_cache(flat_node_file, false));
+}
