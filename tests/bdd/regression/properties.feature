@@ -62,8 +62,23 @@ Feature: Updates to the test database with properties check
             |                |                | Not using flat node file (same as on import). |
             | --flat-nodes=x |                | Using flat node file                          |
             | --flat-nodes=x | --flat-nodes=x | Using flat node file                          |
-            | --flat-nodes=x | --flat-nodes=y | Using the flat node file you specified        |
             | --prefix=abc   |                | Using prefix 'abc' (same as on import).       |
+
+
+    Scenario: Create, then append with non-existent flat node file
+        When running osm2pgsql pgsql with parameters
+            | --slim         |
+            | --flat-nodes=x |
+
+        Given the input file '000466354.osc.gz'
+        Then running osm2pgsql pgsql with parameters fails
+            | -a             |
+            | --slim         |
+            | --flat-nodes=y |
+        And the error output contains
+            """
+            Unable to open flatnode file
+            """
 
 
     Scenario: Create with different output than append

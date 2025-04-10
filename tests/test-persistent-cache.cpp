@@ -43,7 +43,7 @@ TEST_CASE("Persistent cache", "[NoDB]")
 
     // create a new cache
     {
-        node_persistent_cache cache{flat_node_file, false};
+        node_persistent_cache cache{flat_node_file, true, false};
 
         // write in order
         write_and_read_location(&cache, 10, 10.01, -45.3);
@@ -66,7 +66,7 @@ TEST_CASE("Persistent cache", "[NoDB]")
 
     // reopen the cache
     {
-        node_persistent_cache cache{flat_node_file, false};
+        node_persistent_cache cache{flat_node_file, false, false};
 
         // read all previously written locations
         read_location(cache, 10, 10.01, -45.3);
@@ -106,4 +106,13 @@ TEST_CASE("Persistent cache", "[NoDB]")
         read_location(cache, 502754, 0.0, 0.0);
         read_location(cache, 9934, -179.999, 89.1);
     }
+}
+
+TEST_CASE("Opening non-existent persistent cache should fail in append mode", "[NoDB]")
+{
+    std::string const flat_node_file =
+        "test_middle_flat.nonexistent.flat.nodes.bin";
+    testing::cleanup::file_t const flatnode_cleaner{flat_node_file};
+
+    REQUIRE_THROWS(node_persistent_cache(flat_node_file, false, false));
 }
