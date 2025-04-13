@@ -104,7 +104,7 @@ class GeometryFactory:
                 assert ' y' not in line
 
                 coords = self.grid_node(nid)
-                assert coords is not None, f"Coordinates missing for node {node}"
+                assert coords is not None, f"Coordinates missing for node {nid}"
                 nodes[i] = f"{line} x{coords[0]:.{self.grid_precision}f} y{coords[1]:.{self.grid_precision}f}"
 
             todos.discard(nid)
