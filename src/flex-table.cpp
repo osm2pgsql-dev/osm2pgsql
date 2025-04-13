@@ -76,8 +76,9 @@ bool flex_table_t::has_id_column() const noexcept
 
 bool flex_table_t::matches_type(osmium::item_type type) const noexcept
 {
-    // This table takes any type -> okay
-    if (m_id_type == flex_table_index_type::any_object) {
+    // This table takes any type or has no ids -> okay
+    if (m_id_type == flex_table_index_type::any_object ||
+        m_id_type == flex_table_index_type::no_index) {
         return true;
     }
 
