@@ -213,7 +213,9 @@ the report.
 
 * Decide on a new version. (See [semantic versioning](https://semver.org/).)
 * Update version in [CMakeLists.txt](CMakeLists.txt), look for `project` function.
-* Build man page (`make man`) and copy it to `man/osm2pgsql.1`.
+* Update man pages
+  * Build man page: `make man`
+  * Copy to source: `cp man/*1 ../man/`
 * Tag release with release notes in commit message and upload the tag to Github.
 * Fill out release notes on Github.
 * Copy Windows binaries and source tarball to osm2pgsql.org.
