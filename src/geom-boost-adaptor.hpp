@@ -11,8 +11,10 @@
  */
 
 #include "geom.hpp"
+#include "geom-box.hpp"
 
 #include <boost/geometry.hpp>
+#include <boost/geometry/geometries/register/box.hpp>
 #include <boost/geometry/geometries/register/linestring.hpp>
 #include <boost/geometry/geometries/register/multi_linestring.hpp>
 #include <boost/geometry/geometries/register/multi_point.hpp>
@@ -76,6 +78,48 @@ struct interior_rings<::geom::polygon_t>
     // NOLINTNEXTLINE(google-runtime-references)
     static auto &get(::geom::polygon_t &p) { return p.inners(); }
     static auto const &get(::geom::polygon_t const &p) { return p.inners(); }
+};
+
+BOOST_GEOMETRY_DETAIL_SPECIALIZE_BOX_TRAITS(::geom::box_t, ::geom::point_t)
+
+template <>
+struct indexed_access<::geom::box_t, min_corner, 0>
+{
+    static inline double get(::geom::box_t const &b) { return b.min_x(); }
+    static inline void set(::geom::box_t &b, double value)
+    {
+        b.set_min_x(value);
+    }
+};
+
+template <>
+struct indexed_access<::geom::box_t, min_corner, 1>
+{
+    static inline double get(::geom::box_t const &b) { return b.min_y(); }
+    static inline void set(::geom::box_t &b, double value)
+    {
+        b.set_min_y(value);
+    }
+};
+
+template <>
+struct indexed_access<::geom::box_t, max_corner, 0>
+{
+    static inline double get(::geom::box_t const &b) { return b.max_x(); }
+    static inline void set(::geom::box_t &b, double value)
+    {
+        b.set_max_x(value);
+    }
+};
+
+template <>
+struct indexed_access<::geom::box_t, max_corner, 1>
+{
+    static inline double get(::geom::box_t const &b) { return b.max_y(); }
+    static inline void set(::geom::box_t &b, double value)
+    {
+        b.set_max_y(value);
+    }
 };
 
 } // namespace boost::geometry::traits

@@ -9,7 +9,49 @@
 
 #include <catch.hpp>
 
+#include "geom-boost-adaptor.hpp"
 #include "geom-box.hpp"
+
+TEST_CASE("box_t getter/setter", "[NoDB]")
+{
+    geom::box_t box{1.0, 2.0, 3.0, 4.0};
+
+    REQUIRE(box.min_x() == Approx(1.0));
+    REQUIRE(box.max_x() == Approx(3.0));
+    REQUIRE(box.min_y() == Approx(2.0));
+    REQUIRE(box.max_y() == Approx(4.0));
+
+    box.set_min_x(1.5);
+    box.set_min_y(2.5);
+    box.set_max_x(3.5);
+    box.set_max_y(4.5);
+
+    REQUIRE(box.min_x() == Approx(1.5));
+    REQUIRE(box.max_x() == Approx(3.5));
+    REQUIRE(box.min_y() == Approx(2.5));
+    REQUIRE(box.max_y() == Approx(4.5));
+}
+
+TEST_CASE("box_t getter/setter through boost", "[NoDB]")
+{
+    geom::box_t box{1.0, 2.0, 3.0, 4.0};
+
+    namespace bg = ::boost::geometry;
+    REQUIRE(bg::get<bg::min_corner, 0>(box) == Approx(1.0));
+    REQUIRE(bg::get<bg::min_corner, 1>(box) == Approx(2.0));
+    REQUIRE(bg::get<bg::max_corner, 0>(box) == Approx(3.0));
+    REQUIRE(bg::get<bg::max_corner, 1>(box) == Approx(4.0));
+
+    bg::set<bg::min_corner, 0>(box, 1.5);
+    bg::set<bg::min_corner, 1>(box, 2.5);
+    bg::set<bg::max_corner, 0>(box, 3.5);
+    bg::set<bg::max_corner, 1>(box, 4.5);
+
+    REQUIRE(box.min_x() == Approx(1.5));
+    REQUIRE(box.min_y() == Approx(2.5));
+    REQUIRE(box.max_x() == Approx(3.5));
+    REQUIRE(box.max_y() == Approx(4.5));
+}
 
 TEST_CASE("Extend box_t with points", "[NoDB]")
 {
