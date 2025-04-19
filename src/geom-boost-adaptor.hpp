@@ -54,12 +54,12 @@ struct ring_mutable_type<::geom::polygon_t>
 template <>
 struct interior_const_type<::geom::polygon_t>
 {
-    using type = std::vector<::geom::ring_t> const;
+    using type = std::vector<::geom::ring_t> const &;
 };
 template <>
 struct interior_mutable_type<::geom::polygon_t>
 {
-    using type = std::vector<::geom::ring_t>;
+    using type = std::vector<::geom::ring_t> &;
 };
 
 template <>
@@ -67,16 +67,17 @@ struct exterior_ring<::geom::polygon_t>
 {
     // NOLINTNEXTLINE(google-runtime-references)
     static auto &get(::geom::polygon_t &p) { return p.outer(); }
-    static auto &get(::geom::polygon_t const &p) { return p.outer(); }
+    static auto const &get(::geom::polygon_t const &p) { return p.outer(); }
 };
 
 template <>
 struct interior_rings<::geom::polygon_t>
 {
     // NOLINTNEXTLINE(google-runtime-references)
-    static auto get(::geom::polygon_t &p) { return p.inners(); }
-    static auto get(::geom::polygon_t const &p) { return p.inners(); }
+    static auto &get(::geom::polygon_t &p) { return p.inners(); }
+    static auto const &get(::geom::polygon_t const &p) { return p.inners(); }
 };
+
 } // namespace boost::geometry::traits
 
 #endif // OSM2PGSQL_GEOM_BOOST_ADAPTOR_HPP
