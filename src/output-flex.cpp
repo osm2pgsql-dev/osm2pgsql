@@ -334,6 +334,54 @@ void check_for_object(lua_State *lua_state, char const *const function_name)
              function_name);
 }
 
+/**
+ * Expects a Lua (hash) table on the stack, reads the field with name of the
+ * 'type' parameter which must be either nil or a Lua (array) table, in which
+ * case all (integer) ids in that table are reads into the 'ids' out
+ * parameter.
+ */
+void get_object_ids(lua_State *lua_state, char const *const type, idlist_t *ids)
+{
+    lua_getfield(lua_state, -1, type);
+    int const ltype = lua_type(lua_state, -1);
+
+    if (ltype == LUA_TNIL) {
+        lua_pop(lua_state, 1);
+        return;
+    }
+
+    if (ltype != LUA_TTABLE) {
+        lua_pop(lua_state, 1);
+        throw fmt_error(
+            "Table returned from select_relation_members() contains '{}' "
+            "field, but it isn't an array table.",
+            type);
+    }
+
+    if (!luaX_is_array(lua_state)) {
+        lua_pop(lua_state, 1);
+        throw fmt_error(
+            "Table returned from select_relation_members() contains '{}' "
+            "field, but it isn't an array table.",
+            type);
+    }
+
+    luaX_for_each(lua_state, [&]() {
+        osmid_t const id = lua_tointeger(lua_state, -1);
+        if (id == 0) {
+            throw fmt_error(
+                "Table returned from select_relation_members() contains "
+                "'{}' field, which must contain an array of non-zero "
+                "integer node ids.",
+                type);
+        }
+
+        ids->push_back(id);
+    });
+
+    lua_pop(lua_state, 1);
+}
+
 } // anonymous namespace
 
 /**
@@ -897,54 +945,6 @@ void output_flex_t::pending_way(osmid_t id)
     way_delete(id);
 
     get_mutex_and_call_lua_function(m_process_way, m_way_cache.get());
-}
-
-/**
- * Expects a Lua (hash) table on the stack, reads the field with name of the
- * 'type' parameter which must be either nil or a Lua (array) table, in which
- * case all (integer) ids in that table are reads into the 'ids' out
- * parameter.
- */
-void get_object_ids(lua_State *lua_state, char const *const type, idlist_t *ids)
-{
-    lua_getfield(lua_state, -1, type);
-    int const ltype = lua_type(lua_state, -1);
-
-    if (ltype == LUA_TNIL) {
-        lua_pop(lua_state, 1);
-        return;
-    }
-
-    if (ltype != LUA_TTABLE) {
-        lua_pop(lua_state, 1);
-        throw fmt_error(
-            "Table returned from select_relation_members() contains '{}' "
-            "field, but it isn't an array table.",
-            type);
-    }
-
-    if (!luaX_is_array(lua_state)) {
-        lua_pop(lua_state, 1);
-        throw fmt_error(
-            "Table returned from select_relation_members() contains '{}' "
-            "field, but it isn't an array table.",
-            type);
-    }
-
-    luaX_for_each(lua_state, [&]() {
-        osmid_t const id = lua_tointeger(lua_state, -1);
-        if (id == 0) {
-            throw fmt_error(
-                "Table returned from select_relation_members() contains "
-                "'{}' field, which must contain an array of non-zero "
-                "integer node ids.",
-                type);
-        }
-
-        ids->push_back(id);
-    });
-
-    lua_pop(lua_state, 1);
 }
 
 void output_flex_t::select_relation_members()

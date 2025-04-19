@@ -13,6 +13,8 @@
 
 #include <lua.hpp>
 
+namespace {
+
 // Run the Lua code in "code" and then execute the function "func".
 template <typename FUNC>
 void test_lua(lua_State *lua_state, char const *code, FUNC&& func) {
@@ -24,6 +26,8 @@ void test_lua(lua_State *lua_state, char const *code, FUNC&& func) {
     lua_pop(lua_state, 1); // result from executing the Lua code
     REQUIRE(lua_gettop(lua_state) == 0);
 }
+
+} // anonymous namespace
 
 TEST_CASE("check luaX_is_empty_table", "[NoDB]")
 {
