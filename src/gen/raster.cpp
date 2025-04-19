@@ -16,11 +16,15 @@
 
 #include <string>
 
+namespace {
+
 template <typename T>
 void append(std::string *str, T value)
 {
     str->append(reinterpret_cast<char *>(&value), sizeof(T));
 }
+
+} // anonymous namespace
 
 void add_raster_header(std::string *wkb, wkb_raster_header const &data)
 {

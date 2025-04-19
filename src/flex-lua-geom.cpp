@@ -36,6 +36,8 @@ geom::geometry_t *unpack_geometry(lua_State *lua_state, int n) noexcept
     return static_cast<geom::geometry_t *>(user_data);
 }
 
+namespace {
+
 /**
  * This function is called by Lua garbage collection when a geometry object
  * needs cleaning up. It calls the destructor of the C++ object. After that
@@ -50,8 +52,6 @@ int geom_gc(lua_State *lua_state) noexcept
 
     return 0;
 }
-
-namespace {
 
 // The following functions are called when their counterparts in Lua are
 // called on geometry objects.

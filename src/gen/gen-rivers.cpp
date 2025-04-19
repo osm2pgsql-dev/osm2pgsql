@@ -41,6 +41,8 @@ gen_rivers_t::gen_rivers_t(pg_conn_t *connection, bool append, params_t *params)
                                get_params().get_string("src_areas")));
 }
 
+namespace {
+
 /// The data for a graph edge in the waterway network.
 struct edge_t
 {
@@ -75,8 +77,6 @@ bool operator<(geom::point_t a, edge_t const &b) noexcept
     assert(!b.points.empty());
     return a < b.points[0];
 }
-
-namespace {
 
 void follow_chain_and_set_width(
     edge_t const &edge, std::vector<edge_t> *edges,

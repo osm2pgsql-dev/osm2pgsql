@@ -19,6 +19,15 @@ testing::db::import_t db;
 
 char const *const conf_file = "test_output_flex.lua";
 
+// Return a string with the schema name prepended to the table name.
+std::string with_schema(char const *table_name, options_t const &options)
+{
+    if (options.dbschema.empty()) {
+        return {table_name};
+    }
+    return options.dbschema + "." + table_name;
+}
+
 } // anonymous namespace
 
 struct options_slim_default
@@ -71,15 +80,6 @@ $$;
             .user("limited", "password_limited");
     }
 };
-
-// Return a string with the schema name prepended to the table name.
-std::string with_schema(char const *table_name, options_t const &options)
-{
-    if (options.dbschema.empty()) {
-        return {table_name};
-    }
-    return options.dbschema + "." + table_name;
-}
 
 TEMPLATE_TEST_CASE("updating a node", "", options_slim_default,
                    options_slim_expire, options_slim_schema)
