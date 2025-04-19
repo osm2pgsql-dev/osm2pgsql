@@ -112,7 +112,7 @@ bool c_tagtransform_t::check_key(std::vector<taginfo> const &infos,
     //go through the actual tags found on the item and keep the ones in the export list
     for (auto const &info : infos) {
         if (info.flags & FLAG_DELETE) {
-            if (wildMatch(info.name.c_str(), k)) {
+            if (wild_match(info.name.c_str(), k)) {
                 return false;
             }
         } else if (std::strcmp(info.name.c_str(), k) == 0) {
