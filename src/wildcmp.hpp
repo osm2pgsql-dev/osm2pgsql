@@ -10,6 +10,6 @@
  * For a full list of authors see the git log.
  */
 
-bool wildMatch(char const *expr, char const *str) noexcept;
+bool wild_match(char const *expr, char const *str) noexcept;
 
 #endif // OSM2PGSQL_WILDCMP_HPP

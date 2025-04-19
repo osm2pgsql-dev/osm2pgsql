@@ -19,7 +19,7 @@
  *
  * Returns if a match was found.
  */
-bool wildMatch(char const *expr, char const *str) noexcept
+bool wild_match(char const *expr, char const *str) noexcept
 {
     // Code based on
     // http://www.geeksforgeeks.org/wildcard-character-matching/
@@ -41,11 +41,11 @@ bool wildMatch(char const *expr, char const *str) noexcept
         if (*str == '\0') {
             return false;
         }
-        return wildMatch(expr + 1, str + 1);
+        return wild_match(expr + 1, str + 1);
     }
 
     if (*expr == '*') {
-        return wildMatch(expr + 1, str) || wildMatch(expr, str + 1);
+        return wild_match(expr + 1, str) || wild_match(expr, str + 1);
     }
 
     return false;
