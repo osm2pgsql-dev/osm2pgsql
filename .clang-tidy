@@ -1,5 +1,5 @@
 ---
-Checks: '*,-abseil-*,-altera-*,-android-cloexec-*,-bugprone-easily-swappable-parameters,-cert-err58-cpp,-cppcoreguidelines-avoid-do-while,-cppcoreguidelines-avoid-magic-numbers,-cppcoreguidelines-avoid-non-const-global-variables,-cppcoreguidelines-owning-memory,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-cppcoreguidelines-pro-type-cstyle-cast,-cppcoreguidelines-pro-type-reinterpret-cast,-cppcoreguidelines-pro-type-static-cast-downcast,-cppcoreguidelines-pro-type-vararg,-fuchsia-*,-google-readability-casting,-google-readability-todo,-hicpp-named-parameter,-hicpp-no-array-decay,-hicpp-vararg,-llvm-include-order,-llvm-header-guard,-llvmlibc-*,-misc-include-cleaner,-misc-no-recursion,-modernize-use-nodiscard,-modernize-use-trailing-return-type,-readability-identifier-length,-readability-implicit-bool-conversion,-readability-named-parameter,-readability-magic-numbers'
+Checks: '*,-abseil-*,-altera-*,-android-cloexec-*,-boost-use-ranges,-bugprone-chained-comparison,-bugprone-easily-swappable-parameters,-cert-err58-cpp,-cppcoreguidelines-avoid-do-while,-cppcoreguidelines-avoid-magic-numbers,-cppcoreguidelines-avoid-non-const-global-variables,-cppcoreguidelines-owning-memory,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-cppcoreguidelines-pro-type-cstyle-cast,-cppcoreguidelines-pro-type-reinterpret-cast,-cppcoreguidelines-pro-type-static-cast-downcast,-cppcoreguidelines-pro-type-vararg,-fuchsia-*,-google-readability-casting,-google-readability-todo,-hicpp-named-parameter,-hicpp-no-array-decay,-hicpp-vararg,-llvm-include-order,-llvm-header-guard,-llvmlibc-*,-misc-include-cleaner,-misc-no-recursion,-modernize-use-nodiscard,-modernize-use-trailing-return-type,-readability-identifier-length,-readability-implicit-bool-conversion,-readability-math-missing-parentheses,-readability-named-parameter,-readability-magic-numbers'
 #
 #  cppcoreguidelines-pro-type-cstyle-cast
 #  google-build-using-namespace
@@ -7,6 +7,7 @@ Checks: '*,-abseil-*,-altera-*,-android-cloexec-*,-bugprone-easily-swappable-par
 #  llvm-header-guard
 #  llvm-include-order
 #  hicpp-named-parameter
+#  readability-math-missing-parentheses
 #  readability-named-parameter
 #    Differ from our style guidelines
 #
@@ -18,6 +19,12 @@ Checks: '*,-abseil-*,-altera-*,-android-cloexec-*,-bugprone-easily-swappable-par
 #
 #  android-cloexec-*
 #    O_CLOEXEC isn't available on Windows
+#
+#  boost-use-ranges
+#    Not applicable, we don't want to rely on more code from boost.
+#
+#  bugprone-chained-comparison
+#    Triggerd by the Catch library in many places.
 #
 #  bugprone-easily-swappable-parameters
 #    Can't always be avoided.

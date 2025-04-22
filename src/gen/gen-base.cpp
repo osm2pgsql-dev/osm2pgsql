@@ -103,7 +103,7 @@ void gen_base_t::dbprepare(std::string_view stmt, std::string const &templ)
 {
     template_t sql_template{templ};
     sql_template.set_params(get_params());
-    return connection().prepare(stmt, fmt::runtime(sql_template.render()));
+    connection().prepare(stmt, fmt::runtime(sql_template.render()));
 }
 
 void gen_base_t::dbprepare(std::string_view stmt, params_t const &tmp_params,
@@ -112,7 +112,7 @@ void gen_base_t::dbprepare(std::string_view stmt, params_t const &tmp_params,
     template_t sql_template{templ};
     sql_template.set_params(get_params());
     sql_template.set_params(tmp_params);
-    return connection().prepare(stmt, fmt::runtime(sql_template.render()));
+    connection().prepare(stmt, fmt::runtime(sql_template.render()));
 }
 
 void gen_base_t::raster_table_preprocess(std::string const &table)
