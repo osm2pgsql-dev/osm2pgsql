@@ -296,6 +296,27 @@ jobs:
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
 
+  ubuntu24-pg17-clang16-san:
+    runs-on: ubuntu-24.04
+
+    env:
+      CC: clang-16
+      CXX: clang++-16
+      EXTRA_FLAGS: -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer
+      LDFLAGS: -fsanitize=address,undefined
+      LUA_VERSION: 5.3
+      LUAJIT_OPTION: OFF
+      POSTGRESQL_VERSION: 17
+      POSTGIS_VERSION: 3
+      BUILD_TYPE: Debug
+      PSYCOPG: 3
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/ubuntu-prerequisites
+      - uses: ./.github/actions/linux-cmake
+      - uses: ./.github/actions/build-and-test
+
   ubuntu24-pg17-gcc12-cpp20:
     runs-on: ubuntu-24.04
 
