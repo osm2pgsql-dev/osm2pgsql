@@ -164,20 +164,13 @@ public:
     int app_define_expire_output();
     int app_get_bbox();
 
-    int table_tostring();
     int table_insert();
-    int table_name();
-    int table_schema();
-    int table_cluster();
-    int table_columns();
 
-    int expire_output_tostring();
-    int expire_output_name();
-    int expire_output_minzoom();
-    int expire_output_maxzoom();
-    int expire_output_filename();
-    int expire_output_schema();
-    int expire_output_table();
+    // Get the flex table that is as first parameter on the Lua stack.
+    flex_table_t &get_table_from_param();
+
+    // Get the expire output that is as first parameter on the Lua stack.
+    expire_output_t &get_expire_output_from_param();
 
 private:
     void select_relation_members();
@@ -199,12 +192,6 @@ private:
                                          osmium::OSMObject const &object);
 
     void init_lua(std::string const &filename, properties_t const &properties);
-
-    // Get the flex table that is as first parameter on the Lua stack.
-    flex_table_t const &get_table_from_param();
-
-    // Get the expire output that is as first parameter on the Lua stack.
-    expire_output_t const &get_expire_output_from_param();
 
     void check_context_and_state(char const *name, char const *context,
                                  bool condition);
@@ -323,5 +310,7 @@ private:
      */
     bool m_disable_insert = false;
 };
+
+int lua_trampoline_table_insert(lua_State *lua_state);
 
 #endif // OSM2PGSQL_OUTPUT_FLEX_HPP

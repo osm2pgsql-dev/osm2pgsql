@@ -14,7 +14,9 @@
 #include "flex-lua-index.hpp"
 #include "flex-table.hpp"
 #include "lua-utils.hpp"
+#include "output-flex.hpp"
 #include "pgsql-capabilities.hpp"
+#include "util.hpp"
 
 #include <lua.hpp>
 
@@ -416,6 +418,12 @@ void setup_flex_table_indexes(lua_State *lua_state, flex_table_t *table,
     lua_pop(lua_state, 1); // "indexes"
 }
 
+TRAMPOLINE_WRAPPED_OBJECT(table, __tostring)
+TRAMPOLINE_WRAPPED_OBJECT(table, cluster)
+TRAMPOLINE_WRAPPED_OBJECT(table, columns)
+TRAMPOLINE_WRAPPED_OBJECT(table, name)
+TRAMPOLINE_WRAPPED_OBJECT(table, schema)
+
 } // anonymous namespace
 
 int setup_flex_table(lua_State *lua_state, std::vector<flex_table_t> *tables,
@@ -440,5 +448,83 @@ int setup_flex_table(lua_State *lua_state, std::vector<flex_table_t> *tables,
     luaL_getmetatable(lua_state, osm2pgsql_table_name);
     lua_setmetatable(lua_state, -2);
 
+    return 1;
+}
+
+/**
+ * Define the osm2pgsql.Table class/metatable.
+ */
+void lua_wrapper_table::init(lua_State *lua_state)
+{
+    lua_getglobal(lua_state, "osm2pgsql");
+    if (luaL_newmetatable(lua_state, osm2pgsql_table_name) != 1) {
+        throw std::runtime_error{"Internal error: Lua newmetatable failed."};
+    }
+    lua_pushvalue(lua_state, -1); // Copy of new metatable
+
+    // Add metatable as osm2pgsql.Table so we can access it from Lua
+    lua_setfield(lua_state, -3, "Table");
+
+    // Now add functions to metatable
+    lua_pushvalue(lua_state, -1);
+    lua_setfield(lua_state, -2, "__index");
+    luaX_add_table_func(lua_state, "__tostring",
+                        lua_trampoline_table___tostring);
+    luaX_add_table_func(lua_state, "insert", lua_trampoline_table_insert);
+    luaX_add_table_func(lua_state, "name", lua_trampoline_table_name);
+    luaX_add_table_func(lua_state, "schema", lua_trampoline_table_schema);
+    luaX_add_table_func(lua_state, "cluster", lua_trampoline_table_cluster);
+    luaX_add_table_func(lua_state, "columns", lua_trampoline_table_columns);
+
+    lua_pop(lua_state, 2);
+}
+
+int lua_wrapper_table::__tostring() const
+{
+    std::string const str{fmt::format("osm2pgsql.Table[{}]", self().name())};
+    luaX_pushstring(lua_state(), str);
+
+    return 1;
+}
+
+int lua_wrapper_table::cluster() const
+{
+    lua_pushboolean(lua_state(), self().cluster_by_geom());
+    return 1;
+}
+
+int lua_wrapper_table::columns() const
+{
+    lua_createtable(lua_state(), (int)self().num_columns(), 0);
+
+    int n = 0;
+    for (auto const &column : self().columns()) {
+        lua_pushinteger(lua_state(), ++n);
+        lua_newtable(lua_state());
+
+        luaX_add_table_str(lua_state(), "name", column.name().c_str());
+        luaX_add_table_str(lua_state(), "type", column.type_name().c_str());
+        luaX_add_table_str(lua_state(), "sql_type",
+                           column.sql_type_name().c_str());
+        luaX_add_table_str(lua_state(), "sql_modifiers",
+                           column.sql_modifiers().c_str());
+        luaX_add_table_bool(lua_state(), "not_null", column.not_null());
+        luaX_add_table_bool(lua_state(), "create_only", column.create_only());
+
+        lua_rawset(lua_state(), -3);
+    }
+
+    return 1;
+}
+
+int lua_wrapper_table::name() const
+{
+    luaX_pushstring(lua_state(), self().name());
+    return 1;
+}
+
+int lua_wrapper_table::schema() const
+{
+    luaX_pushstring(lua_state(), self().schema());
     return 1;
 }

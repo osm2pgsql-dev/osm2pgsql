@@ -10,6 +10,8 @@
  * For a full list of authors see the git log.
  */
 
+#include "flex-lua-wrapper.hpp"
+
 #include <string>
 #include <vector>
 
@@ -23,5 +25,23 @@ int setup_flex_table(lua_State *lua_state, std::vector<flex_table_t> *tables,
                      std::vector<expire_output_t> *expire_outputs,
                      std::string const &default_schema, bool updatable,
                      bool append_mode);
+
+class lua_wrapper_table : public lua_wrapper_base<flex_table_t>
+{
+public:
+    static void init(lua_State *lua_state);
+
+    lua_wrapper_table(lua_State *lua_state, flex_table_t *table)
+    : lua_wrapper_base(lua_state, table)
+    {
+    }
+
+    int __tostring() const;
+    int cluster() const;
+    int columns() const;
+    int name() const;
+    int schema() const;
+
+}; // class lua_wrapper_table
 
 #endif // OSM2PGSQL_FLEX_LUA_TABLE_HPP
