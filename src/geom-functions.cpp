@@ -125,6 +125,7 @@ namespace {
 
 void set_to_same_type(geometry_t *output, geometry_t const &input)
 {
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     input.visit([&](auto in) { output->set<decltype(in)>(); });
 }
 
@@ -434,7 +435,7 @@ public:
     {}
 
     template <typename T>
-    void operator()(T) const
+    void operator()(T const &) const
     {}
 
     // false positive https://github.com/llvm/llvm-project/issues/74738
@@ -544,8 +545,9 @@ namespace {
  * empty, do not add the first point returned by *it.
  */
 template <typename ITERATOR>
-void add_nodes_to_linestring(linestring_t *linestring, ITERATOR it,
-                             ITERATOR end)
+void add_nodes_to_linestring(
+    linestring_t *linestring, ITERATOR it,
+    ITERATOR end) // NOLINT(performance-unnecessary-value-param)
 {
     if (!linestring->empty()) {
         assert(it != end);
