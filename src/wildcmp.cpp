@@ -19,6 +19,7 @@
  *
  * Returns if a match was found.
  */
+// NOLINTNEXTLINE(misc-use-internal-linkage) Seems there is a bug in the checker
 bool wild_match(char const *expr, char const *str) noexcept
 {
     // Code based on
