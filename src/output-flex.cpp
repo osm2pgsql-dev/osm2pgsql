@@ -7,15 +7,18 @@
  * For a full list of authors see the git log.
  */
 
+#include "output-flex.hpp"
+
 #include "db-copy.hpp"
 #include "debug-output.hpp"
 #include "expire-output.hpp"
 #include "expire-tiles.hpp"
 #include "flex-index.hpp"
+#include "flex-lua-expire-output.hpp"
 #include "flex-lua-geom.hpp"
 #include "flex-lua-index.hpp"
 #include "flex-lua-table.hpp"
-#include "flex-lua-expire-output.hpp"
+#include "flex-lua-wrapper.hpp"
 #include "flex-write.hpp"
 #include "format.hpp"
 #include "geom-from-osm.hpp"
@@ -27,9 +30,8 @@
 #include "middle.hpp"
 #include "options.hpp"
 #include "osmtypes.hpp"
-#include "output-flex.hpp"
-#include "pgsql.hpp"
 #include "pgsql-capabilities.hpp"
+#include "pgsql.hpp"
 #include "properties.hpp"
 #include "reprojection.hpp"
 #include "thread-pool.hpp"
@@ -87,21 +89,9 @@ TRAMPOLINE(app_as_multilinestring, as_multilinestring)
 TRAMPOLINE(app_as_multipolygon, as_multipolygon)
 TRAMPOLINE(app_as_geometrycollection, as_geometrycollection)
 
-TRAMPOLINE(table_name, name)
-TRAMPOLINE(table_schema, schema)
-TRAMPOLINE(table_cluster, cluster)
-TRAMPOLINE(table_insert, insert)
-TRAMPOLINE(table_columns, columns)
-TRAMPOLINE(table_tostring, __tostring)
-
-TRAMPOLINE(expire_output_minzoom, minzoom)
-TRAMPOLINE(expire_output_maxzoom, maxzoom)
-TRAMPOLINE(expire_output_filename, filename)
-TRAMPOLINE(expire_output_schema, schema)
-TRAMPOLINE(expire_output_table, table)
-TRAMPOLINE(expire_output_tostring, __tostring)
-
 } // anonymous namespace
+
+TRAMPOLINE(table_insert, insert)
 
 prepared_lua_function_t::prepared_lua_function_t(lua_State *lua_state,
                                                  calling_context context,
@@ -233,15 +223,15 @@ std::size_t idx_from_param(lua_State *lua_state, char const *type_name)
 }
 
 template <typename CONTAINER>
-typename CONTAINER::value_type const &get_from_idx_param(lua_State *lua_state,
-                                                         CONTAINER *container,
-                                                         char const *type_name)
+typename CONTAINER::value_type &get_from_idx_param(lua_State *lua_state,
+                                                   CONTAINER *container,
+                                                   char const *type_name)
 {
-    if (lua_gettop(lua_state) != 1) {
-        throw fmt_error("Need exactly one parameter of type {}.", type_name);
+    if (lua_gettop(lua_state) < 1) {
+        throw fmt_error("Argument #1 has to be of type {}.", type_name);
     }
 
-    auto const &item = container->at(idx_from_param(lua_state, type_name));
+    auto &item = container->at(idx_from_param(lua_state, type_name));
     lua_remove(lua_state, 1);
     return item;
 }
@@ -602,26 +592,16 @@ int output_flex_t::app_define_expire_output()
                                     m_expire_outputs.get());
 }
 
-flex_table_t const &output_flex_t::get_table_from_param()
+flex_table_t &output_flex_t::get_table_from_param()
 {
     return get_from_idx_param(lua_state(), m_tables.get(),
                               osm2pgsql_table_name);
 }
 
-expire_output_t const &output_flex_t::get_expire_output_from_param()
+expire_output_t &output_flex_t::get_expire_output_from_param()
 {
     return get_from_idx_param(lua_state(), m_expire_outputs.get(),
                               osm2pgsql_expire_output_name);
-}
-
-int output_flex_t::table_tostring()
-{
-    auto const &table = get_table_from_param();
-
-    std::string const str{fmt::format("osm2pgsql.Table[{}]", table.name())};
-    luaX_pushstring(lua_state(), str);
-
-    return 1;
 }
 
 bool output_flex_t::way_cache_t::init(middle_query_t const &middle, osmid_t id)
@@ -788,107 +768,6 @@ int output_flex_t::table_insert()
     copy_mgr->finish_line();
 
     lua_pushboolean(lua_state(), true);
-    return 1;
-}
-
-int output_flex_t::table_columns()
-{
-    auto const &table = get_table_from_param();
-
-    lua_createtable(lua_state(), (int)table.num_columns(), 0);
-
-    int n = 0;
-    for (auto const &column : table.columns()) {
-        lua_pushinteger(lua_state(), ++n);
-        lua_newtable(lua_state());
-
-        luaX_add_table_str(lua_state(), "name", column.name().c_str());
-        luaX_add_table_str(lua_state(), "type", column.type_name().c_str());
-        luaX_add_table_str(lua_state(), "sql_type",
-                           column.sql_type_name().c_str());
-        luaX_add_table_str(lua_state(), "sql_modifiers",
-                           column.sql_modifiers().c_str());
-        luaX_add_table_bool(lua_state(), "not_null", column.not_null());
-        luaX_add_table_bool(lua_state(), "create_only", column.create_only());
-
-        lua_rawset(lua_state(), -3);
-    }
-    return 1;
-}
-
-int output_flex_t::table_name()
-{
-    auto const &table = get_table_from_param();
-    luaX_pushstring(lua_state(), table.name());
-    return 1;
-}
-
-int output_flex_t::table_schema()
-{
-    auto const &table = get_table_from_param();
-    luaX_pushstring(lua_state(), table.schema());
-    return 1;
-}
-
-int output_flex_t::table_cluster()
-{
-    auto const &table = get_table_from_param();
-    lua_pushboolean(lua_state(), table.cluster_by_geom());
-    return 1;
-}
-
-int output_flex_t::expire_output_tostring()
-{
-    auto const &expire_output = get_expire_output_from_param();
-
-    std::string const str =
-        fmt::format("osm2pgsql.ExpireOutput[minzoom={},maxzoom={},filename={},"
-                    "schema={},table={}]",
-                    expire_output.minzoom(), expire_output.maxzoom(),
-                    expire_output.filename(), expire_output.schema(),
-                    expire_output.table());
-    luaX_pushstring(lua_state(), str);
-
-    return 1;
-}
-
-int output_flex_t::expire_output_minzoom()
-{
-    auto const &expire_output = get_expire_output_from_param();
-
-    lua_pushinteger(lua_state(), expire_output.minzoom());
-    return 1;
-}
-
-int output_flex_t::expire_output_maxzoom()
-{
-    auto const &expire_output = get_expire_output_from_param();
-
-    lua_pushinteger(lua_state(), expire_output.maxzoom());
-    return 1;
-}
-
-int output_flex_t::expire_output_filename()
-{
-    auto const &expire_output = get_expire_output_from_param();
-
-    luaX_pushstring(lua_state(), expire_output.filename());
-    return 1;
-}
-
-int output_flex_t::expire_output_schema()
-{
-    auto const &expire_output = get_expire_output_from_param();
-
-    luaX_pushstring(lua_state(), expire_output.schema());
-    return 1;
-}
-
-int output_flex_t::expire_output_table()
-{
-    auto const &expire_output = get_expire_output_from_param();
-
-    luaX_pushstring(lua_state(), expire_output.table());
     return 1;
 }
 
@@ -1325,69 +1204,6 @@ output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
     create_expire_tables(*m_expire_outputs, get_options()->connection_params);
 }
 
-namespace {
-
-/**
- * Define the osm2pgsql.Table class/metatable.
- */
-void init_table_class(lua_State *lua_state)
-{
-    lua_getglobal(lua_state, "osm2pgsql");
-    if (luaL_newmetatable(lua_state, osm2pgsql_table_name) != 1) {
-        throw std::runtime_error{"Internal error: Lua newmetatable failed."};
-    }
-    lua_pushvalue(lua_state, -1); // Copy of new metatable
-
-    // Add metatable as osm2pgsql.Table so we can access it from Lua
-    lua_setfield(lua_state, -3, "Table");
-
-    // Now add functions to metatable
-    lua_pushvalue(lua_state, -1);
-    lua_setfield(lua_state, -2, "__index");
-    luaX_add_table_func(lua_state, "__tostring", lua_trampoline_table_tostring);
-    luaX_add_table_func(lua_state, "insert", lua_trampoline_table_insert);
-    luaX_add_table_func(lua_state, "name", lua_trampoline_table_name);
-    luaX_add_table_func(lua_state, "schema", lua_trampoline_table_schema);
-    luaX_add_table_func(lua_state, "cluster", lua_trampoline_table_cluster);
-    luaX_add_table_func(lua_state, "columns", lua_trampoline_table_columns);
-
-    lua_pop(lua_state, 2);
-}
-
-/**
- * Define the osm2pgsql.ExpireOutput class/metatable.
- */
-void init_expire_output_class(lua_State *lua_state)
-{
-    lua_getglobal(lua_state, "osm2pgsql");
-    if (luaL_newmetatable(lua_state, osm2pgsql_expire_output_name) != 1) {
-        throw std::runtime_error{"Internal error: Lua newmetatable failed."};
-    }
-    lua_pushvalue(lua_state, -1); // Copy of new metatable
-
-    // Add metatable as osm2pgsql.ExpireOutput so we can access it from Lua
-    lua_setfield(lua_state, -3, "ExpireOutput");
-
-    // Now add functions to metatable
-    lua_pushvalue(lua_state, -1);
-    lua_setfield(lua_state, -2, "__index");
-    luaX_add_table_func(lua_state, "__tostring",
-                        lua_trampoline_expire_output_tostring);
-    luaX_add_table_func(lua_state, "minzoom",
-                        lua_trampoline_expire_output_minzoom);
-    luaX_add_table_func(lua_state, "maxzoom",
-                        lua_trampoline_expire_output_maxzoom);
-    luaX_add_table_func(lua_state, "filename",
-                        lua_trampoline_expire_output_filename);
-    luaX_add_table_func(lua_state, "schema",
-                        lua_trampoline_expire_output_schema);
-    luaX_add_table_func(lua_state, "table", lua_trampoline_expire_output_table);
-
-    lua_pop(lua_state, 2);
-}
-
-} // anonymous namespace
-
 void output_flex_t::init_lua(std::string const &filename,
                              properties_t const &properties)
 {
@@ -1412,8 +1228,8 @@ void output_flex_t::init_lua(std::string const &filename,
     luaX_add_table_func(lua_state(), "define_expire_output",
                         lua_trampoline_app_define_expire_output);
 
-    init_table_class(lua_state());
-    init_expire_output_class(lua_state());
+    lua_wrapper_expire_output::init(lua_state());
+    lua_wrapper_table::init(lua_state());
 
     // Clean up stack
     lua_settop(lua_state(), 0);
