@@ -1,10 +1,9 @@
 -- This config example file is released into the Public Domain.
 
 -- This config shows how to access the attributes of OSM objects: the version,
--- changeset id, timestamp, user id and user name. For this to work the
--- command line option --extra-attributes/-x must be set, otherwise those
--- fields will be empty. Also note that some OSM files do not contain all
--- of those attributes, so check your input data if you get empty fields.
+-- changeset id, timestamp, user id and user name. Note that some OSM files do
+-- not contain all of those attributes, so check your input data if you get
+-- empty fields.
 
 -- Set this to the projection you want to use
 local srid = 4326

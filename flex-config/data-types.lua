@@ -5,31 +5,33 @@
 -- at this file. This file demonstrates some column data type options.
 
 local highways = osm2pgsql.define_way_table('highways', {
-    { column = 'name',     type = 'text' },
+    { column = 'name', type = 'text' },
     -- We always need a highway type, so we can declare the column as NOT NULL
-    { column = 'type',     type = 'text', not_null = true },
+    { column = 'type', type = 'text', not_null = true },
 
     -- Add a SERIAL column and tell osm2pgsql not to fill it (PostgreSQL will
     -- do that for us)
-    { column = 'id',       sql_type = 'serial', create_only = true },
+    { column = 'id', sql_type = 'serial', create_only = true },
 
     -- type "direction" is special, see below
-    { column = 'oneway',   type = 'direction' },
+    { column = 'oneway', type = 'direction' },
     { column = 'maxspeed', type = 'int' },
 
     -- type "bool" is special, see below
-    { column = 'lit',      type = 'bool' },
-    { column = 'tags',     type = 'jsonb' }, -- also available: 'json', 'hstore'
+    { column = 'lit', type = 'bool' },
+    { column = 'tags', type = 'jsonb' }, -- also available: 'json', 'hstore'
 
     -- osm2pgsql doesn't know about PostgreSQL arrays, so we define the SQL
     -- type of this column and then have to convert our array data into a
     -- valid text representation for that type, see below.
-    { column = 'nodes',    sql_type = 'int8[]' },
-    { column = 'geom',     type = 'linestring' },
+    { column = 'nodes', sql_type = 'int8[]' },
+    { column = 'geom', type = 'linestring' },
 })
 
 -- Helper function to remove some of the tags we usually are not interested in.
--- Returns true if there are no tags left.
+-- Something like this can be useful if you are writing all tags to the
+-- database in a JSON(B) column and don't want that cluttered with lots of tags
+-- nobody cares about. Returns true if there are no tags left.
 local function clean_tags(tags)
     tags.odbl = nil
     tags.created_by = nil

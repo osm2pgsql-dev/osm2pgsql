@@ -20,25 +20,25 @@
 local tables = {}
 
 tables.stops = osm2pgsql.define_node_table('stops', {
-    { column = 'tags',     type = 'jsonb' },
+    { column = 'tags', type = 'jsonb' },
     { column = 'rel_refs', type = 'text' }, -- for the refs from the relations
-    { column = 'rel_ids',  sql_type = 'int8[]' }, -- array with integers (for relation IDs)
-    { column = 'geom',     type = 'point', not_null = true },
+    { column = 'rel_ids', sql_type = 'int8[]' }, -- array with integers (for relation IDs)
+    { column = 'geom', type = 'point', not_null = true },
 })
 
 tables.lines = osm2pgsql.define_way_table('lines', {
-    { column = 'tags',     type = 'jsonb' },
+    { column = 'tags', type = 'jsonb' },
     { column = 'rel_refs', type = 'text' }, -- for the refs from the relations
-    { column = 'rel_ids',  sql_type = 'int8[]' }, -- array with integers (for relation IDs)
-    { column = 'geom',     type = 'linestring', not_null = true },
+    { column = 'rel_ids', sql_type = 'int8[]' }, -- array with integers (for relation IDs)
+    { column = 'geom', type = 'linestring', not_null = true },
 })
 
 -- Tables don't have to have a geometry column
 tables.routes = osm2pgsql.define_relation_table('routes', {
-    { column = 'ref',  type = 'text' },
+    { column = 'ref', type = 'text' },
     { column = 'type', type = 'text' },
     { column = 'from', type = 'text' },
-    { column = 'to',   type = 'text' },
+    { column = 'to', type = 'text' },
     { column = 'tags', type = 'jsonb' },
 })
 
@@ -46,9 +46,9 @@ tables.routes = osm2pgsql.define_relation_table('routes', {
 -- stop. We model them here by adding a center point as geometry plus the
 -- radius of a circle that contains everything in that stop.
 tables.stop_areas = osm2pgsql.define_relation_table('stop_areas', {
-    { column = 'tags',   type = 'jsonb' },
+    { column = 'tags', type = 'jsonb' },
     { column = 'radius', type = 'real', not_null = true },
-    { column = 'geom',   type = 'point', not_null = true },
+    { column = 'geom', type = 'point', not_null = true },
 })
 
 -- This will be used to store information about relations queryable by member
@@ -60,15 +60,6 @@ tables.stop_areas = osm2pgsql.define_relation_table('stop_areas', {
 -- result.
 local n2r = {}
 local w2r = {}
-
-local function clean_tags(tags)
-    tags.odbl = nil
-    tags.created_by = nil
-    tags.source = nil
-    tags['source:ref'] = nil
-
-    return next(tags) == nil
-end
 
 local function unique_array(array)
     local result = {}
@@ -127,8 +118,6 @@ function osm2pgsql.process_way(object)
     if not object.tags.highway and not object.tags.railway then
         return
     end
-
-    clean_tags(object.tags)
 
     -- Data we will store in the 'lines' table always has the tags from
     -- the way

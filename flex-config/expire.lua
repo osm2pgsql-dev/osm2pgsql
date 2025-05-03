@@ -45,7 +45,9 @@ tables.pois = osm2pgsql.define_node_table('pois', {
     -- Zero, one or more expire outputs are referenced in an `expire` field in
     -- the definition of any geometry column using the Web Mercator (3857)
     -- projection.
-    { column = 'geom', type = 'point', not_null = true, expire = { { output = expire_outputs.pois } } },
+    { column = 'geom', type = 'point', not_null = true, expire = {
+        { output = expire_outputs.pois }
+    }},
 })
 
 tables.lines = osm2pgsql.define_way_table('lines', {
