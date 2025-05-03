@@ -6,7 +6,6 @@
 -- OSM nodes are converted to Points, ways to LineStrings and relations
 -- to GeometryCollections. If an object would create an invalid geometry
 -- it is still added to the table with a NULL geometry.
--- XXX expire will currently not work on these tables.
 local dtable = osm2pgsql.define_table{
     name = "data",
     -- This will generate a column "osm_id INT8" for the id, and a column
