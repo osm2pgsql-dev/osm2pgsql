@@ -5,9 +5,6 @@
 -- configuration. After reading and understanding this, have a look at
 -- "geometries.lua".
 
--- For debugging
--- inspect = require('inspect')
-
 -- The global variable "osm2pgsql" is used to talk to the main osm2pgsql code.
 -- You can, for instance, get the version of osm2pgsql:
 print('osm2pgsql version: ' .. osm2pgsql.version)
@@ -66,7 +63,6 @@ tables.polygons = osm2pgsql.define_area_table('polygons', {
 for name, dtable in pairs(tables) do
     print("\ntable '" .. name .. "':")
     print("  name='" .. dtable:name() .. "'")
---    print("  columns=" .. inspect(dtable:columns()))
 end
 
 -- Helper function to remove some of the tags we usually are not interested in.
@@ -84,9 +80,6 @@ end
 -- attributes of the node like `id`, `version`, etc. as well as all tags as a
 -- Lua table (`object.tags`).
 function osm2pgsql.process_node(object)
-    --  Uncomment next line to look at the object data:
-    --  print(inspect(object))
-
     if clean_tags(object.tags) then
         return
     end
@@ -114,9 +107,6 @@ end
 -- information as with nodes and additionally a boolean `is_closed` flag and
 -- the list of node IDs referenced by the way (`object.nodes`).
 function osm2pgsql.process_way(object)
-    --  Uncomment next line to look at the object data:
-    --  print(inspect(object))
-
     if clean_tags(object.tags) then
         return
     end
@@ -141,9 +131,6 @@ end
 -- same information as with nodes and additionally an array of members
 -- (`object.members`).
 function osm2pgsql.process_relation(object)
-    --  Uncomment next line to look at the object data:
-    --  print(inspect(object))
-
     if clean_tags(object.tags) then
         return
     end
