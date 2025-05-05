@@ -52,18 +52,6 @@ and when you need that functionality.
 The subdirectory [gen](gen/) contains example configurations for
 generalization support.
 
-## Dependencies
-
-Some of the example files use the `inspect` Lua library to show debugging
-output. It is not needed for the actual functionality of the examples, so if
-you don't have the library, you can remove all uses of `inspect` and the
-scripts should still work.
-
-The library is available from [the
-source](https://github.com/kikito/inspect.lua) or using
-[LuaRocks](https://luarocks.org/modules/kikito/inspect). Debian/Ubuntu users
-can install the `lua-inspect` package.
-
 ## Public Domain
 
 All the example config files in this directory are released into the Public

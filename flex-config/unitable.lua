@@ -2,8 +2,6 @@
 
 -- Put all OSM data into a single table
 
--- inspect = require('inspect')
-
 -- We define a single table that can take any OSM object and any geometry.
 -- OSM nodes are converted to Points, ways to LineStrings and relations
 -- to GeometryCollections. If an object would create an invalid geometry
@@ -20,8 +18,6 @@ local dtable = osm2pgsql.define_table{
         { column = 'geom',  type = 'geometry' },
     }
 }
-
--- print("columns=" .. inspect(dtable:columns()))
 
 -- Helper function to remove some of the tags we usually are not interested in.
 -- Returns true if there are no tags left.
