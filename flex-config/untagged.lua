@@ -41,4 +41,3 @@ end
 osm2pgsql.process_way = do_way
 osm2pgsql.process_untagged_way = do_way
 
-

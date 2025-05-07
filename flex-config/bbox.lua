@@ -30,17 +30,6 @@ tables.boundaries = osm2pgsql.define_relation_table('boundaries', {
     { column = 'geom', type = 'multilinestring' },
 })
 
--- Helper function to remove some of the tags we usually are not interested in.
--- Returns true if there are no tags left.
-local function clean_tags(tags)
-    tags.odbl = nil
-    tags.created_by = nil
-    tags.source = nil
-    tags['source:ref'] = nil
-
-    return next(tags) == nil
-end
-
 -- Helper function that looks at the tags and decides if this is possibly
 -- an area.
 local function has_area_tags(tags)
@@ -91,10 +80,6 @@ local function format_bbox(object)
 end
 
 function osm2pgsql.process_node(object)
-    if clean_tags(object.tags) then
-        return
-    end
-
     tables.pois:insert({
         tags = object.tags,
         bbox = format_bbox(object),
@@ -103,10 +88,6 @@ function osm2pgsql.process_node(object)
 end
 
 function osm2pgsql.process_way(object)
-    if clean_tags(object.tags) then
-        return
-    end
-
     -- A closed way that also has the right tags for an area is a polygon.
     if object.is_closed and has_area_tags(object.tags) then
         tables.polygons:insert({
@@ -124,10 +105,6 @@ function osm2pgsql.process_way(object)
 end
 
 function osm2pgsql.process_relation(object)
-    if clean_tags(object.tags) then
-        return
-    end
-
     local relation_type = object:grab_tag('type')
 
     -- Store boundary relations as multilinestrings

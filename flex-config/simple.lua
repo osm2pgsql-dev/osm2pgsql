@@ -22,20 +22,23 @@ local tables = {}
 -- ids.
 tables.pois = osm2pgsql.define_node_table('pois', {
     { column = 'tags', type = 'jsonb' },
-    { column = 'geom', type = 'point', not_null = true }, -- will be something like `GEOMETRY(Point, 4326)` in SQL
+    -- In most cases we'll need a column for the geometry. The default
+    -- projection is Web Mercator (3857), so this will result in an SQL
+    -- type `geometry(Point, 3857)`.
+    { column = 'geom', type = 'point', not_null = true },
 })
 
 -- A special table for restaurants to demonstrate that we can have any tables
 -- with any columns we want.
 tables.restaurants = osm2pgsql.define_node_table('restaurants', {
-    { column = 'name',    type = 'text' },
+    { column = 'name', type = 'text' },
     { column = 'cuisine', type = 'text' },
     -- We declare all geometry columns as "NOT NULL". If osm2pgsql encounters
     -- an invalid geometry (for whatever reason) it will generate a null
     -- geometry which will not be written to the database if "not_null" is
     -- set. The result is that broken geometries will just be silently
     -- ignored.
-    { column = 'geom',    type = 'point', not_null = true },
+    { column = 'geom', type = 'point', not_null = true },
 })
 
 -- This is a "way table", it can only contain data derived from ways and will
@@ -65,29 +68,14 @@ for name, dtable in pairs(tables) do
     print("  name='" .. dtable:name() .. "'")
 end
 
--- Helper function to remove some of the tags we usually are not interested in.
--- Returns true if there are no tags left.
-local function clean_tags(tags)
-    tags.odbl = nil
-    tags.created_by = nil
-    tags.source = nil
-    tags['source:ref'] = nil
-
-    return next(tags) == nil
-end
-
 -- Called for every node in the input. The `object` argument contains all the
 -- attributes of the node like `id`, `version`, etc. as well as all tags as a
 -- Lua table (`object.tags`).
 function osm2pgsql.process_node(object)
-    if clean_tags(object.tags) then
-        return
-    end
-
     if object.tags.amenity == 'restaurant' then
         -- Add a row to the SQL table. The keys in the parameter table
         -- correspond to the table columns, if one is missing the column will
-        -- be NULL. Id and geometry columns will be filled automatically.
+        -- be NULL. The id column will be filled automatically.
         tables.restaurants:insert({
             name = object.tags.name,
             cuisine = object.tags.cuisine,
@@ -107,10 +95,6 @@ end
 -- information as with nodes and additionally a boolean `is_closed` flag and
 -- the list of node IDs referenced by the way (`object.nodes`).
 function osm2pgsql.process_way(object)
-    if clean_tags(object.tags) then
-        return
-    end
-
     -- Very simple check to decide whether a way is a polygon or not, in a
     -- real stylesheet we'd have to also look at the tags...
     if object.is_closed then
@@ -131,10 +115,6 @@ end
 -- same information as with nodes and additionally an array of members
 -- (`object.members`).
 function osm2pgsql.process_relation(object)
-    if clean_tags(object.tags) then
-        return
-    end
-
     -- Store multipolygons and boundaries as polygons
     if object.tags.type == 'multipolygon' or
        object.tags.type == 'boundary' then
