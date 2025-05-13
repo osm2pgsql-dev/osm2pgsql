@@ -551,6 +551,8 @@ def update(props, args):
     LOG.debug("Calling osm2pgsql with: %s", ' '.join(osm2pgsql))
 
     while seq < current.sequence:
+
+        # --------- new CODE --end-at-sequence
         LOG.debug("Importing from sequence %d", seq)
         if outfile.exists():
             outfile.unlink()
@@ -559,13 +561,21 @@ def update(props, args):
                                   max_size=args.max_diff_size * 1024)
         outhandler.close()
 
+        print(f"[DEBUG] Candidate sequence to apply: {endseq}")
+
         if endseq is None:
             LOG.debug("No new diffs found.")
             break
 
+        # Vérifie AVANT d'exécuter osm2pgsql
+        if args.end_at_sequence is not None and endseq > args.end_at_sequence:
+            print(f"Reached target sequence limit {args.end_at_sequence}. Stopping replication before applying.")
+            break
+
+        # Applique la mise à jour si on est dans la limite
         subprocess.run(osm2pgsql, check=True)
         seq = endseq
-
+                
         nextstate = repl.get_state_info(seq)
         if nextstate:
             timestamp = nextstate.timestamp
@@ -681,6 +691,11 @@ def get_parser():
                      help='Run updates only once, even when more data is available.')
     cmd.add_argument('--post-processing', metavar='SCRIPT',
                      help='Post-processing script to run after each execution of osm2pgsql.')
+
+    # handle option end-at-squence to stop a specific sequence number during update
+    cmd.add_argument('--end-at-sequence', type=int, default=None,
+                     help='Stop applying updates after reaching this sequence number (optional)')
+
 
     # Arguments for status
     cmd = subs.add_parser('status', parents=[default_args],
