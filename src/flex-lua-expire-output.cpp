@@ -65,7 +65,7 @@ create_expire_output(lua_State *lua_state, std::string const &default_schema,
     return new_expire_output;
 }
 
-TRAMPOLINE_WRAPPED_OBJECT(expire_output, __tostring)
+TRAMPOLINE_WRAPPED_OBJECT(expire_output, tostring)
 TRAMPOLINE_WRAPPED_OBJECT(expire_output, filename)
 TRAMPOLINE_WRAPPED_OBJECT(expire_output, maxzoom)
 TRAMPOLINE_WRAPPED_OBJECT(expire_output, minzoom)
@@ -112,7 +112,7 @@ void lua_wrapper_expire_output::init(lua_State *lua_state)
     lua_pushvalue(lua_state, -1);
     lua_setfield(lua_state, -2, "__index");
     luaX_add_table_func(lua_state, "__tostring",
-                        lua_trampoline_expire_output___tostring);
+                        lua_trampoline_expire_output_tostring);
     luaX_add_table_func(lua_state, "filename",
                         lua_trampoline_expire_output_filename);
     luaX_add_table_func(lua_state, "maxzoom",
@@ -126,7 +126,7 @@ void lua_wrapper_expire_output::init(lua_State *lua_state)
     lua_pop(lua_state, 2);
 }
 
-int lua_wrapper_expire_output::__tostring() const
+int lua_wrapper_expire_output::tostring() const
 {
     std::string const str =
         fmt::format("osm2pgsql.ExpireOutput[minzoom={},maxzoom={},filename={},"

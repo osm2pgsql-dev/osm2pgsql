@@ -38,7 +38,7 @@ public:
     {
     }
 
-    int __tostring() const;
+    int tostring() const;
     int name() const;
     int add_bbox();
     int add_from_db();

@@ -418,7 +418,7 @@ void setup_flex_table_indexes(lua_State *lua_state, flex_table_t *table,
     lua_pop(lua_state, 1); // "indexes"
 }
 
-TRAMPOLINE_WRAPPED_OBJECT(table, __tostring)
+TRAMPOLINE_WRAPPED_OBJECT(table, tostring)
 TRAMPOLINE_WRAPPED_OBJECT(table, cluster)
 TRAMPOLINE_WRAPPED_OBJECT(table, columns)
 TRAMPOLINE_WRAPPED_OBJECT(table, name)
@@ -469,7 +469,7 @@ void lua_wrapper_table::init(lua_State *lua_state)
     lua_pushvalue(lua_state, -1);
     lua_setfield(lua_state, -2, "__index");
     luaX_add_table_func(lua_state, "__tostring",
-                        lua_trampoline_table___tostring);
+                        lua_trampoline_table_tostring);
     luaX_add_table_func(lua_state, "insert", lua_trampoline_table_insert);
     luaX_add_table_func(lua_state, "name", lua_trampoline_table_name);
     luaX_add_table_func(lua_state, "schema", lua_trampoline_table_schema);
@@ -479,7 +479,7 @@ void lua_wrapper_table::init(lua_State *lua_state)
     lua_pop(lua_state, 2);
 }
 
-int lua_wrapper_table::__tostring() const
+int lua_wrapper_table::tostring() const
 {
     std::string const str{fmt::format("osm2pgsql.Table[{}]", self().name())};
     luaX_pushstring(lua_state(), str);
