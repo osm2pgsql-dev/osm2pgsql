@@ -15,5 +15,5 @@ jobs:
           sudo apt-get install -yq --no-install-suggests --no-install-recommends lua-check
 
       - name: Run luacheck
-        run: luacheck flex-config/*.lua flex-config/gen/*.lua tests/data/*.lua tests/lua/tests.lua
+        run: luacheck flex-config/*.lua flex-config/*/*.lua tests/data/*.lua tests/lua/tests.lua
 

@@ -115,6 +115,12 @@ public:
         return PQfnumber(m_result.get(), ('"' + name + '"').c_str());
     }
 
+    /// Get the PostgreSQL internal type of a field.
+    unsigned int field_type(int col) const noexcept {
+        assert(col >= 0 && col < num_fields());
+        return PQftype(m_result.get(), col);
+    }
+
     /// Return true if this holds an actual result.
     explicit operator bool() const noexcept { return m_result.get(); }
 

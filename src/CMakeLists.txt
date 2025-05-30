@@ -21,6 +21,7 @@ target_sources(osm2pgsql_lib PRIVATE
     flex-lua-expire-output.cpp
     flex-lua-geom.cpp
     flex-lua-index.cpp
+    flex-lua-locator.cpp
     flex-lua-table.cpp
     flex-table-column.cpp
     flex-table.cpp
@@ -33,6 +34,7 @@ target_sources(osm2pgsql_lib PRIVATE
     geom.cpp
     idlist.cpp
     input.cpp
+    locator.cpp
     logging.cpp
     lua-setup.cpp
     lua-utils.cpp

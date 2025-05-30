@@ -17,6 +17,7 @@
 #include "flex-lua-expire-output.hpp"
 #include "flex-lua-geom.hpp"
 #include "flex-lua-index.hpp"
+#include "flex-lua-locator.hpp"
 #include "flex-lua-table.hpp"
 #include "flex-lua-wrapper.hpp"
 #include "flex-write.hpp"
@@ -77,6 +78,7 @@ std::mutex lua_mutex;
         }                                                                      \
     }
 
+TRAMPOLINE(app_define_locator, define_locator)
 TRAMPOLINE(app_define_table, define_table)
 TRAMPOLINE(app_define_expire_output, define_expire_output)
 TRAMPOLINE(app_get_bbox, get_bbox)
@@ -566,6 +568,17 @@ int output_flex_t::app_as_geometrycollection()
     return 1;
 }
 
+int output_flex_t::app_define_locator()
+{
+    if (m_calling_context != calling_context::main) {
+        throw std::runtime_error{
+            "Locators have to be defined in the"
+            " main Lua code, not in any of the callbacks."};
+    }
+
+    return setup_flex_locator(lua_state(), m_locators.get());
+}
+
 int output_flex_t::app_define_table()
 {
     if (m_calling_context != calling_context::main) {
@@ -602,6 +615,12 @@ expire_output_t &output_flex_t::get_expire_output_from_param()
 {
     return get_from_idx_param(lua_state(), m_expire_outputs.get(),
                               osm2pgsql_expire_output_name);
+}
+
+locator_t &output_flex_t::get_locator_from_param()
+{
+    return get_from_idx_param(lua_state(), m_locators.get(),
+                              osm2pgsql_locator_name);
 }
 
 bool output_flex_t::way_cache_t::init(middle_query_t const &middle, osmid_t id)
@@ -1107,13 +1126,17 @@ void output_flex_t::start()
     for (auto &table : m_table_connections) {
         table.start(m_db_connection, get_options()->append);
     }
+
+    for (auto &locator : *m_locators) {
+        locator.build_index();
+    }
 }
 
 output_flex_t::output_flex_t(output_flex_t const *other,
                              std::shared_ptr<middle_query_t> mid,
                              std::shared_ptr<db_copy_thread_t> copy_thread)
-: output_t(other, std::move(mid)), m_tables(other->m_tables),
-  m_expire_outputs(other->m_expire_outputs),
+: output_t(other, std::move(mid)), m_locators(other->m_locators),
+  m_tables(other->m_tables), m_expire_outputs(other->m_expire_outputs),
   m_db_connection(get_options()->connection_params, "out.flex.thread"),
   m_stage2_way_ids(other->m_stage2_way_ids),
   m_copy_thread(std::move(copy_thread)), m_lua_state(other->m_lua_state),
@@ -1222,6 +1245,9 @@ void output_flex_t::init_lua(std::string const &filename,
     }
     lua_rawset(lua_state(), -3);
 
+    luaX_add_table_func(lua_state(), "define_locator",
+                        lua_trampoline_app_define_locator);
+
     luaX_add_table_func(lua_state(), "define_table",
                         lua_trampoline_app_define_table);
 
@@ -1229,6 +1255,7 @@ void output_flex_t::init_lua(std::string const &filename,
                         lua_trampoline_app_define_expire_output);
 
     lua_wrapper_expire_output::init(lua_state());
+    lua_wrapper_locator::init(lua_state(), get_options()->connection_params);
     lua_wrapper_table::init(lua_state());
 
     // Clean up stack

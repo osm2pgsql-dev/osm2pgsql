@@ -128,12 +128,17 @@ def setup_lua_tagtransform(context):
 def setup_inline_lua_style(context):
     outfile = context.workdir / 'inline_style.lua'
     outfile.write_text(context.text)
-    context.osm2pgsql_params.extend(('-S', str(outfile)))
-
+    if '-S' in context.osm2pgsql_params:
+        context.osm2pgsql_params[context.osm2pgsql_params.index('-S') + 1] = str(outfile)
+    else:
+        context.osm2pgsql_params.extend(('-S', str(outfile)))
 
 @given("the style file '(?P<style>.+)'")
 def setup_style_file(context, style):
-    context.osm2pgsql_params.extend(('-S', str(context.test_data_dir / style)))
+    if '-S' in context.osm2pgsql_params:
+        context.osm2pgsql_params[context.osm2pgsql_params.index('-S') + 1] = str(context.test_data_dir / style)
+    else:
+        context.osm2pgsql_params.extend(('-S', str(context.test_data_dir / style)))
 
 
 @when(r"running osm2pgsql (?P<output>\w+)(?: with parameters)?")

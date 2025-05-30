@@ -71,6 +71,19 @@ void init_database_name(pg_conn_t const &db_connection)
     capabilities().database_name = res.get(0, 0);
 }
 
+void init_geometry_oid(pg_conn_t const &db_connection)
+{
+    auto const res =
+        db_connection.exec("SELECT oid FROM pg_type WHERE typname='geometry'");
+
+    if (res.num_tuples() != 1) {
+        throw std::runtime_error{"Database error: Can not get geometry type. "
+                                 "Is PostGIS extension loaded?"};
+    }
+
+    capabilities().geometry_type_oid = std::stoul(std::string{res.get(0, 0)});
+}
+
 void init_postgis_version(pg_conn_t const &db_connection)
 {
     auto const res = db_connection.exec(
@@ -96,6 +109,7 @@ void init_database_capabilities(pg_conn_t const &db_connection)
     init_settings(db_connection);
     init_database_name(db_connection);
     init_postgis_version(db_connection);
+    init_geometry_oid(db_connection);
 
     try {
         log_info("Database version: {}",
@@ -171,6 +185,11 @@ bool has_table(std::string schema, std::string const &name)
     schema += name;
 
     return capabilities().tables.count(schema);
+}
+
+bool is_geometry_type(unsigned int oid)
+{
+    return capabilities().geometry_type_oid == oid;
 }
 
 void check_schema(std::string const &schema)
