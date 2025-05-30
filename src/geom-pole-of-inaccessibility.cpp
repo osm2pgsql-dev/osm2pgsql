@@ -90,9 +90,7 @@ bool point_to_ring_distance_squared(point_t point, ring_t const &ring,
 
         double const d =
             point_to_segment_distance_squared(point, a, b, stretch);
-        if (d < *min_dist_squared) {
-            *min_dist_squared = d;
-        }
+        *min_dist_squared = std::min(d, *min_dist_squared);
     }
 
     return inside;
@@ -158,9 +156,7 @@ point_t pole_of_inaccessibility(const polygon_t &polygon, double precision,
 
     double const min_precision =
         std::max(envelope.width(), envelope.height()) / 1000.0;
-    if (min_precision > precision) {
-        precision = min_precision;
-    }
+    precision = std::max(min_precision, precision);
 
     box_t const stretched_envelope{envelope.min_x(), envelope.min_y() * stretch,
                                    envelope.max_x(),

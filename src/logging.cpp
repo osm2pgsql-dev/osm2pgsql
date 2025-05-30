@@ -11,10 +11,14 @@
 
 #include <osmium/thread/util.hpp>
 
+namespace {
+
 thread_local unsigned int this_thread_num = 0;
 
 /// Global logger singleton
 logger the_logger{};
+
+} // anonymous namespace
 
 /// Access the global logger singleton
 logger &get_logger() noexcept { return the_logger; }

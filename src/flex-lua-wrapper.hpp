@@ -15,6 +15,7 @@
 #include <cassert>
 #include <exception>
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TRAMPOLINE_WRAPPED_OBJECT(obj_name, func_name)                         \
     int lua_trampoline_##obj_name##_##func_name(lua_State *lua_state)          \
     {                                                                          \

@@ -36,7 +36,7 @@ public:
     {
     }
 
-    int __tostring() const;
+    int tostring() const;
     int cluster() const;
     int columns() const;
     int name() const;

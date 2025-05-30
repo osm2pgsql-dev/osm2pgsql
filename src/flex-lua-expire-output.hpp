@@ -36,7 +36,7 @@ public:
     {
     }
 
-    int __tostring() const;
+    int tostring() const;
     int filename() const;
     int maxzoom() const;
     int minzoom() const;

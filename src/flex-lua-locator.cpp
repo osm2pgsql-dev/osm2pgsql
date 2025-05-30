@@ -36,7 +36,7 @@ locator_t &create_locator(lua_State *lua_state,
     return new_locator;
 }
 
-TRAMPOLINE_WRAPPED_OBJECT(locator, __tostring)
+TRAMPOLINE_WRAPPED_OBJECT(locator, tostring)
 TRAMPOLINE_WRAPPED_OBJECT(locator, name)
 TRAMPOLINE_WRAPPED_OBJECT(locator, add_bbox)
 TRAMPOLINE_WRAPPED_OBJECT(locator, add_from_db)
@@ -83,7 +83,7 @@ void lua_wrapper_locator::init(lua_State *lua_state,
     lua_pushvalue(lua_state, -1);
     lua_setfield(lua_state, -2, "__index");
     luaX_add_table_func(lua_state, "__tostring",
-                        lua_trampoline_locator___tostring);
+                        lua_trampoline_locator_tostring);
     luaX_add_table_func(lua_state, "name", lua_trampoline_locator_name);
     luaX_add_table_func(lua_state, "add_bbox", lua_trampoline_locator_add_bbox);
     luaX_add_table_func(lua_state, "add_from_db",
@@ -96,7 +96,7 @@ void lua_wrapper_locator::init(lua_State *lua_state,
     lua_pop(lua_state, 2);
 }
 
-int lua_wrapper_locator::__tostring() const
+int lua_wrapper_locator::tostring() const
 {
     std::string const str{fmt::format("osm2pgsql.Locator[name={},size={}]",
                                       self().name(), self().size())};

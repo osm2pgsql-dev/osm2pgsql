@@ -113,9 +113,7 @@ FROM {src} WHERE {importance_column} > 0
                 double const dx = coords[m].first - coords[n].first;
                 double const dy = coords[m].second - coords[n].second;
                 double const dist = dx * dx + dy * dy;
-                if (dist < min) {
-                    min = dist;
-                }
+                min = std::min(dist, min);
             }
             data[n].di = std::sqrt(min);
         }
