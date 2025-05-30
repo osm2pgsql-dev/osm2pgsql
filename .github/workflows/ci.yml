@@ -341,7 +341,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2019, windows-2022, windows-2025]
+        os: [windows-2022, windows-2025]
     runs-on: ${{ matrix.os }}
 
     env:
@@ -371,17 +371,17 @@ jobs:
           cp -r Release/* ../README.md ../COPYING ../*.style ../scripts ../flex-config c:/vcpkg/installed/x64-windows/share/proj/proj.db c:/artifact/osm2pgsql-bin/
         shell: bash
         working-directory: build
-        if: matrix.os == 'windows-2022'
+        if: matrix.os == 'windows-2025'
       - name: 'Upload Artifact'
         uses: actions/upload-artifact@v4
         with:
           name: osm2pgsql-win64
           path: c:/artifact
-        if: matrix.os == 'windows-2022'
+        if: matrix.os == 'windows-2025'
 
   windows-package:
     needs: windows
-    runs-on: windows-2022
+    runs-on: windows-2025
 
     env:
       OSMURL: https://download.geofabrik.de/europe/monaco-latest.osm.bz2
