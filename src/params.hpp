@@ -67,7 +67,7 @@ public:
         typename K, typename V,
         std::enable_if_t<!std::is_arithmetic_v<std::remove_reference_t<V>>,
                          bool> = true>
-    void set(K &&key, V &&value)
+    void set(K &&key, V const &value)
     {
         m_map.insert_or_assign(std::forward<K>(key), std::string(value));
     }
