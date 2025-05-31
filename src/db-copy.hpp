@@ -15,6 +15,7 @@
 #include "pgsql-params.hpp"
 
 #include <cassert>
+#include <cstddef>
 #include <condition_variable>
 #include <deque>
 #include <future>
@@ -74,12 +75,11 @@ private:
  */
 class db_deleter_by_id_t
 {
-    enum
-    {
-        // There is a trade-off here between sending as few DELETE SQL as
-        // possible and keeping the size of the deletable vector managable.
-        Max_entries = 1000000
-    };
+    /**
+     * There is a trade-off here between sending as few DELETE SQL as
+     * possible and keeping the size of the deletable vector managable.
+     */
+    static constexpr std::size_t Max_entries = 1000000;
 
 public:
     bool has_data() const noexcept { return !m_deletables.empty(); }
@@ -101,12 +101,11 @@ private:
  */
 class db_deleter_by_type_and_id_t
 {
-    enum
-    {
-        // There is a trade-off here between sending as few DELETE SQL as
-        // possible and keeping the size of the deletable vector managable.
-        Max_entries = 1000000
-    };
+    /**
+     * There is a trade-off here between sending as few DELETE SQL as
+     * possible and keeping the size of the deletable vector managable.
+     */
+    static constexpr std::size_t Max_entries = 1000000;
 
     struct item_t
     {
@@ -140,23 +139,23 @@ private:
 
 struct db_cmd_copy_t
 {
-    enum
-    {
-        /** Size of a single buffer with COPY data for Postgresql.
-         *  This is a trade-off between memory usage and sending large chunks
-         *  to speed up processing. Currently a one-size fits all value.
-         *  Needs more testing and individual values per queue.
-         */
-        Max_buf_size = 10 * 1024 * 1024,
-        /** Maximum length of the queue with COPY data.
-         *  In the usual case, PostgreSQL should be faster processing the
-         *  data than it can be produced and there should only be one element
-         *  in the queue. If PostgreSQL is slower, then the queue will always
-         *  be full and it is better to keep the queue smaller to reduce memory
-         *  usage. Current value is just assumed to be a reasonable trade off.
-         */
-        Max_buffers = 10
-    };
+    /**
+     * Size of a single buffer with COPY data for Postgresql.
+     * This is a trade-off between memory usage and sending large chunks
+     * to speed up processing. Currently a one-size fits all value.
+     * Needs more testing and individual values per queue.
+     */
+    static constexpr std::size_t Max_buf_size = 10 * 1024 * 1024;
+
+    /**
+     * Maximum length of the queue with COPY data.
+     * In the usual case, PostgreSQL should be faster processing the
+     * data than it can be produced and there should only be one element
+     * in the queue. If PostgreSQL is slower, then the queue will always
+     * be full and it is better to keep the queue smaller to reduce memory
+     * usage. Current value is just assumed to be a reasonable trade off.
+     */
+    static constexpr std::size_t Max_buffers = 10;
 
     /// Name of the target table for the copy operation
     std::shared_ptr<db_target_descr_t> target;
