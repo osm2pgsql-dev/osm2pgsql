@@ -10,10 +10,11 @@
  * For a full list of authors see the git log.
  */
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
-enum class ColumnType
+enum class ColumnType : std::uint8_t
 {
     INT,
     REAL,

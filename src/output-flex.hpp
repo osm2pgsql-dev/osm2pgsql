@@ -40,7 +40,7 @@ struct options_t;
  * When C++ code is called from the Lua code we sometimes need to know
  * in what context this happens. These are the possible contexts.
  */
-enum class calling_context
+enum class calling_context : std::uint8_t
 {
     main = 0, ///< In main context, i.e. the Lua script outside any callbacks
     process_node = 1, ///< In the process_node() callback

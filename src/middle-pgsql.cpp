@@ -235,18 +235,18 @@ public:
     }
 
 private:
-    osmium::builder::RelationMemberListBuilder *m_builder;
     std::string m_role;
+    osmium::builder::RelationMemberListBuilder *m_builder;
     osmium::object_id_type m_ref = 0;
     osmium::item_type m_type = osmium::item_type::undefined;
-    enum class next_val
+    enum class next_val : std::uint8_t
     {
         none,
         type,
         ref,
         role
     } m_next_val = next_val::none;
-};
+}; // class member_list_json_builder
 
 template <typename T>
 void pgsql_parse_json_members(char const *string,
