@@ -76,7 +76,7 @@
 
 namespace {
 
-constexpr std::size_t const max_force_single_thread = 4;
+constexpr std::size_t const MAX_FORCE_SINGLE_THREAD = 4;
 
 struct tile_extent
 {
@@ -496,7 +496,7 @@ private:
             }
         }
         log_debug("Need to process {} tiles.", tile_list.size());
-        if (m_jobs == 1 || tile_list.size() < max_force_single_thread) {
+        if (m_jobs == 1 || tile_list.size() < MAX_FORCE_SINGLE_THREAD) {
             log_debug("Running in single-threaded mode.");
             tile_processor_t tp{generalizer, tile_list.size()};
             while (!tile_list.empty()) {

@@ -100,7 +100,7 @@ void db_copy_thread_t::send_command(db_cmd_t &&buffer)
 
     std::unique_lock<std::mutex> lock{m_shared.queue_mutex};
     m_shared.queue_full_cond.wait(lock, [&] {
-        return m_shared.worker_queue.size() < db_cmd_copy_t::Max_buffers;
+        return m_shared.worker_queue.size() < db_cmd_copy_t::MAX_BUFFERS;
     });
 
     m_shared.worker_queue.push_back(std::move(buffer));

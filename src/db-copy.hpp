@@ -79,7 +79,7 @@ class db_deleter_by_id_t
      * There is a trade-off here between sending as few DELETE SQL as
      * possible and keeping the size of the deletable vector managable.
      */
-    static constexpr std::size_t Max_entries = 1000000;
+    static constexpr std::size_t MAX_ENTRIES = 1000000;
 
 public:
     bool has_data() const noexcept { return !m_deletables.empty(); }
@@ -89,7 +89,7 @@ public:
     void delete_rows(std::string const &table, std::string const &column,
                      pg_conn_t const &db_connection);
 
-    bool is_full() const noexcept { return m_deletables.size() > Max_entries; }
+    bool is_full() const noexcept { return m_deletables.size() > MAX_ENTRIES; }
 
 private:
     /// Vector with object to delete before copying
@@ -105,7 +105,7 @@ class db_deleter_by_type_and_id_t
      * There is a trade-off here between sending as few DELETE SQL as
      * possible and keeping the size of the deletable vector managable.
      */
-    static constexpr std::size_t Max_entries = 1000000;
+    static constexpr std::size_t MAX_ENTRIES = 1000000;
 
     struct item_t
     {
@@ -129,7 +129,7 @@ public:
     void delete_rows(std::string const &table, std::string const &column,
                      pg_conn_t const &db_connection);
 
-    bool is_full() const noexcept { return m_deletables.size() > Max_entries; }
+    bool is_full() const noexcept { return m_deletables.size() > MAX_ENTRIES; }
 
 private:
     /// Vector with object to delete before copying
@@ -145,7 +145,7 @@ struct db_cmd_copy_t
      * to speed up processing. Currently a one-size fits all value.
      * Needs more testing and individual values per queue.
      */
-    static constexpr std::size_t Max_buf_size = 10 * 1024 * 1024;
+    static constexpr std::size_t MAX_BUF_SIZE = 10 * 1024 * 1024;
 
     /**
      * Maximum length of the queue with COPY data.
@@ -155,7 +155,7 @@ struct db_cmd_copy_t
      * be full and it is better to keep the queue smaller to reduce memory
      * usage. Current value is just assumed to be a reasonable trade off.
      */
-    static constexpr std::size_t Max_buffers = 10;
+    static constexpr std::size_t MAX_BUFFERS = 10;
 
     /// Name of the target table for the copy operation
     std::shared_ptr<db_target_descr_t> target;
@@ -167,7 +167,7 @@ struct db_cmd_copy_t
     explicit db_cmd_copy_t(std::shared_ptr<db_target_descr_t> t)
     : target(std::move(t))
     {
-        buffer.reserve(Max_buf_size);
+        buffer.reserve(MAX_BUF_SIZE);
     }
 
     explicit operator bool() const noexcept { return target != nullptr; }
@@ -182,7 +182,7 @@ public:
     /// Return true if the buffer is filled up.
     bool is_full() const noexcept
     {
-        return (buffer.size() > Max_buf_size - 100) || m_deleter.is_full();
+        return (buffer.size() > MAX_BUF_SIZE - 100) || m_deleter.is_full();
     }
 
     bool has_deletables() const noexcept { return m_deleter.has_data(); }

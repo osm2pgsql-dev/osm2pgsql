@@ -81,9 +81,15 @@ public:
     void clear();
 
 private:
+    /**
+     * The block size used for internal blocks. The larger the block size
+     * the less memory is consumed but the more expensive the access is.
+     */
+    static constexpr const std::size_t BLOCK_SIZE = 32;
+
     bool first_entry_in_block() const noexcept
     {
-        return m_count % block_size == 0;
+        return m_count % BLOCK_SIZE == 0;
     }
 
     /// The maximum number of bytes an entry will need in storage.
@@ -96,12 +102,6 @@ private:
         return m_index.will_resize() ||
                (m_data.size() + max_bytes_per_entry() >= m_data.capacity());
     }
-
-    /**
-     * The block size used for internal blocks. The larger the block size
-     * the less memory is consumed but the more expensive the access is.
-     */
-    static constexpr const std::size_t block_size = 32;
 
     ordered_index_t m_index;
     std::string m_data;

@@ -36,7 +36,7 @@ Code must be written in the
 always be used for code blocks, even one-liners.
 
 Names should use underscores, not camel case, with class/struct names ending in
-`_t`. Template parameters must use all upper case.
+`_t`. Constants and template parameters must use all upper case.
 
 Header files should be included in the following order, each group in their own
 block:

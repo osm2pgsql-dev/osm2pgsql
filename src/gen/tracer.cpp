@@ -42,7 +42,7 @@ tracer_t::trace(canvas_t const &canvas, tile_t const &tile, double min_area)
     prepare(canvas);
 
     potrace_bitmap_t const bitmap{int(canvas.size()), int(canvas.size()),
-                                  int(canvas.size() / bits_per_word),
+                                  int(canvas.size() / BITS_PER_WORD),
                                   m_bits.data()};
 
     std::unique_ptr<potrace_state_t, potrace_state_deleter> state{
@@ -64,9 +64,9 @@ void tracer_t::reset()
 void tracer_t::prepare(canvas_t const &canvas) noexcept
 {
     std::size_t const size = canvas.size();
-    assert(size % bits_per_word == 0);
+    assert(size % BITS_PER_WORD == 0);
 
-    m_bits.reserve((size * size) / bits_per_word);
+    m_bits.reserve((size * size) / BITS_PER_WORD);
 
     for (unsigned char const *d = canvas.begin(); d != canvas.end(); d += 8) {
         auto w = bit_squeeze(0, d);
