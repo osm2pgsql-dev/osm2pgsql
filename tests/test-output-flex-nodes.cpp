@@ -53,7 +53,7 @@ TEST_CASE("add nodes")
     CHECK(1 == conn.get_count("osm2pgsql_test_t1", "node_id = 17"));
 }
 
-enum class node_relationship
+enum class node_relationship : std::uint8_t
 {
     none,
     in_way,
