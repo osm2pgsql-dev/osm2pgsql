@@ -145,7 +145,7 @@ struct db_cmd_copy_t
      * to speed up processing. Currently a one-size fits all value.
      * Needs more testing and individual values per queue.
      */
-    static constexpr std::size_t MAX_BUF_SIZE = 10 * 1024 * 1024;
+    static constexpr std::size_t MAX_BUF_SIZE = 10UL * 1024UL * 1024UL;
 
     /**
      * Maximum length of the queue with COPY data.
