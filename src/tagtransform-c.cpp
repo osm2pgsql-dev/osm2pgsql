@@ -26,7 +26,7 @@ struct layers_type
     bool roads;
 };
 
-constexpr std::array<layers_type, 25> const layers = {
+constexpr std::array<layers_type, 25> const LAYERS = {
     {{"proposed", 1, false},       {"construction", 2, false},
      {"steps", 10, false},         {"cycleway", 10, false},
      {"bridleway", 10, false},     {"footway", 10, false},
@@ -60,7 +60,7 @@ void add_z_order(taglist_t *tags, bool *roads)
     *roads = false;
 
     if (highway) {
-        for (auto const &layer : layers) {
+        for (auto const &layer : LAYERS) {
             if (*highway == layer.highway) {
                 z_order += layer.offset;
                 *roads = layer.roads;
