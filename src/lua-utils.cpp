@@ -36,7 +36,7 @@ void *luaX_get_context(lua_State *lua_state) noexcept
 namespace {
 
 // Unique key for lua registry
-constexpr char const *const osm2pgsql_output_flex = "osm2pgsql_output_flex";
+constexpr char const *const OSM2PGSQL_OUTPUT_FLEX = "osm2pgsql_output_flex";
 
 } // anonymous namespace
 
@@ -44,7 +44,7 @@ void luaX_set_context(lua_State *lua_state, void *ptr) noexcept
 {
     assert(lua_state);
     assert(ptr);
-    lua_pushlightuserdata(lua_state, (void *)osm2pgsql_output_flex);
+    lua_pushlightuserdata(lua_state, (void *)OSM2PGSQL_OUTPUT_FLEX);
     lua_pushlightuserdata(lua_state, ptr);
     lua_settable(lua_state, LUA_REGISTRYINDEX);
 }
@@ -52,7 +52,7 @@ void luaX_set_context(lua_State *lua_state, void *ptr) noexcept
 void *luaX_get_context(lua_State *lua_state) noexcept
 {
     assert(lua_state);
-    lua_pushlightuserdata(lua_state, (void *)osm2pgsql_output_flex);
+    lua_pushlightuserdata(lua_state, (void *)OSM2PGSQL_OUTPUT_FLEX);
     lua_gettable(lua_state, LUA_REGISTRYINDEX);
     auto *const ptr = lua_touserdata(lua_state, -1);
     assert(ptr);

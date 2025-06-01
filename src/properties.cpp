@@ -19,7 +19,7 @@
 
 namespace {
 
-constexpr char const *const properties_table = "osm2pgsql_properties";
+constexpr char const *const PROPERTIES_TABLE = "osm2pgsql_properties";
 
 } // anonymous namespace
 
@@ -27,10 +27,10 @@ properties_t::properties_t(connection_params_t connection_params,
                            std::string schema)
 : m_connection_params(std::move(connection_params)),
   m_schema(std::move(schema)),
-  m_has_properties_table(has_table(m_schema, properties_table))
+  m_has_properties_table(has_table(m_schema, PROPERTIES_TABLE))
 {
     assert(!m_schema.empty());
-    log_debug("Found properties table '{}': {}.", properties_table,
+    log_debug("Found properties table '{}': {}.", PROPERTIES_TABLE,
               m_has_properties_table);
 }
 
@@ -159,5 +159,5 @@ bool properties_t::load()
 
 std::string properties_t::table_name() const
 {
-    return qualified_name(m_schema, properties_table);
+    return qualified_name(m_schema, PROPERTIES_TABLE);
 }
