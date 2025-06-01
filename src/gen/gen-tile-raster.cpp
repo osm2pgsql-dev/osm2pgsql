@@ -10,6 +10,7 @@
 #include "gen-tile-raster.hpp"
 
 #include "canvas.hpp"
+#include "hex.hpp"
 #include "logging.hpp"
 #include "params.hpp"
 #include "pgsql.hpp"
@@ -63,7 +64,7 @@ void save_image_to_table(pg_conn_t *connection, canvas_t const &canvas,
                          std::string const &param, char const *variant,
                          std::string const &table_prefix)
 {
-    auto const wkb = to_hex(canvas.to_wkb(tile, margin));
+    auto const wkb = util::encode_hex(canvas.to_wkb(tile, margin));
 
     connection->exec("INSERT INTO \"{}_{}\" (type, zoom, x, y, rast)"
                      " VALUES ('{}', {}, {}, {}, '{}')",
