@@ -73,9 +73,9 @@ using quadkey_list_t = std::vector<quadkey_t>;
 class tile_t
 {
 public:
-    static constexpr double const earth_circumference = 40075016.68;
-    static constexpr double const half_earth_circumference =
-        earth_circumference / 2;
+    static constexpr double const EARTH_CIRCUMFERENCE = 40075016.68;
+    static constexpr double const HALF_EARTH_CIRCUMFERENCE =
+        EARTH_CIRCUMFERENCE / 2;
 
     /// Construct an invalid tile.
     tile_t() noexcept = default;
@@ -90,7 +90,7 @@ public:
     tile_t(uint32_t zoom, uint32_t x, uint32_t y) noexcept
     : m_x(x), m_y(y), m_zoom(zoom)
     {
-        assert(m_zoom < max_zoom);
+        assert(m_zoom < MAX_ZOOM);
         assert(x < (1UL << m_zoom));
         assert(y < (1UL << m_zoom));
     }
@@ -113,64 +113,64 @@ public:
         return m_y;
     }
 
-    bool valid() const noexcept { return m_zoom != invalid_zoom; }
+    bool valid() const noexcept { return m_zoom != INVALID_ZOOM; }
 
     /// The width/height of the tile in web mercator (EPSG:3857) coordinates.
     double extent() const noexcept
     {
-        return earth_circumference / static_cast<double>(1UL << m_zoom);
+        return EARTH_CIRCUMFERENCE / static_cast<double>(1UL << m_zoom);
     }
 
     /// Minimum X coordinate of this tile in web mercator (EPSG:3857) units.
     double xmin() const noexcept
     {
-        return -half_earth_circumference + m_x * extent();
+        return -HALF_EARTH_CIRCUMFERENCE + m_x * extent();
     }
 
     /// Maximum X coordinate of this tile in web mercator (EPSG:3857) units.
     double xmax() const noexcept
     {
-        return -half_earth_circumference + (m_x + 1) * extent();
+        return -HALF_EARTH_CIRCUMFERENCE + (m_x + 1) * extent();
     }
 
     /// Minimum Y coordinate of this tile in web mercator (EPSG:3857) units.
     double ymin() const noexcept
     {
-        return half_earth_circumference - (m_y + 1) * extent();
+        return HALF_EARTH_CIRCUMFERENCE - (m_y + 1) * extent();
     }
 
     /// Maximum Y coordinate of this tile in web mercator (EPSG:3857) units.
     double ymax() const noexcept
     {
-        return half_earth_circumference - m_y * extent();
+        return HALF_EARTH_CIRCUMFERENCE - m_y * extent();
     }
 
     /// Same as box(margin).min_x().
     double xmin(double margin) const noexcept
     {
-        return std::clamp(xmin() - margin * extent(), -half_earth_circumference,
-                          half_earth_circumference);
+        return std::clamp(xmin() - margin * extent(), -HALF_EARTH_CIRCUMFERENCE,
+                          HALF_EARTH_CIRCUMFERENCE);
     }
 
     /// Same as box(margin).max_x().
     double xmax(double margin) const noexcept
     {
-        return std::clamp(xmax() + margin * extent(), -half_earth_circumference,
-                          half_earth_circumference);
+        return std::clamp(xmax() + margin * extent(), -HALF_EARTH_CIRCUMFERENCE,
+                          HALF_EARTH_CIRCUMFERENCE);
     }
 
     /// Same as box(margin).min_y().
     double ymin(double margin) const noexcept
     {
-        return std::clamp(ymin() - margin * extent(), -half_earth_circumference,
-                          half_earth_circumference);
+        return std::clamp(ymin() - margin * extent(), -HALF_EARTH_CIRCUMFERENCE,
+                          HALF_EARTH_CIRCUMFERENCE);
     }
 
     /// Same as box(margin).max_y().
     double ymax(double margin) const noexcept
     {
-        return std::clamp(ymax() + margin * extent(), -half_earth_circumference,
-                          half_earth_circumference);
+        return std::clamp(ymax() + margin * extent(), -HALF_EARTH_CIRCUMFERENCE,
+                          HALF_EARTH_CIRCUMFERENCE);
     }
 
     /**
@@ -187,8 +187,8 @@ public:
      * the bounding box twice as wide and twice as heigh.
      *
      * The bounding box is clamped to the extent of the earth, so there will
-     * be no coordinates smaller than -half_earth_circumference or larger than
-     * half_earth_circumference.
+     * be no coordinates smaller than -HALF_EARTH_CIRCUMFERENCE or larger than
+     * HALF_EARTH_CIRCUMFERENCE.
      */
     geom::box_t box(double margin) const noexcept
     {
@@ -258,13 +258,14 @@ public:
     static tile_t from_quadkey(quadkey_t quadkey, uint32_t zoom) noexcept;
 
 private:
-    static constexpr uint32_t const invalid_zoom =
+    static constexpr uint32_t const INVALID_ZOOM =
         std::numeric_limits<uint32_t>::max();
-    static constexpr uint32_t const max_zoom = 32;
+
+    static constexpr uint32_t const MAX_ZOOM = 32;
 
     uint32_t m_x = 0;
     uint32_t m_y = 0;
-    uint32_t m_zoom = invalid_zoom;
+    uint32_t m_zoom = INVALID_ZOOM;
 }; // class tile_t
 
 /**

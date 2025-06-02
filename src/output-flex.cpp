@@ -132,9 +132,9 @@ void push_osm_object_to_lua_stack(lua_State *lua_state,
      * timestamp, changeset, uid, user). For ways there are 2 more (is_closed,
      * nodes), for relations 1 more (members).
      */
-    constexpr int const max_table_size = 10;
+    constexpr int const MAX_TABLE_SIZE = 10;
 
-    lua_createtable(lua_state, 0, max_table_size);
+    lua_createtable(lua_state, 0, MAX_TABLE_SIZE);
 
     luaX_add_table_int(lua_state, "id", object.id());
 
@@ -240,12 +240,12 @@ typename CONTAINER::value_type &get_from_idx_param(lua_State *lua_state,
 
 std::size_t get_nodes(middle_query_t const &middle, osmium::Way *way)
 {
-    constexpr std::size_t const max_missing_nodes = 100;
+    constexpr std::size_t const MAX_MISSING_NODES = 100;
     static std::size_t count_missing_nodes = 0;
 
     auto const count = middle.nodes_get_list(&way->nodes());
 
-    if (count_missing_nodes <= max_missing_nodes &&
+    if (count_missing_nodes <= MAX_MISSING_NODES &&
         count != way->nodes().size()) {
         util::string_joiner_t id_list{','};
         for (auto const &nr : way->nodes()) {
@@ -257,10 +257,10 @@ std::size_t get_nodes(middle_query_t const &middle, osmium::Way *way)
 
         log_debug("Missing nodes in way {}: {}", way->id(), id_list());
 
-        if (count_missing_nodes > max_missing_nodes) {
+        if (count_missing_nodes > MAX_MISSING_NODES) {
             log_debug("Reported more than {} missing nodes, no further missing "
                       "nodes will be reported!",
-                      max_missing_nodes);
+                      MAX_MISSING_NODES);
         }
     }
 

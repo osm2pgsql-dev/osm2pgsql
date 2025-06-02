@@ -217,10 +217,10 @@ public:
             write_point(&data, geom);
         } else {
             // 9 byte header plus one set of coordinates
-            constexpr const std::size_t size = 9 + 2 * 8;
-            data.reserve(size);
+            constexpr const std::size_t SIZE = 9 + 2 * 8;
+            data.reserve(SIZE);
             write_point(&data, geom, m_srid);
-            assert(data.size() == size);
+            assert(data.size() == SIZE);
         }
 
         return data;
@@ -578,7 +578,7 @@ geom::geometry_t ewkb_to_geom(std::string_view wkb)
 
 namespace {
 
-constexpr std::array<char, 256> const hex_table = {
+constexpr std::array<char, 256> const HEX_TABLE = {
     0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,
     0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,
     0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,
@@ -594,7 +594,7 @@ constexpr std::array<char, 256> const hex_table = {
 unsigned char decode_hex_char(char c) noexcept
 {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-    return hex_table[static_cast<std::size_t>(static_cast<unsigned char>(c))];
+    return HEX_TABLE[static_cast<std::size_t>(static_cast<unsigned char>(c))];
 }
 
 std::string decode_hex(std::string_view hex_string)

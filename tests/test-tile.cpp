@@ -55,31 +55,31 @@ TEST_CASE("tile_t coordinates zoom=0", "[NoDB]")
 {
     tile_t const tile{0, 0, 0};
 
-    REQUIRE(tile.xmin() == Approx(-tile_t::half_earth_circumference));
-    REQUIRE(tile.ymin() == Approx(-tile_t::half_earth_circumference));
-    REQUIRE(tile.xmax() == Approx(tile_t::half_earth_circumference));
-    REQUIRE(tile.ymax() == Approx(tile_t::half_earth_circumference));
-    REQUIRE(tile.box().min_x() == Approx(-tile_t::half_earth_circumference));
-    REQUIRE(tile.box().min_y() == Approx(-tile_t::half_earth_circumference));
-    REQUIRE(tile.box().max_x() == Approx(tile_t::half_earth_circumference));
-    REQUIRE(tile.box().max_y() == Approx(tile_t::half_earth_circumference));
+    REQUIRE(tile.xmin() == Approx(-tile_t::HALF_EARTH_CIRCUMFERENCE));
+    REQUIRE(tile.ymin() == Approx(-tile_t::HALF_EARTH_CIRCUMFERENCE));
+    REQUIRE(tile.xmax() == Approx(tile_t::HALF_EARTH_CIRCUMFERENCE));
+    REQUIRE(tile.ymax() == Approx(tile_t::HALF_EARTH_CIRCUMFERENCE));
+    REQUIRE(tile.box().min_x() == Approx(-tile_t::HALF_EARTH_CIRCUMFERENCE));
+    REQUIRE(tile.box().min_y() == Approx(-tile_t::HALF_EARTH_CIRCUMFERENCE));
+    REQUIRE(tile.box().max_x() == Approx(tile_t::HALF_EARTH_CIRCUMFERENCE));
+    REQUIRE(tile.box().max_y() == Approx(tile_t::HALF_EARTH_CIRCUMFERENCE));
 
     // Bounding box with margin will not get larger, because it is always
     // clamped to the full extent of the map.
-    REQUIRE(tile.xmin(0.1) == Approx(-tile_t::half_earth_circumference));
-    REQUIRE(tile.ymin(0.1) == Approx(-tile_t::half_earth_circumference));
-    REQUIRE(tile.xmax(0.1) == Approx(tile_t::half_earth_circumference));
-    REQUIRE(tile.ymax(0.1) == Approx(tile_t::half_earth_circumference));
-    REQUIRE(tile.box(0.1).min_x() == Approx(-tile_t::half_earth_circumference));
-    REQUIRE(tile.box(0.1).min_y() == Approx(-tile_t::half_earth_circumference));
-    REQUIRE(tile.box(0.1).max_x() == Approx(tile_t::half_earth_circumference));
-    REQUIRE(tile.box(0.1).max_y() == Approx(tile_t::half_earth_circumference));
+    REQUIRE(tile.xmin(0.1) == Approx(-tile_t::HALF_EARTH_CIRCUMFERENCE));
+    REQUIRE(tile.ymin(0.1) == Approx(-tile_t::HALF_EARTH_CIRCUMFERENCE));
+    REQUIRE(tile.xmax(0.1) == Approx(tile_t::HALF_EARTH_CIRCUMFERENCE));
+    REQUIRE(tile.ymax(0.1) == Approx(tile_t::HALF_EARTH_CIRCUMFERENCE));
+    REQUIRE(tile.box(0.1).min_x() == Approx(-tile_t::HALF_EARTH_CIRCUMFERENCE));
+    REQUIRE(tile.box(0.1).min_y() == Approx(-tile_t::HALF_EARTH_CIRCUMFERENCE));
+    REQUIRE(tile.box(0.1).max_x() == Approx(tile_t::HALF_EARTH_CIRCUMFERENCE));
+    REQUIRE(tile.box(0.1).max_y() == Approx(tile_t::HALF_EARTH_CIRCUMFERENCE));
 
     REQUIRE(tile.center().x() == Approx(0.0));
     REQUIRE(tile.center().y() == Approx(0.0));
     REQUIRE(tile.center() == geom::point_t{0.0, 0.0});
 
-    REQUIRE(tile.extent() == Approx(tile_t::earth_circumference));
+    REQUIRE(tile.extent() == Approx(tile_t::EARTH_CIRCUMFERENCE));
 
     geom::point_t const p{12345.6, 7891.0};
     auto const tp = tile.to_tile_coords(p, 256);
@@ -94,7 +94,7 @@ TEST_CASE("tile_t coordinates zoom=2", "[NoDB]")
 {
     tile_t const tile{2, 1, 2};
 
-    double min = -tile_t::half_earth_circumference / 2;
+    double min = -tile_t::HALF_EARTH_CIRCUMFERENCE / 2;
     double max = 0.0;
     REQUIRE(tile.xmin() == Approx(min));
     REQUIRE(tile.ymin() == Approx(min));
@@ -106,8 +106,8 @@ TEST_CASE("tile_t coordinates zoom=2", "[NoDB]")
     CHECK(tile.box().max_y() == tile.ymax());
 
     // Bounding box of tile with 50% margin on all sides.
-    min -= tile_t::half_earth_circumference / 4;
-    max += tile_t::half_earth_circumference / 4;
+    min -= tile_t::HALF_EARTH_CIRCUMFERENCE / 4;
+    max += tile_t::HALF_EARTH_CIRCUMFERENCE / 4;
     CHECK(tile.xmin(0.5) == Approx(min));
     CHECK(tile.ymin(0.5) == Approx(min));
     CHECK(tile.xmax(0.5) == Approx(max));
@@ -117,13 +117,13 @@ TEST_CASE("tile_t coordinates zoom=2", "[NoDB]")
     CHECK(tile.box(0.5).max_x() == tile.xmax(0.5));
     CHECK(tile.box(0.5).max_y() == tile.ymax(0.5));
 
-    REQUIRE(tile.center().x() == Approx(-tile_t::half_earth_circumference / 4));
-    REQUIRE(tile.center().y() == Approx(-tile_t::half_earth_circumference / 4));
+    REQUIRE(tile.center().x() == Approx(-tile_t::HALF_EARTH_CIRCUMFERENCE / 4));
+    REQUIRE(tile.center().y() == Approx(-tile_t::HALF_EARTH_CIRCUMFERENCE / 4));
 
-    REQUIRE(tile.extent() == Approx(tile_t::half_earth_circumference / 2));
+    REQUIRE(tile.extent() == Approx(tile_t::HALF_EARTH_CIRCUMFERENCE / 2));
 
-    geom::point_t const p{-tile_t::half_earth_circumference / 4,
-                          -tile_t::half_earth_circumference / 8};
+    geom::point_t const p{-tile_t::HALF_EARTH_CIRCUMFERENCE / 4,
+                          -tile_t::HALF_EARTH_CIRCUMFERENCE / 8};
     auto const tp = tile.to_tile_coords(p, 4096);
     REQUIRE(tp.x() == Approx(2048));
     REQUIRE(tp.y() == Approx(2048 + 1024));

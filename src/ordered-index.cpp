@@ -26,7 +26,7 @@ void ordered_index_t::add(osmid_t id, std::size_t offset)
         }
         m_ranges.emplace_back(id, offset, m_block_size);
         m_capacity += m_block_size;
-        if (m_block_size < max_block_size) {
+        if (m_block_size < MAX_BLOCK_SIZE) {
             m_block_size <<= 1U;
         }
     }

@@ -24,10 +24,10 @@ lua_tagtransform_t::lua_tagtransform_t(std::string const *tag_transform_script,
                         lua_tostring(lua_state(), -1));
     }
 
-    check_lua_function_exists(node_func);
-    check_lua_function_exists(way_func);
-    check_lua_function_exists(rel_func);
-    check_lua_function_exists(rel_mem_func);
+    check_lua_function_exists(NODE_FUNC);
+    check_lua_function_exists(WAY_FUNC);
+    check_lua_function_exists(REL_FUNC);
+    check_lua_function_exists(REL_MEM_FUNC);
 }
 
 std::unique_ptr<tagtransform_t> lua_tagtransform_t::clone() const
@@ -86,13 +86,13 @@ bool lua_tagtransform_t::filter_tags(osmium::OSMObject const &o, bool *polygon,
 {
     switch (o.type()) {
     case osmium::item_type::node:
-        lua_getglobal(lua_state(), node_func);
+        lua_getglobal(lua_state(), NODE_FUNC);
         break;
     case osmium::item_type::way:
-        lua_getglobal(lua_state(), way_func);
+        lua_getglobal(lua_state(), WAY_FUNC);
         break;
     case osmium::item_type::relation:
-        lua_getglobal(lua_state(), rel_func);
+        lua_getglobal(lua_state(), REL_FUNC);
         break;
     default:
         throw std::runtime_error{"Unknown OSM type."};
@@ -153,7 +153,7 @@ bool lua_tagtransform_t::filter_rel_member_tags(
     bool *roads, taglist_t *out_tags)
 {
     size_t const num_members = member_roles.size();
-    lua_getglobal(lua_state(), rel_mem_func);
+    lua_getglobal(lua_state(), REL_MEM_FUNC);
 
     lua_newtable(lua_state()); /* relations key value table */
 
