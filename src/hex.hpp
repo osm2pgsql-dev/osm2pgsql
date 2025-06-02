@@ -28,7 +28,19 @@ void encode_hex(std::string const &in, std::string *out);
  * \param in The input data.
  * \returns Hex encoded string.
  */
-std::string encode_hex(std::string const &in);
+[[nodiscard]] std::string encode_hex(std::string const &in);
+
+/**
+ * Decode one hex character (0-9A-F or 0-9a-f) and return its value.
+ * Returns 0 for characters that are not hex characters.
+ */
+[[nodiscard]] unsigned char decode_hex_char(char c) noexcept;
+
+/**
+ * Decode a string of hex characters. Throws an exception if the input is not
+ * a valid hex encoding.
+ */
+[[nodiscard]] std::string decode_hex(std::string_view hex);
 
 } // namespace util
 

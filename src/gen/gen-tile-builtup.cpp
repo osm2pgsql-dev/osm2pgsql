@@ -62,7 +62,7 @@ void draw_from_db(double margin, canvas_list_t *canvas_list, pg_conn_t *conn,
                                 box.max_x(), box.max_y());
 
         for (int n = 0; n < result.num_tuples(); ++n) {
-            auto const geom = ewkb_to_geom(decode_hex(result.get(n, 0)));
+            auto const geom = ewkb_to_geom(util::decode_hex(result.get(n, 0)));
             cc.canvas.draw(geom, tile);
         }
     }

@@ -50,7 +50,7 @@ void draw_from_db(double margin, unsigned int image_extent,
 
     for (int n = 0; n < result.num_tuples(); ++n) {
         std::string param = result.get_value(n, 1);
-        auto const geom = ewkb_to_geom(decode_hex(result.get(n, 0)));
+        auto const geom = ewkb_to_geom(util::decode_hex(result.get(n, 0)));
 
         auto const [it, success] = canvas_list->try_emplace(
             std::move(param), image_extent, image_buffer);
