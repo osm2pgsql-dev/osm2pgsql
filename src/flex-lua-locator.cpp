@@ -59,7 +59,7 @@ int setup_flex_locator(lua_State *lua_state, std::vector<locator_t> *locators)
     void *ptr = lua_newuserdata(lua_state, sizeof(std::size_t));
     auto *num = new (ptr) std::size_t{};
     *num = locators->size() - 1;
-    luaL_getmetatable(lua_state, osm2pgsql_locator_name);
+    luaL_getmetatable(lua_state, OSM2PGSQL_LOCATOR_CLASS);
     lua_setmetatable(lua_state, -2);
 
     return 1;
@@ -71,7 +71,7 @@ void lua_wrapper_locator::init(lua_State *lua_state,
     s_connection_params = connection_params;
 
     lua_getglobal(lua_state, "osm2pgsql");
-    if (luaL_newmetatable(lua_state, osm2pgsql_locator_name) != 1) {
+    if (luaL_newmetatable(lua_state, OSM2PGSQL_LOCATOR_CLASS) != 1) {
         throw std::runtime_error{"Internal error: Lua newmetatable failed."};
     }
     lua_pushvalue(lua_state, -1); // Copy of new metatable

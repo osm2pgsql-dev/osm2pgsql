@@ -15,7 +15,7 @@
 
 #include <lua.hpp>
 
-static char const *const osm2pgsql_geometry_class = "osm2pgsql.Geometry";
+static char const *const OSM2PGSQL_GEOMETRY_CLASS = "osm2pgsql.Geometry";
 
 geom::geometry_t *create_lua_geometry_object(lua_State *lua_state)
 {
@@ -23,7 +23,7 @@ geom::geometry_t *create_lua_geometry_object(lua_State *lua_state)
     new (ptr) geom::geometry_t{};
 
     // Set the metatable of this object
-    luaL_getmetatable(lua_state, osm2pgsql_geometry_class);
+    luaL_getmetatable(lua_state, OSM2PGSQL_GEOMETRY_CLASS);
     lua_setmetatable(lua_state, -2);
 
     return static_cast<geom::geometry_t *>(ptr);
@@ -31,7 +31,7 @@ geom::geometry_t *create_lua_geometry_object(lua_State *lua_state)
 
 geom::geometry_t *unpack_geometry(lua_State *lua_state, int n) noexcept
 {
-    void *user_data = luaL_checkudata(lua_state, n, osm2pgsql_geometry_class);
+    void *user_data = luaL_checkudata(lua_state, n, OSM2PGSQL_GEOMETRY_CLASS);
     luaL_argcheck(lua_state, user_data != nullptr, n, "'Geometry' expected");
     return static_cast<geom::geometry_t *>(user_data);
 }
@@ -300,7 +300,7 @@ int geom_transform(lua_State *lua_state)
 void init_geometry_class(lua_State *lua_state)
 {
     lua_getglobal(lua_state, "osm2pgsql");
-    if (luaL_newmetatable(lua_state, osm2pgsql_geometry_class) != 1) {
+    if (luaL_newmetatable(lua_state, OSM2PGSQL_GEOMETRY_CLASS) != 1) {
         throw std::runtime_error{"Internal error: Lua newmetatable failed."};
     }
     lua_pushvalue(lua_state, -1); // Copy of new metatable

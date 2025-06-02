@@ -565,7 +565,7 @@ genproc_t::genproc_t(std::string const &filename,
     luaX_add_table_func(lua_state(), "run_sql", lua_trampoline_app_run_sql);
 
     lua_getglobal(lua_state(), "osm2pgsql");
-    if (luaL_newmetatable(lua_state(), osm2pgsql_expire_output_name) != 1) {
+    if (luaL_newmetatable(lua_state(), OSM2PGSQL_EXPIRE_OUTPUT_CLASS) != 1) {
         throw std::runtime_error{"Internal error: Lua newmetatable failed."};
     }
     lua_pushvalue(lua_state(), -1); // Copy of new metatable
