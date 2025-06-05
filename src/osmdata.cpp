@@ -31,9 +31,7 @@ osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid,
 : m_mid(std::move(mid)), m_output(std::move(output)),
   m_connection_params(options.connection_params), m_bbox(options.bbox),
   m_num_procs(options.num_procs), m_append(options.append),
-  m_droptemp(options.droptemp),
-  m_with_extra_attrs(options.extra_attributes ||
-                     options.output_backend == "flex")
+  m_droptemp(options.droptemp)
 {
     assert(m_mid);
     assert(m_output);
@@ -60,13 +58,8 @@ void osmdata_t::node(osmium::Node const &node)
         return;
     }
 
-    bool const has_tags_or_attrs = m_with_extra_attrs || !node.tags().empty();
     if (m_append) {
-        if (has_tags_or_attrs) {
-            m_output->node_modify(node);
-        } else {
-            m_output->node_delete(node.id());
-        }
+        m_output->node_modify(node);
 
         // Version 1 means this is a new node, so there can't be an existing
         // way or relation referencing it, so we don't have to add that node
@@ -75,7 +68,7 @@ void osmdata_t::node(osmium::Node const &node)
         if (node.version() != 1) {
             m_changed_nodes.push_back(node.id());
         }
-    } else if (has_tags_or_attrs) {
+    } else {
         m_output->node_add(node);
     }
 }
@@ -105,13 +98,8 @@ void osmdata_t::way(osmium::Way &way)
         return;
     }
 
-    bool const has_tags_or_attrs = m_with_extra_attrs || !way.tags().empty();
     if (m_append) {
-        if (has_tags_or_attrs) {
-            m_output->way_modify(&way);
-        } else {
-            m_output->way_delete(way.id());
-        }
+        m_output->way_modify(&way);
 
         // Version 1 means this is a new way, so there can't be an existing
         // relation referencing it, so we don't have to add that way to the
@@ -120,7 +108,7 @@ void osmdata_t::way(osmium::Way &way)
         if (way.version() != 1) {
             m_changed_ways.push_back(way.id());
         }
-    } else if (has_tags_or_attrs) {
+    } else {
         m_output->way_add(&way);
     }
 }
@@ -177,15 +165,10 @@ void osmdata_t::relation(osmium::Relation const &rel)
         return;
     }
 
-    bool const has_tags_or_attrs = m_with_extra_attrs || !rel.tags().empty();
     if (m_append) {
-        if (has_tags_or_attrs) {
-            m_output->relation_modify(rel);
-        } else {
-            m_output->relation_delete(rel.id());
-        }
+        m_output->relation_modify(rel);
         m_changed_relations.push_back(rel.id());
-    } else if (has_tags_or_attrs) {
+    } else {
         m_output->relation_add(rel);
     }
 }

@@ -100,6 +100,8 @@ private:
 
     //enable output of a generated way_area tag to either hstore or its own column
     bool m_enable_way_area;
+    // handle objects without tags as if they were not there
+    bool m_ignore_untagged_objects;
 
     std::array<std::unique_ptr<table_t>, t_MAX> m_tables;
 

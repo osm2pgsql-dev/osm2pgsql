@@ -206,6 +206,10 @@ void output_pgsql_t::wait()
 
 void output_pgsql_t::node_add(osmium::Node const &node)
 {
+    if (m_ignore_untagged_objects && node.tags().empty()) {
+        return;
+    }
+
     taglist_t outtags;
     if (m_tagtransform->filter_tags(node, nullptr, nullptr, &outtags)) {
         return;
@@ -219,6 +223,10 @@ void output_pgsql_t::node_add(osmium::Node const &node)
 
 void output_pgsql_t::way_add(osmium::Way *way)
 {
+    if (m_ignore_untagged_objects && way->tags().empty()) {
+        return;
+    }
+
     bool polygon = false;
     bool roads = false;
     taglist_t outtags;
@@ -317,6 +325,10 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
 
 void output_pgsql_t::relation_add(osmium::Relation const &rel)
 {
+    if (m_ignore_untagged_objects && rel.tags().empty()) {
+        return;
+    }
+
     char const *const type = rel.tags()["type"];
 
     /* Must have a type field or we ignore it */
@@ -458,6 +470,8 @@ output_pgsql_t::output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
 
     m_enable_way_area = read_style_file(options.style, &exlist);
 
+    m_ignore_untagged_objects = !options.extra_attributes;
+
     m_tagtransform = tagtransform_t::make_tagtransform(&options, exlist);
 
     auto copy_thread =
@@ -507,6 +521,7 @@ output_pgsql_t::output_pgsql_t(
     std::shared_ptr<db_copy_thread_t> const &copy_thread)
 : output_t(other, mid), m_tagtransform(other->m_tagtransform->clone()),
   m_enable_way_area(other->m_enable_way_area),
+  m_ignore_untagged_objects(other->m_ignore_untagged_objects),
   m_proj(get_options()->projection), m_expire_config(other->m_expire_config),
   m_expire(get_options()->expire_tiles_zoom, get_options()->projection),
   m_buffer(1024, osmium::memory::Buffer::auto_grow::yes),
