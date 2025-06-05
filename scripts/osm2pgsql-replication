@@ -627,7 +627,7 @@ def get_parser():
       "see https://www.postgresql.org/docs/current/libpq-pgpass.html.")
     group.add_argument('-d', '--database', metavar='DB',
                        help='Name of PostgreSQL database to connect to or conninfo string')
-    group.add_argument('-U', '--username', metavar='NAME',
+    group.add_argument('-U', '--username', '--user', metavar='NAME',
                        help='PostgreSQL user name')
     group.add_argument('-H', '--host', metavar='HOST',
                        help='Database server host name or socket location')
