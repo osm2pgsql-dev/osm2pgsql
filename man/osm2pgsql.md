@@ -79,7 +79,7 @@ mandatory for short options too.
     `postgres://`), it is treated as a conninfo string. See the PostgreSQL
     manual for details.
 
--U, \--username=NAME
+-U, \--username=NAME, \--user=NAME
 :   Postgresql user name.
 
 -W, \--password

@@ -41,7 +41,7 @@ void command_line_app_t::init_database_options()
         ->type_name("DB")
         ->group("Database options");
 
-    add_option_function<std::string>("-U,--user",
+    add_option_function<std::string>("-U,--username,--user",
                                      [&](std::string const &value) {
                                          m_connection_params.set("user", value);
                                      })
