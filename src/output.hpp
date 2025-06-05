@@ -98,9 +98,9 @@ public:
     virtual void way_modify(osmium::Way *way) = 0;
     virtual void relation_modify(osmium::Relation const &rel) = 0;
 
-    virtual void node_delete(osmid_t id) = 0;
-    virtual void way_delete(osmid_t id) = 0;
-    virtual void relation_delete(osmid_t id) = 0;
+    virtual void node_delete(osmium::Node const &node) = 0;
+    virtual void way_delete(osmium::Way *way) = 0;
+    virtual void relation_delete(osmium::Relation const &rel) = 0;
 
     virtual void merge_expire_trees(output_t * /*other*/) {}
 

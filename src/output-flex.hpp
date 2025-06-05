@@ -147,9 +147,9 @@ public:
     void way_modify(osmium::Way *way) override;
     void relation_modify(osmium::Relation const &rel) override;
 
-    void node_delete(osmid_t id) override;
-    void way_delete(osmid_t id) override;
-    void relation_delete(osmid_t id) override;
+    void node_delete(osmium::Node const &node) override;
+    void way_delete(osmium::Way *way) override;
+    void relation_delete(osmium::Relation const &rel) override;
 
     void merge_expire_trees(output_t *other) override;
 
@@ -203,6 +203,10 @@ private:
 
     osmium::OSMObject const &
     check_and_get_context_object(flex_table_t const &table);
+
+    void node_delete(osmid_t id);
+    void way_delete(osmid_t id);
+    void relation_delete(osmid_t id);
 
     void delete_from_table(table_connection_t *table_connection,
                            pg_conn_t const &db_connection,
@@ -303,6 +307,10 @@ private:
     prepared_lua_function_t m_process_untagged_node;
     prepared_lua_function_t m_process_untagged_way;
     prepared_lua_function_t m_process_untagged_relation;
+
+    prepared_lua_function_t m_delete_node;
+    prepared_lua_function_t m_delete_way;
+    prepared_lua_function_t m_delete_relation;
 
     prepared_lua_function_t m_select_relation_members;
 

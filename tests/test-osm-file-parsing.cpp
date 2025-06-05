@@ -130,11 +130,11 @@ struct counting_output_t : public output_null_t
         ++relation.modified;
     }
 
-    void node_delete(osmid_t) override { ++node.deleted; }
+    void node_delete(osmium::Node const &) override { ++node.deleted; }
 
-    void way_delete(osmid_t) override { ++way.deleted; }
+    void way_delete(osmium::Way *) override { ++way.deleted; }
 
-    void relation_delete(osmid_t) override { ++relation.deleted; }
+    void relation_delete(osmium::Relation const &) override { ++relation.deleted; }
 
     type_stats_t node, way, relation;
     uint64_t sum_ids = 0;
