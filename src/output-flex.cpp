@@ -120,7 +120,7 @@ prepared_lua_function_t::prepared_lua_function_t(lua_State *lua_state,
 
 namespace {
 
-std::string_view const osm2pgsql_object_metatable = "osm2pgsql.OSMObject";
+char const *const OSM2PGSQL_OSMOBJECT_CLASS = "osm2pgsql.OSMObject";
 
 void push_osm_object_to_lua_stack(lua_State *lua_state,
                                   osmium::OSMObject const &object)
@@ -188,7 +188,7 @@ void push_osm_object_to_lua_stack(lua_State *lua_state,
     lua_rawset(lua_state, -3);
 
     // Set the metatable of this object
-    luaX_pushstring(lua_state, osm2pgsql_object_metatable);
+    lua_pushstring(lua_state, OSM2PGSQL_OSMOBJECT_CLASS);
     lua_gettable(lua_state, LUA_REGISTRYINDEX);
     lua_setmetatable(lua_state, -2);
 }
@@ -312,7 +312,7 @@ void check_for_object(lua_State *lua_state, char const *const function_name)
     }
 
     if (lua_getmetatable(lua_state, 1)) {
-        luaL_getmetatable(lua_state, osm2pgsql_object_metatable.data());
+        luaL_getmetatable(lua_state, OSM2PGSQL_OSMOBJECT_CLASS);
         if (lua_rawequal(lua_state, -1, -2)) {
             lua_pop(lua_state, 2); // remove the two metatables
             return;
@@ -608,19 +608,19 @@ int output_flex_t::app_define_expire_output()
 flex_table_t &output_flex_t::get_table_from_param()
 {
     return get_from_idx_param(lua_state(), m_tables.get(),
-                              osm2pgsql_table_name);
+                              OSM2PGSQL_TABLE_CLASS);
 }
 
 expire_output_t &output_flex_t::get_expire_output_from_param()
 {
     return get_from_idx_param(lua_state(), m_expire_outputs.get(),
-                              osm2pgsql_expire_output_name);
+                              OSM2PGSQL_EXPIRE_OUTPUT_CLASS);
 }
 
 locator_t &output_flex_t::get_locator_from_param()
 {
     return get_from_idx_param(lua_state(), m_locators.get(),
-                              osm2pgsql_locator_name);
+                              OSM2PGSQL_LOCATOR_CLASS);
 }
 
 bool output_flex_t::way_cache_t::init(middle_query_t const &middle, osmid_t id)
@@ -745,7 +745,7 @@ int output_flex_t::table_insert()
 
     // The first parameter is the table object.
     auto &table_connection = m_table_connections.at(
-        idx_from_param(lua_state(), osm2pgsql_table_name));
+        idx_from_param(lua_state(), OSM2PGSQL_TABLE_CLASS));
 
     // The second parameter must be a Lua table with the contents for the
     // fields.
@@ -1273,7 +1273,7 @@ void output_flex_t::init_lua(std::string const &filename,
 
     // Store the methods on OSM objects in its metatable.
     lua_getglobal(lua_state(), "object_metatable");
-    luaX_pushstring(lua_state(), osm2pgsql_object_metatable);
+    lua_pushstring(lua_state(), OSM2PGSQL_OSMOBJECT_CLASS);
     lua_setfield(lua_state(), -2, "__name");
     lua_getfield(lua_state(), -1, "__index");
     luaX_add_table_func(lua_state(), "get_bbox", lua_trampoline_app_get_bbox);
@@ -1296,7 +1296,7 @@ void output_flex_t::init_lua(std::string const &filename,
     // Store the global object "object_metatable" defined in the init.lua
     // script in the registry and then remove the global object. It will
     // later be used as metatable for OSM objects.
-    luaX_pushstring(lua_state(), osm2pgsql_object_metatable);
+    lua_pushstring(lua_state(), OSM2PGSQL_OSMOBJECT_CLASS);
     lua_getglobal(lua_state(), "object_metatable");
     lua_settable(lua_state(), LUA_REGISTRYINDEX);
     lua_pushnil(lua_state());

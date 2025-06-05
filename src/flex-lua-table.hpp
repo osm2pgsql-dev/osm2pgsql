@@ -19,7 +19,7 @@ class expire_output_t;
 class flex_table_t;
 struct lua_State;
 
-static char const *const osm2pgsql_table_name = "osm2pgsql.Table";
+static char const *const OSM2PGSQL_TABLE_CLASS = "osm2pgsql.Table";
 
 int setup_flex_table(lua_State *lua_state, std::vector<flex_table_t> *tables,
                      std::vector<expire_output_t> *expire_outputs,

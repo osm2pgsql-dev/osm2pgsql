@@ -195,7 +195,7 @@ std::size_t idx_from_userdata(lua_State *lua_state, int idx,
         throw std::runtime_error{"Expire output must be of type ExpireOutput."};
     }
 
-    luaL_getmetatable(lua_state, osm2pgsql_expire_output_name);
+    luaL_getmetatable(lua_state, OSM2PGSQL_EXPIRE_OUTPUT_CLASS);
     if (!lua_rawequal(lua_state, -1, -2)) {
         throw std::runtime_error{"Expire output must be of type ExpireOutput."};
     }
@@ -445,7 +445,7 @@ int setup_flex_table(lua_State *lua_state, std::vector<flex_table_t> *tables,
     void *ptr = lua_newuserdata(lua_state, sizeof(std::size_t));
     auto *num = new (ptr) std::size_t{};
     *num = tables->size() - 1;
-    luaL_getmetatable(lua_state, osm2pgsql_table_name);
+    luaL_getmetatable(lua_state, OSM2PGSQL_TABLE_CLASS);
     lua_setmetatable(lua_state, -2);
 
     return 1;
@@ -457,7 +457,7 @@ int setup_flex_table(lua_State *lua_state, std::vector<flex_table_t> *tables,
 void lua_wrapper_table::init(lua_State *lua_state)
 {
     lua_getglobal(lua_state, "osm2pgsql");
-    if (luaL_newmetatable(lua_state, osm2pgsql_table_name) != 1) {
+    if (luaL_newmetatable(lua_state, OSM2PGSQL_TABLE_CLASS) != 1) {
         throw std::runtime_error{"Internal error: Lua newmetatable failed."};
     }
     lua_pushvalue(lua_state, -1); // Copy of new metatable

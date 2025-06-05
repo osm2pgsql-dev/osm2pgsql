@@ -23,7 +23,7 @@ class pg_conn_t;
 
 struct lua_State;
 
-static char const *const osm2pgsql_locator_name = "osm2pgsql.Locator";
+static char const *const OSM2PGSQL_LOCATOR_CLASS = "osm2pgsql.Locator";
 
 int setup_flex_locator(lua_State *lua_state, std::vector<locator_t> *locators);
 

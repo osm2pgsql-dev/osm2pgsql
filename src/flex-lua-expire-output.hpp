@@ -18,7 +18,7 @@
 class expire_output_t;
 struct lua_State;
 
-static char const *const osm2pgsql_expire_output_name =
+static char const *const OSM2PGSQL_EXPIRE_OUTPUT_CLASS =
     "osm2pgsql.ExpireOutput";
 
 int setup_flex_expire_output(lua_State *lua_state,
