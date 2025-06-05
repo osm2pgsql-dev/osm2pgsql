@@ -54,7 +54,7 @@ void osmdata_t::node(osmium::Node const &node)
     m_mid->node(node);
 
     if (node.deleted()) {
-        m_output->node_delete(node.id());
+        m_output->node_delete(node);
         return;
     }
 
@@ -94,7 +94,7 @@ void osmdata_t::way(osmium::Way &way)
     m_mid->way(way);
 
     if (way.deleted()) {
-        m_output->way_delete(way.id());
+        m_output->way_delete(&way);
         return;
     }
 
@@ -161,7 +161,7 @@ void osmdata_t::relation(osmium::Relation const &rel)
     m_mid->relation(rel);
 
     if (rel.deleted()) {
-        m_output->relation_delete(rel.id());
+        m_output->relation_delete(rel);
         return;
     }
 

@@ -76,9 +76,9 @@ public:
     void way_modify(osmium::Way *way) override;
     void relation_modify(osmium::Relation const &rel) override;
 
-    void node_delete(osmid_t id) override;
-    void way_delete(osmid_t id) override;
-    void relation_delete(osmid_t id) override;
+    void node_delete(osmium::Node const &node) override;
+    void way_delete(osmium::Way *way) override;
+    void relation_delete(osmium::Relation const &rel) override;
 
     void merge_expire_trees(output_t *other) override;
 

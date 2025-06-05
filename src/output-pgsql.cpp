@@ -349,15 +349,15 @@ void output_pgsql_t::relation_add(osmium::Relation const &rel)
 /* Delete is easy, just remove all traces of this object. We don't need to
  * worry about finding objects that depend on it, since the same diff must
  * contain the change for that also. */
-void output_pgsql_t::node_delete(osmid_t osm_id)
+void output_pgsql_t::node_delete(osmium::Node const &node)
 {
     if (m_expire.enabled()) {
-        auto const results = m_tables[t_point]->get_wkb(osm_id);
+        auto const results = m_tables[t_point]->get_wkb(node.id());
         if (expire_from_result(&m_expire, results, m_expire_config) != 0) {
-            m_tables[t_point]->delete_row(osm_id);
+            m_tables[t_point]->delete_row(node.id());
         }
     } else {
-        m_tables[t_point]->delete_row(osm_id);
+        m_tables[t_point]->delete_row(node.id());
     }
 }
 
@@ -392,9 +392,9 @@ void output_pgsql_t::pgsql_delete_way_from_output(osmid_t osm_id)
     delete_from_output_and_expire(osm_id);
 }
 
-void output_pgsql_t::way_delete(osmid_t osm_id)
+void output_pgsql_t::way_delete(osmium::Way *way)
 {
-    pgsql_delete_way_from_output(osm_id);
+    pgsql_delete_way_from_output(way->id());
 }
 
 /* Relations are identified by using negative IDs */
@@ -403,9 +403,9 @@ void output_pgsql_t::pgsql_delete_relation_from_output(osmid_t osm_id)
     delete_from_output_and_expire(-osm_id);
 }
 
-void output_pgsql_t::relation_delete(osmid_t osm_id)
+void output_pgsql_t::relation_delete(osmium::Relation const &rel)
 {
-    pgsql_delete_relation_from_output(osm_id);
+    pgsql_delete_relation_from_output(rel.id());
 }
 
 /* Modify is slightly trickier. The basic idea is we simply delete the
@@ -413,19 +413,19 @@ void output_pgsql_t::relation_delete(osmid_t osm_id)
  * objects that depend on this one */
 void output_pgsql_t::node_modify(osmium::Node const &node)
 {
-    node_delete(node.id());
+    node_delete(node);
     node_add(node);
 }
 
 void output_pgsql_t::way_modify(osmium::Way *way)
 {
-    way_delete(way->id());
+    way_delete(way);
     way_add(way);
 }
 
 void output_pgsql_t::relation_modify(osmium::Relation const &rel)
 {
-    relation_delete(rel.id());
+    relation_delete(rel);
     relation_add(rel);
 }
 
@@ -448,7 +448,9 @@ std::shared_ptr<output_t> output_pgsql_t::clone(
 output_pgsql_t::output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
                                std::shared_ptr<thread_pool_t> thread_pool,
                                options_t const &options)
-: output_t(mid, std::move(thread_pool), options), m_proj(options.projection),
+: output_t(mid, std::move(thread_pool), options),
+  m_ignore_untagged_objects(!options.extra_attributes),
+  m_proj(options.projection),
   m_expire(options.expire_tiles_zoom, options.projection),
   m_buffer(32768, osmium::memory::Buffer::auto_grow::yes),
   m_rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes),
@@ -469,8 +471,6 @@ output_pgsql_t::output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
     export_list exlist;
 
     m_enable_way_area = read_style_file(options.style, &exlist);
-
-    m_ignore_untagged_objects = !options.extra_attributes;
 
     m_tagtransform = tagtransform_t::make_tagtransform(&options, exlist);
 
