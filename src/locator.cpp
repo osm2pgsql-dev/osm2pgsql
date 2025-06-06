@@ -12,6 +12,7 @@
 #include "geom-boost-adaptor.hpp"
 #include "geom-box.hpp"
 #include "geom-functions.hpp"
+#include "hex.hpp"
 #include "overloaded.hpp"
 #include "pgsql-capabilities.hpp"
 #include "pgsql.hpp"
@@ -60,7 +61,7 @@ void locator_t::add_regions(pg_conn_t const &db_connection,
 
     for (int n = 0; n < result.num_tuples(); ++n) {
         std::string const name = result.get_value(n, 0);
-        auto geometry = ewkb_to_geom(decode_hex(result.get(n, 1)));
+        auto geometry = ewkb_to_geom(util::decode_hex(result.get(n, 1)));
 
         if (geometry.srid() == 4326) {
             add_region(name, geometry);

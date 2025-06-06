@@ -10,6 +10,7 @@
 #include "gen-rivers.hpp"
 
 #include "geom-functions.hpp"
+#include "hex.hpp"
 #include "logging.hpp"
 #include "params.hpp"
 #include "pgsql.hpp"
@@ -264,7 +265,7 @@ SELECT "{id_column}", "{width_column}", "{name_column}", "{geom_column}"
             if (!name.empty()) {
                 names.emplace(id, name);
             }
-            auto const geom = ewkb_to_geom(decode_hex(result.get(i, 3)));
+            auto const geom = ewkb_to_geom(util::decode_hex(result.get(i, 3)));
 
             if (geom.is_linestring()) {
                 auto const &ls = geom.get<geom::linestring_t>();

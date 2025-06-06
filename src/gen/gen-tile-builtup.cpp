@@ -11,6 +11,7 @@
 
 #include "canvas.hpp"
 #include "geom-functions.hpp"
+#include "hex.hpp"
 #include "logging.hpp"
 #include "params.hpp"
 #include "pgsql.hpp"
@@ -33,7 +34,7 @@ void save_image_to_table(pg_conn_t *connection, canvas_t const &canvas,
                          std::string const &table, char const *variant,
                          std::string const &table_prefix)
 {
-    auto const wkb = to_hex(canvas.to_wkb(tile, margin));
+    auto const wkb = util::encode_hex(canvas.to_wkb(tile, margin));
 
     connection->exec("INSERT INTO \"{}_{}_{}\" (zoom, x, y, rast)"
                      " VALUES ({}, {}, {}, '{}')",
@@ -61,7 +62,7 @@ void draw_from_db(double margin, canvas_list_t *canvas_list, pg_conn_t *conn,
                                 box.max_x(), box.max_y());
 
         for (int n = 0; n < result.num_tuples(); ++n) {
-            auto const geom = ewkb_to_geom(decode_hex(result.get(n, 0)));
+            auto const geom = ewkb_to_geom(util::decode_hex(result.get(n, 0)));
             cc.canvas.draw(geom, tile);
         }
     }
@@ -251,7 +252,7 @@ void gen_tile_builtup_t::process(tile_t const &tile)
     log_gen("Write geometries to destination table...");
     timer(m_timer_write).start();
     for (auto const &geom : geometries) {
-        auto const wkb = to_hex(geom_to_ewkb(geom));
+        auto const wkb = util::encode_hex(geom_to_ewkb(geom));
         if (m_has_area_column) {
             connection().exec_prepared("insert_geoms", wkb, tile.x(), tile.y(),
                                        geom::area(geom));

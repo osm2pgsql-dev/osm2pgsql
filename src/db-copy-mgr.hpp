@@ -15,7 +15,7 @@
 #include <string>
 
 #include "db-copy.hpp"
-#include "util.hpp"
+#include "hex.hpp"
 
 /**
  * Management class that fills and manages copy buffers.
@@ -237,13 +237,7 @@ public:
      */
     void add_hex_geom(std::string const &wkb)
     {
-        char const *const lookup_hex = "0123456789ABCDEF";
-
-        for (auto c : wkb) {
-            unsigned int const num = static_cast<unsigned char>(c);
-            m_current.buffer += lookup_hex[(num >> 4U) & 0xfU];
-            m_current.buffer += lookup_hex[num & 0xfU];
-        }
+        util::encode_hex(wkb, &m_current.buffer);
         m_current.buffer += '\t';
     }
 

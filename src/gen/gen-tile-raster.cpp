@@ -10,6 +10,7 @@
 #include "gen-tile-raster.hpp"
 
 #include "canvas.hpp"
+#include "hex.hpp"
 #include "logging.hpp"
 #include "params.hpp"
 #include "pgsql.hpp"
@@ -49,7 +50,7 @@ void draw_from_db(double margin, unsigned int image_extent,
 
     for (int n = 0; n < result.num_tuples(); ++n) {
         std::string param = result.get_value(n, 1);
-        auto const geom = ewkb_to_geom(decode_hex(result.get(n, 0)));
+        auto const geom = ewkb_to_geom(util::decode_hex(result.get(n, 0)));
 
         auto const [it, success] = canvas_list->try_emplace(
             std::move(param), image_extent, image_buffer);
@@ -63,7 +64,7 @@ void save_image_to_table(pg_conn_t *connection, canvas_t const &canvas,
                          std::string const &param, char const *variant,
                          std::string const &table_prefix)
 {
-    auto const wkb = to_hex(canvas.to_wkb(tile, margin));
+    auto const wkb = util::encode_hex(canvas.to_wkb(tile, margin));
 
     connection->exec("INSERT INTO \"{}_{}\" (type, zoom, x, y, rast)"
                      " VALUES ('{}', {}, {}, {}, '{}')",
