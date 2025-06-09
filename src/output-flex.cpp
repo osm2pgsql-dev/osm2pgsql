@@ -158,39 +158,41 @@ void push_osm_object_to_lua_stack(lua_State *lua_state,
         luaX_add_table_str(lua_state, "user", object.user());
     }
 
-    if (object.type() == osmium::item_type::way) {
-        auto const &way = static_cast<osmium::Way const &>(object);
-        luaX_add_table_bool(lua_state, "is_closed",
-                            !way.nodes().empty() && way.is_closed());
-        luaX_add_table_array(lua_state, "nodes", way.nodes(),
-                             [&](osmium::NodeRef const &wn) {
-                                 lua_pushinteger(lua_state, wn.ref());
-                             });
-    } else if (object.type() == osmium::item_type::relation) {
-        auto const &relation = static_cast<osmium::Relation const &>(object);
-        luaX_add_table_array(
-            lua_state, "members", relation.members(),
-            [&](osmium::RelationMember const &member) {
-                lua_createtable(lua_state, 0, 3);
-                std::array<char, 2> tmp{"x"};
-                tmp[0] = osmium::item_type_to_char(member.type());
-                luaX_add_table_str(lua_state, "type", tmp.data());
-                luaX_add_table_int(lua_state, "ref", member.ref());
-                luaX_add_table_str(lua_state, "role", member.role());
-            });
-    }
+    if (!object.deleted()) {
+        if (object.type() == osmium::item_type::way) {
+            auto const &way = static_cast<osmium::Way const &>(object);
+            luaX_add_table_bool(lua_state, "is_closed",
+                                !way.nodes().empty() && way.is_closed());
+            luaX_add_table_array(lua_state, "nodes", way.nodes(),
+                                 [&](osmium::NodeRef const &wn) {
+                                     lua_pushinteger(lua_state, wn.ref());
+                                 });
+        } else if (object.type() == osmium::item_type::relation) {
+            auto const &relation = static_cast<osmium::Relation const &>(object);
+            luaX_add_table_array(
+                lua_state, "members", relation.members(),
+                [&](osmium::RelationMember const &member) {
+                    lua_createtable(lua_state, 0, 3);
+                    std::array<char, 2> tmp{"x"};
+                    tmp[0] = osmium::item_type_to_char(member.type());
+                    luaX_add_table_str(lua_state, "type", tmp.data());
+                    luaX_add_table_int(lua_state, "ref", member.ref());
+                    luaX_add_table_str(lua_state, "role", member.role());
+                });
+        }
 
-    lua_pushliteral(lua_state, "tags");
-    lua_createtable(lua_state, 0, (int)object.tags().size());
-    for (auto const &tag : object.tags()) {
-        luaX_add_table_str(lua_state, tag.key(), tag.value());
-    }
-    lua_rawset(lua_state, -3);
+        lua_pushliteral(lua_state, "tags");
+        lua_createtable(lua_state, 0, (int)object.tags().size());
+        for (auto const &tag : object.tags()) {
+            luaX_add_table_str(lua_state, tag.key(), tag.value());
+        }
+        lua_rawset(lua_state, -3);
 
-    // Set the metatable of this object
-    lua_pushstring(lua_state, OSM2PGSQL_OSMOBJECT_CLASS);
-    lua_gettable(lua_state, LUA_REGISTRYINDEX);
-    lua_setmetatable(lua_state, -2);
+        // Set the metatable of this object
+        lua_pushstring(lua_state, OSM2PGSQL_OSMOBJECT_CLASS);
+        lua_gettable(lua_state, LUA_REGISTRYINDEX);
+        lua_setmetatable(lua_state, -2);
+    }
 }
 
 /**
