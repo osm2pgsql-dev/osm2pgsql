@@ -32,6 +32,7 @@ target_sources(osm2pgsql_lib PRIVATE
     geom-functions.cpp
     geom-pole-of-inaccessibility.cpp
     geom.cpp
+    hex.cpp
     idlist.cpp
     input.cpp
     locator.cpp

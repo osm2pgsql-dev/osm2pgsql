@@ -77,6 +77,4 @@ private:
     image_type m_rast;
 }; // class canvas_t
 
-std::string to_hex(std::string const &in);
-
 #endif // OSM2PGSQL_CANVAS_HPP
