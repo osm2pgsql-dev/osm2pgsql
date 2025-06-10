@@ -76,9 +76,9 @@ public:
     void way_modify(osmium::Way *way) override;
     void relation_modify(osmium::Relation const &rel) override;
 
-    void node_delete(osmid_t id) override;
-    void way_delete(osmid_t id) override;
-    void relation_delete(osmid_t id) override;
+    void node_delete(osmium::Node const &node) override;
+    void way_delete(osmium::Way *way) override;
+    void relation_delete(osmium::Relation const &rel) override;
 
     void merge_expire_trees(output_t *other) override;
 
@@ -100,6 +100,8 @@ private:
 
     //enable output of a generated way_area tag to either hstore or its own column
     bool m_enable_way_area;
+    // handle objects without tags as if they were not there
+    bool m_ignore_untagged_objects;
 
     std::array<std::unique_ptr<table_t>, t_MAX> m_tables;
 
