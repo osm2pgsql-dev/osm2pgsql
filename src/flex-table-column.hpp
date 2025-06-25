@@ -13,6 +13,7 @@
 #include "expire-config.hpp"
 #include "expire-tiles.hpp"
 #include "geom.hpp"
+#include "projection.hpp"
 
 #include <cassert>
 #include <cstdint>
@@ -99,7 +100,7 @@ public:
     bool needs_isvalid() const noexcept
     {
         assert(is_geometry_column());
-        return !m_create_only && m_srid != 4326 &&
+        return !m_create_only && m_srid != PROJ_LATLONG &&
                m_type != table_column_type::point;
     }
 
@@ -158,7 +159,7 @@ private:
     /**
      * For geometry columns only: The projection SRID. Default is web mercator.
      */
-    int m_srid = 3857;
+    int m_srid = PROJ_SPHERE_MERC;
 
     /// NOT NULL constraint
     bool m_not_null = false;

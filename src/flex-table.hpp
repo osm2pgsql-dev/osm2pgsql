@@ -14,6 +14,7 @@
 #include "flex-index.hpp"
 #include "flex-table-column.hpp"
 #include "pgsql.hpp"
+#include "projection.hpp"
 #include "reprojection.hpp"
 #include "thread-pool.hpp"
 #include "util.hpp"
@@ -145,7 +146,7 @@ public:
 
     int srid() const noexcept
     {
-        return has_geom_column() ? geom_column().srid() : 4326;
+        return has_geom_column() ? geom_column().srid() : PROJ_LATLONG;
     }
 
     std::string build_sql_prepare_get_wkb() const;

@@ -11,6 +11,7 @@
 
 #include "format.hpp"
 #include "pgsql-capabilities.hpp"
+#include "projection.hpp"
 #include "util.hpp"
 
 #include <cassert>
@@ -105,12 +106,12 @@ void flex_table_column_t::set_projection(char const *projection)
     auto const proj = lowercase(projection);
 
     if (proj == "merc" || proj == "mercator") {
-        m_srid = 3857;
+        m_srid = PROJ_SPHERE_MERC;
         return;
     }
 
     if (proj == "latlong" || proj == "latlon" || proj == "wgs84") {
-        m_srid = 4326;
+        m_srid = PROJ_LATLONG;
         return;
     }
 
@@ -197,7 +198,7 @@ std::string flex_table_column_t::sql_create() const
 void flex_table_column_t::add_expire(expire_config_t const &config)
 {
     assert(is_geometry_column());
-    assert(srid() == 3857);
+    assert(srid() == PROJ_SPHERE_MERC);
     m_expires.push_back(config);
 }
 

@@ -12,6 +12,7 @@
 #include "geom-functions.hpp"
 #include "geom-pole-of-inaccessibility.hpp"
 #include "lua-utils.hpp"
+#include "projection.hpp"
 
 #include <lua.hpp>
 
@@ -73,7 +74,7 @@ int geom_spherical_area(lua_State *lua_state)
 {
     auto const *const input_geometry = unpack_geometry(lua_state);
 
-    if (input_geometry->srid() != 4326) {
+    if (input_geometry->srid() != PROJ_LATLONG) {
         throw std::runtime_error{"Can only calculate spherical area for "
                                  "geometries in WGS84 (4326) coordinates."};
     }
@@ -282,7 +283,7 @@ int geom_transform(lua_State *lua_state)
     auto const srid = static_cast<int>(luaL_checkinteger(lua_state, 2));
 
     try {
-        if (input_geometry->srid() != 4326) {
+        if (input_geometry->srid() != PROJ_LATLONG) {
             throw std::runtime_error{
                 "Can not transform already transformed geometry."};
         }

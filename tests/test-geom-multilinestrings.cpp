@@ -15,6 +15,7 @@
 #include "geom-functions.hpp"
 #include "geom-output.hpp"
 #include "geom.hpp"
+#include "projection.hpp"
 
 #include <array>
 
@@ -343,7 +344,7 @@ TEST_CASE("create_multilinestring and simplify", "[NoDB]")
         geom::create_multilinestring(buffer.buffer());
 
     REQUIRE(geom.is_multilinestring());
-    REQUIRE(geom.srid() == 4326);
+    REQUIRE(geom.srid() == PROJ_LATLONG);
     auto const &mls = geom.get<geom::multilinestring_t>();
     REQUIRE(mls.num_geometries() == 2);
     REQUIRE(mls[0] == geom::linestring_t{{1, 1}, {1, 2}, {1, 3}});
@@ -353,7 +354,7 @@ TEST_CASE("create_multilinestring and simplify", "[NoDB]")
     {
         auto const simplified_geom = geom::simplify(geom, 0.1);
         REQUIRE(simplified_geom.is_multilinestring());
-        REQUIRE(simplified_geom.srid() == 4326);
+        REQUIRE(simplified_geom.srid() == PROJ_LATLONG);
         auto const &simplified_mls =
             simplified_geom.get<geom::multilinestring_t>();
         REQUIRE(simplified_mls.num_geometries() == 2);
@@ -366,7 +367,7 @@ TEST_CASE("create_multilinestring and simplify", "[NoDB]")
     {
         auto const simplified_geom = geom::simplify(geom, 10.0);
         REQUIRE(simplified_geom.is_multilinestring());
-        REQUIRE(simplified_geom.srid() == 4326);
+        REQUIRE(simplified_geom.srid() == PROJ_LATLONG);
         auto const &simplified_mls =
             simplified_geom.get<geom::multilinestring_t>();
         REQUIRE(simplified_mls.num_geometries() == 2);

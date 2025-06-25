@@ -14,6 +14,7 @@
 #include "logging.hpp"
 #include "params.hpp"
 #include "pgsql.hpp"
+#include "projection.hpp"
 #include "util.hpp"
 #include "wkb.hpp"
 
@@ -341,7 +342,7 @@ SELECT "{id_column}", "{width_column}", "{name_column}", "{geom_column}"
     timer(m_timer_write).start();
     connection().exec("BEGIN");
     for (auto &edge : edges) {
-        geom::geometry_t const geom{std::move(edge.points), 3857};
+        geom::geometry_t const geom{std::move(edge.points), PROJ_SPHERE_MERC};
         auto const wkb = geom_to_ewkb(geom);
         connection().exec_prepared("ins", edge.id, edge.width,
                                    get_name(names, edge.id), binary_param(wkb));

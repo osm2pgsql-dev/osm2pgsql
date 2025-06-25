@@ -38,6 +38,7 @@
 #include "osmtypes.hpp"
 #include "output-pgsql.hpp"
 #include "pgsql.hpp"
+#include "projection.hpp"
 #include "reprojection.hpp"
 #include "taginfo-impl.hpp"
 #include "tagtransform.hpp"
@@ -51,7 +52,7 @@ double calculate_area(bool reproject_area, geom::geometry_t const &geom4326,
                       geom::geometry_t const &projected_geom)
 {
     static thread_local auto const proj3857 =
-        reprojection::create_projection(3857);
+        reprojection::create_projection(PROJ_SPHERE_MERC);
 
     if (reproject_area) {
         auto const ogeom = geom::transform(geom4326, *proj3857);

@@ -28,6 +28,7 @@
 #include "format.hpp"
 #include "geom-functions.hpp"
 #include "options.hpp"
+#include "projection.hpp"
 #include "reprojection.hpp"
 #include "table.hpp"
 #include "tile.hpp"
@@ -146,7 +147,7 @@ void expire_tiles::from_geometry(geom::geometry_t const &geom,
 void expire_tiles::from_geometry_if_3857(geom::geometry_t const &geom,
                                          expire_config_t const &expire_config)
 {
-    if (geom.srid() == 3857) {
+    if (geom.srid() == PROJ_SPHERE_MERC) {
         from_geometry(geom, expire_config);
     }
 }

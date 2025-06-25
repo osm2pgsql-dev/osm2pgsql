@@ -16,6 +16,7 @@
 #include "lua-utils.hpp"
 #include "output-flex.hpp"
 #include "pgsql-capabilities.hpp"
+#include "projection.hpp"
 #include "util.hpp"
 
 #include <lua.hpp>
@@ -219,7 +220,7 @@ void parse_and_set_expire_options(lua_State *lua_state,
         return;
     }
 
-    if (!column->is_geometry_column() || column->srid() != 3857) {
+    if (!column->is_geometry_column() || column->srid() != PROJ_SPHERE_MERC) {
         throw std::runtime_error{"Expire only allowed for geometry"
                                  " columns in Web Mercator projection."};
     }

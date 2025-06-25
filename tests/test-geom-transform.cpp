@@ -12,6 +12,7 @@
 #include "geom-functions.hpp"
 #include "geom-output.hpp"
 #include "geom.hpp"
+#include "projection.hpp"
 #include "reprojection.hpp"
 
 namespace {
@@ -47,7 +48,7 @@ TEST_CASE("Transform geom::null_t", "[NoDB]")
     geom::geometry_t const geom{};
     auto const result = geom::transform(geom, *reprojection);
     REQUIRE(result.is_null());
-    REQUIRE(result.srid() == 3857);
+    REQUIRE(result.srid() == PROJ_SPHERE_MERC);
 }
 
 TEST_CASE("Transform geom::point_t", "[NoDB]")
@@ -58,7 +59,7 @@ TEST_CASE("Transform geom::point_t", "[NoDB]")
     geom::geometry_t const geom{geom::point_t{5.5, 4.4}};
     auto const result = geom::transform(geom, *reprojection);
     REQUIRE(result.is_point());
-    REQUIRE(result.srid() == 3857);
+    REQUIRE(result.srid() == PROJ_SPHERE_MERC);
 
     check(result.get<geom::point_t>(),
           geom::point_t{612257.1993630046, 490287.90003313165});
@@ -72,7 +73,7 @@ TEST_CASE("Transform geom::linestring_t", "[NoDB]")
     geom::geometry_t const geom{geom::linestring_t{{5.5, 4.4}, {3.3, 2.2}}};
     auto const result = geom::transform(geom, *reprojection);
     REQUIRE(result.is_linestring());
-    REQUIRE(result.srid() == 3857);
+    REQUIRE(result.srid() == PROJ_SPHERE_MERC);
 
     auto const &r = result.get<geom::linestring_t>();
     check(r[0], geom::point_t{X55, Y44});
@@ -91,7 +92,7 @@ TEST_CASE("Transform geom::polygon_t", "[NoDB]")
 
     auto const result = geom::transform(geom, *reprojection);
     REQUIRE(result.is_polygon());
-    REQUIRE(result.srid() == 3857);
+    REQUIRE(result.srid() == PROJ_SPHERE_MERC);
 
     auto const &polygon = result.get<geom::polygon_t>();
     auto const &outer = polygon.outer();
@@ -125,7 +126,7 @@ TEST_CASE("Transform geom::multipoint_t", "[NoDB]")
 
     auto const result = geom::transform(geom, *reprojection);
     REQUIRE(result.is_multipoint());
-    REQUIRE(result.srid() == 3857);
+    REQUIRE(result.srid() == PROJ_SPHERE_MERC);
 
     auto const &rmp = result.get<geom::multipoint_t>();
     REQUIRE(rmp.num_geometries() == 2);
@@ -145,7 +146,7 @@ TEST_CASE("Transform geom::multilinestring_t", "[NoDB]")
 
     auto const result = geom::transform(geom, *reprojection);
     REQUIRE(result.is_multilinestring());
-    REQUIRE(result.srid() == 3857);
+    REQUIRE(result.srid() == PROJ_SPHERE_MERC);
 
     auto const &rml = result.get<geom::multilinestring_t>();
     REQUIRE(rml.num_geometries() == 2);
@@ -173,7 +174,7 @@ TEST_CASE("Transform geom::multipolygon_t", "[NoDB]")
 
     auto const result = geom::transform(geom, *reprojection);
     REQUIRE(result.is_multipolygon());
-    REQUIRE(result.srid() == 3857);
+    REQUIRE(result.srid() == PROJ_SPHERE_MERC);
 
     auto const &rmp = result.get<geom::multipolygon_t>();
     REQUIRE(rmp.num_geometries() == 2);
@@ -218,7 +219,7 @@ TEST_CASE("Transform geom::collection_t", "[NoDB]")
 
     auto const result = geom::transform(geom, *reprojection);
     REQUIRE(result.is_collection());
-    REQUIRE(result.srid() == 3857);
+    REQUIRE(result.srid() == PROJ_SPHERE_MERC);
 
     auto const &rc = result.get<geom::collection_t>();
     REQUIRE(rc.num_geometries() == 4);
