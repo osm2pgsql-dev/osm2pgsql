@@ -241,7 +241,7 @@ public:
      */
     void set_config(char const *setting, char const *value) const;
 
-    void copy_start(std::string_view sql) const;
+    void copy_start(std::string const &sql) const;
     void copy_send(std::string_view data, std::string_view context) const;
     void copy_end(std::string_view context) const;
 

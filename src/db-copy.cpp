@@ -221,7 +221,7 @@ void db_copy_thread_t::thread_t::start_copy(
     }
 
     sql.push_back('\0');
-    m_db_connection.copy_start(sql.data());
+    m_db_connection.copy_start(to_string(sql));
 
     m_inflight = target;
 }
