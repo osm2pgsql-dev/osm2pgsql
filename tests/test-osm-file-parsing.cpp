@@ -130,11 +130,11 @@ struct counting_output_t : public output_null_t
         ++relation.modified;
     }
 
-    void node_delete(osmid_t) override { ++node.deleted; }
+    void node_delete(osmium::Node const &) override { ++node.deleted; }
 
-    void way_delete(osmid_t) override { ++way.deleted; }
+    void way_delete(osmium::Way *) override { ++way.deleted; }
 
-    void relation_delete(osmid_t) override { ++relation.deleted; }
+    void relation_delete(osmium::Relation const &) override { ++relation.deleted; }
 
     type_stats_t node, way, relation;
     uint64_t sum_ids = 0;
@@ -154,13 +154,13 @@ TEST_CASE("parse xml file")
     testing::parse_file(options, middle, output, "test_multipolygon.osm",
                         false);
 
-    REQUIRE(output->sum_ids == 4728);
-    REQUIRE(output->sum_nds == 186);
+    REQUIRE(output->sum_ids == 73514);
+    REQUIRE(output->sum_nds == 495);
     REQUIRE(output->sum_members == 146);
-    REQUIRE(output->node.added == 0);
+    REQUIRE(output->node.added == 353);
     REQUIRE(output->node.modified == 0);
     REQUIRE(output->node.deleted == 0);
-    REQUIRE(output->way.added == 48);
+    REQUIRE(output->way.added == 140);
     REQUIRE(output->way.modified == 0);
     REQUIRE(output->way.deleted == 0);
     REQUIRE(output->relation.added == 40);
@@ -188,8 +188,8 @@ TEST_CASE("parse diff file")
     testing::parse_file(options, middle, output, "008-ch.osc.gz", false);
 
     REQUIRE(output->node.added == 0);
-    REQUIRE(output->node.modified == 153);
-    REQUIRE(output->node.deleted == 17796);
+    REQUIRE(output->node.modified == 1176);
+    REQUIRE(output->node.deleted == 16773);
     REQUIRE(output->way.added == 0);
     REQUIRE(output->way.modified == 161);
     REQUIRE(output->way.deleted == 4);
