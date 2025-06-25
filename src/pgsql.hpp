@@ -195,7 +195,7 @@ public:
      *         status code PGRES_COMMAND_OK).
      */
     template <typename... TArgs>
-    void prepare(std::string_view stmt, fmt::format_string<TArgs...> sql,
+    void prepare(std::string const &stmt, fmt::format_string<TArgs...> sql,
                  TArgs... params) const
     {
         std::string const query =
@@ -252,7 +252,8 @@ public:
     void close();
 
 private:
-    void prepare_internal(std::string_view stmt, std::string_view sql) const;
+    void prepare_internal(std::string const &stmt,
+                          std::string const &sql) const;
 
     pg_result_t exec_prepared_internal(char const *stmt, int num_params,
                                        char const *const *param_values,

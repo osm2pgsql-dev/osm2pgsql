@@ -194,15 +194,15 @@ void pg_conn_t::copy_end(std::string_view context) const
     }
 }
 
-void pg_conn_t::prepare_internal(std::string_view stmt,
-                                 std::string_view sql) const
+void pg_conn_t::prepare_internal(std::string const &stmt,
+                                 std::string const &sql) const
 {
     if (get_logger().log_sql()) {
         log_sql("(C{}) PREPARE {} AS {}", m_connection_id, stmt, sql);
     }
 
     pg_result_t const res{
-        PQprepare(m_conn.get(), stmt.data(), sql.data(), 0, nullptr)};
+        PQprepare(m_conn.get(), stmt.c_str(), sql.c_str(), 0, nullptr)};
     if (res.status() != PGRES_COMMAND_OK) {
         throw fmt_error("Prepare failed for '{}': {}.", sql, error_msg());
     }

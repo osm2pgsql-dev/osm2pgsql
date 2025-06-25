@@ -101,9 +101,9 @@ protected:
 
     pg_result_t dbexec(params_t const &tmp_params, std::string const &templ);
 
-    void dbprepare(std::string_view stmt, std::string const &templ);
+    void dbprepare(std::string const &stmt, std::string const &templ);
 
-    void dbprepare(std::string_view stmt, params_t const &tmp_params,
+    void dbprepare(std::string const &stmt, params_t const &tmp_params,
                    std::string const &templ);
 
     void raster_table_preprocess(std::string const &table);
