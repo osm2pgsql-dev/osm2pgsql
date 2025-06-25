@@ -43,9 +43,9 @@ struct options_t;
 enum class calling_context : std::uint8_t
 {
     main = 0, ///< In main context, i.e. the Lua script outside any callbacks
-    process_node = 1, ///< In the process_node() callback
-    process_way = 2, ///< In the process_way() callback
-    process_relation = 3, ///< In the process_relation() callback
+    process_node = 1, ///< Inside a callback where a node is handled
+    process_way = 2, ///< Inside a callback where a way is handled
+    process_relation = 3, ///< Inside a callback where a relation is handled
     select_relation_members = 4 ///< In the select_relation_members() callback
 };
 
