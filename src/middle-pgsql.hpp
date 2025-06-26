@@ -71,7 +71,7 @@ public:
     bool relation_get(osmid_t id,
                       osmium::memory::Buffer *buffer) const override;
 
-    void prepare(std::string_view stmt, std::string const &sql_cmd) const;
+    void prepare(std::string const &stmt, std::string const &sql_cmd) const;
 
 private:
     osmium::Location get_node_location_flatnodes(osmid_t id) const;

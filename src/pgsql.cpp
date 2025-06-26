@@ -136,12 +136,12 @@ pg_result_t pg_conn_t::exec(std::string const &sql) const
     return exec(sql.c_str());
 }
 
-void pg_conn_t::copy_start(std::string_view sql) const
+void pg_conn_t::copy_start(std::string const &sql) const
 {
     assert(m_conn);
 
     log_sql("(C{}) {}", m_connection_id, sql);
-    pg_result_t const res{PQexec(m_conn.get(), sql.data())};
+    pg_result_t const res{PQexec(m_conn.get(), sql.c_str())};
     if (res.status() != PGRES_COPY_IN) {
         throw fmt_error("Database error on COPY: {}", error_msg());
     }
@@ -194,15 +194,15 @@ void pg_conn_t::copy_end(std::string_view context) const
     }
 }
 
-void pg_conn_t::prepare_internal(std::string_view stmt,
-                                 std::string_view sql) const
+void pg_conn_t::prepare_internal(std::string const &stmt,
+                                 std::string const &sql) const
 {
     if (get_logger().log_sql()) {
         log_sql("(C{}) PREPARE {} AS {}", m_connection_id, stmt, sql);
     }
 
     pg_result_t const res{
-        PQprepare(m_conn.get(), stmt.data(), sql.data(), 0, nullptr)};
+        PQprepare(m_conn.get(), stmt.c_str(), sql.c_str(), 0, nullptr)};
     if (res.status() != PGRES_COMMAND_OK) {
         throw fmt_error("Prepare failed for '{}': {}.", sql, error_msg());
     }

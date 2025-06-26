@@ -93,7 +93,7 @@ void middle_pgsql_t::dbexec(std::string_view templ) const
     m_db_connection.exec(render_template(templ));
 }
 
-void middle_query_pgsql_t::prepare(std::string_view stmt,
+void middle_query_pgsql_t::prepare(std::string const &stmt,
                                    std::string const &sql_cmd) const
 {
     m_db_connection.prepare(stmt, fmt::runtime(sql_cmd));

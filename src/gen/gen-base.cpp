@@ -99,14 +99,14 @@ pg_result_t gen_base_t::dbexec(params_t const &tmp_params,
     return connection().exec(sql_template.render());
 }
 
-void gen_base_t::dbprepare(std::string_view stmt, std::string const &templ)
+void gen_base_t::dbprepare(std::string const &stmt, std::string const &templ)
 {
     template_t sql_template{templ};
     sql_template.set_params(get_params());
     connection().prepare(stmt, fmt::runtime(sql_template.render()));
 }
 
-void gen_base_t::dbprepare(std::string_view stmt, params_t const &tmp_params,
+void gen_base_t::dbprepare(std::string const &stmt, params_t const &tmp_params,
                            std::string const &templ)
 {
     template_t sql_template{templ};
