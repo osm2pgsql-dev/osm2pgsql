@@ -13,6 +13,7 @@
 #include <set>
 
 #include "expire-tiles.hpp"
+#include "projection.hpp"
 #include "reprojection.hpp"
 #include "tile-output.hpp"
 #include "tile.hpp"
@@ -42,7 +43,7 @@ TEST_CASE("expire null geometry does nothing", "[NoDB]")
     SECTION("geom with check")
     {
         geom::geometry_t geom{};
-        geom.set_srid(3857);
+        geom.set_srid(PROJ_SPHERE_MERC);
         et.from_geometry_if_3857(geom, expire_config);
     }
 
@@ -67,7 +68,7 @@ TEST_CASE("expire point at tile boundary", "[NoDB]")
     SECTION("geom with check")
     {
         geom::geometry_t geom{pt};
-        geom.set_srid(3857);
+        geom.set_srid(PROJ_SPHERE_MERC);
         et.from_geometry_if_3857(geom, expire_config);
     }
 
@@ -97,7 +98,7 @@ TEST_CASE("expire point away from tile boundary", "[NoDB]")
     SECTION("geom with check")
     {
         geom::geometry_t geom{pt};
-        geom.set_srid(3857);
+        geom.set_srid(PROJ_SPHERE_MERC);
         et.from_geometry_if_3857(geom, expire_config);
     }
 
@@ -128,7 +129,7 @@ TEST_CASE("expire linestring away from tile boundary", "[NoDB]")
     {
         geom::linestring_t line{{5000.0, 4000.0}, {5100.0, 4200.0}};
         geom::geometry_t geom{std::move(line)};
-        geom.set_srid(3857);
+        geom.set_srid(PROJ_SPHERE_MERC);
         et.from_geometry_if_3857(geom, expire_config);
     }
 
@@ -159,7 +160,7 @@ TEST_CASE("expire linestring crossing tile boundary", "[NoDB]")
     {
         geom::linestring_t line{{5000.0, 5000.0}, {5000.0, 15000.0}};
         geom::geometry_t geom{std::move(line)};
-        geom.set_srid(3857);
+        geom.set_srid(PROJ_SPHERE_MERC);
         et.from_geometry_if_3857(geom, expire_config);
     }
 
@@ -203,7 +204,7 @@ TEST_CASE("expire small polygon", "[NoDB]")
                               {5000.0, 5100.0},
                               {5000.0, 5000.0}}};
         geom::geometry_t geom{std::move(poly)};
-        geom.set_srid(3857);
+        geom.set_srid(PROJ_SPHERE_MERC);
         et.from_geometry_if_3857(geom, expire_config);
     }
 
@@ -248,7 +249,7 @@ TEST_CASE("expire large polygon as bbox", "[NoDB]")
                               {5000.0, 25000.0},
                               {5000.0, 5000.0}}};
         geom::geometry_t geom{std::move(poly)};
-        geom.set_srid(3857);
+        geom.set_srid(PROJ_SPHERE_MERC);
         et.from_geometry_if_3857(geom, expire_config);
     }
 
@@ -313,7 +314,7 @@ TEST_CASE("expire large polygon as boundary", "[NoDB]")
                               {5000.0, 25000.0},
                               {5000.0, 5000.0}}};
         geom::geometry_t geom{std::move(poly)};
-        geom.set_srid(3857);
+        geom.set_srid(PROJ_SPHERE_MERC);
         et.from_geometry_if_3857(geom, expire_config);
     }
 
@@ -362,7 +363,7 @@ TEST_CASE("expire multipoint geometry", "[NoDB]")
         mpt.add_geometry(p1);
         mpt.add_geometry(p2);
         geom::geometry_t geom{std::move(mpt)};
-        geom.set_srid(3857);
+        geom.set_srid(PROJ_SPHERE_MERC);
         et.from_geometry_if_3857(geom, expire_config);
     }
 
@@ -485,7 +486,7 @@ TEST_CASE("expire works if in 3857", "[NoDB]")
     expire_tiles et{zoom, defproj};
 
     geom::geometry_t geom{geom::point_t{0.0, 0.0}};
-    geom.set_srid(3857);
+    geom.set_srid(PROJ_SPHERE_MERC);
     et.from_geometry_if_3857(geom, expire_config);
 
     auto const tiles = et.get_tiles();

@@ -11,6 +11,7 @@
 
 #include "canvas.hpp"
 #include "geom-boost-adaptor.hpp"
+#include "projection.hpp"
 #include "tile.hpp"
 
 #include <cassert>
@@ -114,7 +115,7 @@ tracer_t::build_geometries(tile_t const &tile, potrace_path_t const *plist,
             m_num_points += ring.size();
 
             if (path->sign == '+') {
-                geometries.emplace_back(geom::polygon_t{}, 3857)
+                geometries.emplace_back(geom::polygon_t{}, PROJ_SPHERE_MERC)
                     .get<geom::polygon_t>()
                     .outer() = std::move(ring);
             } else {

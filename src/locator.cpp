@@ -16,6 +16,7 @@
 #include "overloaded.hpp"
 #include "pgsql-capabilities.hpp"
 #include "pgsql.hpp"
+#include "projection.hpp"
 #include "wkb.hpp"
 
 #include <iterator>
@@ -63,7 +64,7 @@ void locator_t::add_regions(pg_conn_t const &db_connection,
         std::string const name = result.get_value(n, 0);
         auto geometry = ewkb_to_geom(util::decode_hex(result.get(n, 1)));
 
-        if (geometry.srid() == 4326) {
+        if (geometry.srid() == PROJ_LATLONG) {
             add_region(name, geometry);
         } else {
             log_warn("Ignoring locator geometry that is not in WGS84 (4326)");

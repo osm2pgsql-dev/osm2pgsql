@@ -16,6 +16,8 @@
  * Basic geometry types and functions.
  */
 
+#include "projection.hpp"
+
 #include <osmium/osm/location.hpp>
 
 #include <algorithm>
@@ -274,31 +276,33 @@ public:
 
     // point_t is small and trivially copyable, no move needed like for the
     // other constructors.
-    constexpr explicit geometry_t(point_t geom, int srid = 4326)
+    constexpr explicit geometry_t(point_t geom, int srid = PROJ_LATLONG)
     : m_geom(geom), m_srid(srid)
     {}
 
-    constexpr explicit geometry_t(linestring_t &&geom, int srid = 4326)
+    constexpr explicit geometry_t(linestring_t &&geom, int srid = PROJ_LATLONG)
     : m_geom(std::move(geom)), m_srid(srid)
     {}
 
-    constexpr explicit geometry_t(polygon_t &&geom, int srid = 4326)
+    constexpr explicit geometry_t(polygon_t &&geom, int srid = PROJ_LATLONG)
     : m_geom(std::move(geom)), m_srid(srid)
     {}
 
-    constexpr explicit geometry_t(multipoint_t &&geom, int srid = 4326)
+    constexpr explicit geometry_t(multipoint_t &&geom, int srid = PROJ_LATLONG)
     : m_geom(std::move(geom)), m_srid(srid)
     {}
 
-    constexpr explicit geometry_t(multilinestring_t &&geom, int srid = 4326)
+    constexpr explicit geometry_t(multilinestring_t &&geom,
+                                  int srid = PROJ_LATLONG)
     : m_geom(std::move(geom)), m_srid(srid)
     {}
 
-    constexpr explicit geometry_t(multipolygon_t &&geom, int srid = 4326)
+    constexpr explicit geometry_t(multipolygon_t &&geom,
+                                  int srid = PROJ_LATLONG)
     : m_geom(std::move(geom)), m_srid(srid)
     {}
 
-    constexpr explicit geometry_t(collection_t &&geom, int srid = 4326)
+    constexpr explicit geometry_t(collection_t &&geom, int srid = PROJ_LATLONG)
     : m_geom(std::move(geom)), m_srid(srid)
     {}
 
@@ -397,7 +401,7 @@ private:
                  multilinestring_t, multipolygon_t, collection_t>
         m_geom = nullgeom_t{};
 
-    int m_srid = 4326;
+    int m_srid = PROJ_LATLONG;
 
 }; // class geometry_t
 

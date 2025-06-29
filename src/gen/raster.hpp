@@ -10,6 +10,8 @@
  * For a full list of authors see the git log.
  */
 
+#include "projection.hpp"
+
 #include <cstdint>
 #include <string>
 
@@ -41,7 +43,7 @@ struct wkb_raster_header
     double ipY = 0.0;
     double skewX = 0.0;
     double skewY = 0.0;
-    int32_t srid = 3857;
+    int32_t srid = PROJ_SPHERE_MERC;
     uint16_t width = 0;
     uint16_t height = 0;
 };

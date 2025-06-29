@@ -17,15 +17,10 @@
  */
 
 #include "geom.hpp"
+#include "projection.hpp"
 
 #include <memory>
 #include <string>
-
-enum Projection
-{
-    PROJ_LATLONG = 4326,
-    PROJ_SPHERE_MERC = 3857
-};
 
 /**
  * Virtual base class used for projecting OSM WGS84 coordinates into a

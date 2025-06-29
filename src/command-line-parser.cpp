@@ -14,6 +14,7 @@
 #include "logging.hpp"
 #include "options.hpp"
 #include "pgsql.hpp"
+#include "projection.hpp"
 #include "reprojection.hpp"
 #include "util.hpp"
 #include "version.hpp"
@@ -244,7 +245,7 @@ void check_options_expire(options_t *options) {
     }
 
     if (options->expire_tiles_zoom != 0 &&
-        options->projection->target_srs() != 3857) {
+        options->projection->target_srs() != PROJ_SPHERE_MERC) {
         log_warn("Expire has been enabled (with -e or --expire-tiles) but "
                  "target SRS is not Mercator (EPSG:3857). Expire disabled!");
         options->expire_tiles_zoom = 0;

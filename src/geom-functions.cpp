@@ -11,6 +11,7 @@
 
 #include "geom-boost-adaptor.hpp"
 #include "overloaded.hpp"
+#include "projection.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -228,7 +229,7 @@ private:
 void transform(geometry_t *output, geometry_t const &input,
                reprojection const &reprojection)
 {
-    assert(input.srid() == 4326);
+    assert(input.srid() == PROJ_LATLONG);
 
     set_to_same_type(output, input);
     output->set_srid(reprojection.target_srs());
@@ -385,7 +386,7 @@ double spherical_area(polygon_t const &geom)
 
 double spherical_area(geometry_t const &geom)
 {
-    assert(geom.srid() == 4326);
+    assert(geom.srid() == PROJ_LATLONG);
 
     return std::abs(geom.visit(overloaded{
         [&](geom::nullgeom_t const & /*input*/) { return 0.0; },
