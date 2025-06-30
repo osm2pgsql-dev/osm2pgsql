@@ -15,9 +15,9 @@ Feature: Test for delete callbacks
                 change:insert{extra = object.version}
             end
 
-            osm2pgsql.delete_node = process_delete
-            osm2pgsql.delete_way = process_delete
-            osm2pgsql.delete_relation = process_delete
+            osm2pgsql.process_deleted_node = process_delete
+            osm2pgsql.process_deleted_way = process_delete
+            osm2pgsql.process_deleted_relation = process_delete
             """
         When running osm2pgsql flex with parameters
             | --slim |
@@ -56,15 +56,15 @@ Feature: Test for delete callbacks
                     { column = 'extra', type = 'int' }
                 }}
 
-            function osm2pgsql.delete_node(object)
+            function osm2pgsql.process_deleted_node(object)
                 change:insert{extra = object.tags == nil and 1 or 0}
             end
 
-            function osm2pgsql.delete_way(object)
+            function osm2pgsql.process_deleted_way(object)
                 change:insert{extra = object.nodes == nil and 1 or 0}
             end
 
-            function osm2pgsql.delete_relation(object)
+            function osm2pgsql.process_deleted_relation(object)
                 change:insert{extra = object.members == nil and 1 or 0}
             end
 
@@ -89,15 +89,15 @@ Feature: Test for delete callbacks
                     { column = 'extra', sql_type = 'int' }
                 }}
 
-            function osm2pgsql.delete_node(object)
+            function osm2pgsql.process_deleted_node(object)
                 change:insert{extra = object.as_point == nil and 1 or 0}
             end
 
-            function osm2pgsql.delete_way(object)
+            function osm2pgsql.process_deleted_way(object)
                 change:insert{extra = object.as_linestring == nil and 1 or 0}
             end
 
-            function osm2pgsql.delete_relation(object)
+            function osm2pgsql.process_deleted_relation(object)
                 change:insert{extra = object.as_geometrycollection == nil and 1 or 0}
             end
 

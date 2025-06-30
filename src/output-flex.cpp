@@ -1089,9 +1089,9 @@ void output_flex_t::delete_from_tables(osmium::item_type type, osmid_t osm_id)
 
 void output_flex_t::node_delete(osmium::Node const &node)
 {
-    if (m_delete_node) {
+    if (m_process_deleted_node) {
         m_context_node = &node;
-        get_mutex_and_call_lua_function(m_delete_node, node);
+        get_mutex_and_call_lua_function(m_process_deleted_node, node);
         m_context_node = nullptr;
     }
 
@@ -1100,9 +1100,9 @@ void output_flex_t::node_delete(osmium::Node const &node)
 
 void output_flex_t::way_delete(osmium::Way *way)
 {
-    if (m_delete_way) {
+    if (m_process_deleted_way) {
         m_way_cache.init(way);
-        get_mutex_and_call_lua_function(m_delete_way, m_way_cache.get());
+        get_mutex_and_call_lua_function(m_process_deleted_way, m_way_cache.get());
     }
 
     way_delete(way->id());
@@ -1110,9 +1110,9 @@ void output_flex_t::way_delete(osmium::Way *way)
 
 void output_flex_t::relation_delete(osmium::Relation const &rel)
 {
-    if (m_delete_relation) {
+    if (m_process_deleted_relation) {
         m_relation_cache.init(rel);
-        get_mutex_and_call_lua_function(m_delete_relation, rel);
+        get_mutex_and_call_lua_function(m_process_deleted_relation, rel);
     }
 
     relation_delete(rel.id());
@@ -1180,8 +1180,9 @@ output_flex_t::output_flex_t(output_flex_t const *other,
   m_process_untagged_node(other->m_process_untagged_node),
   m_process_untagged_way(other->m_process_untagged_way),
   m_process_untagged_relation(other->m_process_untagged_relation),
-  m_delete_node(other->m_delete_node), m_delete_way(other->m_delete_way),
-  m_delete_relation(other->m_delete_relation),
+  m_process_deleted_node(other->m_process_deleted_node),
+  m_process_deleted_way(other->m_process_deleted_way),
+  m_process_deleted_relation(other->m_process_deleted_relation),
   m_select_relation_members(other->m_select_relation_members),
   m_after_nodes(other->m_after_nodes), m_after_ways(other->m_after_ways),
   m_after_relations(other->m_after_relations)
@@ -1369,12 +1370,12 @@ void output_flex_t::init_lua(std::string const &filename,
         prepared_lua_function_t{lua_state(), calling_context::process_relation,
                                 "process_untagged_relation"};
 
-    m_delete_node = prepared_lua_function_t{
-        lua_state(), calling_context::process_node, "delete_node"};
-    m_delete_way = prepared_lua_function_t{
-        lua_state(), calling_context::process_way, "delete_way"};
-    m_delete_relation = prepared_lua_function_t{
-        lua_state(), calling_context::process_relation, "delete_relation"};
+    m_process_deleted_node = prepared_lua_function_t{
+        lua_state(), calling_context::process_node, "process_deleted_node"};
+    m_process_deleted_way = prepared_lua_function_t{
+        lua_state(), calling_context::process_way, "process_deleted_way"};
+    m_process_deleted_relation = prepared_lua_function_t{
+        lua_state(), calling_context::process_relation, "process_deleted_relation"};
 
     m_select_relation_members = prepared_lua_function_t{
         lua_state(), calling_context::select_relation_members,
