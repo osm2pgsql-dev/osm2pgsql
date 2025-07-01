@@ -308,9 +308,9 @@ private:
     prepared_lua_function_t m_process_untagged_way;
     prepared_lua_function_t m_process_untagged_relation;
 
-    prepared_lua_function_t m_delete_node;
-    prepared_lua_function_t m_delete_way;
-    prepared_lua_function_t m_delete_relation;
+    prepared_lua_function_t m_process_deleted_node;
+    prepared_lua_function_t m_process_deleted_way;
+    prepared_lua_function_t m_process_deleted_relation;
 
     prepared_lua_function_t m_select_relation_members;
 
