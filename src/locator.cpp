@@ -88,6 +88,24 @@ void locator_t::build_index()
     m_rtree.insert(m_data.cbegin(), m_data.cend());
 }
 
+void locator_t::all_intersecting_visit(geom::geometry_t const &geom,
+                                       std::set<std::string> *results)
+{
+    geom.visit(overloaded{[&](geom::nullgeom_t const & /*val*/) {},
+                          [&](geom::collection_t const &val) {
+                              for (auto const &sgeom : val) {
+                                  all_intersecting_visit(sgeom, results);
+                              }
+                          },
+                          [&](auto const &val) {
+                              for (auto it = begin_intersects(val);
+                                   it != end_query(); ++it) {
+                                  auto const &region = m_regions[it->second];
+                                  results->emplace(region.name());
+                              }
+                          }});
+}
+
 std::set<std::string> locator_t::all_intersecting(geom::geometry_t const &geom)
 {
     if (m_rtree.size() < m_regions.size()) {
@@ -95,18 +113,29 @@ std::set<std::string> locator_t::all_intersecting(geom::geometry_t const &geom)
     }
 
     std::set<std::string> results;
+    all_intersecting_visit(geom, &results);
+    return results;
+}
 
-    geom.visit(overloaded{[&](geom::nullgeom_t const & /*input*/) {},
-                          [&](geom::collection_t const & /*input*/) {}, // TODO
+void locator_t::first_intersecting_visit(geom::geometry_t const &geom,
+                                         std::string *result)
+{
+    geom.visit(overloaded{[&](geom::nullgeom_t const & /*val*/) {},
+                          [&](geom::collection_t const &val) {
+                              for (auto const &sgeom : val) {
+                                  first_intersecting_visit(sgeom, result);
+                                  if (!result->empty()) {
+                                      return;
+                                  }
+                              }
+                          },
                           [&](auto const &val) {
-                              for (auto it = begin_intersects(val);
-                                   it != end_query(); ++it) {
+                              auto const it = begin_intersects(val);
+                              if (it != end_query()) {
                                   auto const &region = m_regions[it->second];
-                                  results.emplace(region.name());
+                                  *result = region.name();
                               }
                           }});
-
-    return results;
 }
 
 std::string locator_t::first_intersecting(geom::geometry_t const &geom)
@@ -116,16 +145,6 @@ std::string locator_t::first_intersecting(geom::geometry_t const &geom)
     }
 
     std::string result;
-
-    geom.visit(overloaded{[&](geom::nullgeom_t const & /*input*/) {},
-                          [&](geom::collection_t const & /*input*/) {}, // TODO
-                          [&](auto const &val) {
-                              auto const it = begin_intersects(val);
-                              if (it != end_query()) {
-                                  auto const &region = m_regions[it->second];
-                                  result = region.name();
-                              }
-                          }});
-
+    first_intersecting_visit(geom, &result);
     return result;
 }

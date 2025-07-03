@@ -98,6 +98,12 @@ private:
 
     tree_t::const_query_iterator end_query() { return m_rtree.qend(); }
 
+    void all_intersecting_visit(geom::geometry_t const &geom,
+                                std::set<std::string> *results);
+
+    void first_intersecting_visit(geom::geometry_t const &geom,
+                                  std::string *result);
+
 public:
     /// The name of this locator (for logging only)
     std::string const &name() const noexcept { return m_name; }
