@@ -80,7 +80,7 @@ Feature: Locators
             Error in 'first_intersecting': Need locator and geometry arguments
             """
 
-    Scenario: Use a all_intersecting() without geometry fails
+    Scenario: Use of all_intersecting() without geometry fails
         Given the OSM data
             """
             n10 v1 dV Tamenity=post_box x0.5 y0.5
@@ -230,4 +230,70 @@ Feature: Locators
         Then table osm2pgsql_test_points contains exactly
             | node_id | region | ST_AsText(geom) |
             | 10      | P1     | 15 8            |
+
+    Scenario: Define and use a locator with relation from db
+        Given the 10.0 grid with origin 10.0 10.0
+            | 10 | 11 | 12 |
+            | 13 | 14 | 15 |
+        And the OSM data
+            """
+            w29 v1 dV Tregion=P1 Nn10,n11,n14,n13,n10
+            """
+        And the lua style
+            """
+            local regions = osm2pgsql.define_way_table('osm2pgsql_test_regions', {
+                { column = 'region', type = 'text' },
+                { column = 'geom', type = 'polygon', projection = 4326 },
+            })
+
+            function osm2pgsql.process_way(object)
+                regions:insert({
+                    region = object.tags.region,
+                    geom = object:as_polygon(),
+                })
+            end
+            """
+        When running osm2pgsql flex
+        Then table osm2pgsql_test_regions contains exactly
+            | way_id | region | ST_AsText(geom)               |
+            | 29     | P1     | (10 0,20 0,20 10,10 10, 10 0) |
+
+        Given the 10.0 grid with origin 10.0 10.0
+            | 10 | 11 | 12 |
+            | 13 | 14 | 15 |
+        And the OSM data
+            """
+            w20 v1 dV Nn10,n11,n13
+            w21 v1 dV Nn13,n10
+            w22 v1 dV Nn14,n15
+            w23 v1 dV Nn12,n15
+            r30 v1 dV Tfoo=bar Mw20@,w21@,w22@,n12@
+            r31 v1 dV Tfoo=bar Mn12@,n15@
+            r32 v1 dV Tfoo=bar Mw23@
+            """
+        And the lua style
+            """
+            local regions = osm2pgsql.define_locator({ name = 'regions' })
+            regions:add_from_db('SELECT region, geom FROM osm2pgsql_test_regions')
+
+            local points = osm2pgsql.define_relation_table('osm2pgsql_test_rels', {
+                { column = 'region', type = 'text' },
+                { column = 'geom', type = 'geometry', projection = 4326 },
+            })
+
+            function osm2pgsql.process_relation(object)
+                local g = object:as_geometrycollection()
+                local r = regions:first_intersecting(g)
+                if r then
+                    points:insert({
+                        region = r,
+                        geom = g,
+                    })
+                end
+            end
+            """
+        When running osm2pgsql flex
+        Then table osm2pgsql_test_rels contains exactly
+            | relation_id | region | ST_GeometryType(geom) |
+            | 30          | P1     | ST_GeometryCollection |
 
