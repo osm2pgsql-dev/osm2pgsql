@@ -93,9 +93,9 @@ public:
      * a column delimiter.
      */
     template <typename T>
-    void add_column(T value)
+    void add_column(T &&value)
     {
-        add_value(value);
+        add_value(std::forward<T>(value));
         m_current.buffer += '\t';
     }
 
