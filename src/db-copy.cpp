@@ -31,7 +31,7 @@ void db_deleter_by_id_t::delete_rows(std::string const &table,
     fmt::format_to(std::back_inserter(sql),
                    FMT_STRING("DELETE FROM {} WHERE {} IN ("), table, column);
 
-    for (auto id : m_deletables) {
+    for (auto const id : m_deletables) {
         format_to(std::back_inserter(sql), FMT_STRING("{},"), id);
     }
     sql[sql.size() - 1] = ')';

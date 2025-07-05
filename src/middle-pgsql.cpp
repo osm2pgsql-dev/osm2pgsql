@@ -1168,7 +1168,7 @@ void middle_pgsql_t::stop()
     if (m_options->droptemp) {
         // Dropping the tables is fast, so do it synchronously to guarantee
         // that the space is freed before creating the other indices.
-        for (auto &table : m_tables) {
+        for (auto const &table : m_tables) {
             table.drop_table(m_db_connection);
         }
     } else if (!m_options->append) {

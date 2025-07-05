@@ -225,8 +225,8 @@ point_t pole_of_inaccessibility(const polygon_t &polygon, double precision,
         auto const h = cell.half_size / 2.0;
         auto const center = cell.center;
 
-        for (auto dy : {-h, h}) {
-            for (auto dx : {-h, h}) {
+        for (auto const dy : {-h, h}) {
+            for (auto const dx : {-h, h}) {
                 Cell const c{point_t{center.x() + dx, center.y() + dy}, h,
                              polygon, stretch};
                 if (c.max > best_cell.dist) {

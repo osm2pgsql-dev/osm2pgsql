@@ -1258,7 +1258,7 @@ output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
         m_table_connections.emplace_back(&table, m_copy_thread);
     }
 
-    for (auto &expire_output : *m_expire_outputs) {
+    for (auto const &expire_output : *m_expire_outputs) {
         m_expire_tiles.emplace_back(
             expire_output.maxzoom(),
             reprojection::create_projection(PROJ_SPHERE_MERC));
