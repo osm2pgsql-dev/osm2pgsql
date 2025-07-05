@@ -87,6 +87,8 @@ unsigned get_tag_type(std::string const &tag)
 
 } // anonymous namespace
 
+// NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
+// This is legacy code which will be removed anyway.
 bool read_style_file(std::string const &filename, export_list *exlist)
 {
     bool enable_way_area = true;
@@ -195,3 +197,4 @@ bool read_style_file(std::string const &filename, export_list *exlist)
 
     return enable_way_area;
 }
+// NOLINTEND(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
