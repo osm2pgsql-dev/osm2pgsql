@@ -118,7 +118,7 @@ auto point_to_polygon_distance(point_t point, polygon_t const &polygon,
 
 struct Cell
 {
-    static constexpr double const SQRT2 = 1.4142135623730951;
+    static constexpr double SQRT2 = 1.4142135623730951;
 
     Cell(point_t c, double h, polygon_t const &polygon, double stretch)
     : center(c), half_size(h),

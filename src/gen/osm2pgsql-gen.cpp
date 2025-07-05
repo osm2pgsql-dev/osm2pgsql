@@ -76,7 +76,7 @@
 
 namespace {
 
-constexpr std::size_t const MAX_FORCE_SINGLE_THREAD = 4;
+constexpr std::size_t MAX_FORCE_SINGLE_THREAD = 4;
 
 struct tile_extent
 {

@@ -38,7 +38,7 @@ std::string encode_hex(std::string const &in)
 
 namespace {
 
-constexpr std::array<char, 256> const HEX_TABLE = {
+constexpr std::array<char, 256> HEX_TABLE = {
     0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,
     0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,
     0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,

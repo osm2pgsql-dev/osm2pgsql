@@ -85,7 +85,7 @@ private:
      * The block size used for internal blocks. The larger the block size
      * the less memory is consumed but the more expensive the access is.
      */
-    static constexpr const std::size_t BLOCK_SIZE = 32;
+    static constexpr std::size_t BLOCK_SIZE = 32;
 
     bool first_entry_in_block() const noexcept
     {

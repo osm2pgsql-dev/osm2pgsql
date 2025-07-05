@@ -63,7 +63,7 @@ enum class node_relationship : std::uint8_t
 template <node_relationship R>
 struct node_rel
 {
-    static constexpr const node_relationship rs = R;
+    static constexpr node_relationship rs = R;
 };
 
 using node_rel_none = node_rel<node_relationship::none>;
