@@ -147,7 +147,7 @@ Cell make_centroid_cell(polygon_t const &polygon, double stretch)
 
 } // anonymous namespace
 
-point_t pole_of_inaccessibility(const polygon_t &polygon, double precision,
+point_t pole_of_inaccessibility(polygon_t const &polygon, double precision,
                                 double stretch)
 {
     assert(stretch > 0);

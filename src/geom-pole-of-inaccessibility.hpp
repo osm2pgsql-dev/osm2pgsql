@@ -28,7 +28,7 @@ namespace geom {
  *
  * \pre \code stretch > 0 \endcode
  */
-point_t pole_of_inaccessibility(const polygon_t &polygon, double precision,
+point_t pole_of_inaccessibility(polygon_t const &polygon, double precision,
                                 double stretch = 1.0);
 
 void pole_of_inaccessibility(geometry_t *output, geometry_t const &input,

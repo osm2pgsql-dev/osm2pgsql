@@ -47,8 +47,8 @@
 
 namespace {
 
-void send_id_list(pg_conn_t const &db_connection,
-                         std::string const &table, idlist_t const &ids)
+void send_id_list(pg_conn_t const &db_connection, std::string const &table,
+                  idlist_t const &ids)
 {
     std::string data;
     for (auto const id : ids) {
@@ -171,7 +171,7 @@ public:
     }
 
     static bool number_float(nlohmann::json::number_float_t /*val*/,
-                             const nlohmann::json::string_t & /*s*/)
+                             nlohmann::json::string_t const & /*s*/)
     {
         return true;
     }
@@ -228,8 +228,8 @@ public:
     static bool end_array() { return true; }
 
     static bool parse_error(std::size_t /*position*/,
-                            const std::string & /*last_token*/,
-                            const nlohmann::json::exception &ex)
+                            std::string const & /*last_token*/,
+                            nlohmann::json::exception const &ex)
     {
         throw ex;
     }

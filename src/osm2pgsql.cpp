@@ -188,7 +188,7 @@ void check_and_update_flat_node_file(properties_t *properties,
                      flat_node_file_from_import);
         }
     } else {
-        const auto absolute_path =
+        auto const absolute_path =
             std::filesystem::absolute(
                 std::filesystem::path{options->flat_node_file})
                 .string();
@@ -279,7 +279,7 @@ void check_and_update_style_file(properties_t *properties, options_t *options)
         throw std::runtime_error{"Style file from import is empty!?"};
     }
 
-    const auto absolute_path =
+    auto const absolute_path =
         std::filesystem::absolute(std::filesystem::path{options->style})
             .string();
 
