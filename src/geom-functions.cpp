@@ -258,8 +258,8 @@ public:
 
     point_list_t::const_iterator begin()
     {
-        assert(m_list->begin() != m_list->end());
-        return std::next(m_list->begin());
+        assert(m_list->cbegin() != m_list->cend());
+        return std::next(m_list->cbegin());
     }
 
     point_list_t::const_iterator end() { return m_list->end(); }

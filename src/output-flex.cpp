@@ -280,7 +280,7 @@ void flush_tables(std::vector<table_connection_t> &table_connections)
 void create_expire_tables(std::vector<expire_output_t> const &expire_outputs,
                           connection_params_t const &connection_params)
 {
-    if (std::all_of(expire_outputs.begin(), expire_outputs.end(),
+    if (std::all_of(expire_outputs.cbegin(), expire_outputs.cend(),
                     [](auto const &expire_output) {
                         return expire_output.table().empty();
                     })) {
