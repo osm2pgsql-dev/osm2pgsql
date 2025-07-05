@@ -355,6 +355,9 @@ void table_t::task_wait()
              util::human_readable_duration(run_time));
 }
 
+// NOLINTBEGIN(google-runtime-int,cert-err34-c)
+// This is legacy code which will be removed anyway.
+
 /* Escape data appropriate to the type */
 void table_t::escape_type(std::string const &value, ColumnType flags)
 {
@@ -423,6 +426,7 @@ void table_t::escape_type(std::string const &value, ColumnType flags)
         break;
     }
 }
+// NOLINTEND(google-runtime-int,cert-err34-c)
 
 pg_result_t table_t::get_wkb(osmid_t id)
 {

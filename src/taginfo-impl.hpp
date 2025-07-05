@@ -19,7 +19,7 @@
 #include <utility>
 #include <vector>
 
-enum column_flags : unsigned int
+enum column_flags : unsigned int // NOLINT(performance-enum-size)
 {
     FLAG_POLYGON = 1, /* For polygon table */
     FLAG_LINEAR = 2,  /* For lines table */

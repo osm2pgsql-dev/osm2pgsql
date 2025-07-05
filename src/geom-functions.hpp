@@ -43,13 +43,13 @@ point_t interpolate(point_t p1, point_t p2, double frac) noexcept;
  * \pre \code !list.empty() \endcode
  */
 template <typename FUNC>
-void for_each_segment(point_list_t const &list, FUNC &&func)
+void for_each_segment(point_list_t const &list, FUNC const &func)
 {
     assert(!list.empty());
     auto it = list.cbegin();
     auto prev = it;
     for (++it; it != list.cend(); ++it) {
-        std::forward<FUNC>(func)(*prev, *it);
+        func(*prev, *it);
         prev = it;
     }
 }

@@ -54,6 +54,7 @@ public:
         m_map.insert_or_assign(std::forward<K>(key), value);
     }
 
+    // NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
     template <typename K, typename V,
               std::enable_if_t<std::is_integral_v<std::remove_reference_t<V>>,
                                bool> = true>
@@ -71,6 +72,7 @@ public:
     {
         m_map.insert_or_assign(std::forward<K>(key), std::string(value));
     }
+    // NOLINTEND(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
 
     template <typename K>
     void remove(K &&key)

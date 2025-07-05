@@ -85,8 +85,8 @@ BOOST_GEOMETRY_DETAIL_SPECIALIZE_BOX_TRAITS(::geom::box_t, ::geom::point_t)
 template <>
 struct indexed_access<::geom::box_t, min_corner, 0>
 {
-    static inline double get(::geom::box_t const &b) { return b.min_x(); }
-    static inline void set(::geom::box_t &b, double value)
+    static double get(::geom::box_t const &b) { return b.min_x(); }
+    static void set(::geom::box_t &b, double value)
     {
         b.set_min_x(value);
     }
@@ -95,8 +95,8 @@ struct indexed_access<::geom::box_t, min_corner, 0>
 template <>
 struct indexed_access<::geom::box_t, min_corner, 1>
 {
-    static inline double get(::geom::box_t const &b) { return b.min_y(); }
-    static inline void set(::geom::box_t &b, double value)
+    static double get(::geom::box_t const &b) { return b.min_y(); }
+    static void set(::geom::box_t &b, double value)
     {
         b.set_min_y(value);
     }
@@ -105,8 +105,8 @@ struct indexed_access<::geom::box_t, min_corner, 1>
 template <>
 struct indexed_access<::geom::box_t, max_corner, 0>
 {
-    static inline double get(::geom::box_t const &b) { return b.max_x(); }
-    static inline void set(::geom::box_t &b, double value)
+    static double get(::geom::box_t const &b) { return b.max_x(); }
+    static void set(::geom::box_t &b, double value)
     {
         b.set_max_x(value);
     }
@@ -115,8 +115,8 @@ struct indexed_access<::geom::box_t, max_corner, 0>
 template <>
 struct indexed_access<::geom::box_t, max_corner, 1>
 {
-    static inline double get(::geom::box_t const &b) { return b.max_y(); }
-    static inline void set(::geom::box_t &b, double value)
+    static double get(::geom::box_t const &b) { return b.max_y(); }
+    static void set(::geom::box_t &b, double value)
     {
         b.set_max_y(value);
     }
