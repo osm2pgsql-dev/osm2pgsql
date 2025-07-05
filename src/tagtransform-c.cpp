@@ -26,7 +26,7 @@ struct layers_type
     bool roads;
 };
 
-constexpr std::array<layers_type, 25> const LAYERS = {
+constexpr std::array<layers_type, 25> LAYERS = {
     {{"proposed", 1, false},       {"construction", 2, false},
      {"steps", 10, false},         {"cycleway", 10, false},
      {"bridleway", 10, false},     {"footway", 10, false},

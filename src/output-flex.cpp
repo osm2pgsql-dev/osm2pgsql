@@ -133,7 +133,7 @@ void push_osm_object_to_lua_stack(lua_State *lua_state,
      * timestamp, changeset, uid, user). For ways there are 2 more (is_closed,
      * nodes), for relations 1 more (members).
      */
-    constexpr int const MAX_TABLE_SIZE = 10;
+    constexpr int MAX_TABLE_SIZE = 10;
 
     lua_createtable(lua_state, 0, MAX_TABLE_SIZE);
 
@@ -243,7 +243,7 @@ typename CONTAINER::value_type &get_from_idx_param(lua_State *lua_state,
 
 std::size_t get_nodes(middle_query_t const &middle, osmium::Way *way)
 {
-    constexpr std::size_t const MAX_MISSING_NODES = 100;
+    constexpr std::size_t MAX_MISSING_NODES = 100;
     static std::size_t count_missing_nodes = 0;
 
     auto const count = middle.nodes_get_list(&way->nodes());
@@ -280,7 +280,7 @@ void flush_tables(std::vector<table_connection_t> &table_connections)
 void create_expire_tables(std::vector<expire_output_t> const &expire_outputs,
                           connection_params_t const &connection_params)
 {
-    if (std::all_of(expire_outputs.begin(), expire_outputs.end(),
+    if (std::all_of(expire_outputs.cbegin(), expire_outputs.cend(),
                     [](auto const &expire_output) {
                         return expire_output.table().empty();
                     })) {
@@ -1258,7 +1258,7 @@ output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
         m_table_connections.emplace_back(&table, m_copy_thread);
     }
 
-    for (auto &expire_output : *m_expire_outputs) {
+    for (auto const &expire_output : *m_expire_outputs) {
         m_expire_tiles.emplace_back(
             expire_output.maxzoom(),
             reprojection::create_projection(PROJ_SPHERE_MERC));

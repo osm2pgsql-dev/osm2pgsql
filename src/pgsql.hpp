@@ -319,7 +319,7 @@ private:
         // It needs to be large enough to hold all parameters without resizing
         // so that pointers into the strings in that vector remain valid
         // after new parameters have been added.
-        constexpr auto const TOTAL_BUFFERS_NEEDED =
+        constexpr auto TOTAL_BUFFERS_NEEDED =
             (0 + ... + buffers_needed<std::decay_t<TArgs>>());
 
         std::vector<std::string> exec_params;

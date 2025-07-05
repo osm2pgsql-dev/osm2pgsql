@@ -35,7 +35,7 @@ public:
      * @returns false if there was some kind of error building the
      *          area, true otherwise.
      */
-    bool operator()(const osmium::Way &way);
+    bool operator()(osmium::Way const &way);
 
     /**
      * Assemble an area from the given relation and its member ways
@@ -44,8 +44,8 @@ public:
      * @returns false if there was some kind of error building the
      *          area, true otherwise.
      */
-    bool operator()(const osmium::Relation &relation,
-                    const osmium::memory::Buffer &ways_buffer);
+    bool operator()(osmium::Relation const &relation,
+                    osmium::memory::Buffer const &ways_buffer);
 
     /**
      * Access the area that was built last.

@@ -366,7 +366,7 @@ void output_pgsql_t::delete_from_output_and_expire(osmid_t id)
 {
     m_tables[t_roads]->delete_row(id);
 
-    for (auto table : {t_line, t_poly}) {
+    for (auto const table : {t_line, t_poly}) {
         if (m_expire.enabled()) {
             auto const results = m_tables.at(table)->get_wkb(id);
             if (expire_from_result(&m_expire, results, m_expire_config) != 0) {

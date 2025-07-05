@@ -258,8 +258,8 @@ public:
 
     point_list_t::const_iterator begin()
     {
-        assert(m_list->begin() != m_list->end());
-        return std::next(m_list->begin());
+        assert(m_list->cbegin() != m_list->cend());
+        return std::next(m_list->cbegin());
     }
 
     point_list_t::const_iterator end() { return m_list->end(); }
@@ -607,7 +607,7 @@ void line_merge(geometry_t *output, geometry_t const &input)
     std::vector<endpoint_t> endpoints;
 
     // ...and a list of connections.
-    constexpr auto const NOCONN = std::numeric_limits<std::size_t>::max();
+    constexpr std::size_t NOCONN = std::numeric_limits<std::size_t>::max();
 
     struct connection_t
     {

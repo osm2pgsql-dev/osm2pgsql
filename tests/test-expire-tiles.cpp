@@ -100,7 +100,7 @@ TEST_CASE("simple expire z1", "[NoDB]")
     auto const tiles = get_tiles_ordered(&et, minzoom, maxzoom);
     CHECK(tiles.size() == 4);
 
-    auto itr = tiles.begin();
+    auto itr = tiles.cbegin();
     CHECK(*(itr++) == tile_t(1, 0, 0));
     CHECK(*(itr++) == tile_t(1, 1, 0));
     CHECK(*(itr++) == tile_t(1, 0, 1));
@@ -120,7 +120,7 @@ TEST_CASE("simple expire z3", "[NoDB]")
     auto const tiles = get_tiles_ordered(&et, minzoom, maxzoom);
     CHECK(tiles.size() == 4);
 
-    auto itr = tiles.begin();
+    auto itr = tiles.cbegin();
     CHECK(*(itr++) == tile_t(3, 3, 3));
     CHECK(*(itr++) == tile_t(3, 4, 3));
     CHECK(*(itr++) == tile_t(3, 3, 4));
@@ -140,7 +140,7 @@ TEST_CASE("simple expire z18", "[NoDB]")
     auto const tiles = get_tiles_ordered(&et, minzoom, maxzoom);
     CHECK(tiles.size() == 4);
 
-    auto itr = tiles.begin();
+    auto itr = tiles.cbegin();
     CHECK(*(itr++) == tile_t(18, 131071, 131071));
     CHECK(*(itr++) == tile_t(18, 131072, 131071));
     CHECK(*(itr++) == tile_t(18, 131071, 131072));
@@ -159,7 +159,7 @@ TEST_CASE("simple expire z10 bounds 0, 0", "[NoDB]")
     auto const tiles = get_tiles_ordered(&et, minzoom, maxzoom);
     CHECK(tiles.size() == 1);
 
-    auto itr = tiles.begin();
+    auto itr = tiles.cbegin();
     CHECK(*(itr++) == tile_t(10, 0, 0));
 }
 
@@ -175,7 +175,7 @@ TEST_CASE("simple expire z10 bounds 0, 1023", "[NoDB]")
     auto const tiles = get_tiles_ordered(&et, minzoom, maxzoom);
     CHECK(tiles.size() == 1);
 
-    auto itr = tiles.begin();
+    auto itr = tiles.cbegin();
     CHECK(*(itr++) == tile_t(10, 0, 1023));
 }
 
@@ -191,7 +191,7 @@ TEST_CASE("simple expire z10 bounds 1023, 0", "[NoDB]")
     auto const tiles = get_tiles_ordered(&et, minzoom, maxzoom);
     CHECK(tiles.size() == 1);
 
-    auto itr = tiles.begin();
+    auto itr = tiles.cbegin();
     CHECK(*(itr++) == tile_t(10, 1023, 0));
 }
 
@@ -207,7 +207,7 @@ TEST_CASE("simple expire z10 bounds 1023, 1023", "[NoDB]")
     auto const tiles = get_tiles_ordered(&et, minzoom, maxzoom);
     CHECK(tiles.size() == 1);
 
-    auto itr = tiles.begin();
+    auto itr = tiles.cbegin();
     CHECK(*(itr++) == tile_t(10, 1023, 1023));
 }
 
@@ -223,7 +223,7 @@ TEST_CASE("expire a simple line", "[NoDB]")
     auto const tiles = get_tiles_ordered(&et, zoom, zoom);
     CHECK(tiles.size() == 3);
 
-    auto itr = tiles.begin();
+    auto itr = tiles.cbegin();
     CHECK(*(itr++) == tile_t(18, 140221, 82055));
     CHECK(*(itr++) == tile_t(18, 140222, 82055));
     CHECK(*(itr++) == tile_t(18, 140223, 82055));
@@ -241,7 +241,7 @@ TEST_CASE("expire a line near the tile border", "[NoDB]")
     auto const tiles = get_tiles_ordered(&et, zoom, zoom);
     REQUIRE(tiles.size() == 4);
 
-    auto itr = tiles.begin();
+    auto itr = tiles.cbegin();
     CHECK(*(itr++) == tile_t(18, 140222, 82055));
     CHECK(*(itr++) == tile_t(18, 140223, 82055));
     CHECK(*(itr++) == tile_t(18, 140222, 82056));
@@ -331,7 +331,7 @@ TEST_CASE("simple expire z17 and z18", "[NoDB]")
     auto const tiles = get_tiles_ordered(&et, minzoom, maxzoom);
     CHECK(tiles.size() == 8);
 
-    auto itr = tiles.begin();
+    auto itr = tiles.cbegin();
     CHECK(*(itr++) == tile_t(18, 131071, 131071));
     CHECK(*(itr++) == tile_t(17, 65535, 65535));
     CHECK(*(itr++) == tile_t(18, 131072, 131071));
@@ -356,7 +356,7 @@ TEST_CASE("simple expire z17 and z18 in one superior tile", "[NoDB]")
     auto const tiles = get_tiles_ordered(&et, minzoom, maxzoom);
     CHECK(tiles.size() == 5);
 
-    auto itr = tiles.begin();
+    auto itr = tiles.cbegin();
     CHECK(*(itr++) == tile_t(18, 131070, 131070));
     CHECK(*(itr++) == tile_t(17, 65535, 65535));
     CHECK(*(itr++) == tile_t(18, 131071, 131070));

@@ -25,7 +25,7 @@ std::shared_ptr<reprojection> defproj{
 
 // We are using zoom level 12 here, because at that level a tile is about
 // 10,000 units wide/high which gives us easy numbers to work with.
-constexpr uint32_t const zoom = 12;
+constexpr uint32_t zoom = 12;
 
 } // anonymous namespace
 

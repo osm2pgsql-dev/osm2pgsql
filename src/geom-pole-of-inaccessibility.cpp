@@ -118,7 +118,7 @@ auto point_to_polygon_distance(point_t point, polygon_t const &polygon,
 
 struct Cell
 {
-    static constexpr double const SQRT2 = 1.4142135623730951;
+    static constexpr double SQRT2 = 1.4142135623730951;
 
     Cell(point_t c, double h, polygon_t const &polygon, double stretch)
     : center(c), half_size(h),
@@ -147,7 +147,7 @@ Cell make_centroid_cell(polygon_t const &polygon, double stretch)
 
 } // anonymous namespace
 
-point_t pole_of_inaccessibility(const polygon_t &polygon, double precision,
+point_t pole_of_inaccessibility(polygon_t const &polygon, double precision,
                                 double stretch)
 {
     assert(stretch > 0);
@@ -225,8 +225,8 @@ point_t pole_of_inaccessibility(const polygon_t &polygon, double precision,
         auto const h = cell.half_size / 2.0;
         auto const center = cell.center;
 
-        for (auto dy : {-h, h}) {
-            for (auto dx : {-h, h}) {
+        for (auto const dy : {-h, h}) {
+            for (auto const dx : {-h, h}) {
                 Cell const c{point_t{center.x() + dx, center.y() + dy}, h,
                              polygon, stretch};
                 if (c.max > best_cell.dist) {

@@ -25,7 +25,7 @@ osmid_t idlist_t::pop_id()
 void idlist_t::sort_unique()
 {
     std::sort(m_list.begin(), m_list.end());
-    const auto last = std::unique(m_list.begin(), m_list.end());
+    auto const last = std::unique(m_list.begin(), m_list.end());
     m_list.erase(last, m_list.end());
 }
 

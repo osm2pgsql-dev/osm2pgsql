@@ -21,7 +21,7 @@ char const *const TEST_PBF = "foo.pbf";
 
 void bad_opt(std::vector<char const *> opts, char const *msg)
 {
-    opts.insert(opts.begin(), "osm2pgsql");
+    opts.insert(opts.cbegin(), "osm2pgsql");
     opts.push_back(TEST_PBF);
 
     REQUIRE_THROWS_WITH(
@@ -31,7 +31,7 @@ void bad_opt(std::vector<char const *> opts, char const *msg)
 
 options_t opt(std::vector<char const *> opts)
 {
-    opts.insert(opts.begin(), "osm2pgsql");
+    opts.insert(opts.cbegin(), "osm2pgsql");
     opts.push_back(TEST_PBF);
 
     return parse_command_line((int)opts.size(), (char **)opts.data());

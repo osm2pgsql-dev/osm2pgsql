@@ -38,7 +38,7 @@ std::string encode_hex(std::string const &in)
 
 namespace {
 
-constexpr std::array<char, 256> const HEX_TABLE = {
+constexpr std::array<char, 256> HEX_TABLE = {
     0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,
     0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,
     0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,
@@ -67,7 +67,7 @@ std::string decode_hex(std::string_view hex_string)
     wkb.reserve(hex_string.size() / 2);
 
     // NOLINTNEXTLINE(llvm-qualified-auto, readability-qualified-auto)
-    for (auto hex = hex_string.begin(); hex != hex_string.end();) {
+    for (auto hex = hex_string.cbegin(); hex != hex_string.cend();) {
         unsigned int const c = decode_hex_char(*hex++);
         wkb += static_cast<char>((c << 4U) | decode_hex_char(*hex++));
     }

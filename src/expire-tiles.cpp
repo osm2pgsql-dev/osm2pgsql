@@ -270,7 +270,7 @@ quadkey_list_t expire_tiles::get_tiles()
 {
     quadkey_list_t tiles;
     tiles.reserve(m_dirty_tiles.size());
-    tiles.assign(m_dirty_tiles.begin(), m_dirty_tiles.end());
+    tiles.assign(m_dirty_tiles.cbegin(), m_dirty_tiles.cend());
     std::sort(tiles.begin(), tiles.end());
     m_dirty_tiles.clear();
     return tiles;
@@ -288,8 +288,8 @@ void expire_tiles::merge_and_destroy(expire_tiles *other)
         using std::swap;
         swap(m_dirty_tiles, other->m_dirty_tiles);
     } else {
-        m_dirty_tiles.insert(other->m_dirty_tiles.begin(),
-                             other->m_dirty_tiles.end());
+        m_dirty_tiles.insert(other->m_dirty_tiles.cbegin(),
+                             other->m_dirty_tiles.cend());
         other->m_dirty_tiles.clear();
     }
 }
