@@ -17,6 +17,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <initializer_list>
 #include <string_view>
 #include <utility>
 
@@ -37,6 +38,10 @@ void luaX_add_table_bool(lua_State *lua_state, char const *key,
                          bool value) noexcept;
 void luaX_add_table_func(lua_State *lua_state, char const *key,
                          lua_CFunction func) noexcept;
+
+void luaX_set_up_metatable(
+    lua_State *lua_state, char const *name, char const *luaclass,
+    std::initializer_list<std::pair<char const *, lua_CFunction>> map);
 
 template <typename COLLECTION, typename FUNC>
 void luaX_add_table_array(lua_State *lua_state, char const *key,

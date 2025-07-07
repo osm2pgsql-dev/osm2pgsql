@@ -1305,33 +1305,16 @@ void output_flex_t::init_lua(std::string const &filename,
 
     assert(lua_gettop(lua_state()) == 0);
 
-    lua_getglobal(lua_state(), "osm2pgsql");
-    if (luaL_newmetatable(lua_state(), OSM2PGSQL_OSMOBJECT_CLASS) != 1) {
-        throw std::runtime_error{"Internal error: Lua newmetatable failed."};
-    }
-    lua_pushvalue(lua_state(), -1); // Copy of new metatable
-
-    // Add metatable as osm2pgsql.OSMObject so we can access it from Lua
-    lua_setfield(lua_state(), -3, "OSMObject");
-
-    lua_pushvalue(lua_state(), -1);
-    lua_setfield(lua_state(), -2, "__index");
-    luaX_add_table_func(lua_state(), "get_bbox", lua_trampoline_app_get_bbox);
-    luaX_add_table_func(lua_state(), "as_linestring",
-                        lua_trampoline_app_as_linestring);
-    luaX_add_table_func(lua_state(), "as_point",
-                        lua_trampoline_app_as_point);
-    luaX_add_table_func(lua_state(), "as_polygon",
-                        lua_trampoline_app_as_polygon);
-    luaX_add_table_func(lua_state(), "as_multipoint",
-                        lua_trampoline_app_as_multipoint);
-    luaX_add_table_func(lua_state(), "as_multilinestring",
-                        lua_trampoline_app_as_multilinestring);
-    luaX_add_table_func(lua_state(), "as_multipolygon",
-                        lua_trampoline_app_as_multipolygon);
-    luaX_add_table_func(lua_state(), "as_geometrycollection",
-                        lua_trampoline_app_as_geometrycollection);
-    lua_settop(lua_state(), 0);
+    luaX_set_up_metatable(
+        lua_state(), "OSMObject", OSM2PGSQL_OSMOBJECT_CLASS,
+        {{"get_bbox", lua_trampoline_app_get_bbox},
+         {"as_linestring", lua_trampoline_app_as_linestring},
+         {"as_point", lua_trampoline_app_as_point},
+         {"as_polygon", lua_trampoline_app_as_polygon},
+         {"as_multipoint", lua_trampoline_app_as_multipoint},
+         {"as_multilinestring", lua_trampoline_app_as_multilinestring},
+         {"as_multipolygon", lua_trampoline_app_as_multipolygon},
+         {"as_geometrycollection", lua_trampoline_app_as_geometrycollection}});
 
     // Load compiled in init.lua
     if (luaL_dostring(lua_state(), lua_init())) {
