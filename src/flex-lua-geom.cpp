@@ -309,11 +309,11 @@ void init_geometry_class(lua_State *lua_state)
     // Add metatable as osm2pgsql.Geometry so we can access it from Lua
     lua_setfield(lua_state, -3, "Geometry");
 
+    lua_pushvalue(lua_state, -1);
+    lua_setfield(lua_state, -2, "__index");
     luaX_add_table_func(lua_state, "__gc", geom_gc);
     luaX_add_table_func(lua_state, "__len", geom_num_geometries);
     luaX_add_table_func(lua_state, "__tostring", geom_tostring);
-    lua_pushvalue(lua_state, -1);
-    lua_setfield(lua_state, -2, "__index");
     luaX_add_table_func(lua_state, "area", geom_area);
     luaX_add_table_func(lua_state, "length", geom_length);
     luaX_add_table_func(lua_state, "centroid", geom_centroid);
