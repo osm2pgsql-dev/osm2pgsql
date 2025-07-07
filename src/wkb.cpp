@@ -217,7 +217,7 @@ public:
             write_point(&data, geom);
         } else {
             // 9 byte header plus one set of coordinates
-            constexpr const std::size_t SIZE = 9 + 2 * 8;
+            constexpr std::size_t SIZE = 9 + 2 * 8;
             data.reserve(SIZE);
             write_point(&data, geom, m_srid);
             assert(data.size() == SIZE);

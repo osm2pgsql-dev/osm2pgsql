@@ -39,7 +39,7 @@ public:
     std::size_t num_points() const noexcept { return m_num_points; }
 
 private:
-    static constexpr auto const BITS_PER_WORD = sizeof(potrace_word) * 8;
+    static constexpr std::size_t BITS_PER_WORD = sizeof(potrace_word) * 8;
 
     geom::point_t make_point(potrace_dpoint_t const &p) const noexcept;
 

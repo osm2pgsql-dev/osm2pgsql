@@ -13,7 +13,7 @@
 
 TEST_CASE("ordered index basics", "[NoDB]")
 {
-    constexpr std::size_t const block_size = 16;
+    constexpr std::size_t block_size = 16;
     ordered_index_t index{block_size};
 
     REQUIRE(index.size() == 0);
@@ -38,7 +38,7 @@ TEST_CASE("ordered index basics", "[NoDB]")
 
 TEST_CASE("ordered index set/get", "[NoDB]")
 {
-    constexpr std::size_t const block_size = 16;
+    constexpr std::size_t block_size = 16;
     ordered_index_t index{block_size};
 
     index.add(19, 0);
@@ -64,7 +64,7 @@ TEST_CASE("ordered index set/get", "[NoDB]")
 
 TEST_CASE("ordered index set/get with multiple second-level blocks", "[NoDB]")
 {
-    constexpr std::size_t const block_size = 4;
+    constexpr std::size_t block_size = 4;
     ordered_index_t index{block_size};
 
     index.add(19, 0);
@@ -106,7 +106,7 @@ TEST_CASE("ordered index set/get with multiple second-level blocks", "[NoDB]")
 
 TEST_CASE("ordered index with huge gaps in ids", "[NoDB]")
 {
-    constexpr std::size_t const block_size = 4;
+    constexpr std::size_t block_size = 4;
     ordered_index_t index{block_size};
 
     index.add(1, 0);

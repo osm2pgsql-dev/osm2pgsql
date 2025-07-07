@@ -73,9 +73,8 @@ using quadkey_list_t = std::vector<quadkey_t>;
 class tile_t
 {
 public:
-    static constexpr double const EARTH_CIRCUMFERENCE = 40075016.68;
-    static constexpr double const HALF_EARTH_CIRCUMFERENCE =
-        EARTH_CIRCUMFERENCE / 2;
+    static constexpr double EARTH_CIRCUMFERENCE = 40075016.68;
+    static constexpr double HALF_EARTH_CIRCUMFERENCE = EARTH_CIRCUMFERENCE / 2;
 
     /// Construct an invalid tile.
     tile_t() noexcept = default;
@@ -258,10 +257,10 @@ public:
     static tile_t from_quadkey(quadkey_t quadkey, uint32_t zoom) noexcept;
 
 private:
-    static constexpr uint32_t const INVALID_ZOOM =
+    static constexpr uint32_t INVALID_ZOOM =
         std::numeric_limits<uint32_t>::max();
 
-    static constexpr uint32_t const MAX_ZOOM = 32;
+    static constexpr uint32_t MAX_ZOOM = 32;
 
     uint32_t m_x = 0;
     uint32_t m_y = 0;

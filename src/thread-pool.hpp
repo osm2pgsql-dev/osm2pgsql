@@ -151,7 +151,7 @@ private:
 
     }; // class thread_joiner
 
-    static constexpr std::size_t const MAX_QUEUE_SIZE = 32;
+    static constexpr std::size_t MAX_QUEUE_SIZE = 32;
 
     osmium::thread::Queue<osmium::thread::function_wrapper> m_work_queue;
     std::vector<std::thread> m_threads;

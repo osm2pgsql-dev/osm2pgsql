@@ -110,7 +110,7 @@ void create_polygon(geometry_t *geom, osmium::Way const &way,
     }
 
     auto const &area = assembler.get_area();
-    auto const &ring = *area.begin<osmium::OuterRing>();
+    auto const &ring = *area.cbegin<osmium::OuterRing>();
 
     fill_point_list(&polygon.outer(), ring);
 }
@@ -169,7 +169,7 @@ void create_multilinestring(geometry_t *geom,
     auto ways = buffer.select<osmium::Way>();
     if (ways.size() == 1 && !force_multi) {
         auto &line = geom->set<linestring_t>();
-        auto const &way = *ways.begin();
+        auto const &way = *ways.cbegin();
         if (!fill_point_list(&line, way.nodes())) {
             geom->reset();
         }
@@ -228,7 +228,7 @@ void create_multipolygon(geometry_t *geom, osmium::Relation const &relation,
         }
     } else {
         auto &polygon = geom->set<polygon_t>();
-        fill_polygon(&polygon, area, *area.outer_rings().begin());
+        fill_polygon(&polygon, area, *area.outer_rings().cbegin());
     }
 }
 

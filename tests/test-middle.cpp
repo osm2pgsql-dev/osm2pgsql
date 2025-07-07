@@ -517,14 +517,14 @@ void check_way(std::shared_ptr<middle_pgsql_t> const &mid,
     CHECK(std::strcmp(orig_way.user(), way.user()) == 0);
 
     REQUIRE(orig_way.tags().size() == way.tags().size());
-    for (auto it1 = orig_way.tags().begin(), it2 = way.tags().begin();
-         it1 != orig_way.tags().end(); ++it1, ++it2) {
+    for (auto it1 = orig_way.tags().cbegin(), it2 = way.tags().cbegin();
+         it1 != orig_way.tags().cend(); ++it1, ++it2) {
         CHECK(*it1 == *it2);
     }
 
     REQUIRE(orig_way.nodes().size() == way.nodes().size());
-    for (auto it1 = orig_way.nodes().begin(), it2 = way.nodes().begin();
-         it1 != orig_way.nodes().end(); ++it1, ++it2) {
+    for (auto it1 = orig_way.nodes().cbegin(), it2 = way.nodes().cbegin();
+         it1 != orig_way.nodes().cend(); ++it1, ++it2) {
         CHECK(*it1 == *it2);
     }
 
@@ -792,15 +792,16 @@ void check_relation(std::shared_ptr<middle_pgsql_t> const &mid,
     CHECK(std::strcmp(orig_relation.user(), relation.user()) == 0);
 
     REQUIRE(orig_relation.tags().size() == relation.tags().size());
-    for (auto it1 = orig_relation.tags().begin(), it2 = relation.tags().begin();
-         it1 != orig_relation.tags().end(); ++it1, ++it2) {
+    for (auto it1 = orig_relation.tags().cbegin(),
+              it2 = relation.tags().cbegin();
+         it1 != orig_relation.tags().cend(); ++it1, ++it2) {
         CHECK(*it1 == *it2);
     }
 
     REQUIRE(orig_relation.members().size() == relation.members().size());
-    for (auto it1 = orig_relation.members().begin(),
-              it2 = relation.members().begin();
-         it1 != orig_relation.members().end(); ++it1, ++it2) {
+    for (auto it1 = orig_relation.members().cbegin(),
+              it2 = relation.members().cbegin();
+         it1 != orig_relation.members().cend(); ++it1, ++it2) {
         CHECK(it1->type() == it2->type());
         CHECK(it1->ref() == it2->ref());
         CHECK(std::strcmp(it1->role(), it2->role()) == 0);

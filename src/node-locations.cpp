@@ -83,7 +83,7 @@ osmium::Location node_locations_t::get(osmid_t id) const
 
 void node_locations_t::log_stats()
 {
-    constexpr auto const MBYTE = 1024 * 1024;
+    constexpr auto MBYTE = 1024 * 1024;
     log_debug("Node locations cache:");
     log_debug("  num locations stored: {}", m_count);
     log_debug("  bytes overall: {}MB", used_memory() / MBYTE);

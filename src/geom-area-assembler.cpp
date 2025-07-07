@@ -13,7 +13,7 @@
 
 namespace geom {
 
-const osmium::area::AssemblerConfig area_config;
+osmium::area::AssemblerConfig const area_config;
 
 area_assembler_t::area_assembler_t(osmium::memory::Buffer *buffer)
 : osmium::area::detail::BasicAssembler(area_config), m_buffer(buffer)
@@ -36,7 +36,7 @@ bool area_assembler_t::make_area()
     return true;
 }
 
-bool area_assembler_t::operator()(const osmium::Way &way)
+bool area_assembler_t::operator()(osmium::Way const &way)
 {
     segment_list().extract_segments_from_way(nullptr, stats().duplicate_nodes,
                                              way);
@@ -46,10 +46,10 @@ bool area_assembler_t::operator()(const osmium::Way &way)
 // Currently the relation is not needed for assembling the area, because
 // the roles on the members are ignored. In the future we might want to use
 // the roles, so we leave the function signature as it is.
-bool area_assembler_t::operator()(const osmium::Relation & /*relation*/,
-                                  const osmium::memory::Buffer &ways_buffer)
+bool area_assembler_t::operator()(osmium::Relation const & /*relation*/,
+                                  osmium::memory::Buffer const &ways_buffer)
 {
-    for (const auto &way : ways_buffer.select<osmium::Way>()) {
+    for (auto const &way : ways_buffer.select<osmium::Way>()) {
         segment_list().extract_segments_from_way(nullptr,
                                                  stats().duplicate_nodes, way);
     }

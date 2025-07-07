@@ -69,7 +69,7 @@ public:
     template <typename CONTAINER>
     explicit data_t(CONTAINER const &objects)
     {
-        std::copy(std::begin(objects), std::end(objects),
+        std::copy(std::cbegin(objects), std::cend(objects),
                   std::back_inserter(m_objects));
     }
 
@@ -78,13 +78,13 @@ public:
     template <typename CONTAINER>
     void add(CONTAINER const &objects)
     {
-        std::copy(std::begin(objects), std::end(objects),
+        std::copy(std::cbegin(objects), std::cend(objects),
                   std::back_inserter(m_objects));
     }
 
     void add(std::initializer_list<char const *> const &objects)
     {
-        std::copy(std::begin(objects), std::end(objects),
+        std::copy(std::cbegin(objects), std::cend(objects),
                   std::back_inserter(m_objects));
     }
 
