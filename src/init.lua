@@ -176,20 +176,16 @@ function osm2pgsql.split_string(str, separator)
     return result
 end
 
--- This will be the metatable for the OSM objects given to the process callback
--- functions.
-object_metatable = {
-    __index =  {
-        grab_tag = function(data, tag)
-            if not tag then
-                error("Missing tag key", 2)
-            end
-            local v = data.tags[tag]
-            data.tags[tag] = nil
-            return v
+if osm2pgsql.OSMObject then
+    osm2pgsql.OSMObject.__index.grab_tag = function(data, tag)
+        if not tag then
+            error("Missing tag key", 2)
         end
-    }
-}
+        local v = data.tags[tag]
+        data.tags[tag] = nil
+        return v
+    end
+end
 
 -- This is used to iterate over (multi)geometries.
 function osm2pgsql.Geometry.geometries(geom)
