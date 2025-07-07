@@ -180,7 +180,7 @@ public:
      *         status code PGRES_COMMAND_OK or PGRES_TUPLES_OK).
      */
     template <typename... TArgs>
-    pg_result_t exec(fmt::format_string<TArgs...> sql, TArgs... params) const
+    pg_result_t exec(fmt::format_string<TArgs...> sql, TArgs &&...params) const
     {
         return exec(fmt::format(sql, std::forward<TArgs>(params)...));
     }
@@ -196,7 +196,7 @@ public:
      */
     template <typename... TArgs>
     void prepare(std::string const &stmt, fmt::format_string<TArgs...> sql,
-                 TArgs... params) const
+                 TArgs &&...params) const
     {
         std::string const query =
             fmt::format(sql, std::forward<TArgs>(params)...);
@@ -213,7 +213,7 @@ public:
      * \throws exception if the command failed.
      */
     template <typename... TArgs>
-    pg_result_t exec_prepared(char const *stmt, TArgs... params) const
+    pg_result_t exec_prepared(char const *stmt, TArgs &&...params) const
     {
         return exec_prepared_with_result_format(stmt, false,
                                                 std::forward<TArgs>(params)...);
@@ -229,7 +229,8 @@ public:
      * \throws exception if the command failed.
      */
     template <typename... TArgs>
-    pg_result_t exec_prepared_as_binary(char const *stmt, TArgs... params) const
+    pg_result_t exec_prepared_as_binary(char const *stmt,
+                                        TArgs &&...params) const
     {
         return exec_prepared_with_result_format(stmt, true,
                                                 std::forward<TArgs>(params)...);
@@ -312,7 +313,7 @@ private:
     template <typename... TArgs>
     pg_result_t exec_prepared_with_result_format(char const *stmt,
                                                  bool result_as_binary,
-                                                 TArgs... params) const
+                                                 TArgs &&...params) const
     {
         // We have to convert all non-string parameters into strings and
         // store them somewhere. We use the exec_params vector for this.

@@ -23,12 +23,13 @@
 #include "tagtransform.hpp"
 
 #include <array>
+#include <cstdint>
 #include <memory>
 
 class output_pgsql_t : public output_t
 {
 public:
-    enum table_id
+    enum table_id : std::uint8_t
     {
         t_point = 0,
         t_line,

@@ -281,14 +281,14 @@ private:
  */
 template <class OUTPUT>
 std::size_t for_each_tile(quadkey_list_t const &tiles_at_maxzoom,
-                          uint32_t minzoom, uint32_t maxzoom, OUTPUT &&output)
+                          uint32_t minzoom, uint32_t maxzoom,
+                          OUTPUT const &output)
 {
     assert(minzoom <= maxzoom);
 
     if (minzoom == maxzoom) {
         for (auto const quadkey : tiles_at_maxzoom) {
-            std::forward<OUTPUT>(output)(
-                tile_t::from_quadkey(quadkey, maxzoom));
+            output(tile_t::from_quadkey(quadkey, maxzoom));
         }
         return tiles_at_maxzoom.size();
     }
@@ -309,8 +309,7 @@ std::size_t for_each_tile(quadkey_list_t const &tiles_at_maxzoom,
              * the first sibling.
              */
             if (qt_current != last_quadkey.down(dz)) {
-                std::forward<OUTPUT>(output)(
-                    tile_t::from_quadkey(qt_current, maxzoom - dz));
+                output(tile_t::from_quadkey(qt_current, maxzoom - dz));
                 ++count;
             }
         }

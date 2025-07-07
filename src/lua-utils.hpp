@@ -40,14 +40,14 @@ void luaX_add_table_func(lua_State *lua_state, char const *key,
 
 template <typename COLLECTION, typename FUNC>
 void luaX_add_table_array(lua_State *lua_state, char const *key,
-                          COLLECTION const &collection, FUNC &&func)
+                          COLLECTION const &collection, FUNC const &func)
 {
     lua_pushstring(lua_state, key);
     lua_createtable(lua_state, (int)collection.size(), 0);
     int n = 0;
     for (auto const &member : collection) {
         lua_pushinteger(lua_state, ++n);
-        std::forward<FUNC>(func)(member);
+        func(member);
         lua_rawset(lua_state, -3);
     }
     lua_rawset(lua_state, -3);
@@ -99,7 +99,7 @@ bool luaX_is_array(lua_State *lua_state);
  * \post Stack is unchanged.
  */
 template <typename FUNC>
-void luaX_for_each(lua_State *lua_state, FUNC &&func)
+void luaX_for_each(lua_State *lua_state, FUNC const &func)
 {
     assert(lua_istable(lua_state, -1));
     lua_pushnil(lua_state);
@@ -107,7 +107,7 @@ void luaX_for_each(lua_State *lua_state, FUNC &&func)
 #ifndef NDEBUG
         int const top = lua_gettop(lua_state);
 #endif
-        std::forward<FUNC>(func)();
+        func();
         assert(top == lua_gettop(lua_state));
         lua_pop(lua_state, 1);
     }
