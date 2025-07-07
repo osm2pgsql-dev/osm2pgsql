@@ -1281,7 +1281,7 @@ void output_flex_t::init_lua(std::string const &filename,
     lua_createtable(lua_state(), 0, (int)properties.size());
     for (auto const &property : properties) {
         luaX_add_table_str(lua_state(), property.first.c_str(),
-                           property.second.c_str());
+                           property.second);
     }
     lua_rawset(lua_state(), -3);
 

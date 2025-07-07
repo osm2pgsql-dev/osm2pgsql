@@ -503,12 +503,11 @@ int lua_wrapper_table::columns() const
         lua_pushinteger(lua_state(), ++n);
         lua_newtable(lua_state());
 
-        luaX_add_table_str(lua_state(), "name", column.name().c_str());
-        luaX_add_table_str(lua_state(), "type", column.type_name().c_str());
-        luaX_add_table_str(lua_state(), "sql_type",
-                           column.sql_type_name().c_str());
+        luaX_add_table_str(lua_state(), "name", column.name());
+        luaX_add_table_str(lua_state(), "type", column.type_name());
+        luaX_add_table_str(lua_state(), "sql_type", column.sql_type_name());
         luaX_add_table_str(lua_state(), "sql_modifiers",
-                           column.sql_modifiers().c_str());
+                           column.sql_modifiers());
         luaX_add_table_bool(lua_state(), "not_null", column.not_null());
         luaX_add_table_bool(lua_state(), "create_only", column.create_only());
 
