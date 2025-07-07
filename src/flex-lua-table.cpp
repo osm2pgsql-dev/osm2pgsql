@@ -488,7 +488,7 @@ int lua_wrapper_table::tostring() const
     return 1;
 }
 
-int lua_wrapper_table::cluster() const
+int lua_wrapper_table::cluster() const noexcept
 {
     lua_pushboolean(lua_state(), self().cluster_by_geom());
     return 1;
@@ -517,13 +517,13 @@ int lua_wrapper_table::columns() const
     return 1;
 }
 
-int lua_wrapper_table::name() const
+int lua_wrapper_table::name() const noexcept
 {
     luaX_pushstring(lua_state(), self().name());
     return 1;
 }
 
-int lua_wrapper_table::schema() const
+int lua_wrapper_table::schema() const noexcept
 {
     luaX_pushstring(lua_state(), self().schema());
     return 1;

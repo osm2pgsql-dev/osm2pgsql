@@ -39,7 +39,7 @@ public:
     }
 
     int tostring() const;
-    int name() const;
+    int name() const noexcept;
     int add_bbox();
     int add_from_db();
     int all_intersecting();

@@ -138,31 +138,31 @@ int lua_wrapper_expire_output::tostring() const
     return 1;
 }
 
-int lua_wrapper_expire_output::filename() const
+int lua_wrapper_expire_output::filename() const noexcept
 {
     luaX_pushstring(lua_state(), self().filename());
     return 1;
 }
 
-int lua_wrapper_expire_output::maxzoom() const
+int lua_wrapper_expire_output::maxzoom() const noexcept
 {
     lua_pushinteger(lua_state(), self().maxzoom());
     return 1;
 }
 
-int lua_wrapper_expire_output::minzoom() const
+int lua_wrapper_expire_output::minzoom() const noexcept
 {
     lua_pushinteger(lua_state(), self().minzoom());
     return 1;
 }
 
-int lua_wrapper_expire_output::schema() const
+int lua_wrapper_expire_output::schema() const noexcept
 {
     luaX_pushstring(lua_state(), self().schema());
     return 1;
 }
 
-int lua_wrapper_expire_output::table() const
+int lua_wrapper_expire_output::table() const noexcept
 {
     luaX_pushstring(lua_state(), self().table());
     return 1;

@@ -104,7 +104,7 @@ int lua_wrapper_locator::tostring() const
     return 1;
 }
 
-int lua_wrapper_locator::name() const
+int lua_wrapper_locator::name() const noexcept
 {
     luaX_pushstring(lua_state(), self().name());
     return 1;

@@ -37,10 +37,10 @@ public:
     }
 
     int tostring() const;
-    int cluster() const;
+    int cluster() const noexcept;
     int columns() const;
-    int name() const;
-    int schema() const;
+    int name() const noexcept;
+    int schema() const noexcept;
 
 }; // class lua_wrapper_table
 
