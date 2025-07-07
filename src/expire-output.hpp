@@ -29,16 +29,16 @@ class expire_output_t
 public:
     expire_output_t() = default;
 
-    std::string filename() const noexcept { return m_filename; }
+    std::string const &filename() const noexcept { return m_filename; }
 
     void set_filename(std::string filename)
     {
         m_filename = std::move(filename);
     }
 
-    std::string schema() const noexcept { return m_schema; }
+    std::string const &schema() const noexcept { return m_schema; }
 
-    std::string table() const noexcept { return m_table; }
+    std::string const &table() const noexcept { return m_table; }
 
     void set_schema_and_table(std::string schema, std::string table)
     {
