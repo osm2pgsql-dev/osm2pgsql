@@ -517,8 +517,8 @@ def update(props, args):
         return 0
 
     remote_server_age_sec = int((dt.datetime.now(dt.timezone.utc) - current.timestamp).total_seconds())
-    LOG.debug("Applying %d sequence(s) (%d → %d), covering %s (%s sec) of changes (%s → %s)",
-        current.sequence - seq, current.sequence, seq,
+    LOG.debug("Need to apply %d sequence(s) (%d → %d), covering %s (%s sec) of changes (%s → %s)",
+        current.sequence - seq, seq, current.sequence,
         pretty_format_timedelta((current.timestamp - ts).total_seconds()),
         int((current.timestamp - ts).total_seconds()),
         osm_date(ts.astimezone(dt.timezone.utc)),
