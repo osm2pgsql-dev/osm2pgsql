@@ -111,8 +111,8 @@ bool lua_tagtransform_t::filter_tags(osmium::OSMObject const &o, bool *polygon,
         taglist_t tags;
         tags.add_attributes(o);
         for (auto const &t : tags) {
-            lua_pushstring(lua_state(), t.key.c_str());
-            lua_pushstring(lua_state(), t.value.c_str());
+            luaX_pushstring(lua_state(), t.key);
+            luaX_pushstring(lua_state(), t.value);
             lua_rawset(lua_state(), -3);
             ++sz;
         }
@@ -158,8 +158,8 @@ bool lua_tagtransform_t::filter_rel_member_tags(
     lua_newtable(lua_state()); /* relations key value table */
 
     for (auto const &rel_tag : rel_tags) {
-        lua_pushstring(lua_state(), rel_tag.key.c_str());
-        lua_pushstring(lua_state(), rel_tag.value.c_str());
+        luaX_pushstring(lua_state(), rel_tag.key);
+        luaX_pushstring(lua_state(), rel_tag.value);
         lua_rawset(lua_state(), -3);
     }
 

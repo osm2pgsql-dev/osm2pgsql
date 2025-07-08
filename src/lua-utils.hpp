@@ -28,7 +28,7 @@ void luaX_pushstring(lua_State *lua_state, std::string_view str) noexcept;
 void luaX_add_table_str(lua_State *lua_state, char const *key,
                         char const *value) noexcept;
 void luaX_add_table_str(lua_State *lua_state, char const *key,
-                        char const *value, std::size_t size) noexcept;
+                        std::string_view value) noexcept;
 void luaX_add_table_int(lua_State *lua_state, char const *key,
                         int64_t value) noexcept;
 void luaX_add_table_num(lua_State *lua_state, char const *key,

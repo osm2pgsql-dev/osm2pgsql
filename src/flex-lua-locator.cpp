@@ -104,7 +104,7 @@ int lua_wrapper_locator::tostring() const
     return 1;
 }
 
-int lua_wrapper_locator::name() const
+int lua_wrapper_locator::name() const noexcept
 {
     luaX_pushstring(lua_state(), self().name());
     return 1;
@@ -158,7 +158,7 @@ int lua_wrapper_locator::all_intersecting()
     int n = 0;
     for (auto const& name : names) {
         lua_pushinteger(lua_state(), ++n);
-        lua_pushstring(lua_state(), name.c_str());
+        luaX_pushstring(lua_state(), name);
         lua_rawset(lua_state(), -3);
     }
 
@@ -182,7 +182,7 @@ int lua_wrapper_locator::first_intersecting()
         return 0;
     }
 
-    lua_pushstring(lua_state(), name.c_str());
+    luaX_pushstring(lua_state(), name);
 
     return 1;
 }

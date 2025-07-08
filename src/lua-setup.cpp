@@ -33,7 +33,7 @@ void setup_lua_environment(lua_State *lua_state, std::string const &filename,
     if (!dir_path.empty()) {
         dir_path += std::filesystem::path::preferred_separator;
     }
-    luaX_add_table_str(lua_state, "config_dir", dir_path.c_str());
+    luaX_add_table_str(lua_state, "config_dir", dir_path);
 
     luaX_add_table_str(lua_state, "mode", append_mode ? "append" : "create");
 }

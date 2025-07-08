@@ -76,10 +76,10 @@ void luaX_add_table_str(lua_State *lua_state, char const *key,
 }
 
 void luaX_add_table_str(lua_State *lua_state, char const *key,
-                        char const *value, std::size_t size) noexcept
+                        std::string_view value) noexcept
 {
     lua_pushstring(lua_state, key);
-    lua_pushlstring(lua_state, value, size);
+    luaX_pushstring(lua_state, value);
     lua_rawset(lua_state, -3);
 }
 

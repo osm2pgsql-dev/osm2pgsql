@@ -37,11 +37,11 @@ public:
     }
 
     int tostring() const;
-    int filename() const;
-    int maxzoom() const;
-    int minzoom() const;
-    int schema() const;
-    int table() const;
+    int filename() const noexcept;
+    int maxzoom() const noexcept;
+    int minzoom() const noexcept;
+    int schema() const noexcept;
+    int table() const noexcept;
 
 }; // class lua_wrapper_expire_output
 

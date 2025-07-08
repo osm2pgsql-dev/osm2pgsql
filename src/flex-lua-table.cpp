@@ -488,7 +488,7 @@ int lua_wrapper_table::tostring() const
     return 1;
 }
 
-int lua_wrapper_table::cluster() const
+int lua_wrapper_table::cluster() const noexcept
 {
     lua_pushboolean(lua_state(), self().cluster_by_geom());
     return 1;
@@ -503,12 +503,11 @@ int lua_wrapper_table::columns() const
         lua_pushinteger(lua_state(), ++n);
         lua_newtable(lua_state());
 
-        luaX_add_table_str(lua_state(), "name", column.name().c_str());
-        luaX_add_table_str(lua_state(), "type", column.type_name().c_str());
-        luaX_add_table_str(lua_state(), "sql_type",
-                           column.sql_type_name().c_str());
+        luaX_add_table_str(lua_state(), "name", column.name());
+        luaX_add_table_str(lua_state(), "type", column.type_name());
+        luaX_add_table_str(lua_state(), "sql_type", column.sql_type_name());
         luaX_add_table_str(lua_state(), "sql_modifiers",
-                           column.sql_modifiers().c_str());
+                           column.sql_modifiers());
         luaX_add_table_bool(lua_state(), "not_null", column.not_null());
         luaX_add_table_bool(lua_state(), "create_only", column.create_only());
 
@@ -518,13 +517,13 @@ int lua_wrapper_table::columns() const
     return 1;
 }
 
-int lua_wrapper_table::name() const
+int lua_wrapper_table::name() const noexcept
 {
     luaX_pushstring(lua_state(), self().name());
     return 1;
 }
 
-int lua_wrapper_table::schema() const
+int lua_wrapper_table::schema() const noexcept
 {
     luaX_pushstring(lua_state(), self().schema());
     return 1;
