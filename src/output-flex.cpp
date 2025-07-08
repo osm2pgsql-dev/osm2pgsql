@@ -1305,44 +1305,22 @@ void output_flex_t::init_lua(std::string const &filename,
 
     assert(lua_gettop(lua_state()) == 0);
 
+    luaX_set_up_metatable(
+        lua_state(), "OSMObject", OSM2PGSQL_OSMOBJECT_CLASS,
+        {{"get_bbox", lua_trampoline_app_get_bbox},
+         {"as_linestring", lua_trampoline_app_as_linestring},
+         {"as_point", lua_trampoline_app_as_point},
+         {"as_polygon", lua_trampoline_app_as_polygon},
+         {"as_multipoint", lua_trampoline_app_as_multipoint},
+         {"as_multilinestring", lua_trampoline_app_as_multilinestring},
+         {"as_multipolygon", lua_trampoline_app_as_multipolygon},
+         {"as_geometrycollection", lua_trampoline_app_as_geometrycollection}});
+
     // Load compiled in init.lua
     if (luaL_dostring(lua_state(), lua_init())) {
         throw fmt_error("Internal error in Lua setup: {}.",
                         lua_tostring(lua_state(), -1));
     }
-
-    // Store the methods on OSM objects in its metatable.
-    lua_getglobal(lua_state(), "object_metatable");
-    lua_pushstring(lua_state(), OSM2PGSQL_OSMOBJECT_CLASS);
-    lua_setfield(lua_state(), -2, "__name");
-    lua_getfield(lua_state(), -1, "__index");
-    luaX_add_table_func(lua_state(), "get_bbox", lua_trampoline_app_get_bbox);
-    luaX_add_table_func(lua_state(), "as_linestring",
-                        lua_trampoline_app_as_linestring);
-    luaX_add_table_func(lua_state(), "as_point",
-                        lua_trampoline_app_as_point);
-    luaX_add_table_func(lua_state(), "as_polygon",
-                        lua_trampoline_app_as_polygon);
-    luaX_add_table_func(lua_state(), "as_multipoint",
-                        lua_trampoline_app_as_multipoint);
-    luaX_add_table_func(lua_state(), "as_multilinestring",
-                        lua_trampoline_app_as_multilinestring);
-    luaX_add_table_func(lua_state(), "as_multipolygon",
-                        lua_trampoline_app_as_multipolygon);
-    luaX_add_table_func(lua_state(), "as_geometrycollection",
-                        lua_trampoline_app_as_geometrycollection);
-    lua_settop(lua_state(), 0);
-
-    // Store the global object "object_metatable" defined in the init.lua
-    // script in the registry and then remove the global object. It will
-    // later be used as metatable for OSM objects.
-    lua_pushstring(lua_state(), OSM2PGSQL_OSMOBJECT_CLASS);
-    lua_getglobal(lua_state(), "object_metatable");
-    lua_settable(lua_state(), LUA_REGISTRYINDEX);
-    lua_pushnil(lua_state());
-    lua_setglobal(lua_state(), "object_metatable");
-
-    assert(lua_gettop(lua_state()) == 0);
 
     // Load user config file
     luaX_set_context(lua_state(), this);

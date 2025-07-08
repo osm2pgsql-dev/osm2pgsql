@@ -300,37 +300,25 @@ int geom_transform(lua_State *lua_state)
 
 void init_geometry_class(lua_State *lua_state)
 {
-    lua_getglobal(lua_state, "osm2pgsql");
-    if (luaL_newmetatable(lua_state, OSM2PGSQL_GEOMETRY_CLASS) != 1) {
-        throw std::runtime_error{"Internal error: Lua newmetatable failed."};
-    }
-    lua_pushvalue(lua_state, -1); // Copy of new metatable
-
-    // Add metatable as osm2pgsql.Geometry so we can access it from Lua
-    lua_setfield(lua_state, -3, "Geometry");
-
-    luaX_add_table_func(lua_state, "__gc", geom_gc);
-    luaX_add_table_func(lua_state, "__len", geom_num_geometries);
-    luaX_add_table_func(lua_state, "__tostring", geom_tostring);
-    lua_pushvalue(lua_state, -1);
-    lua_setfield(lua_state, -2, "__index");
-    luaX_add_table_func(lua_state, "area", geom_area);
-    luaX_add_table_func(lua_state, "length", geom_length);
-    luaX_add_table_func(lua_state, "centroid", geom_centroid);
-    luaX_add_table_func(lua_state, "get_bbox", geom_get_bbox);
-    luaX_add_table_func(lua_state, "geometry_n", geom_geometry_n);
-    luaX_add_table_func(lua_state, "geometry_type", geom_geometry_type);
-    luaX_add_table_func(lua_state, "is_null", geom_is_null);
-    luaX_add_table_func(lua_state, "line_merge", geom_line_merge);
-    luaX_add_table_func(lua_state, "reverse", geom_reverse);
-    luaX_add_table_func(lua_state, "num_geometries", geom_num_geometries);
-    luaX_add_table_func(lua_state, "pole_of_inaccessibility",
-                        geom_pole_of_inaccessibility);
-    luaX_add_table_func(lua_state, "segmentize", geom_segmentize);
-    luaX_add_table_func(lua_state, "simplify", geom_simplify);
-    luaX_add_table_func(lua_state, "spherical_area", geom_spherical_area);
-    luaX_add_table_func(lua_state, "srid", geom_srid);
-    luaX_add_table_func(lua_state, "transform", geom_transform);
-
-    lua_pop(lua_state, 2); // __index, global osmp2gsql
+    luaX_set_up_metatable(
+        lua_state, "Geometry", OSM2PGSQL_GEOMETRY_CLASS,
+        {{"__gc", geom_gc},
+         {"__len", geom_num_geometries},
+         {"__tostring", geom_tostring},
+         {"area", geom_area},
+         {"length", geom_length},
+         {"centroid", geom_centroid},
+         {"get_bbox", geom_get_bbox},
+         {"geometry_n", geom_geometry_n},
+         {"geometry_type", geom_geometry_type},
+         {"is_null", geom_is_null},
+         {"line_merge", geom_line_merge},
+         {"reverse", geom_reverse},
+         {"num_geometries", geom_num_geometries},
+         {"pole_of_inaccessibility", geom_pole_of_inaccessibility},
+         {"segmentize", geom_segmentize},
+         {"simplify", geom_simplify},
+         {"spherical_area", geom_spherical_area},
+         {"srid", geom_srid},
+         {"transform", geom_transform}});
 }

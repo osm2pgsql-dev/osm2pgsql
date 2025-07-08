@@ -115,6 +115,32 @@ void luaX_add_table_func(lua_State *lua_state, char const *key,
     lua_rawset(lua_state, -3);
 }
 
+void luaX_set_up_metatable(
+    lua_State *lua_state, char const *name, char const *luaclass,
+    std::initializer_list<std::pair<char const *, lua_CFunction>> map)
+
+{
+    lua_getglobal(lua_state, "osm2pgsql");
+    if (luaL_newmetatable(lua_state, luaclass) != 1) {
+        throw std::runtime_error{"Internal error: Lua newmetatable failed."};
+    }
+    lua_pushvalue(lua_state, -1); // Copy of new metatable
+
+    // Add metatable under the specified name so we can access it from Lua
+    lua_setfield(lua_state, -3, name);
+
+    // Now add functions to metatable
+    lua_pushvalue(lua_state, -1);
+    lua_setfield(lua_state, -2, "__index");
+    for (auto const &[key, func] : map) {
+        lua_pushstring(lua_state, key);
+        lua_pushcfunction(lua_state, func);
+        lua_rawset(lua_state, -3);
+    }
+
+    lua_settop(lua_state, 0);
+}
+
 char const *luaX_get_table_string(lua_State *lua_state, char const *key,
                                   int table_index, char const *error_msg)
 {

@@ -457,27 +457,13 @@ int setup_flex_table(lua_State *lua_state, std::vector<flex_table_t> *tables,
  */
 void lua_wrapper_table::init(lua_State *lua_state)
 {
-    lua_getglobal(lua_state, "osm2pgsql");
-    if (luaL_newmetatable(lua_state, OSM2PGSQL_TABLE_CLASS) != 1) {
-        throw std::runtime_error{"Internal error: Lua newmetatable failed."};
-    }
-    lua_pushvalue(lua_state, -1); // Copy of new metatable
-
-    // Add metatable as osm2pgsql.Table so we can access it from Lua
-    lua_setfield(lua_state, -3, "Table");
-
-    // Now add functions to metatable
-    lua_pushvalue(lua_state, -1);
-    lua_setfield(lua_state, -2, "__index");
-    luaX_add_table_func(lua_state, "__tostring",
-                        lua_trampoline_table_tostring);
-    luaX_add_table_func(lua_state, "insert", lua_trampoline_table_insert);
-    luaX_add_table_func(lua_state, "name", lua_trampoline_table_name);
-    luaX_add_table_func(lua_state, "schema", lua_trampoline_table_schema);
-    luaX_add_table_func(lua_state, "cluster", lua_trampoline_table_cluster);
-    luaX_add_table_func(lua_state, "columns", lua_trampoline_table_columns);
-
-    lua_pop(lua_state, 2);
+    luaX_set_up_metatable(lua_state, "Table", OSM2PGSQL_TABLE_CLASS,
+                          {{"__tostring", lua_trampoline_table_tostring},
+                           {"insert", lua_trampoline_table_insert},
+                           {"name", lua_trampoline_table_name},
+                           {"schema", lua_trampoline_table_schema},
+                           {"cluster", lua_trampoline_table_cluster},
+                           {"columns", lua_trampoline_table_columns}});
 }
 
 int lua_wrapper_table::tostring() const

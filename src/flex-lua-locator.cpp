@@ -70,30 +70,14 @@ void lua_wrapper_locator::init(lua_State *lua_state,
 {
     s_connection_params = connection_params;
 
-    lua_getglobal(lua_state, "osm2pgsql");
-    if (luaL_newmetatable(lua_state, OSM2PGSQL_LOCATOR_CLASS) != 1) {
-        throw std::runtime_error{"Internal error: Lua newmetatable failed."};
-    }
-    lua_pushvalue(lua_state, -1); // Copy of new metatable
-
-    // Add metatable as osm2pgsql.Locator so we can access it from Lua
-    lua_setfield(lua_state, -3, "Locator");
-
-    // Now add functions to metatable
-    lua_pushvalue(lua_state, -1);
-    lua_setfield(lua_state, -2, "__index");
-    luaX_add_table_func(lua_state, "__tostring",
-                        lua_trampoline_locator_tostring);
-    luaX_add_table_func(lua_state, "name", lua_trampoline_locator_name);
-    luaX_add_table_func(lua_state, "add_bbox", lua_trampoline_locator_add_bbox);
-    luaX_add_table_func(lua_state, "add_from_db",
-                        lua_trampoline_locator_add_from_db);
-    luaX_add_table_func(lua_state, "all_intersecting",
-                        lua_trampoline_locator_all_intersecting);
-    luaX_add_table_func(lua_state, "first_intersecting",
-                        lua_trampoline_locator_first_intersecting);
-
-    lua_pop(lua_state, 2);
+    luaX_set_up_metatable(
+        lua_state, "Locator", OSM2PGSQL_LOCATOR_CLASS,
+        {{"__tostring", lua_trampoline_locator_tostring},
+         {"name", lua_trampoline_locator_name},
+         {"add_bbox", lua_trampoline_locator_add_bbox},
+         {"add_from_db", lua_trampoline_locator_add_from_db},
+         {"all_intersecting", lua_trampoline_locator_all_intersecting},
+         {"first_intersecting", lua_trampoline_locator_first_intersecting}});
 }
 
 int lua_wrapper_locator::tostring() const
