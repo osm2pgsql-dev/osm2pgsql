@@ -173,16 +173,14 @@ void expire_tiles::from_line_segment(geom::point_t const &a,
     double const x_step = x_len / hyp_len;
     double const y_step = y_len / hyp_len;
 
-    for (double step = 0; step <= hyp_len; step += 0.4) {
-        /* Interpolate points 1 tile width apart */
-        double next_step = step + 0.4;
-        if (next_step > hyp_len) {
-            next_step = hyp_len;
-        }
-        double x1 = tilec_a.x() + ((double)step * x_step);
-        double y1 = tilec_a.y() + ((double)step * y_step);
-        double x2 = tilec_a.x() + ((double)next_step * x_step);
-        double y2 = tilec_a.y() + ((double)next_step * y_step);
+    for (int i = 0; i <= hyp_len / 0.4; ++i) {
+        double const step = i * 0.4;
+        double const next_step = std::min(hyp_len, (i + 1) * 0.4);
+
+        double const x1 = tilec_a.x() + (step * x_step);
+        double y1 = tilec_a.y() + (step * y_step);
+        double const x2 = tilec_a.x() + (next_step * x_step);
+        double y2 = tilec_a.y() + (next_step * y_step);
 
         /* The line (x1,y1),(x2,y2) is up to 1 tile width long
            x1 will always be <= x2
@@ -192,11 +190,11 @@ void expire_tiles::from_line_segment(geom::point_t const &a,
         if (y1 > y2) {
             std::swap(y1, y2);
         }
-        for (int x = x1 - expire_config.buffer; x <= x2 + expire_config.buffer;
-             ++x) {
+        for (int x = static_cast<int>(x1 - expire_config.buffer);
+             x <= static_cast<int>(x2 + expire_config.buffer); ++x) {
             uint32_t const norm_x = normalise_tile_x_coord(x);
-            for (int y = y1 - expire_config.buffer;
-                 y <= y2 + expire_config.buffer; ++y) {
+            for (int y = static_cast<int>(y1 - expire_config.buffer);
+                 y <= static_cast<int>(y2 + expire_config.buffer); ++y) {
                 if (y >= 0) {
                     expire_tile(norm_x, static_cast<uint32_t>(y));
                 }
