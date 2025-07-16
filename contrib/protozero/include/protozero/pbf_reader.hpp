@@ -494,9 +494,9 @@ public:
     bool get_bool() {
         protozero_assert(tag() != 0 && "call next() before accessing field value");
         protozero_assert(has_wire_type(pbf_wire_type::varint) && "not a varint");
-        const bool result = m_data[0] != 0;
+        const char* value = m_data;
         skip_varint(&m_data, m_end);
-        return result;
+        return *value != 0;
     }
 
     /**
