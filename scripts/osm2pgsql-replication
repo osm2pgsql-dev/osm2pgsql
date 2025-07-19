@@ -8,7 +8,7 @@
 # For a full list of authors see the git log.
 
 """
-Update an osm2pgsql database with changes from a OSM replication server.
+Update an osm2pgsql database with changes from an OSM replication server.
 
 This tool initialises the updating process by looking at the import file
 or the newest object in the database. The state is then saved in a table
@@ -363,11 +363,11 @@ def status(props, args):
 
 
     `status` is 0 if there were no problems getting the status. 1 & 2 for
-    improperly set up replication. 3 for network issues. If status ≠ 0, then
-    the `error` key is an error message (as string). `status` is used as the
-    exit code.
+    improperly set up replication. 3 for network issues. If status is greater 0,
+    then the `error` key is an error message (as string). `status` is used as
+    the exit code.
 
-    `server` is the replication server's current status. `sequence` is it's
+    `server` is the replication server's current status. `sequence` is its
     sequence number, `timestamp` the time of that, and 'age_sec' the age of the
     data in seconds.
 
