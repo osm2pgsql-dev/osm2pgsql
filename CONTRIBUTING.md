@@ -1,34 +1,41 @@
-# Osm2pgsql contribution guidelines
+# osm2pgsql contribution guidelines
+
+The following section describes our work flow, coding style and give some
+hints on developer setup.
+For more information about what to contribute and an overview
+of the general roadmap, visit the [Contribution guide](https://osm2pgsql.org/contribute/)
+on the osm2pgsql website.
 
 ## Workflow
 
-We operate the "Fork & Pull" model explained at
+We operate with the
+["Fork & Pull"](https://help.github.com/articles/using-pull-requests) model
+and try to stick to a four-eyes review mode, meaning that PRs should be merged
+by a different person than the author.
 
-https://help.github.com/articles/using-pull-requests
+Here are a few simple rules you should follow with your code and pull request (PR).
+They will maximize your chances that a PR gets reviewed and merged.
 
-You should fork the project into your own repo, create a topic branch there and
-then make one or more pull requests back to the OpenStreetMap repository. Your
-pull requests will then be reviewed and discussed.
+* Split your PR into functionally sensible commits. Describe each commit with
+  a relevant commit message. If you need to do fix-up commits, please, merge
+  them into the functional commits. Interactive rebasing (`git rebase -i`) is
+  very useful for this. Then force-push to your PR branch.
+* Avoid merge commits. If you have to catch up with changes from master,
+  rather use rebasing.
+* Split up larger PRs into smaller units if possible. Never mix two different
+  topics or fixes in a single PR.
+* Decorate your PR with an informative but succinct description. Do not post
+  AI-generated PR descriptions without having reviewed (and preferably heavily
+  shortened) the text.
+* Try to follow the style of existing code as close as possible. Use
+  clang-format to follow the formal coding style (see below).
 
-## History
+> [!IMPORTANT]
+> Any use of generative AI for writing code, documentation or PR descriptions
+> must be disclosed. You must further be able to show that you have understood
+> the generated parts. Your code, your responsibility.
 
-To understand the osm2pgsql code, it helps to know some history on it.
-Osm2pgsql was written in C in 2007 as a port of an older Python utility. In
-2014 it was ported to C++ by MapQuest and the last C version was released as
-0.86.0. In its time, it has had varying contribution activity, including times
-with no maintainer or active developers.
-
-Very few parts of the code now show their C origin, most has been transformed
-to modern C++. We are currently targeting C++17.
-
-## Versioning
-
-Osm2pgsql uses [semantic versioning](https://semver.org/).
-
-Bugs and known issues are fixed on the main branch only. Exceptions may be made
-for severe bugs.
-
-## Code style
+## Coding style
 
 Code must be written in the
 [K&R 1TBS style](https://en.wikipedia.org/wiki/Indent_style#Variant:_1TBS) with
@@ -75,17 +82,8 @@ installed with:
 sudo apt-get install pandoc python3-argparse-manpage
 ```
 
-Results should be checked into the repository.
-
-## Platforms targeted
-
-Osm2pgsql must compile and pass all tests at least on Linux, OS X and Windows.
-Tests run on Github action to make sure that it does.
-
-On Linux the latest stable versions of popular distributions and the stable
-version before that are supported if possible.
-
-All maintained versions of PostgreSQL are supported.
+The manpages are rebuilt and checked into the repository as part of the
+release process.
 
 ## Testing
 
@@ -107,7 +105,7 @@ against it. This is most easily done using `pg_virtualenv`. Just run
 pg_virtualenv ctest
 ```
 
-`pg_virtualenv` creates a separate postgres server instance. The test databases
+`pg_virtualenv` creates a separate PostgreSQL server instance. The test databases
 are created in this instance and the complete server is destroyed after the
 tests are finished. ctest also calls appropriate fixtures that create the
 separate tablespace required for some tests.
@@ -221,8 +219,3 @@ the report.
 * Copy Windows binaries and source tarball to osm2pgsql.org.
 * Add release info to osm2pgsql.org.
 * Publish release notes as News article on osm2pgsql.org.
-
-## Maintainers
-
-The current maintainers of osm2pgsql are [Sarah Hoffmann](https://github.com/lonvia/)
-and [Paul Norman](https://github.com/pnorman/).
