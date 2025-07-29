@@ -687,12 +687,6 @@ bool output_flex_t::relation_cache_t::add_members(middle_query_t const &middle)
             return false;
         }
 
-        for (auto &node : m_members_buffer.select<osmium::Node>()) {
-            if (!node.location().valid()) {
-                node.set_location(middle.get_node_location(node.id()));
-            }
-        }
-
         for (auto &way : m_members_buffer.select<osmium::Way>()) {
             get_nodes(middle, &way);
         }

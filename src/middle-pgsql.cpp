@@ -839,9 +839,9 @@ middle_query_pgsql_t::rel_members_get(osmium::Relation const &rel,
     for (auto const &member : rel.members()) {
         if (member.type() == osmium::item_type::node &&
             (types & osmium::osm_entity_bits::node)) {
-            osmium::builder::NodeBuilder builder{*buffer};
-            builder.set_id(member.ref());
-            ++members_found;
+            if (node_get(member.ref(), buffer)) {
+                ++members_found;
+            }
         } else if (member.type() == osmium::item_type::way &&
                    (types & osmium::osm_entity_bits::way) && res) {
             // Match the list of ways coming from postgres in a different order

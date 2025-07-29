@@ -334,26 +334,14 @@ middle_ram_t::rel_members_get(osmium::Relation const &rel,
     for (auto const &member : rel.members()) {
         auto const member_entity_type =
             osmium::osm_entity_bits::from_item_type(member.type());
+
         if ((member_entity_type & types) == 0) {
             continue;
         }
 
         switch (member.type()) {
         case osmium::item_type::node:
-            if (m_store_options.nodes) {
-                auto const offset =
-                    m_object_index.nodes().get(member.ref());
-                if (offset != ordered_index_t::not_found_value()) {
-                    buffer->add_item(m_object_buffer.get<osmium::Node>(offset));
-                    buffer->commit();
-                    ++count;
-                }
-            } else {
-                {
-                    osmium::builder::NodeBuilder builder{*buffer};
-                    builder.set_id(member.ref());
-                }
-                buffer->commit();
+            if (node_get(member.ref(), buffer)) {
                 ++count;
             }
             break;
@@ -379,15 +367,8 @@ middle_ram_t::rel_members_get(osmium::Relation const &rel,
             }
             break;
         default: // osmium::item_type::relation
-            if (m_store_options.relations) {
-                auto const offset =
-                    m_object_index.relations().get(member.ref());
-                if (offset != ordered_index_t::not_found_value()) {
-                    buffer->add_item(
-                        m_object_buffer.get<osmium::Relation>(offset));
-                    buffer->commit();
-                    ++count;
-                }
+            if (relation_get(member.ref(), buffer)) {
+                ++count;
             }
         }
     }
