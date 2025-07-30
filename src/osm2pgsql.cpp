@@ -339,7 +339,7 @@ int main(int argc, char *argv[])
         }
 
         if (options.command == command_t::version) {
-            print_version();
+            print_version("osm2pgsql");
             return 0;
         }
 

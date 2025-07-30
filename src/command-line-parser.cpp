@@ -10,7 +10,6 @@
 #include "command-line-parser.hpp"
 
 #include "command-line-app.hpp"
-#include "format.hpp"
 #include "logging.hpp"
 #include "options.hpp"
 #include "pgsql.hpp"
@@ -20,11 +19,8 @@
 #include "version.hpp"
 
 #include <osmium/util/string.hpp>
-#include <osmium/version.hpp>
 
 #include <CLI/CLI.hpp>
-
-#include <lua.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -253,20 +249,6 @@ void check_options_expire(options_t *options) {
 }
 
 } // anonymous namespace
-
-void print_version()
-{
-    fmt::print(stderr, "osm2pgsql version {}\n", get_osm2pgsql_version());
-    fmt::print(stderr, "Build: {}\n", get_build_type());
-    fmt::print(stderr, "Compiled using the following library versions:\n");
-    fmt::print(stderr, "Libosmium {}\n", LIBOSMIUM_VERSION_STRING);
-    fmt::print(stderr, "Proj {}\n", get_proj_version());
-#ifdef HAVE_LUAJIT
-    fmt::print(stderr, "{} ({})\n", LUA_RELEASE, LUAJIT_VERSION);
-#else
-    fmt::print(stderr, "{}\n", LUA_RELEASE);
-#endif
-}
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
 options_t parse_command_line(int argc, char *argv[])

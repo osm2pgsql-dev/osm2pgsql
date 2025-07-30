@@ -42,6 +42,10 @@
 
 #include <lua.hpp>
 
+#include <potracelib.h>
+
+#include <opencv2/core/version.hpp>
+
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -685,12 +689,15 @@ int main(int argc, char *argv[])
             return 0;
         }
 
-        log_info("osm2pgsql-gen version {}", get_osm2pgsql_version());
-        log_warn("This is an EXPERIMENTAL extension to osm2pgsql.");
-
         if (app.want_version()) {
+            print_version("osm2pgsql-gen");
+            fmt::print(stderr, "OpenCV {}\n", CV_VERSION);
+            fmt::print(stderr, "{}\n", potrace_version());
             return 0;
         }
+
+        log_info("osm2pgsql-gen version {}", get_osm2pgsql_version());
+        log_warn("This is an EXPERIMENTAL extension to osm2pgsql.");
 
         if (dbschema.empty()) {
             log_error("Schema must not be empty");

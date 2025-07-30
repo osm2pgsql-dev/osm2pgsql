@@ -11,11 +11,14 @@
  */
 
 #include <cstdint>
+#include <string>
 
 char const *get_build_type() noexcept;
 char const *get_osm2pgsql_version() noexcept;
 char const *get_osm2pgsql_short_version() noexcept;
 char const *get_minimum_postgresql_server_version() noexcept;
 uint32_t get_minimum_postgresql_server_version_num() noexcept;
+
+void print_version(std::string const &command);
 
 #endif // OSM2PGSQL_VERSION_HPP

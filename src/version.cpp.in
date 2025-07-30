@@ -7,7 +7,15 @@
  * For a full list of authors see the git log.
  */
 
+#include "format.hpp"
+#include "reprojection.hpp"
 #include "version.hpp"
+
+#include <osmium/version.hpp>
+
+#include <lua.hpp>
+
+#include <nlohmann/json.hpp>
 
 char const *get_build_type() noexcept
 {
@@ -34,3 +42,18 @@ uint32_t get_minimum_postgresql_server_version_num() noexcept
     return @MINIMUM_POSTGRESQL_SERVER_VERSION_NUM@;
 }
 
+void print_version(std::string const &command)
+{
+    fmt::print(stderr, "{} version {}\n", command, get_osm2pgsql_version());
+    fmt::print(stderr, "Build: {}\n", get_build_type());
+    fmt::print(stderr, "Compiled using the following library versions:\n");
+    fmt::print(stderr, "Libosmium {}\n", LIBOSMIUM_VERSION_STRING);
+    fmt::print(stderr, "Proj {}\n", get_proj_version());
+    fmt::print(stderr, "nlohmann JSON {}.{}.{}\n", NLOHMANN_JSON_VERSION_MAJOR,
+               NLOHMANN_JSON_VERSION_MINOR, NLOHMANN_JSON_VERSION_PATCH);
+#ifdef HAVE_LUAJIT
+    fmt::print(stderr, "{} ({})\n", LUA_RELEASE, LUAJIT_VERSION);
+#else
+    fmt::print(stderr, "{}\n", LUA_RELEASE);
+#endif
+}
