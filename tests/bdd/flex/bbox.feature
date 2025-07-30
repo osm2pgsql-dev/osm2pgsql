@@ -77,7 +77,7 @@ Feature: Test get_bbox() function
             | 4326       | 20 10.1,20.1 10.1,20.1 10                                   |
             | 3857       | 2226389.8 1130195.4,2237521.8 1130195.4,2237521.8 1118890.0 |
 
-    Scenario Outline: for relations
+    Scenario Outline: for relations with way members only
         Given the 0.1 grid with origin 20.0 10.1
             | 10 | 11 |
             |    | 12 |
@@ -123,4 +123,38 @@ Feature: Test get_bbox() function
             | projection | geom30                                  | geom31                                                      |
             | 4326       | 10, 11                                  | 10, 11, 12                                                  |
             | 3857       | 2226389.8 1130195.4,2237521.8 1130195.4 | 2226389.8 1130195.4,2237521.8 1130195.4,2237521.8 1118890.0 |
+
+    Scenario: for relations with node and way members
+        Given the 0.1 grid with origin 20.0 10.1
+            | 10 | 11 |    |
+            |    | 12 | 13 |
+            | 14 |    |    |
+        And the OSM data
+            """
+            w20 v1 dV Nn10,n11
+            w21 v1 dV Nn11,n12
+            r30 v1 dV Ttype=route,route=bus Mw20@,w21@,n13@,n14@
+            """
+        And the lua style
+            """
+            local rels = osm2pgsql.define_relation_table('osm2pgsql_test_routes', {
+                { column = 'min_x', type = 'real' },
+                { column = 'min_y', type = 'real' },
+                { column = 'max_x', type = 'real' },
+                { column = 'max_y', type = 'real' },
+                { column = 'geom',  type = 'geometry', projection = 4326, not_null = true },
+            })
+
+            function osm2pgsql.process_relation(object)
+                local row = {}
+                row.min_x, row.min_y, row.max_x, row.max_y = object:get_bbox()
+                row.geom = object:as_geometrycollection()
+                rels:insert(row)
+            end
+            """
+        When running osm2pgsql flex
+
+        Then table osm2pgsql_test_routes contains exactly
+            | relation_id | min_x | max_x | min_y | max_y |
+            | 30          | 20.0  | 20.2  | 9.9   | 10.1  |
 

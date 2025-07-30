@@ -430,9 +430,9 @@ int output_flex_t::app_get_bbox()
         osmium::Box bbox;
 
         // Bounding boxes of all the member nodes
-        for (auto const &wnl :
-             m_relation_cache.members_buffer().select<osmium::WayNodeList>()) {
-            bbox.extend(wnl.envelope());
+        for (auto const &node :
+             m_relation_cache.members_buffer().select<osmium::Node>()) {
+            bbox.extend(node.location());
         }
 
         // Bounding boxes of all the member ways
