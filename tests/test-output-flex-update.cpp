@@ -17,7 +17,7 @@ namespace {
 
 testing::db::import_t db;
 
-char const *const conf_file = "test_output_flex.lua";
+char const *const CONF_FILE = "test_output_flex.lua";
 
 // Return a string with the schema name prepended to the table name.
 std::string with_schema(char const *table_name, options_t const &options)
@@ -34,7 +34,7 @@ struct options_slim_default
 {
     static options_t options()
     {
-        return testing::opt_t().slim().flex(conf_file);
+        return testing::opt_t().slim().flex(CONF_FILE);
     }
 };
 
@@ -75,7 +75,7 @@ $$;
         conn.close();
         return testing::opt_t()
             .slim()
-            .flex(conf_file)
+            .flex(CONF_FILE)
             .schema("myschema")
             .user("limited", "password_limited");
     }

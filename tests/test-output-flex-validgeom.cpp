@@ -16,16 +16,16 @@ namespace {
 
 testing::db::import_t db;
 
-char const *const conf_file = "test_output_flex_validgeom.lua";
-char const *const data_file = "test_output_pgsql_validgeom.osm";
+char const *const CONF_FILE = "test_output_flex_validgeom.lua";
+char const *const DATA_FILE = "test_output_pgsql_validgeom.osm";
 
 } // anonymous namespace
 
 TEST_CASE("no invalid geometries should end up in the database")
 {
-    options_t const options = testing::opt_t().flex(conf_file);
+    options_t const options = testing::opt_t().flex(CONF_FILE);
 
-    REQUIRE_NOTHROW(db.run_file(options, data_file));
+    REQUIRE_NOTHROW(db.run_file(options, DATA_FILE));
 
     auto conn = db.db().connect();
 

@@ -16,13 +16,13 @@ namespace {
 
 testing::db::import_t db;
 
-char const *const conf_file = "test_output_flex_relations.lua";
+char const *const CONF_FILE = "test_output_flex_relations.lua";
 
 } // anonymous namespace
 
 TEST_CASE("add relations")
 {
-    options_t options = testing::opt_t().slim().flex(conf_file);
+    options_t options = testing::opt_t().slim().flex(CONF_FILE);
 
     REQUIRE_NOTHROW(db.run_import(options, "r30 v1 dV\n"
                                            "r31 v1 dV Tt1=yes\n"
@@ -53,7 +53,7 @@ TEST_CASE("add relations")
 
 TEST_CASE("change relations")
 {
-    options_t options = testing::opt_t().slim().flex(conf_file);
+    options_t options = testing::opt_t().slim().flex(CONF_FILE);
 
     REQUIRE_NOTHROW(db.run_import(options, "r30 v1 dV\n"
                                            "r31 v1 dV Tt1=yes\n"
@@ -127,7 +127,7 @@ TEST_CASE("change relations")
 
 TEST_CASE("delete relation")
 {
-    options_t options = testing::opt_t().slim().flex(conf_file);
+    options_t options = testing::opt_t().slim().flex(CONF_FILE);
 
     REQUIRE_NOTHROW(db.run_import(options, "r30 v1 dV\n"
                                            "r31 v1 dV Tt1=yes\n"

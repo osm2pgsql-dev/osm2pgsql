@@ -16,13 +16,13 @@ namespace {
 
 testing::db::import_t db;
 
-char const *const conf_file = "test_output_flex_stage2.lua";
+char const *const CONF_FILE = "test_output_flex_stage2.lua";
 
 } // anonymous namespace
 
 TEST_CASE("nodes and ways")
 {
-    options_t options = testing::opt_t().slim().flex(conf_file);
+    options_t options = testing::opt_t().slim().flex(CONF_FILE);
 
     REQUIRE_NOTHROW(db.run_import(options,
                                   "n10 v1 dV x10.0 y10.0\n"
@@ -100,7 +100,7 @@ TEST_CASE("nodes and ways")
 
 TEST_CASE("relation data on ways")
 {
-    options_t options = testing::opt_t().slim().flex(conf_file);
+    options_t options = testing::opt_t().slim().flex(CONF_FILE);
 
     // create database with three ways and a relation on two of them
     REQUIRE_NOTHROW(
@@ -198,7 +198,7 @@ TEST_CASE("relation data on ways")
 
 TEST_CASE("relation data on ways: delete or re-tag relation")
 {
-    options_t options = testing::opt_t().slim().flex(conf_file);
+    options_t options = testing::opt_t().slim().flex(CONF_FILE);
 
     // create database with three ways and a relation on two of them
     REQUIRE_NOTHROW(
@@ -257,7 +257,7 @@ TEST_CASE("relation data on ways: delete or re-tag relation")
 
 TEST_CASE("relation data on ways: delete way in other relation")
 {
-    options_t options = testing::opt_t().slim().flex(conf_file);
+    options_t options = testing::opt_t().slim().flex(CONF_FILE);
 
     // create database with three ways and two relations on them
     REQUIRE_NOTHROW(
@@ -326,7 +326,7 @@ TEST_CASE("relation data on ways: delete way in other relation")
 TEST_CASE("relation data on ways: changing things in one relation should not "
           "change output")
 {
-    options_t options = testing::opt_t().slim().flex(conf_file);
+    options_t options = testing::opt_t().slim().flex(CONF_FILE);
 
     // create database with three ways and two relations on them
     REQUIRE_NOTHROW(
@@ -402,7 +402,7 @@ TEST_CASE("relation data on ways: changing things in one relation should not "
 
 TEST_CASE("relation data on ways: change relation (two rels)")
 {
-    options_t options = testing::opt_t().slim().flex(conf_file);
+    options_t options = testing::opt_t().slim().flex(CONF_FILE);
 
     // create database with three ways and two relations on them
     REQUIRE_NOTHROW(
@@ -458,7 +458,7 @@ TEST_CASE("relation data on ways: change relation (two rels)")
 
 TEST_CASE("relation data on ways: change relation (three rels)")
 {
-    options_t options = testing::opt_t().slim().flex(conf_file);
+    options_t options = testing::opt_t().slim().flex(CONF_FILE);
 
     // create database with three ways and two relations on them
     REQUIRE_NOTHROW(db.run_import(options,

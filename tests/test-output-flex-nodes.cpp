@@ -16,13 +16,13 @@ namespace {
 
 testing::db::import_t db;
 
-char const *const conf_file = "test_output_flex_nodes.lua";
+char const *const CONF_FILE = "test_output_flex_nodes.lua";
 
 } // anonymous namespace
 
 TEST_CASE("add nodes")
 {
-    options_t options = testing::opt_t().slim().flex(conf_file);
+    options_t options = testing::opt_t().slim().flex(CONF_FILE);
 
     REQUIRE_NOTHROW(db.run_import(options,
                                   "n10 v1 dV x10.0 y10.0\n"
@@ -73,7 +73,7 @@ using node_rel_in_relation = node_rel<node_relationship::in_relation>;
 TEMPLATE_TEST_CASE("change nodes", "", node_rel_none, node_rel_in_way,
                    node_rel_in_relation)
 {
-    options_t options = testing::opt_t().slim().flex(conf_file);
+    options_t options = testing::opt_t().slim().flex(CONF_FILE);
 
     REQUIRE_NOTHROW(db.run_import(options,
                                   "n10 v1 dV x10.0 y10.0\n"
@@ -160,7 +160,7 @@ TEMPLATE_TEST_CASE("change nodes", "", node_rel_none, node_rel_in_way,
 TEMPLATE_TEST_CASE("delete nodes", "", node_rel_none, node_rel_in_way,
                    node_rel_in_relation)
 {
-    options_t options = testing::opt_t().slim().flex(conf_file);
+    options_t options = testing::opt_t().slim().flex(CONF_FILE);
 
     REQUIRE_NOTHROW(db.run_import(options,
                                   "n10 v1 dV x10.0 y10.0\n"

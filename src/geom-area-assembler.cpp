@@ -13,10 +13,10 @@
 
 namespace geom {
 
-osmium::area::AssemblerConfig const area_config;
+osmium::area::AssemblerConfig const AREA_CONFIG;
 
 area_assembler_t::area_assembler_t(osmium::memory::Buffer *buffer)
-: osmium::area::detail::BasicAssembler(area_config), m_buffer(buffer)
+: osmium::area::detail::BasicAssembler(AREA_CONFIG), m_buffer(buffer)
 {
 }
 

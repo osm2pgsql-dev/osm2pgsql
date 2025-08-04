@@ -31,7 +31,7 @@ struct column_type_lookup
     char const *name() const noexcept { return m_name; }
 };
 
-std::vector<column_type_lookup> const column_types = {
+std::vector<column_type_lookup> const COLUMN_TYPES = {
     {{"text", table_column_type::text},
      {"boolean", table_column_type::boolean},
      {"bool", table_column_type::boolean},
@@ -60,7 +60,7 @@ std::vector<column_type_lookup> const column_types = {
 
 table_column_type get_column_type_from_string(std::string const &type)
 {
-    auto const *column_type = util::find_by_name(column_types, type);
+    auto const *column_type = util::find_by_name(COLUMN_TYPES, type);
     if (!column_type) {
         throw fmt_error("Unknown column type '{}'.", type);
     }
