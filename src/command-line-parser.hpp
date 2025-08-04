@@ -15,6 +15,4 @@
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
 options_t parse_command_line(int argc, char *argv[]);
 
-void print_version();
-
 #endif // OSM2PGSQL_COMMAND_LINE_PARSER_HPP
