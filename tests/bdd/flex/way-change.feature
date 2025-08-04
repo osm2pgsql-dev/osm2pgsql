@@ -8,7 +8,7 @@ Feature: Changing ways in a flex database
             | 10 | 12 | 14 | 16 | 18 |
 
     Scenario Outline:
-        Given the OSM data:
+        Given the OSM data
             """
             w10 v1 dV Tt1=yes Nn10,n11
             w11 v1 dV Tt1=yes Nn12,n13
