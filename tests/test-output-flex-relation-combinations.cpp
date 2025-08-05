@@ -16,13 +16,13 @@ namespace {
 
 testing::db::import_t db;
 
-char const *const conf_file = "test_output_flex_relation_combinations.lua";
+char const *const CONF_FILE = "test_output_flex_relation_combinations.lua";
 
 } // anonymous namespace
 
 TEST_CASE("adding common way to relation")
 {
-    options_t options = testing::opt_t().slim().flex(conf_file);
+    options_t options = testing::opt_t().slim().flex(CONF_FILE);
 
     REQUIRE_NOTHROW(db.run_import(options, "n10 v1 dV x10.0 y10.0\n"
                                            "n11 v1 dV x10.0 y10.1\n"
@@ -50,7 +50,7 @@ TEST_CASE("adding common way to relation")
 
 TEST_CASE("remove common way from relation")
 {
-    options_t options = testing::opt_t().slim().flex(conf_file);
+    options_t options = testing::opt_t().slim().flex(CONF_FILE);
 
     REQUIRE_NOTHROW(db.run_import(options, "w20 v1 dV Nn10,n11\n"
                                            "w21 v1 dV Nn12,n13\n"
@@ -74,7 +74,7 @@ TEST_CASE("remove common way from relation")
 
 TEST_CASE("change common way in relation")
 {
-    options_t options = testing::opt_t().slim().flex(conf_file);
+    options_t options = testing::opt_t().slim().flex(CONF_FILE);
 
     REQUIRE_NOTHROW(db.run_import(options, "w20 v1 dV Nn10,n11\n"
                                            "w21 v1 dV Nn12,n13\n"

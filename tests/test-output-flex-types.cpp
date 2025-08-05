@@ -18,13 +18,13 @@ namespace {
 
 testing::db::import_t db;
 
-char const *const conf_file = "test_output_flex_types.lua";
+char const *const CONF_FILE = "test_output_flex_types.lua";
 
 } // anonymous namespace
 
 TEST_CASE("type nil")
 {
-    testing::opt_t const options = testing::opt_t().flex(conf_file);
+    testing::opt_t const options = testing::opt_t().flex(CONF_FILE);
 
     REQUIRE_NOTHROW(
         db.run_import(options, "n10 v1 dV x10.0 y10.0 Ttype=nil\n"));
@@ -43,7 +43,7 @@ TEST_CASE("type nil")
 
 TEST_CASE("type boolean")
 {
-    testing::opt_t const options = testing::opt_t().flex(conf_file);
+    testing::opt_t const options = testing::opt_t().flex(CONF_FILE);
 
     REQUIRE_NOTHROW(
         db.run_import(options, "n10 v1 dV x10.0 y10.0 Ttype=boolean\n"));
@@ -61,7 +61,7 @@ TEST_CASE("type boolean")
 
 TEST_CASE("type boolean in column where it doesn't belong")
 {
-    testing::opt_t const options = testing::opt_t().flex(conf_file);
+    testing::opt_t const options = testing::opt_t().flex(CONF_FILE);
 
     REQUIRE_THROWS(db.run_import(
         options, "n10 v1 dV x10.0 y10.0 Ttype=boolean-fail column=ttext\n"));
@@ -79,7 +79,7 @@ TEST_CASE("type boolean in column where it doesn't belong")
 
 TEST_CASE("type number")
 {
-    testing::opt_t const options = testing::opt_t().flex(conf_file);
+    testing::opt_t const options = testing::opt_t().flex(CONF_FILE);
 
     REQUIRE_NOTHROW(
         db.run_import(options, "n10 v1 dV x10.0 y10.0 Ttype=number\n"));
@@ -113,7 +113,7 @@ TEST_CASE("type number")
 
 TEST_CASE("type string (with bool)")
 {
-    testing::opt_t const options = testing::opt_t().flex(conf_file);
+    testing::opt_t const options = testing::opt_t().flex(CONF_FILE);
 
     REQUIRE_NOTHROW(
         db.run_import(options, "n10 v1 dV x10.0 y10.0 Ttype=string-bool\n"));
@@ -128,7 +128,7 @@ TEST_CASE("type string (with bool)")
 
 TEST_CASE("type string (with direction)")
 {
-    testing::opt_t const options = testing::opt_t().flex(conf_file);
+    testing::opt_t const options = testing::opt_t().flex(CONF_FILE);
 
     REQUIRE_NOTHROW(db.run_import(
         options, "n10 v1 dV x10.0 y10.0 Ttype=string-direction\n"));
@@ -142,7 +142,7 @@ TEST_CASE("type string (with direction)")
 
 TEST_CASE("type string (with number)")
 {
-    testing::opt_t const options = testing::opt_t().flex(conf_file);
+    testing::opt_t const options = testing::opt_t().flex(CONF_FILE);
 
     REQUIRE_NOTHROW(db.run_import(
         options, "n10 v1 dV x10.0 y10.0 Ttype=string-with-number\n"));
@@ -175,7 +175,7 @@ TEST_CASE("type string (with number)")
 
 TEST_CASE("type string (with invalid number)")
 {
-    testing::opt_t const options = testing::opt_t().flex(conf_file);
+    testing::opt_t const options = testing::opt_t().flex(CONF_FILE);
 
     REQUIRE_NOTHROW(db.run_import(
         options, "n10 v1 dV x10.0 y10.0 Ttype=string-with-invalid-number\n"));
@@ -197,7 +197,7 @@ TEST_CASE("type string (with invalid number)")
 
 TEST_CASE("type number in column where it doesn't belong")
 {
-    testing::opt_t const options = testing::opt_t().flex(conf_file);
+    testing::opt_t const options = testing::opt_t().flex(CONF_FILE);
 
     REQUIRE_THROWS(db.run_import(
         options, "n10 v1 dV x10.0 y10.0 Ttype=number-fail column=thstr\n"));
@@ -209,7 +209,7 @@ TEST_CASE("type number in column where it doesn't belong")
 
 TEST_CASE("Adding a function should always fail")
 {
-    testing::opt_t const options = testing::opt_t().flex(conf_file);
+    testing::opt_t const options = testing::opt_t().flex(CONF_FILE);
 
     std::array<std::string, 9> const types = {"ttext", "tbool", "tint2",
                                               "tint4", "tint8", "treal",
@@ -228,7 +228,7 @@ TEST_CASE("Adding a function should always fail")
 
 TEST_CASE("type table")
 {
-    testing::opt_t const options = testing::opt_t().flex(conf_file);
+    testing::opt_t const options = testing::opt_t().flex(CONF_FILE);
 
     REQUIRE_NOTHROW(
         db.run_import(options, "n10 v1 dV x10.0 y10.0 Ttype=table\n"));
@@ -245,7 +245,7 @@ TEST_CASE("type table")
 
 TEST_CASE("Adding a table with non-strings should fail for hstore")
 {
-    testing::opt_t const options = testing::opt_t().flex(conf_file);
+    testing::opt_t const options = testing::opt_t().flex(CONF_FILE);
 
     char const *const line = "n10 v1 dV x10.0 y10.0 Ttype=table-hstore-fail\n";
     REQUIRE_THROWS(db.run_import(options, line));
@@ -257,7 +257,7 @@ TEST_CASE("Adding a table with non-strings should fail for hstore")
 
 TEST_CASE("Adding a table should fail except for hstore and json/jsonb")
 {
-    testing::opt_t const options = testing::opt_t().flex(conf_file);
+    testing::opt_t const options = testing::opt_t().flex(CONF_FILE);
 
     std::array<std::string, 8> const types = {
         "ttext", "tbool", "tint2", "tint4", "tint8", "treal", "tdirn", "tsqlt"};
@@ -275,7 +275,7 @@ TEST_CASE("Adding a table should fail except for hstore and json/jsonb")
 
 TEST_CASE("Adding a complex table in jsonb")
 {
-    testing::opt_t const options = testing::opt_t().flex(conf_file);
+    testing::opt_t const options = testing::opt_t().flex(CONF_FILE);
 
     char const *const line = "n10 v1 dV x10.0 y10.0 Ttype=json\n";
     REQUIRE_NOTHROW(db.run_import(options, line));
@@ -295,7 +295,7 @@ TEST_CASE("Adding a complex table in jsonb")
 
 TEST_CASE("Adding a table with a loop should fail")
 {
-    testing::opt_t const options = testing::opt_t().flex(conf_file);
+    testing::opt_t const options = testing::opt_t().flex(CONF_FILE);
 
     char const *const line = "n10 v1 dV x10.0 y10.0 Ttype=json-loop\n";
     REQUIRE_THROWS(db.run_import(options, line));

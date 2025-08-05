@@ -16,7 +16,7 @@ namespace {
 
 testing::db::import_t db;
 
-char const *const conf_file = "test_output_flex.lua";
+char const *const CONF_FILE = "test_output_flex.lua";
 
 } // anonymous namespace
 
@@ -28,7 +28,7 @@ TEST_CASE("simple import with tablespaces for middle")
                                     "spcname = 'tablespacetest'"));
     }
 
-    options_t options = testing::opt_t().slim().flex(conf_file);
+    options_t options = testing::opt_t().slim().flex(CONF_FILE);
     options.tblsslim_index = "tablespacetest";
     options.tblsslim_data = "tablespacetest";
 
