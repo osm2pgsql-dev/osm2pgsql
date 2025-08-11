@@ -196,6 +196,8 @@ private:
     void get_mutex_and_call_lua_function(prepared_lua_function_t func,
                                          osmium::OSMObject const &object);
 
+    void process_relation();
+
     void init_lua(std::string const &filename, properties_t const &properties);
 
     void check_context_and_state(char const *name, char const *context,
