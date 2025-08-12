@@ -846,11 +846,9 @@ void output_flex_t::pending_way(osmid_t id)
     way_delete(id);
     auto const &func = m_way_cache.get().tags().empty() ? m_process_untagged_way
                                                         : m_process_way;
-    if (!func) {
-        return;
+    if (func) {
+        get_mutex_and_call_lua_function(func, m_way_cache.get());
     }
-
-    get_mutex_and_call_lua_function(func, m_way_cache.get());
 }
 
 void output_flex_t::select_relation_members()
@@ -902,11 +900,9 @@ void output_flex_t::process_relation()
     auto const &func = m_relation_cache.get().tags().empty()
                            ? m_process_untagged_relation
                            : m_process_relation;
-    if (!func) {
-        return;
+    if (func) {
+        get_mutex_and_call_lua_function(func, m_relation_cache.get());
     }
-
-    get_mutex_and_call_lua_function(func, m_relation_cache.get());
 }
 
 void output_flex_t::pending_relation(osmid_t id)
