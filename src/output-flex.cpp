@@ -835,7 +835,7 @@ void output_flex_t::get_mutex_and_call_lua_function(
 
 void output_flex_t::pending_way(osmid_t id)
 {
-    if (!m_process_way) {
+    if (!m_process_way && !m_process_untagged_way) {
         return;
     }
 
@@ -844,8 +844,11 @@ void output_flex_t::pending_way(osmid_t id)
     }
 
     way_delete(id);
-
-    get_mutex_and_call_lua_function(m_process_way, m_way_cache.get());
+    auto const &func = m_way_cache.get().tags().empty() ? m_process_untagged_way
+                                                        : m_process_way;
+    if (func) {
+        get_mutex_and_call_lua_function(func, m_way_cache.get());
+    }
 }
 
 void output_flex_t::select_relation_members()
@@ -892,9 +895,20 @@ void output_flex_t::select_relation_members(osmid_t id)
     select_relation_members();
 }
 
+void output_flex_t::process_relation()
+{
+    auto const &func = m_relation_cache.get().tags().empty()
+                           ? m_process_untagged_relation
+                           : m_process_relation;
+    if (func) {
+        get_mutex_and_call_lua_function(func, m_relation_cache.get());
+    }
+}
+
 void output_flex_t::pending_relation(osmid_t id)
 {
-    if (!m_process_relation && !m_select_relation_members) {
+    if (!m_process_relation && !m_process_untagged_relation &&
+        !m_select_relation_members) {
         return;
     }
 
@@ -904,16 +918,12 @@ void output_flex_t::pending_relation(osmid_t id)
 
     select_relation_members();
     delete_from_tables(osmium::item_type::relation, id);
-
-    if (m_process_relation) {
-        get_mutex_and_call_lua_function(m_process_relation,
-                                        m_relation_cache.get());
-    }
+    process_relation();
 }
 
 void output_flex_t::pending_relation_stage1c(osmid_t id)
 {
-    if (!m_process_relation) {
+    if (!m_process_relation && !m_process_untagged_relation) {
         return;
     }
 
@@ -922,7 +932,7 @@ void output_flex_t::pending_relation_stage1c(osmid_t id)
     }
 
     m_disable_insert = true;
-    get_mutex_and_call_lua_function(m_process_relation, m_relation_cache.get());
+    process_relation();
     m_disable_insert = false;
 }
 
