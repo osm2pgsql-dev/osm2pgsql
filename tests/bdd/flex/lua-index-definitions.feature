@@ -537,3 +537,51 @@ Feature: Index definitions in Lua file
             schemaname = 'public' AND tablename = 'mytable' AND indexname LIKE '%node_id%'
             """
 
+    Scenario: Create a unique id index when requested
+        Given the input file 'liechtenstein-2013-08-03.osm.pbf'
+        And the lua style
+            """
+            local t = osm2pgsql.define_table({
+                name = 'foo',
+                ids = { type = 'node', id_column = 'node_id', create_index = 'unique' },
+                columns = {}
+            })
+
+            function osm2pgsql.process_node(object)
+                t:insert({})
+            end
+            """
+        When running osm2pgsql flex
+        Then table foo has 1562 rows
+        And SELECT indexdef FROM pg_indexes WHERE tablename = 'foo'
+            | indexdef@fullmatch |
+            | CREATE UNIQUE INDEX .* USING .*\(node_id\) |
+        And table pg_catalog.pg_index has 0 rows with condition
+            """
+            indrelid = 'foo'::regclass and indisprimary
+            """
+
+    Scenario: Create a primary key id index when requested
+        Given the input file 'liechtenstein-2013-08-03.osm.pbf'
+        And the lua style
+            """
+            local t = osm2pgsql.define_table({
+                name = 'foo',
+                ids = { type = 'node', id_column = 'node_id', create_index = 'primary_key' },
+                columns = {}
+            })
+
+            function osm2pgsql.process_node(object)
+                t:insert({})
+            end
+            """
+        When running osm2pgsql flex
+        Then table foo has 1562 rows
+        And SELECT indexdef FROM pg_indexes WHERE tablename = 'foo'
+            | indexdef@fullmatch |
+            | CREATE UNIQUE INDEX .* USING .*\(node_id\) |
+        And table pg_catalog.pg_index has 1 row with condition
+            """
+            indrelid = 'foo'::regclass and indisprimary
+            """
+
