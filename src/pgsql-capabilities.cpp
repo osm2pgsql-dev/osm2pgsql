@@ -98,8 +98,15 @@ void init_postgis_version(pg_conn_t const &db_connection)
             capabilities().database_name);
     }
 
-    capabilities().postgis = {std::stoi(std::string{res.get(0, 0)}),
-                              std::stoi(std::string{res.get(1, 0)})};
+    try {
+        if (res.num_tuples() >= 2) {
+            capabilities().postgis = {std::stoi(std::string{res.get(0, 0)}),
+                                      std::stoi(std::string{res.get(1, 0)})};
+        }
+    } catch (...) {
+        // Fall through if std::stoi() fails in which case the version
+        // is reported as 0.
+    }
 }
 
 } // anonymous namespace
@@ -114,8 +121,13 @@ void init_database_capabilities(pg_conn_t const &db_connection)
     try {
         log_info("Database version: {}",
                  capabilities().settings.at("server_version"));
-        log_info("PostGIS version: {}.{}", capabilities().postgis.major,
-                 capabilities().postgis.minor);
+
+        if (capabilities().postgis.major == 0) {
+            log_info("PostGIS version: could not be detected");
+        } else {
+            log_info("PostGIS version: {}.{}", capabilities().postgis.major,
+                     capabilities().postgis.minor);
+        }
 
         auto const version_str =
             capabilities().settings.at("server_version_num");
