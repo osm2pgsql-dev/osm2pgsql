@@ -7,14 +7,6 @@
  * For a full list of authors see the git log.
  */
 
-/*
- * Dirty tile list generation
- *
- * Please refer to the OpenPisteMap expire_tiles.py script for a demonstration
- * of how to make use of the output:
- * http://subversion.nexusuk.org/projects/openpistemap/trunk/scripts/expire_tiles.py
- */
-
 #include <algorithm>
 #include <cerrno>
 #include <cmath>
