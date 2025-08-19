@@ -265,6 +265,9 @@ options_t parse_command_line(int argc, char *argv[])
 
     command_line_app_t app{"osm2pgsql -- Import OpenStreetMap data into a "
                            "PostgreSQL/PostGIS database\n"};
+    app.init_database_options();
+    app.init_logging_options(true, true);
+
     app.get_formatter()->column_width(38);
 
     app.add_option("OSMFILE", options.input_files)

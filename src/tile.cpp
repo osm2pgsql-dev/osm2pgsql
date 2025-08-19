@@ -9,6 +9,17 @@
 
 #include "tile.hpp"
 
+#include "format.hpp"
+
+#include <osmium/util/string.hpp>
+
+#include <cstdlib>
+
+std::string tile_t::to_zxy() const
+{
+    return fmt::format("{}/{}/{}", zoom(), x(), y());
+}
+
 geom::point_t tile_t::to_tile_coords(geom::point_t p,
                                      unsigned int pixel_extent) const noexcept
 {
@@ -55,6 +66,19 @@ uint32_t deinterleave_lowuint32(uint64_t word) noexcept
     return static_cast<uint32_t>(word);
 }
 
+uint32_t parse_num_with_max(std::string const &str, uint32_t max)
+{
+    std::size_t pos = 0;
+    auto const value = std::stoul(str, &pos);
+    if (pos != str.size()) {
+        throw std::invalid_argument{"extra characters"};
+    }
+    if (value >= max) {
+        throw std::invalid_argument{"value to large"};
+    }
+    return static_cast<uint32_t>(value);
+}
+
 } // anonymous namespace
 
 quadkey_t tile_t::quadkey() const noexcept
@@ -67,4 +91,17 @@ tile_t tile_t::from_quadkey(quadkey_t quadkey, uint32_t zoom) noexcept
 {
     return {zoom, deinterleave_lowuint32(quadkey.value()),
             deinterleave_lowuint32(quadkey.value() >> 1U)};
+}
+
+tile_t tile_t::from_zxy(std::string const &zxy)
+{
+    auto const p = osmium::split_string(zxy, '/');
+    if (p.size() != 3) {
+        throw fmt_error("Invalid tile '{}'.", zxy);
+    }
+
+    auto const zoom = parse_num_with_max(p[0], MAX_ZOOM);
+    uint32_t const max = 1UL << zoom;
+
+    return {zoom, parse_num_with_max(p[1], max), parse_num_with_max(p[2], max)};
 }

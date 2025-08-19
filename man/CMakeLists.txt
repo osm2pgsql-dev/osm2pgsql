@@ -26,6 +26,14 @@ if(PANDOC)
 
     list(APPEND MANPAGE_TARGETS osm2pgsql.1)
 
+    add_custom_command(OUTPUT osm2pgsql-expire.1
+        COMMAND ${PANDOC} ${PANDOC_MAN_OPTIONS} -o osm2pgsql-expire.1
+            ${CMAKE_CURRENT_SOURCE_DIR}/osm2pgsql-expire.md
+        DEPENDS osm2pgsql-expire.md manpage.template
+        COMMENT "Building manpage osm2pgsql-expire.1"
+        VERBATIM)
+    list(APPEND MANPAGE_TARGETS osm2pgsql-expire.1)
+
     if(BUILD_GEN)
         add_custom_command(OUTPUT osm2pgsql-gen.1
             COMMAND ${PANDOC} ${PANDOC_MAN_OPTIONS} -o osm2pgsql-gen.1

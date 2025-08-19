@@ -208,6 +208,9 @@ public:
     geom::point_t to_world_coords(geom::point_t p,
                                   unsigned int pixel_extent) const noexcept;
 
+    /// Convert to string in format "ZOOM/X/Y".
+    std::string to_zxy() const;
+
     /// The center of this tile in web mercator (EPSG:3857) units.
     geom::point_t center() const noexcept;
 
@@ -255,6 +258,11 @@ public:
      * Construct tile from quadkey.
      */
     static tile_t from_quadkey(quadkey_t quadkey, uint32_t zoom) noexcept;
+
+    /**
+     * Construct tile from string in format "ZOOM/X/Y"
+     */
+    static tile_t from_zxy(std::string const &zxy);
 
 private:
     static constexpr uint32_t INVALID_ZOOM =

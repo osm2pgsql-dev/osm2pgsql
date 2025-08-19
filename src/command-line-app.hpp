@@ -31,11 +31,11 @@ public:
         return m_connection_params;
     }
 
+    void init_database_options();
+    void init_logging_options(bool with_progress, bool with_sql);
+
 private:
     connection_params_t m_connection_params;
-
-    void init_database_options();
-    void init_logging_options();
 
 }; // class App
 
