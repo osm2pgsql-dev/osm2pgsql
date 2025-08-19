@@ -103,7 +103,7 @@ void init_postgis_version(pg_conn_t const &db_connection)
             capabilities().postgis = {std::stoi(std::string{res.get(0, 0)}),
                                       std::stoi(std::string{res.get(1, 0)})};
         }
-    } catch (...) {
+    } catch (...) { // NOLINT(bugprone-empty-catch)
         // Fall through if std::stoi() fails in which case the version
         // is reported as 0.
     }
