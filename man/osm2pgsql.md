@@ -46,7 +46,7 @@ mandatory for short options too.
 # HELP/VERSION OPTIONS
 
 -h, \--help
-:   Print help. Add **-v, \--verbose** to display more verbose help.
+:   Print help.
 
 -V, \--version
 :   Print osm2pgsql version.
