@@ -153,6 +153,8 @@ class DBRow:
                 self.data.append(None)
             elif head.lower().startswith('st_astext('):
                 self.data.append(DBValueGeometry(value, props, factory))
+            elif props == 'fullmatch':
+                self.data.append(DBValueRegex(value))
             else:
                 self.data.append(str(value))
 
@@ -231,6 +233,18 @@ class DBValueFloat:
             return False
 
         return math.isclose(self.value, fother, rel_tol=self.precision)
+
+    def __repr__(self):
+        return repr(self.value)
+
+
+class DBValueRegex:
+
+    def __init__(self, value):
+        self.value = str(value)
+
+    def __eq__(self, other):
+        return re.fullmatch(str(other), self.value) is not None
 
     def __repr__(self):
         return repr(self.value)

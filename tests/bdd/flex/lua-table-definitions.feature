@@ -99,40 +99,6 @@ Feature: Table definitions in Lua file
         When running osm2pgsql flex
         Then table foo has 1562 rows
 
-    Scenario: Unique index is okay
-        Given the input file 'liechtenstein-2013-08-03.osm.pbf'
-        And the lua style
-            """
-            local t = osm2pgsql.define_table({
-                name = 'foo',
-                ids = { type = 'node', id_column = 'node_id', index = 'unique' },
-                columns = {}
-            })
-
-            function osm2pgsql.process_node(object)
-                t:insert({})
-            end
-            """
-        When running osm2pgsql flex
-        Then table foo has 1562 rows
-
-    Scenario: Primary key is okay
-        Given the input file 'liechtenstein-2013-08-03.osm.pbf'
-        And the lua style
-            """
-            local t = osm2pgsql.define_table({
-                name = 'foo',
-                ids = { type = 'node', id_column = 'node_id', index = 'primary_key' },
-                columns = {}
-            })
-
-            function osm2pgsql.process_node(object)
-                t:insert({})
-            end
-            """
-        When running osm2pgsql flex
-        Then table foo has 1562 rows
-
     Scenario: Can not create two tables with the same name
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
