@@ -5,5 +5,5 @@ runs:
 
     steps:
       - name: Run clang-tidy
-        run: run-clang-tidy-17 -q -p build
+        run: run-clang-tidy-17 -q -p build -warnings-as-errors=\*
         shell: bash
