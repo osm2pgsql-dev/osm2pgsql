@@ -116,28 +116,29 @@ auto point_to_polygon_distance(point_t point, polygon_t const &polygon,
     return (inside ? 1 : -1) * std::sqrt(min_dist_squared);
 }
 
-struct Cell
+struct cell_t
 {
     static constexpr double SQRT2 = 1.4142135623730951;
 
-    Cell(point_t c, double h, polygon_t const &polygon, double stretch)
+    cell_t(point_t c, double h, polygon_t const &polygon, double stretch)
     : center(c), half_size(h),
       dist(point_to_polygon_distance(center, polygon, stretch)),
       max(dist + half_size * SQRT2)
-    {}
+    {
+    }
 
     point_t center;   // cell center
     double half_size; // half the cell size
     double dist;      // distance from cell center to polygon
     double max;       // max distance to polygon within a cell
 
-    friend bool operator<(Cell const &a, Cell const &b) noexcept
+    friend bool operator<(cell_t const &a, cell_t const &b) noexcept
     {
         return a.max < b.max;
     }
 };
 
-Cell make_centroid_cell(polygon_t const &polygon, double stretch)
+cell_t make_centroid_cell(polygon_t const &polygon, double stretch)
 {
     point_t centroid{0, 0};
     boost::geometry::centroid(polygon, centroid);
@@ -166,7 +167,7 @@ point_t pole_of_inaccessibility(polygon_t const &polygon, double precision,
         return envelope.min();
     }
 
-    std::priority_queue<Cell, std::vector<Cell>> cell_queue;
+    std::priority_queue<cell_t, std::vector<cell_t>> cell_queue;
 
     // cover polygon with initial cells
     if (stretched_envelope.width() == stretched_envelope.height()) {
@@ -201,7 +202,7 @@ point_t pole_of_inaccessibility(polygon_t const &polygon, double precision,
     auto best_cell = make_centroid_cell(polygon, stretch);
 
     // second guess: bounding box centroid
-    Cell const bbox_cell{stretched_envelope.center(), 0, polygon, stretch};
+    cell_t const bbox_cell{stretched_envelope.center(), 0, polygon, stretch};
     if (bbox_cell.dist > best_cell.dist) {
         best_cell = bbox_cell;
     }
@@ -227,8 +228,8 @@ point_t pole_of_inaccessibility(polygon_t const &polygon, double precision,
 
         for (auto const dy : {-h, h}) {
             for (auto const dx : {-h, h}) {
-                Cell const c{point_t{center.x() + dx, center.y() + dy}, h,
-                             polygon, stretch};
+                cell_t const c{point_t{center.x() + dx, center.y() + dy}, h,
+                               polygon, stretch};
                 if (c.max > best_cell.dist) {
                     cell_queue.push(c);
                 }
