@@ -35,7 +35,7 @@ namespace boost::geometry::traits {
 template <>
 struct point_order<::geom::ring_t>
 {
-    static const order_selector value = counterclockwise;
+    static order_selector const value = counterclockwise;
 };
 
 template <>
