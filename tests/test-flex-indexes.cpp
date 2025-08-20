@@ -15,10 +15,10 @@
 
 #include <lua.hpp>
 
-class test_framework
+class test_framework_t
 {
 public:
-    test_framework()
+    test_framework_t()
     : m_lua_state(luaL_newstate(), [](lua_State *state) { lua_close(state); })
     {
         auto &c = database_capabilities_for_testing();
@@ -46,7 +46,7 @@ private:
 
 TEST_CASE("check index with single column", "[NoDB]")
 {
-    test_framework const tf;
+    test_framework_t const tf;
 
     flex_table_t table{"public", "test_table", 0};
     table.add_column("geom", "geometry", "");
@@ -69,7 +69,7 @@ TEST_CASE("check index with single column", "[NoDB]")
 
 TEST_CASE("check index with multiple columns", "[NoDB]")
 {
-    test_framework const tf;
+    test_framework_t const tf;
 
     flex_table_t table{"public", "test_table", 0};
     table.add_column("a", "int", "");
@@ -91,7 +91,7 @@ TEST_CASE("check index with multiple columns", "[NoDB]")
 
 TEST_CASE("check unique index", "[NoDB]")
 {
-    test_framework const tf;
+    test_framework_t const tf;
 
     flex_table_t table{"public", "test_table", 0};
     table.add_column("col", "int", "");
@@ -113,7 +113,7 @@ TEST_CASE("check unique index", "[NoDB]")
 
 TEST_CASE("check index with tablespace from table", "[NoDB]")
 {
-    test_framework const tf;
+    test_framework_t const tf;
 
     flex_table_t table{"public", "test_table", 0};
     table.set_index_tablespace("foo");
@@ -135,7 +135,7 @@ TEST_CASE("check index with tablespace from table", "[NoDB]")
 
 TEST_CASE("check index with tablespace", "[NoDB]")
 {
-    test_framework const tf;
+    test_framework_t const tf;
 
     flex_table_t table{"public", "test_table", 0};
     table.add_column("col", "int", "");
@@ -157,7 +157,7 @@ TEST_CASE("check index with tablespace", "[NoDB]")
 
 TEST_CASE("check index with expression and where clause", "[NoDB]")
 {
-    test_framework const tf;
+    test_framework_t const tf;
 
     flex_table_t table{"public", "test_table", 0};
     table.add_column("col", "text", "");
@@ -179,7 +179,7 @@ TEST_CASE("check index with expression and where clause", "[NoDB]")
 
 TEST_CASE("check index with include", "[NoDB]")
 {
-    test_framework const tf;
+    test_framework_t const tf;
 
     flex_table_t table{"public", "test_table", 0};
     table.add_column("col", "int", "");
@@ -202,7 +202,7 @@ TEST_CASE("check index with include", "[NoDB]")
 
 TEST_CASE("check index with include as array", "[NoDB]")
 {
-    test_framework const tf;
+    test_framework_t const tf;
 
     flex_table_t table{"public", "test_table", 0};
     table.add_column("col", "int", "");
@@ -225,7 +225,7 @@ TEST_CASE("check index with include as array", "[NoDB]")
 
 TEST_CASE("check index with empty include array", "[NoDB]")
 {
-    test_framework const tf;
+    test_framework_t const tf;
 
     flex_table_t table{"public", "test_table", 0};
     table.add_column("col", "int", "");
@@ -248,7 +248,7 @@ TEST_CASE("check index with empty include array", "[NoDB]")
 
 TEST_CASE("check multiple indexes", "[NoDB]")
 {
-    test_framework const tf;
+    test_framework_t const tf;
 
     flex_table_t table{"public", "test_table", 0};
     table.add_column("a", "int", "");
@@ -271,7 +271,7 @@ TEST_CASE("check multiple indexes", "[NoDB]")
 
 TEST_CASE("check various broken index configs", "[NoDB]")
 {
-    test_framework const tf;
+    test_framework_t const tf;
 
     flex_table_t table{"public", "test_table", 0};
     table.add_column("col", "text", "");
