@@ -15,7 +15,8 @@
 
 #include <cassert>
 
-idlist_t get_ids_from_result(pg_result_t const &result) {
+idlist_t get_ids_from_result(pg_result_t const &result)
+{
     assert(result.num_tuples() >= 0);
 
     idlist_t ids;

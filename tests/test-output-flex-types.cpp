@@ -32,13 +32,12 @@ TEST_CASE("type nil")
     auto conn = db.db().connect();
 
     CHECK(1 == conn.get_count("nodes"));
-    CHECK(1 ==
-          conn.get_count(
-              "nodes",
-              "ttext IS NULL AND tbool IS NULL AND tint2 IS NULL AND "
-              "tint4 IS NULL AND tint8 IS NULL AND treal IS NULL AND "
-              "thstr IS NULL AND tjson IS NULL AND tdirn IS NULL AND "
-              "tsqlt IS NULL"));
+    CHECK(1 == conn.get_count(
+                   "nodes",
+                   "ttext IS NULL AND tbool IS NULL AND tint2 IS NULL AND "
+                   "tint4 IS NULL AND tint8 IS NULL AND treal IS NULL AND "
+                   "thstr IS NULL AND tjson IS NULL AND tdirn IS NULL AND "
+                   "tsqlt IS NULL"));
 }
 
 TEST_CASE("type boolean")

@@ -40,8 +40,8 @@ void ordered_index_t::add(osmid_t id, std::size_t offset)
     ++m_size;
 }
 
-std::pair<osmid_t, std::size_t> ordered_index_t::get_internal(osmid_t id) const
-    noexcept
+std::pair<osmid_t, std::size_t>
+ordered_index_t::get_internal(osmid_t id) const noexcept
 {
     if (m_ranges.empty()) {
         return {0, not_found_value()};

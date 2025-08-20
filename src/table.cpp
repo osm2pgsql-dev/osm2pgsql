@@ -432,4 +432,3 @@ pg_result_t table_t::get_wkb(osmid_t id)
 {
     return m_db_connection->exec_prepared_as_binary("get_wkb", id);
 }
-

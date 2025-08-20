@@ -225,7 +225,8 @@ void check_options(options_t *options)
     }
 }
 
-void check_options_expire(options_t *options) {
+void check_options_expire(options_t *options)
+{
     // Zoom level 31 is the technical limit because we use 32-bit integers for
     // the x and y index of a tile ID.
     if (options->expire_tiles_zoom_min > 31) {

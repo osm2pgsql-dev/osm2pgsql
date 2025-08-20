@@ -22,7 +22,6 @@ TEST_CASE("Parse default style file")
 
     REQUIRE(exlist.get(osmium::item_type::node).size() == 98);
     REQUIRE(exlist.get(osmium::item_type::way).size() == 104);
-
 }
 
 TEST_CASE("Parse empty style file")
@@ -30,8 +29,7 @@ TEST_CASE("Parse empty style file")
     export_list exlist;
 
     REQUIRE_THROWS_WITH(
-        read_style_file(OSM2PGSQLDATA_DIR "tests/style/empty.style",
-                        &exlist),
+        read_style_file(OSM2PGSQLDATA_DIR "tests/style/empty.style", &exlist),
         "Unable to parse any valid columns from the style file. Aborting.");
 }
 

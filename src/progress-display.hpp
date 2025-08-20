@@ -57,7 +57,6 @@ public:
         }
     }
 
-
     void relation(osmium::Relation const &)
     {
         if (++m_rel.count % 10 == 0) {

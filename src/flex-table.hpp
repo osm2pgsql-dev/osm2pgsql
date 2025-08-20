@@ -37,12 +37,13 @@
  * output. This is not a real primary key, because the values are not
  * necessarily unique.
  */
-enum class flex_table_index_type : uint8_t {
+enum class flex_table_index_type : uint8_t
+{
     no_index,
-    node, // index by node id
-    way, // index by way id
-    relation, // index by relation id
-    area, // index by way (positive) or relation (negative) id
+    node,       // index by node id
+    way,        // index by way id
+    relation,   // index by relation id
+    area,       // index by way (positive) or relation (negative) id
     any_object, // any OSM object, two columns for type and id
     tile // index by tile with x and y columns (used for generalized data)
 };
@@ -54,12 +55,12 @@ class flex_table_t
 {
 
 public:
-
     /**
      * Table creation type: interim tables are created as UNLOGGED and with
      * autovacuum disabled.
      */
-    enum class table_type : uint8_t {
+    enum class table_type : uint8_t
+    {
         interim,
         permanent
     };

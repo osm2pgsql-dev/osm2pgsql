@@ -165,4 +165,3 @@ TEST_CASE("json writer with even stranger chars in string", "[NoDB]")
     writer.string("abc-\x01-\x1f-abc");
     REQUIRE(writer.json() == "\"abc-\\u0001-\\u001f-abc\"");
 }
-

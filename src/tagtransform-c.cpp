@@ -220,10 +220,12 @@ bool c_tagtransform_t::filter_tags(osmium::OSMObject const &o, bool *polygon,
     return filter;
 }
 
-bool c_tagtransform_t::filter_rel_member_tags(
-    taglist_t const &rel_tags, osmium::memory::Buffer const &,
-    rolelist_t const &, bool *make_boundary, bool *make_polygon, bool *roads,
-    taglist_t *out_tags)
+bool c_tagtransform_t::filter_rel_member_tags(taglist_t const &rel_tags,
+                                              osmium::memory::Buffer const &,
+                                              rolelist_t const &,
+                                              bool *make_boundary,
+                                              bool *make_polygon, bool *roads,
+                                              taglist_t *out_tags)
 {
     std::string const *type = rel_tags.get("type");
     if (!type) {

@@ -248,7 +248,7 @@ public:
      * following the delete_object() are inserted.
      */
     template <typename... ARGS>
-    void delete_object(ARGS &&... args)
+    void delete_object(ARGS &&...args)
     {
         assert(m_current);
         m_current.add_deletable(std::forward<ARGS>(args)...);

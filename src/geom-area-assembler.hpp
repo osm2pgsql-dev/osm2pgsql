@@ -58,7 +58,7 @@ public:
 private:
     bool make_area();
 
-    osmium::memory::Buffer* m_buffer;
+    osmium::memory::Buffer *m_buffer;
 
 }; // class area_assembler_t
 

@@ -35,7 +35,7 @@ namespace boost::geometry::traits {
 template <>
 struct point_order<::geom::ring_t>
 {
-    static const order_selector value = counterclockwise;
+    static order_selector const value = counterclockwise;
 };
 
 template <>
@@ -86,40 +86,28 @@ template <>
 struct indexed_access<::geom::box_t, min_corner, 0>
 {
     static double get(::geom::box_t const &b) { return b.min_x(); }
-    static void set(::geom::box_t &b, double value)
-    {
-        b.set_min_x(value);
-    }
+    static void set(::geom::box_t &b, double value) { b.set_min_x(value); }
 };
 
 template <>
 struct indexed_access<::geom::box_t, min_corner, 1>
 {
     static double get(::geom::box_t const &b) { return b.min_y(); }
-    static void set(::geom::box_t &b, double value)
-    {
-        b.set_min_y(value);
-    }
+    static void set(::geom::box_t &b, double value) { b.set_min_y(value); }
 };
 
 template <>
 struct indexed_access<::geom::box_t, max_corner, 0>
 {
     static double get(::geom::box_t const &b) { return b.max_x(); }
-    static void set(::geom::box_t &b, double value)
-    {
-        b.set_max_x(value);
-    }
+    static void set(::geom::box_t &b, double value) { b.set_max_x(value); }
 };
 
 template <>
 struct indexed_access<::geom::box_t, max_corner, 1>
 {
     static double get(::geom::box_t const &b) { return b.max_y(); }
-    static void set(::geom::box_t &b, double value)
-    {
-        b.set_max_y(value);
-    }
+    static void set(::geom::box_t &b, double value) { b.set_max_y(value); }
 };
 
 } // namespace boost::geometry::traits

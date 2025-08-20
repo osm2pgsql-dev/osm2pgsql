@@ -197,7 +197,7 @@ public:
     }
 
     template <typename... ARGS>
-    void add_deletable(ARGS &&... args)
+    void add_deletable(ARGS &&...args)
     {
         m_deleter.add(std::forward<ARGS>(args)...);
     }

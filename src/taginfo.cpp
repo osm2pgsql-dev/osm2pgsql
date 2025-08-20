@@ -24,8 +24,8 @@ void export_list::add(osmium::item_type type, taginfo const &info)
     m_export_list(type).push_back(info);
 }
 
-std::vector<taginfo> const &export_list::get(osmium::item_type type) const
-    noexcept
+std::vector<taginfo> const &
+export_list::get(osmium::item_type type) const noexcept
 {
     return m_export_list(type);
 }

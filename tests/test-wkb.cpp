@@ -188,4 +188,3 @@ TEST_CASE("wkb: geometrycollection", "[NoDB]")
 }
 
 TEST_CASE("wkb: invalid", "[NoDB]") { REQUIRE_THROWS(ewkb_to_geom("INVALID")); }
-

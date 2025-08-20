@@ -169,7 +169,8 @@ void push_osm_object_to_lua_stack(lua_State *lua_state,
                                      lua_pushinteger(lua_state, wn.ref());
                                  });
         } else if (object.type() == osmium::item_type::relation) {
-            auto const &relation = static_cast<osmium::Relation const &>(object);
+            auto const &relation =
+                static_cast<osmium::Relation const &>(object);
             luaX_add_table_array(
                 lua_state, "members", relation.members(),
                 [&](osmium::RelationMember const &member) {
@@ -807,7 +808,7 @@ void output_flex_t::call_lua_function(prepared_lua_function_t func,
 {
     m_calling_context = func.context();
 
-    lua_pushvalue(lua_state(), func.index()); // the function to call
+    lua_pushvalue(lua_state(), func.index());          // the function to call
     push_osm_object_to_lua_stack(lua_state(), object); // the single argument
 
     luaX_set_context(lua_state(), this);
@@ -1112,7 +1113,8 @@ void output_flex_t::way_delete(osmium::Way *way)
 {
     if (m_process_deleted_way) {
         m_way_cache.init(way);
-        get_mutex_and_call_lua_function(m_process_deleted_way, m_way_cache.get());
+        get_mutex_and_call_lua_function(m_process_deleted_way,
+                                        m_way_cache.get());
     }
 
     way_delete(way->id());
@@ -1362,8 +1364,9 @@ void output_flex_t::init_lua(std::string const &filename,
         lua_state(), calling_context::process_node, "process_deleted_node"};
     m_process_deleted_way = prepared_lua_function_t{
         lua_state(), calling_context::process_way, "process_deleted_way"};
-    m_process_deleted_relation = prepared_lua_function_t{
-        lua_state(), calling_context::process_relation, "process_deleted_relation"};
+    m_process_deleted_relation =
+        prepared_lua_function_t{lua_state(), calling_context::process_relation,
+                                "process_deleted_relation"};
 
     m_select_relation_members = prepared_lua_function_t{
         lua_state(), calling_context::select_relation_members,
