@@ -13,8 +13,8 @@
 
 TEST_CASE("ordered index basics", "[NoDB]")
 {
-    constexpr std::size_t block_size = 16;
-    ordered_index_t index{block_size};
+    constexpr std::size_t BLOCK_SIZE = 16;
+    ordered_index_t index{BLOCK_SIZE};
 
     REQUIRE(index.size() == 0);
     REQUIRE(index.capacity() == 0);
@@ -22,12 +22,12 @@ TEST_CASE("ordered index basics", "[NoDB]")
 
     index.add(17, 32);
     REQUIRE(index.size() == 1);
-    REQUIRE(index.capacity() == block_size);
+    REQUIRE(index.capacity() == BLOCK_SIZE);
     REQUIRE(index.used_memory() > 0);
 
     index.add(19, 33);
     REQUIRE(index.size() == 2);
-    REQUIRE(index.capacity() == block_size);
+    REQUIRE(index.capacity() == BLOCK_SIZE);
     REQUIRE(index.used_memory() > 0);
 
     index.clear();
@@ -38,8 +38,8 @@ TEST_CASE("ordered index basics", "[NoDB]")
 
 TEST_CASE("ordered index set/get", "[NoDB]")
 {
-    constexpr std::size_t block_size = 16;
-    ordered_index_t index{block_size};
+    constexpr std::size_t BLOCK_SIZE = 16;
+    ordered_index_t index{BLOCK_SIZE};
 
     index.add(19, 0);
     index.add(22, 10);
@@ -64,15 +64,15 @@ TEST_CASE("ordered index set/get", "[NoDB]")
 
 TEST_CASE("ordered index set/get with multiple second-level blocks", "[NoDB]")
 {
-    constexpr std::size_t block_size = 4;
-    ordered_index_t index{block_size};
+    constexpr std::size_t BLOCK_SIZE = 4;
+    ordered_index_t index{BLOCK_SIZE};
 
     index.add(19, 0);
     index.add(22, 10);
     index.add(23, 22);
     index.add(26, 24);
     REQUIRE(index.size() == 4);
-    REQUIRE(index.capacity() == block_size);
+    REQUIRE(index.capacity() == BLOCK_SIZE);
 
     REQUIRE(index.get(31) == index.not_found_value());
 
@@ -80,7 +80,7 @@ TEST_CASE("ordered index set/get with multiple second-level blocks", "[NoDB]")
     index.add(42, 30);
     index.add(65, 32);
     REQUIRE(index.size() == 7);
-    REQUIRE(index.capacity() == block_size * (1 + 2));
+    REQUIRE(index.capacity() == BLOCK_SIZE * (1 + 2));
 
     REQUIRE(index.get(22) == 10);
     REQUIRE(index.get(23) == 22);
@@ -106,24 +106,24 @@ TEST_CASE("ordered index set/get with multiple second-level blocks", "[NoDB]")
 
 TEST_CASE("ordered index with huge gaps in ids", "[NoDB]")
 {
-    constexpr std::size_t block_size = 4;
-    ordered_index_t index{block_size};
+    constexpr std::size_t BLOCK_SIZE = 4;
+    ordered_index_t index{BLOCK_SIZE};
 
     index.add(1, 0);
     REQUIRE(index.size() == 1);
-    REQUIRE(index.capacity() == block_size);
+    REQUIRE(index.capacity() == BLOCK_SIZE);
 
     index.add((1ULL << 32U) + 3U, 1);
     REQUIRE(index.size() == 2);
-    REQUIRE(index.capacity() == block_size * (1 + 2));
+    REQUIRE(index.capacity() == BLOCK_SIZE * (1 + 2));
 
     index.add((1ULL << 32U) + 4U, 2);
     REQUIRE(index.size() == 3);
-    REQUIRE(index.capacity() == block_size * (1 + 2));
+    REQUIRE(index.capacity() == BLOCK_SIZE * (1 + 2));
 
     index.add((2ULL << 32U) + 9U, 3);
     REQUIRE(index.size() == 4);
-    REQUIRE(index.capacity() == block_size * (1 + 2 + 4));
+    REQUIRE(index.capacity() == BLOCK_SIZE * (1 + 2 + 4));
 
     REQUIRE(index.used_memory() > (index.capacity() * 8));
 

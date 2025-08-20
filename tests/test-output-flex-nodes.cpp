@@ -63,7 +63,7 @@ enum class node_relationship : std::uint8_t
 template <node_relationship R>
 struct node_rel
 {
-    static constexpr node_relationship rs = R;
+    static constexpr node_relationship RS = R;
 };
 
 using node_rel_none = node_rel<node_relationship::none>;
@@ -87,9 +87,9 @@ TEMPLATE_TEST_CASE("change nodes", "", node_rel_none, node_rel_in_way,
 
     options.append = true;
 
-    if (TestType{}.rs == node_relationship::in_way) {
+    if (TestType{}.RS == node_relationship::in_way) {
         REQUIRE_NOTHROW(db.run_import(options, "w20 v1 dV Nn14,n15,n16\n"));
-    } else if (TestType{}.rs == node_relationship::in_relation) {
+    } else if (TestType{}.RS == node_relationship::in_relation) {
         REQUIRE_NOTHROW(db.run_import(options, "r30 v1 dV Mn14@,n15@,n16@\n"));
     }
 
@@ -174,9 +174,9 @@ TEMPLATE_TEST_CASE("delete nodes", "", node_rel_none, node_rel_in_way,
 
     options.append = true;
 
-    if (TestType{}.rs == node_relationship::in_way) {
+    if (TestType{}.RS == node_relationship::in_way) {
         REQUIRE_NOTHROW(db.run_import(options, "w20 v1 dV Nn14,n15,n16\n"));
-    } else if (TestType{}.rs == node_relationship::in_relation) {
+    } else if (TestType{}.RS == node_relationship::in_relation) {
         REQUIRE_NOTHROW(db.run_import(options, "r30 v1 dV Mn14@,n15@,n16@\n"));
     }
 
