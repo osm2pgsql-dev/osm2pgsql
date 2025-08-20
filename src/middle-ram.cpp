@@ -358,8 +358,7 @@ middle_ram_t::rel_members_get(osmium::Relation const &rel,
             break;
         case osmium::item_type::way:
             if (m_store_options.ways) {
-                auto const offset =
-                    m_object_index.ways().get(member.ref());
+                auto const offset = m_object_index.ways().get(member.ref());
                 if (offset != ordered_index_t::not_found_value()) {
                     buffer->add_item(m_object_buffer.get<osmium::Way>(offset));
                     buffer->commit();

@@ -18,7 +18,6 @@
 class pg_conn_t;
 class pg_result_t;
 
-
 /**
  * Iterate over the result from a pgsql query and generate a list of all the
  * ids from the first column.

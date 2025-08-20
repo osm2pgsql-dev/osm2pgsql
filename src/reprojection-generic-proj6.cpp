@@ -20,14 +20,12 @@ public:
       m_transformation_tile(create_transformation(srs, PROJ_SPHERE_MERC))
     {}
 
-    geom::point_t
-    reproject(geom::point_t point) const noexcept override
+    geom::point_t reproject(geom::point_t point) const noexcept override
     {
         return transform(m_transformation.get(), point);
     }
 
-    geom::point_t
-    target_to_tile(geom::point_t point) const override
+    geom::point_t target_to_tile(geom::point_t point) const override
     {
         return transform(m_transformation_tile.get(), point);
     }
@@ -121,4 +119,3 @@ std::string get_proj_version()
 {
     return fmt::format("{}", proj_info().version);
 }
-

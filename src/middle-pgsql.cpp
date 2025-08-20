@@ -447,7 +447,8 @@ void middle_pgsql_t::node(osmium::Node const &node)
     }
 }
 
-void middle_pgsql_t::way(osmium::Way const &way) {
+void middle_pgsql_t::way(osmium::Way const &way)
+{
     assert(m_middle_state == middle_state::way);
 
     if (way.deleted()) {
@@ -460,7 +461,8 @@ void middle_pgsql_t::way(osmium::Way const &way) {
     }
 }
 
-void middle_pgsql_t::relation(osmium::Relation const &relation) {
+void middle_pgsql_t::relation(osmium::Relation const &relation)
+{
     assert(m_middle_state == middle_state::relation);
 
     if (relation.deleted()) {
@@ -1270,8 +1272,7 @@ void middle_pgsql_t::set_requirements(
     log_debug("  with_attributes: {}", m_store_options.with_attributes);
 }
 
-std::shared_ptr<middle_query_t>
-middle_pgsql_t::get_query_instance()
+std::shared_ptr<middle_query_t> middle_pgsql_t::get_query_instance()
 {
     // NOTE: this is thread safe for use in pending async processing only
     // because during that process they are only read from

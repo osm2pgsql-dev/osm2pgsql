@@ -140,7 +140,7 @@ int lua_wrapper_locator::all_intersecting()
     auto const names = self().all_intersecting(*geometry);
     lua_createtable(lua_state(), (int)names.size(), 0);
     int n = 0;
-    for (auto const& name : names) {
+    for (auto const &name : names) {
         lua_pushinteger(lua_state(), ++n);
         luaX_pushstring(lua_state(), name);
         lua_rawset(lua_state(), -3);

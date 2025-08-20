@@ -93,7 +93,8 @@ private:
     }
 
     /// The maximum number of bytes an entry will need in storage.
-    constexpr static std::size_t max_bytes_per_entry() noexcept {
+    constexpr static std::size_t max_bytes_per_entry() noexcept
+    {
         return 10UL /*max varint length*/ * 3UL /*id, x, y*/;
     }
 

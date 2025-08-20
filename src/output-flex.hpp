@@ -43,8 +43,8 @@ struct options_t;
 enum class calling_context : std::uint8_t
 {
     main = 0, ///< In main context, i.e. the Lua script outside any callbacks
-    process_node = 1, ///< Inside a callback where a node is handled
-    process_way = 2, ///< Inside a callback where a way is handled
+    process_node = 1,     ///< Inside a callback where a node is handled
+    process_way = 2,      ///< Inside a callback where a way is handled
     process_relation = 3, ///< Inside a callback where a relation is handled
     select_relation_members = 4 ///< In the select_relation_members() callback
 };
@@ -76,7 +76,7 @@ public:
     int index() const noexcept { return m_index; }
 
     /// The name of the function.
-    char const* name() const noexcept { return m_name; }
+    char const *name() const noexcept { return m_name; }
 
     /// The number of results this function is expected to have.
     int nresults() const noexcept { return m_nresults; }
@@ -247,10 +247,7 @@ private:
          */
         bool add_members(middle_query_t const &middle);
 
-        osmium::Relation const &get() const noexcept
-        {
-            return *m_relation;
-        }
+        osmium::Relation const &get() const noexcept { return *m_relation; }
 
         osmium::memory::Buffer const &members_buffer() const noexcept
         {

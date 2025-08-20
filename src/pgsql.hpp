@@ -116,7 +116,8 @@ public:
     }
 
     /// Get the PostgreSQL internal type of a field.
-    unsigned int field_type(int col) const noexcept {
+    unsigned int field_type(int col) const noexcept
+    {
         assert(col >= 0 && col < num_fields());
         return PQftype(m_result.get(), col);
     }

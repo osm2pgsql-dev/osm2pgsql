@@ -26,10 +26,9 @@ namespace {
 void check_tablespace(std::string const &tablespace)
 {
     if (!has_tablespace(tablespace)) {
-        throw fmt_error(
-            "Tablespace '{0}' not available."
-            " Use 'CREATE TABLESPACE \"{0}\" ...;' to create it.",
-            tablespace);
+        throw fmt_error("Tablespace '{0}' not available."
+                        " Use 'CREATE TABLESPACE \"{0}\" ...;' to create it.",
+                        tablespace);
     }
 }
 

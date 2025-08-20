@@ -27,7 +27,7 @@ void logger::generate_common_prefix(std::string *str, fmt::text_style const &ts,
                                     char const *prefix) const
 {
     *str += fmt::format("{:%Y-%m-%d %H:%M:%S}  ",
-                       fmt::localtime(std::time(nullptr)));
+                        fmt::localtime(std::time(nullptr)));
 
     if (m_current_level == log_level::debug) {
         *str += fmt::format(ts, "[{:02d}] ", this_thread_num);

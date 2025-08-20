@@ -143,4 +143,3 @@ TEST_CASE("ordered index with huge gaps in ids", "[NoDB]")
     REQUIRE(index.get_block((2ULL << 32U) + 9U) == 3);
     REQUIRE(index.get_block((3ULL << 32U) + 2U) == 3);
 }
-

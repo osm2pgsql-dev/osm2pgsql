@@ -108,7 +108,8 @@ TEST_CASE("Persistent cache", "[NoDB]")
     }
 }
 
-TEST_CASE("Opening non-existent persistent cache should fail in append mode", "[NoDB]")
+TEST_CASE("Opening non-existent persistent cache should fail in append mode",
+          "[NoDB]")
 {
     std::string const flat_node_file =
         "test_middle_flat.nonexistent.flat.nodes.bin";

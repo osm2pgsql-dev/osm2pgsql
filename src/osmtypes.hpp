@@ -188,7 +188,7 @@ public:
 
     /// Add tag to list without checking for duplicates
     template <typename T>
-    void add_tag(char const *key, T&& value)
+    void add_tag(char const *key, T &&value)
     {
         m_tags.emplace_back(key, std::forward<T>(value));
     }

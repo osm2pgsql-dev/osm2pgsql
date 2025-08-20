@@ -17,4 +17,3 @@ std::shared_ptr<reprojection> reprojection::make_generic_projection(int)
 }
 
 std::string get_proj_version() { return "[disabled]"; }
-

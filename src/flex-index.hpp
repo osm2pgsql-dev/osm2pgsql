@@ -50,10 +50,7 @@ public:
 
     std::string const &name() const noexcept { return m_name; }
 
-    void set_name(std::string name)
-    {
-        m_name = std::move(name);
-    }
+    void set_name(std::string name) { m_name = std::move(name); }
 
     std::string const &expression() const noexcept { return m_expression; }
 

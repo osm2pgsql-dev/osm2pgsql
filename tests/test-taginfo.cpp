@@ -21,9 +21,12 @@ TEST_CASE("parse_tag_flags", "[NoDB]")
     CHECK(parse_tag_flags("delete", 0) == FLAG_DELETE);
     CHECK(parse_tag_flags("nocache", 0) == FLAG_NOCACHE);
     CHECK(parse_tag_flags("UNKNOWN", 0) == 0);
-    CHECK(parse_tag_flags("polygon,phstore", 0) == (FLAG_POLYGON | FLAG_PHSTORE));
-    CHECK(parse_tag_flags("polygon\nnocache", 0) == (FLAG_POLYGON | FLAG_NOCACHE));
-    CHECK(parse_tag_flags("polygon\nnocache,delete", 0) == (FLAG_POLYGON | FLAG_NOCACHE | FLAG_DELETE));
-    CHECK(parse_tag_flags("polygon, nocache,delete", 0) == (FLAG_POLYGON | FLAG_DELETE));
+    CHECK(parse_tag_flags("polygon,phstore", 0) ==
+          (FLAG_POLYGON | FLAG_PHSTORE));
+    CHECK(parse_tag_flags("polygon\nnocache", 0) ==
+          (FLAG_POLYGON | FLAG_NOCACHE));
+    CHECK(parse_tag_flags("polygon\nnocache,delete", 0) ==
+          (FLAG_POLYGON | FLAG_NOCACHE | FLAG_DELETE));
+    CHECK(parse_tag_flags("polygon, nocache,delete", 0) ==
+          (FLAG_POLYGON | FLAG_DELETE));
 }
-

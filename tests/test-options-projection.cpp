@@ -24,7 +24,7 @@ testing::db::import_t db;
 
 TEST_CASE("Projection setup")
 {
-    char const* const style_file = OSM2PGSQLDATA_DIR "default.style";
+    char const *const style_file = OSM2PGSQLDATA_DIR "default.style";
 
     std::vector<char const *> option_params = {"osm2pgsql", "--output=pgsql",
                                                "-S", style_file,

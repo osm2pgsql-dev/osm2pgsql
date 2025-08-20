@@ -340,8 +340,7 @@ TEST_CASE("create_multilinestring and simplify", "[NoDB]")
     buffer.add_way("w20 Nn10x1y1,n11x1y2,n12x1y3");
     buffer.add_way("w21 Nn12x1y3,n13x2y3,n11x1y2");
 
-    auto const geom =
-        geom::create_multilinestring(buffer.buffer());
+    auto const geom = geom::create_multilinestring(buffer.buffer());
 
     REQUIRE(geom.is_multilinestring());
     REQUIRE(geom.srid() == PROJ_LATLONG);

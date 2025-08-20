@@ -200,8 +200,7 @@ create_multipolygon(osmium::Relation const &relation,
  * \param buffer Buffer with OSM objects. Nodes are turned into points,
  *               ways into linestrings, anything else in the buffer is ignored.
  */
-void create_collection(geometry_t *geom,
-                       osmium::memory::Buffer const &buffer);
+void create_collection(geometry_t *geom, osmium::memory::Buffer const &buffer);
 
 /**
  * Create a geometry collection from nodes and ways, usually used for

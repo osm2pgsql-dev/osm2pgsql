@@ -82,4 +82,3 @@ TEST_CASE("no object may appear twice", "[NoDB]")
         check_input(tiv1, tiv2),
         "Input data is not ordered: way id 42 appears more than once.");
 }
-

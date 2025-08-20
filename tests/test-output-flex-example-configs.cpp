@@ -25,7 +25,8 @@ testing::db::import_t db;
 
 char const *const DATA_FILE = "liechtenstein-2013-08-03.osm.pbf";
 
-std::vector<std::string> get_files() {
+std::vector<std::string> get_files()
+{
     // NOLINTNEXTLINE(concurrency-mt-unsafe)
     char const *env = std::getenv("EXAMPLE_FILES");
     REQUIRE(env);
@@ -38,7 +39,7 @@ TEST_CASE("minimal test for flex example configs")
 {
     auto const files = get_files();
 
-    for (auto const& file : files) {
+    for (auto const &file : files) {
         fmt::print(stderr, "Testing example config '{}.lua'\n", file);
         auto const conf_file = "../../flex-config/" + file + ".lua";
         options_t const options = testing::opt_t().flex(conf_file.c_str());
