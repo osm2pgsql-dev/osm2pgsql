@@ -138,12 +138,12 @@ private:
  * Wrapper class for query parameters that should be sent to the database
  * as binary parameter.
  */
-class binary_param : public std::string_view
+class binary_param_t : public std::string_view
 {
 public:
     using std::string_view::string_view;
 
-    explicit binary_param(std::string const &str)
+    explicit binary_param_t(std::string const &str)
     : std::string_view(str.data(), str.size())
     {}
 };
@@ -272,7 +272,7 @@ private:
     {
         if constexpr (std::is_same_v<T, char const *> ||
                       std::is_same_v<T, std::string> ||
-                      std::is_same_v<T, binary_param>) {
+                      std::is_same_v<T, binary_param_t>) {
             return 0;
         }
         return 1;
@@ -293,7 +293,7 @@ private:
         } else if constexpr (std::is_same_v<T, std::string>) {
             *length = static_cast<int>(param.size());
             return param.c_str();
-        } else if constexpr (std::is_same_v<T, binary_param>) {
+        } else if constexpr (std::is_same_v<T, binary_param_t>) {
             *length = static_cast<int>(param.size());
             *bin = 1;
             return param.data();
