@@ -258,7 +258,7 @@ bool is_compatible(geom::geometry_t const &geom,
 void flex_write_column(lua_State *lua_state,
                        db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
                        flex_table_column_t const &column,
-                       std::vector<expire_tiles> *expire)
+                       std::vector<expire_tiles_t> *expire)
 {
     lua_getfield(lua_state, -1, column.name().c_str());
     int const ltype = lua_type(lua_state, -1);

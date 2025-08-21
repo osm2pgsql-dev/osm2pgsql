@@ -108,7 +108,7 @@ private:
 
     std::shared_ptr<reprojection_t> m_proj;
     expire_config_t m_expire_config;
-    expire_tiles m_expire;
+    expire_tiles_t m_expire;
 
     osmium::memory::Buffer m_buffer;
     osmium::memory::Buffer m_rels_buffer;

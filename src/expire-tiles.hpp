@@ -27,10 +27,11 @@
 
 class reprojection_t;
 
-class expire_tiles
+class expire_tiles_t
 {
 public:
-    expire_tiles(uint32_t max_zoom, std::shared_ptr<reprojection_t> projection);
+    expire_tiles_t(uint32_t max_zoom,
+                   std::shared_ptr<reprojection_t> projection);
 
     bool empty() const noexcept { return m_dirty_tiles.empty(); }
 
@@ -76,7 +77,7 @@ public:
     int from_bbox(geom::box_t const &box, expire_config_t const &expire_config);
 
     /**
-     * Get tiles as a vector of quadkeys and remove them from the expire_tiles
+     * Get tiles as a vector of quadkeys and remove them from the expire_tiles_t
      * object.
      */
     quadkey_list_t get_tiles();
@@ -85,7 +86,7 @@ public:
      * Merge the list of expired tiles in the other object into this
      * object, destroying the list in the other object.
      */
-    void merge_and_destroy(expire_tiles *other);
+    void merge_and_destroy(expire_tiles_t *other);
 
 private:
     /**
@@ -120,7 +121,7 @@ private:
     uint32_t m_maxzoom;
     int m_map_width;
 
-}; // class expire_tiles
+}; // class expire_tiles_t
 
 /**
  * Expire tiles based on an osm id.
@@ -132,7 +133,7 @@ private:
  * \param expire_config Configuration for expiry.
  * \return The number of tuples in the result or -1 if expire is disabled.
  */
-int expire_from_result(expire_tiles *expire, pg_result_t const &result,
+int expire_from_result(expire_tiles_t *expire, pg_result_t const &result,
                        expire_config_t const &expire_config);
 
 #endif // OSM2PGSQL_EXPIRE_TILES_HPP
