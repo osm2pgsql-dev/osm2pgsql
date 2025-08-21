@@ -359,10 +359,10 @@ void table_t::task_wait()
 // This is legacy code which will be removed anyway.
 
 /* Escape data appropriate to the type */
-void table_t::escape_type(std::string const &value, ColumnType flags)
+void table_t::escape_type(std::string const &value, column_type_t flags)
 {
     switch (flags) {
-    case ColumnType::INT: {
+    case column_type_t::INT: {
         // For integers we take the first number, or the average if it's a-b
         long long from = 0;
         long long to = 0;
@@ -387,7 +387,7 @@ void table_t::escape_type(std::string const &value, ColumnType flags)
         }
         break;
     }
-    case ColumnType::REAL:
+    case column_type_t::REAL:
         /* try to "repair" real values as follows:
          * assume "," to be a decimal mark which need to be replaced by "."
          * like int4 take the first number, or the average if it's a-b
@@ -421,7 +421,7 @@ void table_t::escape_type(std::string const &value, ColumnType flags)
             }
             break;
         }
-    case ColumnType::TEXT:
+    case column_type_t::TEXT:
         m_copy.add_column(value);
         break;
     }

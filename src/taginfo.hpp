@@ -14,7 +14,7 @@
 #include <string>
 #include <vector>
 
-enum class ColumnType : std::uint8_t
+enum class column_type_t : std::uint8_t
 {
     INT,
     REAL,
@@ -23,13 +23,13 @@ enum class ColumnType : std::uint8_t
 
 struct Column
 {
-    Column(std::string n, std::string tn, ColumnType t)
+    Column(std::string n, std::string tn, column_type_t t)
     : name(std::move(n)), type_name(std::move(tn)), type(t)
     {}
 
     std::string name;
     std::string type_name;
-    ColumnType type;
+    column_type_t type;
 };
 
 using columns_t = std::vector<Column>;
