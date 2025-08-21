@@ -34,7 +34,7 @@ enum class log_level : uint8_t
  * This class contains the logging state and code. It is intended as a
  * singleton class. Its use is mostly wrapped in the log_*() free functions.
  */
-class logger
+class logger_t
 {
 public:
     template <typename... TArgs>
@@ -107,9 +107,9 @@ private:
     bool m_use_color = osmium::util::isatty(2);
 #endif
 
-}; // class logger
+}; // class logger_t
 
-logger &get_logger() noexcept;
+logger_t &get_logger() noexcept;
 
 template <typename... TArgs>
 void log_debug(fmt::format_string<TArgs...> format_str, TArgs &&...args)
