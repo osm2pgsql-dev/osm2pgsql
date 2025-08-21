@@ -69,10 +69,10 @@ std::size_t num_geometries(geometry_t const &geom)
 
 namespace {
 
-class geometry_n_visitor
+class geometry_n_visitor_t
 {
 public:
-    geometry_n_visitor(geometry_t *output, std::size_t n)
+    geometry_n_visitor_t(geometry_t *output, std::size_t n)
     : m_output(output), m_n(n)
     {}
 
@@ -97,7 +97,7 @@ private:
     geometry_t *m_output;
     std::size_t m_n;
 
-}; // class geometry_n_visitor
+}; // class geometry_n_visitor_t
 
 } // anonymous namespace
 
@@ -109,7 +109,7 @@ void geometry_n(geometry_t *output, geometry_t const &input, std::size_t n)
         return;
     }
 
-    input.visit(geometry_n_visitor{output, n - 1});
+    input.visit(geometry_n_visitor_t{output, n - 1});
     output->set_srid(input.srid());
 }
 
@@ -130,11 +130,11 @@ void set_to_same_type(geometry_t *output, geometry_t const &input)
     input.visit([&](auto in) { output->set<decltype(in)>(); });
 }
 
-class transform_visitor
+class transform_visitor_t
 {
 public:
-    explicit transform_visitor(geometry_t *output,
-                               reprojection const *reprojection)
+    explicit transform_visitor_t(geometry_t *output,
+                                 reprojection const *reprojection)
     : m_output(output), m_reprojection(reprojection)
     {}
 
@@ -190,7 +190,7 @@ public:
             auto &new_geom = m.add_geometry();
             set_to_same_type(&new_geom, geom);
             new_geom.set_srid(0);
-            geom.visit(transform_visitor{&new_geom, m_reprojection});
+            geom.visit(transform_visitor_t{&new_geom, m_reprojection});
         }
     }
 
@@ -222,7 +222,7 @@ private:
     geometry_t *m_output;
     reprojection const *m_reprojection;
 
-}; // class transform_visitor
+}; // class transform_visitor_t
 
 } // anonymous namespace
 
@@ -233,7 +233,7 @@ void transform(geometry_t *output, geometry_t const &input,
 
     set_to_same_type(output, input);
     output->set_srid(reprojection.target_srs());
-    input.visit(transform_visitor{output, &reprojection});
+    input.visit(transform_visitor_t{output, &reprojection});
 }
 
 geometry_t transform(geometry_t const &input, reprojection const &reprojection)
@@ -251,10 +251,10 @@ namespace {
  * Helper class for iterating over all points except the first one in a point
  * list.
  */
-class without_first
+class without_first_t
 {
 public:
-    explicit without_first(point_list_t const &list) : m_list(&list) {}
+    explicit without_first_t(point_list_t const &list) : m_list(&list) {}
 
     point_list_t::const_iterator begin()
     {
@@ -266,7 +266,7 @@ public:
 
 private:
     point_list_t const *m_list;
-}; // class without_first
+}; // class without_first_t
 
 void split_linestring(linestring_t const &line, double split_at,
                       multilinestring_t *output)
@@ -276,7 +276,7 @@ void split_linestring(linestring_t const &line, double split_at,
     linestring_t *out = &output->add_geometry();
     out->push_back(prev_pt);
 
-    for (auto const &this_pt : without_first(line)) {
+    for (auto const &this_pt : without_first_t(line)) {
         double const delta = distance(prev_pt, this_pt);
 
         // figure out if the addition of this point would take the total
@@ -428,10 +428,10 @@ double length(geometry_t const &geom)
 
 namespace {
 
-class split_visitor
+class split_visitor_t
 {
 public:
-    split_visitor(std::vector<geometry_t> *output, int srid) noexcept
+    split_visitor_t(std::vector<geometry_t> *output, int srid) noexcept
     : m_output(output), m_srid(srid)
     {}
 
@@ -462,7 +462,7 @@ private:
     std::vector<geometry_t> *m_output;
     int m_srid;
 
-}; // class split_visitor
+}; // class split_visitor_t
 
 } // anonymous namespace
 
@@ -471,7 +471,7 @@ std::vector<geometry_t> split_multi(geometry_t &&geom, bool split_multi)
     std::vector<geometry_t> output;
 
     if (split_multi && geom.is_multi()) {
-        visit(split_visitor{&output, geom.srid()}, std::move(geom));
+        visit(split_visitor_t{&output, geom.srid()}, std::move(geom));
     } else if (!geom.is_null()) {
         output.push_back(std::move(geom));
     }

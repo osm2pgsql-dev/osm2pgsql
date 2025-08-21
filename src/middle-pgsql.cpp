@@ -151,10 +151,10 @@ void pgsql_parse_json_tags(char const *string, osmium::memory::Buffer *buffer,
 /**
  * Helper class for parsing relation members encoded in JSON.
  */
-class member_list_json_builder
+class member_list_json_builder_t
 {
 public:
-    explicit member_list_json_builder(
+    explicit member_list_json_builder_t(
         osmium::builder::RelationMemberListBuilder *builder)
     : m_builder(builder)
     {}
@@ -246,7 +246,7 @@ private:
         ref,
         role
     } m_next_val = next_val::none;
-}; // class member_list_json_builder
+}; // class member_list_json_builder_t
 
 template <typename T>
 void pgsql_parse_json_members(char const *string,
@@ -257,7 +257,7 @@ void pgsql_parse_json_members(char const *string,
     }
 
     osmium::builder::RelationMemberListBuilder builder{*buffer, obuilder};
-    member_list_json_builder parser{&builder};
+    member_list_json_builder_t parser{&builder};
     nlohmann::json::sax_parse(string, &parser);
 }
 

@@ -106,4 +106,26 @@ CheckOptions:
       value: true
     - key: bugprone-empty-catch.IgnoreCatchWithKeywords
       value: "@todo;@fixme;exception ignored on purpose"
+    - key: readability-identifier-naming.ClassCase
+      value: lower_case
+    - key: readability-identifier-naming.ClassSuffix
+      value: _t
+    - key: readability-identifier-naming.PrivateMemberPrefix
+      value: m_
+    - key: readability-identifier-naming.StructCase
+      value: lower_case
+    - key: readability-identifier-naming.EnumCase
+      value: lower_case
+    - key: readability-identifier-naming.FunctionCase
+      value: lower_case
+    - key: readability-identifier-naming.FunctionIgnoredRegexp
+      value: luaX.*
+    - key: readability-identifier-naming.VariableCase
+      value: lower_case
+    - key: readability-identifier-naming.ConstexprVariableCase
+      value: UPPER_CASE
+    - key: readability-identifier-naming.GlobalConstantCase
+      value: UPPER_CASE
+    - key: readability-identifier-naming.NamespaceCase
+      value: lower_case
 ...

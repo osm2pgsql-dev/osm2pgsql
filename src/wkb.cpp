@@ -195,10 +195,10 @@ void write_collection(std::string *data, geom::collection_t const &geom,
     }
 }
 
-class make_ewkb_visitor
+class make_ewkb_visitor_t
 {
 public:
-    make_ewkb_visitor(uint32_t srid, bool ensure_multi) noexcept
+    make_ewkb_visitor_t(uint32_t srid, bool ensure_multi) noexcept
     : m_srid(srid), m_ensure_multi(ensure_multi)
     {}
 
@@ -292,7 +292,7 @@ private:
     uint32_t m_srid;
     bool m_ensure_multi;
 
-}; // class make_ewkb_visitor
+}; // class make_ewkb_visitor_t
 
 /**
  * Parser for (E)WKB.
@@ -560,7 +560,7 @@ private:
 
 std::string geom_to_ewkb(geom::geometry_t const &geom, bool ensure_multi)
 {
-    return geom.visit(ewkb::make_ewkb_visitor{
+    return geom.visit(ewkb::make_ewkb_visitor_t{
         static_cast<uint32_t>(geom.srid()), ensure_multi});
 }
 

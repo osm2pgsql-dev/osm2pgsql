@@ -197,13 +197,13 @@ namespace {
  * handles this extra processing by starting a number of threads and doing
  * the processing in them.
  */
-class multithreaded_processor
+class multithreaded_processor_t
 {
 public:
-    multithreaded_processor(connection_params_t const &connection_params,
-                            std::shared_ptr<middle_t> const &mid,
-                            std::shared_ptr<output_t> output,
-                            std::size_t thread_count)
+    multithreaded_processor_t(connection_params_t const &connection_params,
+                              std::shared_ptr<middle_t> const &mid,
+                              std::shared_ptr<output_t> output,
+                              std::size_t thread_count)
     : m_output(std::move(output))
     {
         assert(mid);
@@ -379,8 +379,8 @@ private:
 
 void osmdata_t::process_dependents()
 {
-    multithreaded_processor proc{m_connection_params, m_mid, m_output,
-                                 m_num_procs};
+    multithreaded_processor_t proc{m_connection_params, m_mid, m_output,
+                                   m_num_procs};
 
     // stage 1b processing: process parents of changed objects
     if (!m_ways_pending_tracker.empty() || !m_rels_pending_tracker.empty()) {
