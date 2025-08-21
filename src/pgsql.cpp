@@ -22,8 +22,8 @@
 
 std::size_t pg_result_t::affected_rows() const noexcept
 {
-    char const *const s = PQcmdTuples(m_result.get());
-    return std::strtoull(s, nullptr, 10);
+    char const *const rows_as_string = PQcmdTuples(m_result.get());
+    return std::strtoull(rows_as_string, nullptr, 10);
 }
 
 std::atomic<std::uint32_t> pg_conn_t::connection_id{0};
@@ -153,9 +153,10 @@ void pg_conn_t::copy_send(std::string_view data, std::string_view context) const
 
     log_sql_data("(C{}) Copy data to '{}':\n{}", m_connection_id, context,
                  data);
-    int const r = PQputCopyData(m_conn.get(), data.data(), (int)data.size());
+    int const result =
+        PQputCopyData(m_conn.get(), data.data(), (int)data.size());
 
-    switch (r) {
+    switch (result) {
     case 0: // need to wait for write ready
         log_error("{} - COPY unexpectedly busy", context);
         break;

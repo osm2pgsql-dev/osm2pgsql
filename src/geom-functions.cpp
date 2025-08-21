@@ -157,37 +157,37 @@ public:
 
     void operator()(multipoint_t const &input) const
     {
-        auto &m = m_output->get<multipoint_t>();
-        m.reserve(input.num_geometries());
+        auto &mgeom = m_output->get<multipoint_t>();
+        mgeom.reserve(input.num_geometries());
         for (auto const point : input) {
-            m.add_geometry(project(point));
+            mgeom.add_geometry(project(point));
         }
     }
 
     void operator()(multilinestring_t const &input) const
     {
-        auto &m = m_output->set<multilinestring_t>();
-        m.reserve(input.num_geometries());
+        auto &mgeom = m_output->set<multilinestring_t>();
+        mgeom.reserve(input.num_geometries());
         for (auto const &line : input) {
-            transform_points(&m.add_geometry(), line);
+            transform_points(&mgeom.add_geometry(), line);
         }
     }
 
     void operator()(multipolygon_t const &input) const
     {
-        auto &m = m_output->set<multipolygon_t>();
-        m.reserve(input.num_geometries());
+        auto &mgeom = m_output->set<multipolygon_t>();
+        mgeom.reserve(input.num_geometries());
         for (auto const &polygon : input) {
-            transform_polygon(&m.add_geometry(), polygon);
+            transform_polygon(&mgeom.add_geometry(), polygon);
         }
     }
 
     void operator()(collection_t const &input) const
     {
-        auto &m = m_output->get<collection_t>();
-        m.reserve(input.num_geometries());
+        auto &mgeom = m_output->get<collection_t>();
+        mgeom.reserve(input.num_geometries());
         for (auto const &geom : input) {
-            auto &new_geom = m.add_geometry();
+            auto &new_geom = mgeom.add_geometry();
             set_to_same_type(&new_geom, geom);
             new_geom.set_srid(0);
             geom.visit(transform_visitor_t{&new_geom, m_reprojection});

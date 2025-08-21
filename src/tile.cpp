@@ -12,15 +12,15 @@
 geom::point_t tile_t::to_tile_coords(geom::point_t p,
                                      unsigned int pixel_extent) const noexcept
 {
-    double const f = static_cast<double>(pixel_extent) / extent();
-    return {(p.x() - xmin()) * f, (p.y() - ymin()) * f};
+    double const factor = static_cast<double>(pixel_extent) / extent();
+    return {(p.x() - xmin()) * factor, (p.y() - ymin()) * factor};
 }
 
 geom::point_t tile_t::to_world_coords(geom::point_t p,
                                       unsigned int pixel_extent) const noexcept
 {
-    double const f = extent() / static_cast<double>(pixel_extent);
-    return {p.x() * f + xmin(), p.y() * f + ymin()};
+    double const factor = extent() / static_cast<double>(pixel_extent);
+    return {p.x() * factor + xmin(), p.y() * factor + ymin()};
 }
 
 geom::point_t tile_t::center() const noexcept
