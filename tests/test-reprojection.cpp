@@ -17,7 +17,7 @@ TEST_CASE("projection 4326", "[NoDB]")
     osmium::Location const loc{10.0, 53.0};
     int const srs = PROJ_LATLONG;
 
-    auto const reprojection = reprojection::create_projection(srs);
+    auto const reprojection = reprojection_t::create_projection(srs);
     REQUIRE(reprojection->target_srs() == srs);
     REQUIRE(reprojection->target_latlon());
 
@@ -35,7 +35,7 @@ TEST_CASE("projection 3857", "[NoDB]")
     osmium::Location const loc{10.0, 53.0};
     int const srs = PROJ_SPHERE_MERC;
 
-    auto const reprojection = reprojection::create_projection(srs);
+    auto const reprojection = reprojection_t::create_projection(srs);
     REQUIRE(reprojection->target_srs() == srs);
     REQUIRE_FALSE(reprojection->target_latlon());
 
@@ -54,7 +54,7 @@ TEST_CASE("projection 3857 bounds", "[NoDB]")
     osmium::Location const loc2{-180.0, -85.0511288};
     osmium::Location const loc3{180.0, 85.0511288};
     int const srs = PROJ_SPHERE_MERC;
-    auto const reprojection = reprojection::create_projection(srs);
+    auto const reprojection = reprojection_t::create_projection(srs);
 
     {
         auto const c = reprojection->reproject(geom::point_t{loc1});
@@ -91,7 +91,7 @@ TEST_CASE("projection 5651", "[NoDB]")
     osmium::Location const loc{10.0, 53.0};
     int const srs = 5651; // ETRS89 / UTM zone 31N (N-zE)
 
-    auto const reprojection = reprojection::create_projection(srs);
+    auto const reprojection = reprojection_t::create_projection(srs);
     REQUIRE(reprojection->target_srs() == srs);
     REQUIRE_FALSE(reprojection->target_latlon());
 

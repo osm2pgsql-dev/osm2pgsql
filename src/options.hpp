@@ -19,7 +19,7 @@
 #include <string>
 #include <vector>
 
-class reprojection;
+class reprojection_t;
 
 enum class command_t : uint8_t
 {
@@ -93,7 +93,7 @@ struct options_t
 
     std::vector<std::string> input_files;
 
-    std::shared_ptr<reprojection> projection; ///< SRS of projection
+    std::shared_ptr<reprojection_t> projection; ///< SRS of projection
 
     /// Max bbox size in either dimension to expire full bbox for a polygon
     double expire_tiles_max_bbox = 20000.0;

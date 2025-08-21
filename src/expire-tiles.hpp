@@ -25,12 +25,12 @@
 #include "pgsql.hpp"
 #include "tile.hpp"
 
-class reprojection;
+class reprojection_t;
 
 class expire_tiles
 {
 public:
-    expire_tiles(uint32_t max_zoom, std::shared_ptr<reprojection> projection);
+    expire_tiles(uint32_t max_zoom, std::shared_ptr<reprojection_t> projection);
 
     bool empty() const noexcept { return m_dirty_tiles.empty(); }
 
@@ -115,7 +115,7 @@ private:
     /// The tile which has been added last to the unordered set.
     tile_t m_prev_tile;
 
-    std::shared_ptr<reprojection> m_projection;
+    std::shared_ptr<reprojection_t> m_projection;
 
     uint32_t m_maxzoom;
     int m_map_width;

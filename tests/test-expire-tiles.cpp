@@ -19,8 +19,8 @@
 
 namespace {
 
-std::shared_ptr<reprojection> defproj{
-    reprojection::create_projection(PROJ_SPHERE_MERC)};
+std::shared_ptr<reprojection_t> defproj{
+    reprojection_t::create_projection(PROJ_SPHERE_MERC)};
 
 std::set<tile_t> generate_random(uint32_t zoom, size_t count)
 {

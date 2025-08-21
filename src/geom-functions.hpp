@@ -100,7 +100,7 @@ geometry_t geometry_n(geometry_t const &input, std::size_t n);
  * \pre \code geom.srid() == 4326 \endcode
  */
 void transform(geometry_t *output, geometry_t const &input,
-               reprojection const &reprojection);
+               reprojection_t const &reprojection);
 
 /**
  * Transform a geometry in 4326 into some other projection.
@@ -111,7 +111,8 @@ void transform(geometry_t *output, geometry_t const &input,
  *
  * \pre \code geom.srid() == 4326 \endcode
  */
-geometry_t transform(geometry_t const &input, reprojection const &reprojection);
+geometry_t transform(geometry_t const &input,
+                     reprojection_t const &reprojection);
 
 /**
  * Returns a modified geometry having no segment longer than the given

@@ -1207,7 +1207,7 @@ output_flex_t::output_flex_t(output_flex_t const *other,
     for (auto &expire_output : *m_expire_outputs) {
         m_expire_tiles.emplace_back(
             expire_output.maxzoom(),
-            reprojection::create_projection(PROJ_SPHERE_MERC));
+            reprojection_t::create_projection(PROJ_SPHERE_MERC));
     }
 }
 
@@ -1273,7 +1273,7 @@ output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
     for (auto const &expire_output : *m_expire_outputs) {
         m_expire_tiles.emplace_back(
             expire_output.maxzoom(),
-            reprojection::create_projection(PROJ_SPHERE_MERC));
+            reprojection_t::create_projection(PROJ_SPHERE_MERC));
     }
 
     create_expire_tables(*m_expire_outputs, get_options()->connection_params);

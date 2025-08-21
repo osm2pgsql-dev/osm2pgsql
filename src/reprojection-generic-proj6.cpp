@@ -11,7 +11,7 @@ namespace {
 /**
  * Generic projection using proj library (version 6 and above).
  */
-class generic_reprojection_t : public reprojection
+class generic_reprojection_t : public reprojection_t
 {
 public:
     explicit generic_reprojection_t(int srs)
@@ -110,7 +110,7 @@ private:
 
 } // anonymous namespace
 
-std::shared_ptr<reprojection> reprojection::make_generic_projection(int srs)
+std::shared_ptr<reprojection_t> reprojection_t::make_generic_projection(int srs)
 {
     return std::make_shared<generic_reprojection_t>(srs);
 }

@@ -27,7 +27,7 @@
 #include "wkb.hpp"
 
 expire_tiles::expire_tiles(uint32_t max_zoom,
-                           std::shared_ptr<reprojection> projection)
+                           std::shared_ptr<reprojection_t> projection)
 : m_projection(std::move(projection)), m_maxzoom(max_zoom),
   m_map_width(static_cast<int>(1U << m_maxzoom))
 {}
