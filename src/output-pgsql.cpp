@@ -105,7 +105,7 @@ void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
             if (m_enable_way_area) {
                 double const area = calculate_area(
                     get_options()->reproject_area, geom, projected_geom);
-                util::double_to_buffer const tmp{area};
+                util::double_to_buffer_t const tmp{area};
                 tags->set("way_area", tmp.c_str());
             }
             m_tables[t_poly]->write_row(way.id(), *tags, wkb);
@@ -316,7 +316,7 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
             if (m_enable_way_area) {
                 double const area = calculate_area(
                     get_options()->reproject_area, sgeom, projected_geom);
-                util::double_to_buffer const tmp{area};
+                util::double_to_buffer_t const tmp{area};
                 outtags.set("way_area", tmp.c_str());
             }
             m_tables[t_poly]->write_row(-rel.id(), outtags, wkb);
