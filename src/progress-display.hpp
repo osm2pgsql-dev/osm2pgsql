@@ -28,7 +28,7 @@
  */
 class progress_display_t : public osmium::handler::Handler
 {
-    struct Counter
+    struct counter_t
     {
         std::size_t count = 0;
         std::time_t start = 0;
@@ -79,9 +79,9 @@ private:
     uint64_t rels_time(std::time_t now) const noexcept;
     uint64_t overall_time(std::time_t now) const noexcept;
 
-    Counter m_node{};
-    Counter m_way{};
-    Counter m_rel{};
+    counter_t m_node{};
+    counter_t m_way{};
+    counter_t m_rel{};
     std::time_t m_last_print_time{std::time(nullptr)};
     bool m_enabled;
 };
