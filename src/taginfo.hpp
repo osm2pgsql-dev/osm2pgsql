@@ -21,9 +21,9 @@ enum class column_type_t : std::uint8_t
     TEXT
 };
 
-struct Column
+struct column_t
 {
-    Column(std::string n, std::string tn, column_type_t t)
+    column_t(std::string n, std::string tn, column_type_t t)
     : name(std::move(n)), type_name(std::move(tn)), type(t)
     {}
 
@@ -32,6 +32,6 @@ struct Column
     column_type_t type;
 };
 
-using columns_t = std::vector<Column>;
+using columns_t = std::vector<column_t>;
 
 #endif // OSM2PGSQL_TAGINFO_HPP
