@@ -108,8 +108,8 @@ CheckOptions:
       value: "@todo;@fixme;exception ignored on purpose"
     - key: readability-identifier-naming.ClassCase
       value: lower_case
-    - key: readability-identifier-naming.ClassSuffix
-      value: _t
+#    - key: readability-identifier-naming.ClassSuffix
+#      value: _t
     - key: readability-identifier-naming.PrivateMemberPrefix
       value: m_
     - key: readability-identifier-naming.StructCase
