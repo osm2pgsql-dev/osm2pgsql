@@ -105,7 +105,7 @@ public:
         try {
             connection_params_t connection_params;
             connection_params.set("dbname", "postgres");
-            conn_t conn{connection_params};
+            conn_t const conn{connection_params};
 
             m_db_name =
                 fmt::format("osm2pgsql-test-{}-{}", getpid(), time(nullptr));
@@ -113,7 +113,7 @@ public:
             conn.exec(R"(CREATE DATABASE "{}" WITH ENCODING 'UTF8')",
                       m_db_name);
 
-            conn_t local = connect();
+            conn_t const local = connect();
             local.exec("CREATE EXTENSION postgis");
             local.exec("CREATE EXTENSION hstore");
             init_database_capabilities(local);
@@ -145,7 +145,7 @@ public:
             try {
                 connection_params_t connection_params;
                 connection_params.set("dbname", "postgres");
-                conn_t conn{connection_params};
+                conn_t const conn{connection_params};
                 conn.exec(R"(DROP DATABASE IF EXISTS "{}")", m_db_name);
             } catch (...) {
                 fprintf(stderr, "DROP DATABASE failed. Ignored.\n");

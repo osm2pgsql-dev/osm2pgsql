@@ -111,7 +111,7 @@ private:
     static std::pair<osmium::item_type, osmium::object_id_type>
     get_type_id(std::string const &str)
     {
-        std::string ti(str, 0, str.find(' '));
+        std::string const ti(str, 0, str.find(' '));
         return osmium::string_to_object_id(ti.c_str(),
                                            osmium::osm_entity_bits::nwr);
     }
