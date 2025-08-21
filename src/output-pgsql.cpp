@@ -469,7 +469,7 @@ output_pgsql_t::output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
     log_debug("Using projection SRS {} ({})", options.projection->target_srs(),
               options.projection->target_desc());
 
-    export_list exlist;
+    export_list_t exlist;
 
     m_enable_way_area = read_style_file(options.style, &exlist);
 
