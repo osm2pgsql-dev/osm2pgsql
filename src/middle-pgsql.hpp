@@ -110,11 +110,11 @@ struct middle_pgsql_t : public middle_t
     void get_way_parents(idlist_t const &changed_ways,
                          idlist_t *parent_relations) const override;
 
-    class table_desc
+    class table_desc_t
     {
     public:
-        table_desc() = default;
-        table_desc(options_t const &options, std::string_view name);
+        table_desc_t() = default;
+        table_desc_t(options_t const &options, std::string_view name);
 
         std::string const &schema() const noexcept
         {
@@ -180,7 +180,7 @@ private:
     void build_relation_member_indexes();
 
     std::map<osmium::user_id_type, std::string> m_users;
-    osmium::nwr_array<table_desc> m_tables;
+    osmium::nwr_array<table_desc_t> m_tables;
 
     options_t const *m_options;
 

@@ -73,8 +73,8 @@ void load_id_list(pg_conn_t const &db_connection, std::string const &table,
 
 } // anonymous namespace
 
-middle_pgsql_t::table_desc::table_desc(options_t const &options,
-                                       std::string_view name)
+middle_pgsql_t::table_desc_t::table_desc_t(options_t const &options,
+                                           std::string_view name)
 : m_copy_target(std::make_shared<db_target_descr_t>(
       options.middle_dbschema, fmt::format("{}_{}", options.prefix, name),
       "id"))
@@ -99,7 +99,7 @@ void middle_query_pgsql_t::prepare(std::string const &stmt,
     m_db_connection.prepare(stmt, fmt::runtime(sql_cmd));
 }
 
-void middle_pgsql_t::table_desc::drop_table(
+void middle_pgsql_t::table_desc_t::drop_table(
     pg_conn_t const &db_connection) const
 {
     util::timer_t timer;
@@ -110,7 +110,7 @@ void middle_pgsql_t::table_desc::drop_table(
              util::human_readable_duration(timer.stop()));
 }
 
-void middle_pgsql_t::table_desc::init_max_id(pg_conn_t const &db_connection)
+void middle_pgsql_t::table_desc_t::init_max_id(pg_conn_t const &db_connection)
 {
     auto const qual_name = qualified_name(schema(), name());
     auto const res = db_connection.exec("SELECT max(id) FROM {}", qual_name);
@@ -1257,9 +1257,9 @@ middle_pgsql_t::middle_pgsql_t(std::shared_ptr<thread_pool_t> thread_pool,
 
     init_params(&m_params, *options);
 
-    m_tables.nodes() = table_desc{*options, "nodes"};
-    m_tables.ways() = table_desc{*options, "ways"};
-    m_tables.relations() = table_desc{*options, "rels"};
+    m_tables.nodes() = table_desc_t{*options, "nodes"};
+    m_tables.ways() = table_desc_t{*options, "ways"};
+    m_tables.relations() = table_desc_t{*options, "rels"};
 }
 
 void middle_pgsql_t::set_requirements(
