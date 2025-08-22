@@ -271,6 +271,9 @@ else()
     target_link_libraries(osm2pgsql-gen osm2pgsql_lib ${LIBS} ${POTRACE_LIBRARY} ${OpenCV_LIBS})
 endif()
 
+add_executable(osm2pgsql-expire src/osm2pgsql-expire.cpp)
+target_link_libraries(osm2pgsql-expire osm2pgsql_lib ${LIBS})
+
 #############################################################
 # Optional "clang-tidy" target
 #############################################################

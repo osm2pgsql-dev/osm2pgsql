@@ -21,9 +21,6 @@ command_line_app_t::command_line_app_t(std::string app_description)
 
     add_flag("-h,--help", "Print this help message and exit.");
     add_flag("-V,--version", "Show version and exit.");
-
-    init_database_options();
-    init_logging_options();
 }
 
 bool command_line_app_t::want_help() const { return count("--help"); }
@@ -75,7 +72,7 @@ void command_line_app_t::init_database_options()
         ->group("Database options");
 }
 
-void command_line_app_t::init_logging_options()
+void command_line_app_t::init_logging_options(bool with_progress, bool with_sql)
 {
     static std::map<std::string, log_level> const log_levels_map{
         {"debug", log_level::debug},
@@ -97,31 +94,36 @@ void command_line_app_t::init_logging_options()
         ->option_text("LEVEL")
         ->group("Logging options");
 
-    add_option_function<std::string>(
-        "--log-progress",
-        [&](std::string const &arg) {
-            if (arg == "true") {
-                get_logger().enable_progress();
-            } else if (arg == "false") {
-                get_logger().disable_progress();
-            } else if (arg == "auto") {
-                get_logger().auto_progress();
-            } else {
-                throw fmt_error("Unknown value for --log-progress option: {}",
-                                arg);
-            }
-        })
-        ->description(
-            "Log progress to console ('true', 'false', 'auto' (default)).")
-        ->option_text("PROGRESS")
-        ->group("Logging options");
+    if (with_progress) {
+        add_option_function<std::string>(
+            "--log-progress",
+            [&](std::string const &arg) {
+                if (arg == "true") {
+                    get_logger().enable_progress();
+                } else if (arg == "false") {
+                    get_logger().disable_progress();
+                } else if (arg == "auto") {
+                    get_logger().auto_progress();
+                } else {
+                    throw fmt_error(
+                        "Unknown value for --log-progress option: {}", arg);
+                }
+            })
+            ->description(
+                "Log progress to console ('true', 'false', 'auto' (default)).")
+            ->option_text("PROGRESS")
+            ->group("Logging options");
+    }
 
-    add_flag_function("--log-sql", [](int64_t) { get_logger().enable_sql(); })
-        ->description("Enable logging of SQL commands for debugging.")
-        ->group("Logging options");
+    if (with_sql) {
+        add_flag_function("--log-sql",
+                          [](int64_t) { get_logger().enable_sql(); })
+            ->description("Enable logging of SQL commands for debugging.")
+            ->group("Logging options");
 
-    add_flag_function("--log-sql-data",
-                      [](int64_t) { get_logger().enable_sql_data(); })
-        ->description("Enable logging of all data added to the database.")
-        ->group("Logging options");
+        add_flag_function("--log-sql-data",
+                          [](int64_t) { get_logger().enable_sql_data(); })
+            ->description("Enable logging of all data added to the database.")
+            ->group("Logging options");
+    }
 }

@@ -646,6 +646,8 @@ int main(int argc, char *argv[])
 
         command_line_app_t app{
             "osm2pgsql-gen -- Generalize OpenStreetMap data\n"};
+        app.init_database_options();
+        app.init_logging_options(true, true);
 
         // ------------------------------------------------------------------
         // Main options

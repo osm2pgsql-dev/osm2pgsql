@@ -45,7 +45,7 @@ std::size_t expire_output_t::output_tiles_to_file(
 
     auto const count = for_each_tile(
         tiles_at_maxzoom, m_minzoom, m_maxzoom, [&](tile_t const &tile) {
-            fmt::print(outfile, "{}/{}/{}\n", tile.zoom(), tile.x(), tile.y());
+            fmt::print(outfile, "{}\n", tile.to_zxy());
         });
 
     (void)std::fclose(outfile);

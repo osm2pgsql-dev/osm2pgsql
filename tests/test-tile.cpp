@@ -30,14 +30,17 @@ TEST_CASE("tile access and comparison", "[NoDB]")
     REQUIRE(a.zoom() == 3);
     REQUIRE(a.x() == 2);
     REQUIRE(a.y() == 1);
+    REQUIRE(a.to_zxy() == "3/2/1");
 
     REQUIRE(b.zoom() == 3);
     REQUIRE(b.x() == 2);
     REQUIRE(b.y() == 1);
+    REQUIRE(b.to_zxy() == "3/2/1");
 
     REQUIRE(c.zoom() == 3);
     REQUIRE(c.x() == 1);
     REQUIRE(c.y() == 2);
+    REQUIRE(c.to_zxy() == "3/1/2");
 
     REQUIRE(a == b);
     REQUIRE_FALSE(a != b);
@@ -49,6 +52,20 @@ TEST_CASE("tile access and comparison", "[NoDB]")
 
     REQUIRE_FALSE(a < c);
     REQUIRE(c < a);
+}
+
+TEST_CASE("tile_t from zxy string", "[NoDB]")
+{
+    REQUIRE(tile_t::from_zxy("0/0/0") == tile_t(0, 0, 0));
+    REQUIRE(tile_t::from_zxy("2/3/3") == tile_t(2, 3, 3));
+    REQUIRE(tile_t::from_zxy("31/3/27") == tile_t(31, 3, 27));
+
+    REQUIRE_THROWS(tile_t::from_zxy(""));
+    REQUIRE_THROWS(tile_t::from_zxy("a/c/c"));
+    REQUIRE_THROWS(tile_t::from_zxy("1a/0/0"));
+    REQUIRE_THROWS(tile_t::from_zxy("32/0/0"));
+    REQUIRE_THROWS(tile_t::from_zxy("2/4/0"));
+    REQUIRE_THROWS(tile_t::from_zxy("2/0/4"));
 }
 
 TEST_CASE("tile_t coordinates zoom=0", "[NoDB]")
