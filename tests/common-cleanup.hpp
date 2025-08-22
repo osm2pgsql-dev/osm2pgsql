@@ -26,7 +26,8 @@ namespace testing::cleanup {
 class file_t
 {
 public:
-    file_t(std::string const &filename, bool remove_on_construct = true)
+    explicit file_t(std::string const &filename,
+                    bool remove_on_construct = true)
     : m_filename(filename)
     {
         if (remove_on_construct) {
