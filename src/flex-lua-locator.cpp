@@ -45,7 +45,7 @@ TRAMPOLINE_WRAPPED_OBJECT(locator, first_intersecting)
 
 } // anonymous namespace
 
-connection_params_t lua_wrapper_locator::s_connection_params;
+connection_params_t lua_wrapper_locator_t::s_connection_params;
 
 int setup_flex_locator(lua_State *lua_state, std::vector<locator_t> *locators)
 {
@@ -65,8 +65,8 @@ int setup_flex_locator(lua_State *lua_state, std::vector<locator_t> *locators)
     return 1;
 }
 
-void lua_wrapper_locator::init(lua_State *lua_state,
-                               connection_params_t const &connection_params)
+void lua_wrapper_locator_t::init(lua_State *lua_state,
+                                 connection_params_t const &connection_params)
 {
     s_connection_params = connection_params;
 
@@ -80,7 +80,7 @@ void lua_wrapper_locator::init(lua_State *lua_state,
          {"first_intersecting", lua_trampoline_locator_first_intersecting}});
 }
 
-int lua_wrapper_locator::tostring() const
+int lua_wrapper_locator_t::tostring() const
 {
     std::string const str{fmt::format("osm2pgsql.Locator[name={},size={}]",
                                       self().name(), self().size())};
@@ -88,13 +88,13 @@ int lua_wrapper_locator::tostring() const
     return 1;
 }
 
-int lua_wrapper_locator::name() const noexcept
+int lua_wrapper_locator_t::name() const noexcept
 {
     luaX_pushstring(lua_state(), self().name());
     return 1;
 }
 
-int lua_wrapper_locator::add_bbox()
+int lua_wrapper_locator_t::add_bbox()
 {
     if (lua_gettop(lua_state()) < 5) {
         throw fmt_error("Need locator, name and 4 coordinates as arguments");
@@ -111,7 +111,7 @@ int lua_wrapper_locator::add_bbox()
     return 0;
 }
 
-int lua_wrapper_locator::add_from_db()
+int lua_wrapper_locator_t::add_from_db()
 {
     if (lua_gettop(lua_state()) < 1) {
         throw fmt_error("Need locator and SQL query arguments");
@@ -125,7 +125,7 @@ int lua_wrapper_locator::add_from_db()
     return 0;
 }
 
-int lua_wrapper_locator::all_intersecting()
+int lua_wrapper_locator_t::all_intersecting()
 {
     if (lua_gettop(lua_state()) < 1) {
         throw fmt_error("Need locator and geometry arguments");
@@ -149,7 +149,7 @@ int lua_wrapper_locator::all_intersecting()
     return 1;
 }
 
-int lua_wrapper_locator::first_intersecting()
+int lua_wrapper_locator_t::first_intersecting()
 {
     if (lua_gettop(lua_state()) < 1) {
         throw fmt_error("Need locator and geometry arguments");

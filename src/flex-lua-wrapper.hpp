@@ -23,7 +23,7 @@
             auto *flex =                                                       \
                 static_cast<output_flex_t *>(luaX_get_context(lua_state));     \
             auto &obj = flex->get_##obj_name##_from_param();                   \
-            return lua_wrapper_##obj_name{lua_state, &obj}.func_name();        \
+            return lua_wrapper_##obj_name##_t{lua_state, &obj}.func_name();    \
         } catch (std::exception const &e) {                                    \
             return luaL_error(lua_state, "Error in '" #func_name "': %s\n",    \
                               e.what());                                       \

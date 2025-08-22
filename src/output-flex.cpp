@@ -1306,9 +1306,9 @@ void output_flex_t::init_lua(std::string const &filename,
     luaX_add_table_func(lua_state(), "define_expire_output",
                         lua_trampoline_app_define_expire_output);
 
-    lua_wrapper_expire_output::init(lua_state());
-    lua_wrapper_locator::init(lua_state(), get_options()->connection_params);
-    lua_wrapper_table::init(lua_state());
+    lua_wrapper_expire_output_t::init(lua_state());
+    lua_wrapper_locator_t::init(lua_state(), get_options()->connection_params);
+    lua_wrapper_table_t::init(lua_state());
 
     // Clean up stack
     lua_settop(lua_state(), 0);

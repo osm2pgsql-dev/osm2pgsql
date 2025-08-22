@@ -454,7 +454,7 @@ int setup_flex_table(lua_State *lua_state, std::vector<flex_table_t> *tables,
 /**
  * Define the osm2pgsql.Table class/metatable.
  */
-void lua_wrapper_table::init(lua_State *lua_state)
+void lua_wrapper_table_t::init(lua_State *lua_state)
 {
     luaX_set_up_metatable(lua_state, "Table", OSM2PGSQL_TABLE_CLASS,
                           {{"__tostring", lua_trampoline_table_tostring},
@@ -465,7 +465,7 @@ void lua_wrapper_table::init(lua_State *lua_state)
                            {"columns", lua_trampoline_table_columns}});
 }
 
-int lua_wrapper_table::tostring() const
+int lua_wrapper_table_t::tostring() const
 {
     std::string const str{fmt::format("osm2pgsql.Table[{}]", self().name())};
     luaX_pushstring(lua_state(), str);
@@ -473,13 +473,13 @@ int lua_wrapper_table::tostring() const
     return 1;
 }
 
-int lua_wrapper_table::cluster() const noexcept
+int lua_wrapper_table_t::cluster() const noexcept
 {
     lua_pushboolean(lua_state(), self().cluster_by_geom());
     return 1;
 }
 
-int lua_wrapper_table::columns() const
+int lua_wrapper_table_t::columns() const
 {
     lua_createtable(lua_state(), (int)self().num_columns(), 0);
 
@@ -502,13 +502,13 @@ int lua_wrapper_table::columns() const
     return 1;
 }
 
-int lua_wrapper_table::name() const noexcept
+int lua_wrapper_table_t::name() const noexcept
 {
     luaX_pushstring(lua_state(), self().name());
     return 1;
 }
 
-int lua_wrapper_table::schema() const noexcept
+int lua_wrapper_table_t::schema() const noexcept
 {
     luaX_pushstring(lua_state(), self().schema());
     return 1;
