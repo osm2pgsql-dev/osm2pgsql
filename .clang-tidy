@@ -88,7 +88,7 @@ Checks: '*,-abseil-*,-altera-*,-android-cloexec-*,-boost-use-ranges,-bugprone-ch
 #    Readability is a matter of opinion here
 #
 #WarningsAsErrors: '*'
-HeaderFilterRegex: '\/src\/'
+HeaderFilterRegex: '\/(src|tests)\/'
 CheckOptions:
     - key: cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor
       value: true
