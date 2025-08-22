@@ -39,10 +39,10 @@ struct lua_State;
  * Helper class for wrapping C++ classes in Lua "classes".
  */
 template <typename WRAPPED>
-class lua_wrapper_base
+class lua_wrapper_base_t
 {
 public:
-    lua_wrapper_base(lua_State *lua_state, WRAPPED *wrapped)
+    lua_wrapper_base_t(lua_State *lua_state, WRAPPED *wrapped)
     : m_lua_state(lua_state), m_self(wrapped)
     {
         assert(lua_state);
@@ -59,6 +59,6 @@ private:
     lua_State *m_lua_state;
     WRAPPED *m_self;
 
-}; // class lua_wrapper_base;
+}; // class lua_wrapper_base_t
 
 #endif // OSM2PGSQL_FLEX_LUA_WRAPPER_HPP

@@ -27,14 +27,14 @@ static char const *const OSM2PGSQL_LOCATOR_CLASS = "osm2pgsql.Locator";
 
 int setup_flex_locator(lua_State *lua_state, std::vector<locator_t> *locators);
 
-class lua_wrapper_locator : public lua_wrapper_base<locator_t>
+class lua_wrapper_locator : public lua_wrapper_base_t<locator_t>
 {
 public:
     static void init(lua_State *lua_state,
                      connection_params_t const &connection_params);
 
     lua_wrapper_locator(lua_State *lua_state, locator_t *locator)
-    : lua_wrapper_base(lua_state, locator)
+    : lua_wrapper_base_t(lua_state, locator)
     {
     }
 

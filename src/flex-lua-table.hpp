@@ -26,13 +26,13 @@ int setup_flex_table(lua_State *lua_state, std::vector<flex_table_t> *tables,
                      std::string const &default_schema, bool updatable,
                      bool append_mode);
 
-class lua_wrapper_table : public lua_wrapper_base<flex_table_t>
+class lua_wrapper_table : public lua_wrapper_base_t<flex_table_t>
 {
 public:
     static void init(lua_State *lua_state);
 
     lua_wrapper_table(lua_State *lua_state, flex_table_t *table)
-    : lua_wrapper_base(lua_state, table)
+    : lua_wrapper_base_t(lua_state, table)
     {
     }
 
