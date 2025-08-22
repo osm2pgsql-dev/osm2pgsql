@@ -33,6 +33,8 @@ public:
         m_opt.output_dbschema = "public";
     }
 
+    // Implicit conversion is intended here for ease of use in lots of tests.
+    // NOLINTNEXTLINE(google-explicit-constructor,hicpp-explicit-conversions)
     operator options_t() const { return m_opt; }
 
     opt_t &slim()
