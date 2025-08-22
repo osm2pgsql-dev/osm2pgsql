@@ -23,7 +23,7 @@
             auto *flex =                                                       \
                 static_cast<output_flex_t *>(luaX_get_context(lua_state));     \
             auto &obj = flex->get_##obj_name##_from_param();                   \
-            return lua_wrapper_##obj_name{lua_state, &obj}.func_name();        \
+            return lua_wrapper_##obj_name##_t{lua_state, &obj}.func_name();    \
         } catch (std::exception const &e) {                                    \
             return luaL_error(lua_state, "Error in '" #func_name "': %s\n",    \
                               e.what());                                       \
@@ -39,10 +39,10 @@ struct lua_State;
  * Helper class for wrapping C++ classes in Lua "classes".
  */
 template <typename WRAPPED>
-class lua_wrapper_base
+class lua_wrapper_base_t
 {
 public:
-    lua_wrapper_base(lua_State *lua_state, WRAPPED *wrapped)
+    lua_wrapper_base_t(lua_State *lua_state, WRAPPED *wrapped)
     : m_lua_state(lua_state), m_self(wrapped)
     {
         assert(lua_state);
@@ -59,6 +59,6 @@ private:
     lua_State *m_lua_state;
     WRAPPED *m_self;
 
-}; // class lua_wrapper_base;
+}; // class lua_wrapper_base_t
 
 #endif // OSM2PGSQL_FLEX_LUA_WRAPPER_HPP

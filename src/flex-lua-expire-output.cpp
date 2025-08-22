@@ -97,7 +97,7 @@ int setup_flex_expire_output(lua_State *lua_state,
 /**
  * Define the osm2pgsql.ExpireOutput class/metatable.
  */
-void lua_wrapper_expire_output::init(lua_State *lua_state)
+void lua_wrapper_expire_output_t::init(lua_State *lua_state)
 {
     luaX_set_up_metatable(
         lua_state, "ExpireOutput", OSM2PGSQL_EXPIRE_OUTPUT_CLASS,
@@ -109,7 +109,7 @@ void lua_wrapper_expire_output::init(lua_State *lua_state)
          {"table", lua_trampoline_expire_output_table}});
 }
 
-int lua_wrapper_expire_output::tostring() const
+int lua_wrapper_expire_output_t::tostring() const
 {
     std::string const str =
         fmt::format("osm2pgsql.ExpireOutput[minzoom={},maxzoom={},filename={},"
@@ -121,31 +121,31 @@ int lua_wrapper_expire_output::tostring() const
     return 1;
 }
 
-int lua_wrapper_expire_output::filename() const noexcept
+int lua_wrapper_expire_output_t::filename() const noexcept
 {
     luaX_pushstring(lua_state(), self().filename());
     return 1;
 }
 
-int lua_wrapper_expire_output::maxzoom() const noexcept
+int lua_wrapper_expire_output_t::maxzoom() const noexcept
 {
     lua_pushinteger(lua_state(), self().maxzoom());
     return 1;
 }
 
-int lua_wrapper_expire_output::minzoom() const noexcept
+int lua_wrapper_expire_output_t::minzoom() const noexcept
 {
     lua_pushinteger(lua_state(), self().minzoom());
     return 1;
 }
 
-int lua_wrapper_expire_output::schema() const noexcept
+int lua_wrapper_expire_output_t::schema() const noexcept
 {
     luaX_pushstring(lua_state(), self().schema());
     return 1;
 }
 
-int lua_wrapper_expire_output::table() const noexcept
+int lua_wrapper_expire_output_t::table() const noexcept
 {
     luaX_pushstring(lua_state(), self().table());
     return 1;

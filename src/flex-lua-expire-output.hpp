@@ -25,14 +25,14 @@ int setup_flex_expire_output(lua_State *lua_state,
                              std::string const &default_schema,
                              std::vector<expire_output_t> *expire_outputs);
 
-class lua_wrapper_expire_output : public lua_wrapper_base<expire_output_t>
+class lua_wrapper_expire_output_t : public lua_wrapper_base_t<expire_output_t>
 {
 public:
     static void init(lua_State *lua_state);
 
-    lua_wrapper_expire_output(lua_State *lua_state,
-                              expire_output_t *expire_output)
-    : lua_wrapper_base(lua_state, expire_output)
+    lua_wrapper_expire_output_t(lua_State *lua_state,
+                                expire_output_t *expire_output)
+    : lua_wrapper_base_t(lua_state, expire_output)
     {
     }
 
@@ -43,6 +43,6 @@ public:
     int schema() const noexcept;
     int table() const noexcept;
 
-}; // class lua_wrapper_expire_output
+}; // class lua_wrapper_expire_output_t
 
 #endif // OSM2PGSQL_FLEX_LUA_EXPIRE_OUTPUT_HPP
