@@ -132,6 +132,9 @@ public:
     tempdb_t(tempdb_t &&) = delete;
     tempdb_t &operator=(tempdb_t const &&) = delete;
 
+    // We want to terminate the program if there is an exception thrown inside
+    // the destructor.
+    // NOLINTNEXTLINE(bugprone-exception-escape)
     ~tempdb_t() noexcept
     {
         if (m_db_name.empty()) {
