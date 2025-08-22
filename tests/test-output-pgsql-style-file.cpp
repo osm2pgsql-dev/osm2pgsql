@@ -66,7 +66,7 @@ TEST_CASE("Parse style file with single node entry")
     REQUIRE(ex.name == "access");
     REQUIRE(ex.type == "text");
     REQUIRE(ex.flags == column_flags::FLAG_LINEAR);
-    REQUIRE(ex.column_type() == ColumnType::TEXT);
+    REQUIRE(ex.column_type() == column_type_t::TEXT);
 }
 
 TEST_CASE("Parse style file with a few valid entries")
@@ -85,12 +85,12 @@ TEST_CASE("Parse style file with a few valid entries")
 
     for (auto const &node : nodes) {
         REQUIRE(node.type == "text");
-        REQUIRE(node.column_type() == ColumnType::TEXT);
+        REQUIRE(node.column_type() == column_type_t::TEXT);
     }
 
     for (auto const &way : ways) {
         REQUIRE(way.type == "text");
-        REQUIRE(way.column_type() == ColumnType::TEXT);
+        REQUIRE(way.column_type() == column_type_t::TEXT);
     }
 
     REQUIRE(nodes[0].flags == column_flags::FLAG_LINEAR);
@@ -123,14 +123,14 @@ TEST_CASE("Parse style file with missing fields")
 
     for (auto const &node : nodes) {
         REQUIRE(node.type == "text");
-        REQUIRE(node.column_type() == ColumnType::TEXT);
+        REQUIRE(node.column_type() == column_type_t::TEXT);
     }
     REQUIRE(nodes[0].flags == column_flags::FLAG_LINEAR);
     REQUIRE(nodes[1].flags == 0);
 
     for (auto const &way : ways) {
         REQUIRE(way.type == "text");
-        REQUIRE(way.column_type() == ColumnType::TEXT);
+        REQUIRE(way.column_type() == column_type_t::TEXT);
     }
     REQUIRE(ways[0].flags == column_flags::FLAG_POLYGON);
     REQUIRE(ways[1].flags == 0);
@@ -153,17 +153,17 @@ TEST_CASE("Parse style file with way_area")
     REQUIRE(nodes[0].type == "text");
     REQUIRE(nodes[0].flags ==
             (column_flags::FLAG_POLYGON | column_flags::FLAG_NOCOLUMN));
-    REQUIRE(nodes[0].column_type() == ColumnType::TEXT);
+    REQUIRE(nodes[0].column_type() == column_type_t::TEXT);
 
     REQUIRE(ways[0].type == "text");
     REQUIRE(ways[0].flags ==
             (column_flags::FLAG_POLYGON | column_flags::FLAG_NOCOLUMN));
-    REQUIRE(ways[0].column_type() == ColumnType::TEXT);
+    REQUIRE(ways[0].column_type() == column_type_t::TEXT);
 
     REQUIRE(ways[1].type == "real");
     REQUIRE(ways[1].flags == 0);
     REQUIRE(ways[1].column_type() ==
-            ColumnType::TEXT); // Special case for way_area!
+            column_type_t::TEXT); // Special case for way_area!
 }
 
 TEST_CASE("Parse style file with different data types")
@@ -183,30 +183,30 @@ TEST_CASE("Parse style file with different data types")
     REQUIRE(nodes[0].name == "name");
     REQUIRE(nodes[0].type == "text");
     REQUIRE(nodes[0].flags == column_flags::FLAG_LINEAR);
-    REQUIRE(nodes[0].column_type() == ColumnType::TEXT);
+    REQUIRE(nodes[0].column_type() == column_type_t::TEXT);
 
     REQUIRE(nodes[1].name == "population");
     REQUIRE(nodes[1].type == "integer");
     REQUIRE(nodes[1].flags ==
             (column_flags::FLAG_POLYGON | column_flags::FLAG_INT_TYPE));
-    REQUIRE(nodes[1].column_type() == ColumnType::INT);
+    REQUIRE(nodes[1].column_type() == column_type_t::INT);
 
     REQUIRE(ways[0].name == "name");
     REQUIRE(ways[0].type == "text");
     REQUIRE(ways[0].flags == column_flags::FLAG_LINEAR);
-    REQUIRE(ways[0].column_type() == ColumnType::TEXT);
+    REQUIRE(ways[0].column_type() == column_type_t::TEXT);
 
     REQUIRE(ways[1].name == "width");
     REQUIRE(ways[1].type == "real");
     REQUIRE(ways[1].flags ==
             (column_flags::FLAG_LINEAR | column_flags::FLAG_REAL_TYPE));
-    REQUIRE(ways[1].column_type() == ColumnType::REAL);
+    REQUIRE(ways[1].column_type() == column_type_t::REAL);
 
     REQUIRE(ways[2].name == "population");
     REQUIRE(ways[2].type == "integer");
     REQUIRE(ways[2].flags ==
             (column_flags::FLAG_POLYGON | column_flags::FLAG_INT_TYPE));
-    REQUIRE(ways[2].column_type() == ColumnType::INT);
+    REQUIRE(ways[2].column_type() == column_type_t::INT);
 }
 
 TEST_CASE("Parse style file with invalid data types")
@@ -225,5 +225,5 @@ TEST_CASE("Parse style file with invalid data types")
     REQUIRE(ways[0].name == "highway");
     REQUIRE(ways[0].type == "foo");
     REQUIRE(ways[0].flags == column_flags::FLAG_LINEAR);
-    REQUIRE(ways[0].column_type() == ColumnType::TEXT);
+    REQUIRE(ways[0].column_type() == column_type_t::TEXT);
 }

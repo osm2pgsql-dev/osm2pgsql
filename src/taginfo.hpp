@@ -14,24 +14,24 @@
 #include <string>
 #include <vector>
 
-enum class ColumnType : std::uint8_t
+enum class column_type_t : std::uint8_t
 {
     INT,
     REAL,
     TEXT
 };
 
-struct Column
+struct column_t
 {
-    Column(std::string n, std::string tn, ColumnType t)
+    column_t(std::string n, std::string tn, column_type_t t)
     : name(std::move(n)), type_name(std::move(tn)), type(t)
     {}
 
     std::string name;
     std::string type_name;
-    ColumnType type;
+    column_type_t type;
 };
 
-using columns_t = std::vector<Column>;
+using columns_t = std::vector<column_t>;
 
 #endif // OSM2PGSQL_TAGINFO_HPP

@@ -66,7 +66,7 @@ private:
                            std::vector<bool> const &used);
     void write_hstore_columns(taglist_t const &tags);
 
-    void escape_type(std::string const &value, ColumnType flags);
+    void escape_type(std::string const &value, column_type_t flags);
 
     void generate_copy_column_list();
 

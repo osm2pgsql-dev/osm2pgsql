@@ -36,15 +36,15 @@ enum column_flags : unsigned int // NOLINT(performance-enum-size)
 /* Table columns, representing key= tags */
 struct taginfo
 {
-    ColumnType column_type() const
+    column_type_t column_type() const
     {
         if (flags & FLAG_INT_TYPE) {
-            return ColumnType::INT;
+            return column_type_t::INT;
         }
         if (flags & FLAG_REAL_TYPE) {
-            return ColumnType::REAL;
+            return column_type_t::REAL;
         }
-        return ColumnType::TEXT;
+        return column_type_t::TEXT;
     }
 
     std::string name;
