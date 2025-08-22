@@ -15,24 +15,24 @@
 
 namespace util {
 
-void encode_hex(std::string const &in, std::string *out)
+void encode_hex(std::string const &input, std::string *output)
 {
-    assert(out);
+    assert(output);
 
     constexpr char const *const LOOKUP_HEX = "0123456789ABCDEF";
 
-    for (auto const c : in) {
+    for (auto const c : input) {
         unsigned int const num = static_cast<unsigned char>(c);
-        (*out) += LOOKUP_HEX[(num >> 4U) & 0xfU];
-        (*out) += LOOKUP_HEX[num & 0xfU];
+        (*output) += LOOKUP_HEX[(num >> 4U) & 0xfU];
+        (*output) += LOOKUP_HEX[num & 0xfU];
     }
 }
 
-std::string encode_hex(std::string const &in)
+std::string encode_hex(std::string const &input)
 {
     std::string result;
-    result.reserve(in.size() * 2);
-    encode_hex(in, &result);
+    result.reserve(input.size() * 2);
+    encode_hex(input, &result);
     return result;
 }
 

@@ -20,8 +20,8 @@ namespace {
 
 database_capabilities_t &capabilities() noexcept
 {
-    static database_capabilities_t c;
-    return c;
+    static database_capabilities_t capabilities;
+    return capabilities;
 }
 
 } // anonymous namespace

@@ -520,8 +520,8 @@ private:
                                      m_connection_params, generalizer, params,
                                      zoom, &tile_list, &mut, n);
             }
-            for (auto &t : threads) {
-                t.join();
+            for (auto &thread : threads) {
+                thread.join();
             }
             if (error_flag.test_and_set()) {
                 throw std::runtime_error{

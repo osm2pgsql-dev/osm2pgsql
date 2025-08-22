@@ -88,9 +88,9 @@ bool point_to_ring_distance_squared(point_t point, ring_t const &ring,
             inside = !inside;
         }
 
-        double const d =
+        double const dist_squared =
             point_to_segment_distance_squared(point, a, b, stretch);
-        *min_dist_squared = std::min(d, *min_dist_squared);
+        *min_dist_squared = std::min(dist_squared, *min_dist_squared);
     }
 
     return inside;
