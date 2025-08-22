@@ -16,7 +16,7 @@
 class c_tagtransform_t : public tagtransform_t
 {
 public:
-    c_tagtransform_t(options_t const *options, export_list exlist);
+    c_tagtransform_t(options_t const *options, export_list_t exlist);
 
     std::unique_ptr<tagtransform_t> clone() const override;
 
@@ -34,7 +34,7 @@ private:
                    bool *filter, unsigned int *flags);
 
     options_t const *m_options;
-    export_list m_export_list;
+    export_list_t m_export_list;
 };
 
 #endif // OSM2PGSQL_TAGTRANSFORM_C_HPP

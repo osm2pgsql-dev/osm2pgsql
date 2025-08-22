@@ -96,7 +96,8 @@ bool starts_with(char const *input, std::string const &test) noexcept
 
 } // anonymous namespace
 
-c_tagtransform_t::c_tagtransform_t(options_t const *options, export_list exlist)
+c_tagtransform_t::c_tagtransform_t(options_t const *options,
+                                   export_list_t exlist)
 : m_options(options), m_export_list(std::move(exlist))
 {}
 

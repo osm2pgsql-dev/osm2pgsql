@@ -14,7 +14,7 @@
 
 TEST_CASE("Parse default style file")
 {
-    export_list exlist;
+    export_list_t exlist;
     auto const enable_way_area =
         read_style_file(OSM2PGSQLDATA_DIR "default.style", &exlist);
 
@@ -26,7 +26,7 @@ TEST_CASE("Parse default style file")
 
 TEST_CASE("Parse empty style file")
 {
-    export_list exlist;
+    export_list_t exlist;
 
     REQUIRE_THROWS_WITH(
         read_style_file(OSM2PGSQLDATA_DIR "tests/style/empty.style", &exlist),
@@ -35,7 +35,7 @@ TEST_CASE("Parse empty style file")
 
 TEST_CASE("Parse style file with invalid osm type")
 {
-    export_list exlist;
+    export_list_t exlist;
 
     REQUIRE_THROWS(read_style_file(
         OSM2PGSQLDATA_DIR "tests/style/invalid-osm-type.style", &exlist));
@@ -43,7 +43,7 @@ TEST_CASE("Parse style file with invalid osm type")
 
 TEST_CASE("Parse style file with comments only")
 {
-    export_list exlist;
+    export_list_t exlist;
 
     REQUIRE_THROWS_WITH(
         read_style_file(OSM2PGSQLDATA_DIR "tests/style/comments.style",
@@ -53,7 +53,7 @@ TEST_CASE("Parse style file with comments only")
 
 TEST_CASE("Parse style file with single node entry")
 {
-    export_list exlist;
+    export_list_t exlist;
     auto const enable_way_area =
         read_style_file(OSM2PGSQLDATA_DIR "tests/style/node.style", &exlist);
 
@@ -71,7 +71,7 @@ TEST_CASE("Parse style file with single node entry")
 
 TEST_CASE("Parse style file with a few valid entries")
 {
-    export_list exlist;
+    export_list_t exlist;
     auto const enable_way_area =
         read_style_file(OSM2PGSQLDATA_DIR "tests/style/valid.style", &exlist);
 
@@ -109,7 +109,7 @@ TEST_CASE("Parse style file with a few valid entries")
 
 TEST_CASE("Parse style file with missing fields")
 {
-    export_list exlist;
+    export_list_t exlist;
     auto const enable_way_area =
         read_style_file(OSM2PGSQLDATA_DIR "tests/style/missing.style", &exlist);
 
@@ -138,7 +138,7 @@ TEST_CASE("Parse style file with missing fields")
 
 TEST_CASE("Parse style file with way_area")
 {
-    export_list exlist;
+    export_list_t exlist;
     auto const enable_way_area = read_style_file(
         OSM2PGSQLDATA_DIR "tests/style/way-area.style", &exlist);
 
@@ -168,7 +168,7 @@ TEST_CASE("Parse style file with way_area")
 
 TEST_CASE("Parse style file with different data types")
 {
-    export_list exlist;
+    export_list_t exlist;
     auto const enable_way_area = read_style_file(
         OSM2PGSQLDATA_DIR "tests/style/data-types.style", &exlist);
 
@@ -211,7 +211,7 @@ TEST_CASE("Parse style file with different data types")
 
 TEST_CASE("Parse style file with invalid data types")
 {
-    export_list exlist;
+    export_list_t exlist;
     auto const enable_way_area = read_style_file(
         OSM2PGSQLDATA_DIR "tests/style/invalid-data-type.style", &exlist);
 

@@ -19,8 +19,8 @@
 
 namespace {
 
-std::shared_ptr<reprojection> defproj{
-    reprojection::create_projection(PROJ_SPHERE_MERC)};
+std::shared_ptr<reprojection_t> defproj{
+    reprojection_t::create_projection(PROJ_SPHERE_MERC)};
 
 std::set<tile_t> generate_random(uint32_t zoom, size_t count)
 {
@@ -41,7 +41,7 @@ std::set<tile_t> generate_random(uint32_t zoom, size_t count)
     return set;
 }
 
-void expire_centroids(expire_tiles *et, std::set<tile_t> const &tiles)
+void expire_centroids(expire_tiles_t *et, std::set<tile_t> const &tiles)
 {
     for (auto const &t : tiles) {
         auto const p = t.center();
@@ -56,7 +56,7 @@ void check_quadkey(quadkey_t quadkey_expected, tile_t const &tile) noexcept
     CHECK(t == tile);
 }
 
-std::vector<tile_t> get_tiles_ordered(expire_tiles *et, uint32_t minzoom,
+std::vector<tile_t> get_tiles_ordered(expire_tiles_t *et, uint32_t minzoom,
                                       uint32_t maxzoom)
 {
     std::vector<tile_t> tiles;
@@ -67,7 +67,7 @@ std::vector<tile_t> get_tiles_ordered(expire_tiles *et, uint32_t minzoom,
     return tiles;
 }
 
-std::set<tile_t> get_tiles_unordered(expire_tiles *et, uint32_t zoom)
+std::set<tile_t> get_tiles_unordered(expire_tiles_t *et, uint32_t zoom)
 {
     std::set<tile_t> tiles;
 
@@ -91,7 +91,7 @@ TEST_CASE("simple expire z1", "[NoDB]")
 {
     uint32_t const minzoom = 1;
     uint32_t const maxzoom = 1;
-    expire_tiles et{minzoom, defproj};
+    expire_tiles_t et{minzoom, defproj};
 
     // as big a bbox as possible at the origin to dirty all four
     // quadrants of the world.
@@ -111,7 +111,7 @@ TEST_CASE("simple expire z3", "[NoDB]")
 {
     uint32_t const minzoom = 3;
     uint32_t const maxzoom = 3;
-    expire_tiles et{minzoom, defproj};
+    expire_tiles_t et{minzoom, defproj};
 
     // as big a bbox as possible at the origin to dirty all four
     // quadrants of the world.
@@ -131,7 +131,7 @@ TEST_CASE("simple expire z18", "[NoDB]")
 {
     uint32_t const minzoom = 18;
     uint32_t const maxzoom = 18;
-    expire_tiles et{minzoom, defproj};
+    expire_tiles_t et{minzoom, defproj};
 
     // dirty a smaller bbox this time, as at z18 the scale is
     // pretty small.
@@ -151,7 +151,7 @@ TEST_CASE("simple expire z10 bounds 0, 0", "[NoDB]")
 {
     uint32_t const minzoom = 10;
     uint32_t const maxzoom = 10;
-    expire_tiles et{minzoom, defproj};
+    expire_tiles_t et{minzoom, defproj};
 
     et.from_geometry(geom::point_t{-20037508.34, 20037508.34},
                      expire_config_t{});
@@ -167,7 +167,7 @@ TEST_CASE("simple expire z10 bounds 0, 1023", "[NoDB]")
 {
     uint32_t const minzoom = 10;
     uint32_t const maxzoom = 10;
-    expire_tiles et{minzoom, defproj};
+    expire_tiles_t et{minzoom, defproj};
 
     et.from_geometry(geom::point_t{-20037508.34, -20037508.34},
                      expire_config_t{});
@@ -183,7 +183,7 @@ TEST_CASE("simple expire z10 bounds 1023, 0", "[NoDB]")
 {
     uint32_t const minzoom = 10;
     uint32_t const maxzoom = 10;
-    expire_tiles et{minzoom, defproj};
+    expire_tiles_t et{minzoom, defproj};
 
     et.from_geometry(geom::point_t{20037508.34, 20037508.34},
                      expire_config_t{});
@@ -199,7 +199,7 @@ TEST_CASE("simple expire z10 bounds 1023, 1023", "[NoDB]")
 {
     uint32_t const minzoom = 10;
     uint32_t const maxzoom = 10;
-    expire_tiles et{minzoom, defproj};
+    expire_tiles_t et{minzoom, defproj};
 
     et.from_geometry(geom::point_t{20037508.34, -20037508.34},
                      expire_config_t{});
@@ -214,7 +214,7 @@ TEST_CASE("simple expire z10 bounds 1023, 1023", "[NoDB]")
 TEST_CASE("expire a simple line", "[NoDB]")
 {
     uint32_t const zoom = 18;
-    expire_tiles et{zoom, defproj};
+    expire_tiles_t et{zoom, defproj};
 
     et.from_geometry(
         geom::linestring_t{{1398725.0, 7493354.0}, {1399030.0, 7493354.0}},
@@ -232,7 +232,7 @@ TEST_CASE("expire a simple line", "[NoDB]")
 TEST_CASE("expire a line near the tile border", "[NoDB]")
 {
     uint32_t const zoom = 18;
-    expire_tiles et{zoom, defproj};
+    expire_tiles_t et{zoom, defproj};
 
     et.from_geometry(
         geom::linestring_t{{1398945.0, 7493267.0}, {1398960.0, 7493282.0}},
@@ -251,7 +251,7 @@ TEST_CASE("expire a line near the tile border", "[NoDB]")
 TEST_CASE("expire a u-shaped linestring", "[NoDB]")
 {
     uint32_t const zoom = 18;
-    expire_tiles et{zoom, defproj};
+    expire_tiles_t et{zoom, defproj};
 
     et.from_geometry(geom::linestring_t{{1398586.0, 7493485.0},
                                         {1398575.0, 7493347.0},
@@ -273,7 +273,7 @@ TEST_CASE("expire a u-shaped linestring", "[NoDB]")
 TEST_CASE("expire longer horizontal line", "[NoDB]")
 {
     uint32_t const zoom = 18;
-    expire_tiles et{zoom, defproj};
+    expire_tiles_t et{zoom, defproj};
 
     et.from_geometry(
         geom::linestring_t{{1397815.0, 7493800.0}, {1399316.0, 7493780.0}},
@@ -290,7 +290,7 @@ TEST_CASE("expire longer horizontal line", "[NoDB]")
 TEST_CASE("expire longer diagonal line", "[NoDB]")
 {
     uint32_t const zoom = 18;
-    expire_tiles et{zoom, defproj};
+    expire_tiles_t et{zoom, defproj};
 
     et.from_geometry(
         geom::linestring_t{{1398427.0, 7494118.0}, {1398869.0, 7493189.0}},
@@ -322,7 +322,7 @@ TEST_CASE("simple expire z17 and z18", "[NoDB]")
 {
     uint32_t const minzoom = 17;
     uint32_t const maxzoom = 18;
-    expire_tiles et{maxzoom, defproj};
+    expire_tiles_t et{maxzoom, defproj};
 
     // dirty a smaller bbox this time, as at z18 the scale is
     // pretty small.
@@ -350,7 +350,7 @@ TEST_CASE("simple expire z17 and z18 in one superior tile", "[NoDB]")
 {
     uint32_t const minzoom = 17;
     uint32_t const maxzoom = 18;
-    expire_tiles et{maxzoom, defproj};
+    expire_tiles_t et{maxzoom, defproj};
 
     et.from_bbox({-163, 140, -140, 164}, expire_config_t{});
     auto const tiles = get_tiles_ordered(&et, minzoom, maxzoom);
@@ -372,7 +372,7 @@ TEST_CASE("expire centroids", "[NoDB]")
     uint32_t const zoom = 18;
 
     for (int i = 0; i < 100; ++i) {
-        expire_tiles et{zoom, defproj};
+        expire_tiles_t et{zoom, defproj};
 
         auto check_set = generate_random(zoom, 100);
         expire_centroids(&et, check_set);
@@ -383,7 +383,7 @@ TEST_CASE("expire centroids", "[NoDB]")
 }
 
 /**
- * After expiring a random set of tiles in one expire_tiles object
+ * After expiring a random set of tiles in one expire_tiles_t object
  * and a different set in another, when they are merged together they are the
  * same as if the union of the sets of tiles had been expired.
  */
@@ -392,9 +392,9 @@ TEST_CASE("merge expire sets", "[NoDB]")
     uint32_t const zoom = 18;
 
     for (int i = 0; i < 100; ++i) {
-        expire_tiles et{zoom, defproj};
-        expire_tiles et1{zoom, defproj};
-        expire_tiles et2{zoom, defproj};
+        expire_tiles_t et{zoom, defproj};
+        expire_tiles_t et1{zoom, defproj};
+        expire_tiles_t et2{zoom, defproj};
 
         auto check_set1 = generate_random(zoom, 100);
         expire_centroids(&et1, check_set1);
@@ -423,9 +423,9 @@ TEST_CASE("merge identical expire sets", "[NoDB]")
     uint32_t const zoom = 18;
 
     for (int i = 0; i < 100; ++i) {
-        expire_tiles et{zoom, defproj};
-        expire_tiles et1{zoom, defproj};
-        expire_tiles et2{zoom, defproj};
+        expire_tiles_t et{zoom, defproj};
+        expire_tiles_t et1{zoom, defproj};
+        expire_tiles_t et2{zoom, defproj};
 
         auto const check_set = generate_random(zoom, 100);
         expire_centroids(&et1, check_set);
@@ -448,9 +448,9 @@ TEST_CASE("merge overlapping expire sets", "[NoDB]")
     uint32_t const zoom = 18;
 
     for (int i = 0; i < 100; ++i) {
-        expire_tiles et{zoom, defproj};
-        expire_tiles et1{zoom, defproj};
-        expire_tiles et2{zoom, defproj};
+        expire_tiles_t et{zoom, defproj};
+        expire_tiles_t et1{zoom, defproj};
+        expire_tiles_t et2{zoom, defproj};
 
         auto check_set1 = generate_random(zoom, 100);
         expire_centroids(&et1, check_set1);
@@ -482,10 +482,10 @@ TEST_CASE("merge with complete flag", "[NoDB]")
 {
     uint32_t const zoom = 18;
 
-    expire_tiles et{zoom, defproj};
-    expire_tiles et0{zoom, defproj};
-    expire_tiles et1{zoom, defproj};
-    expire_tiles et2{zoom, defproj};
+    expire_tiles_t et{zoom, defproj};
+    expire_tiles_t et0{zoom, defproj};
+    expire_tiles_t et1{zoom, defproj};
+    expire_tiles_t et2{zoom, defproj};
 
     // et1&2 are two halves of et0's box
     et0.from_bbox({-10000, -10000, 10000, 10000}, expire_config_t{});

@@ -291,7 +291,7 @@ private:
     // accessed while protected using the lua_mutex.
     std::shared_ptr<lua_State> m_lua_state;
 
-    std::vector<expire_tiles> m_expire_tiles;
+    std::vector<expire_tiles_t> m_expire_tiles;
 
     way_cache_t m_way_cache;
     relation_cache_t m_relation_cache;

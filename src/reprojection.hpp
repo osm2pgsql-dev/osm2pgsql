@@ -28,18 +28,18 @@
  * the coordinates into Spherical Mercator coordinates used in common web
  * tiles.
  */
-class reprojection
+class reprojection_t
 {
 public:
-    reprojection() = default;
+    reprojection_t() = default;
 
-    reprojection(reprojection const &) = delete;
-    reprojection &operator=(reprojection const &) = delete;
+    reprojection_t(reprojection_t const &) = delete;
+    reprojection_t &operator=(reprojection_t const &) = delete;
 
-    reprojection(reprojection &&) = delete;
-    reprojection &operator=(reprojection &&) = delete;
+    reprojection_t(reprojection_t &&) = delete;
+    reprojection_t &operator=(reprojection_t &&) = delete;
 
-    virtual ~reprojection() = default;
+    virtual ~reprojection_t() = default;
 
     /**
      * Reproject from the source projection lat/lon (EPSG:4326)
@@ -65,10 +65,10 @@ public:
      * The target projection (used in the PostGIS tables).
      * Controlled by the -l/-m/-E options.
      */
-    static std::shared_ptr<reprojection> create_projection(int srs);
+    static std::shared_ptr<reprojection_t> create_projection(int srs);
 
 private:
-    static std::shared_ptr<reprojection> make_generic_projection(int srs);
+    static std::shared_ptr<reprojection_t> make_generic_projection(int srs);
 };
 
 std::string get_proj_version();
@@ -77,6 +77,6 @@ std::string get_proj_version();
  * Get projection object for given srs. Objects are only created once and
  * then cached.
  */
-reprojection const &get_projection(int srs);
+reprojection_t const &get_projection(int srs);
 
 #endif // OSM2PGSQL_REPROJECTION_HPP

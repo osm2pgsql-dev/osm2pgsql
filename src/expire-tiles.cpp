@@ -26,13 +26,13 @@
 #include "tile.hpp"
 #include "wkb.hpp"
 
-expire_tiles::expire_tiles(uint32_t max_zoom,
-                           std::shared_ptr<reprojection> projection)
+expire_tiles_t::expire_tiles_t(uint32_t max_zoom,
+                               std::shared_ptr<reprojection_t> projection)
 : m_projection(std::move(projection)), m_maxzoom(max_zoom),
   m_map_width(static_cast<int>(1U << m_maxzoom))
 {}
 
-void expire_tiles::expire_tile(uint32_t x, uint32_t y)
+void expire_tiles_t::expire_tile(uint32_t x, uint32_t y)
 {
     // Only try to insert to tile into the set if the last inserted tile
     // is different from this tile.
@@ -43,7 +43,7 @@ void expire_tiles::expire_tile(uint32_t x, uint32_t y)
     }
 }
 
-uint32_t expire_tiles::normalise_tile_x_coord(int x) const
+uint32_t expire_tiles_t::normalise_tile_x_coord(int x) const
 {
     x %= m_map_width;
     if (x < 0) {
@@ -52,7 +52,7 @@ uint32_t expire_tiles::normalise_tile_x_coord(int x) const
     return static_cast<uint32_t>(x);
 }
 
-geom::point_t expire_tiles::coords_to_tile(geom::point_t const &point)
+geom::point_t expire_tiles_t::coords_to_tile(geom::point_t const &point)
 {
     auto const c = m_projection->target_to_tile(point);
 
@@ -60,29 +60,29 @@ geom::point_t expire_tiles::coords_to_tile(geom::point_t const &point)
             m_map_width * (0.5 - c.y() / tile_t::EARTH_CIRCUMFERENCE)};
 }
 
-void expire_tiles::from_point_list(geom::point_list_t const &list,
-                                   expire_config_t const &expire_config)
+void expire_tiles_t::from_point_list(geom::point_list_t const &list,
+                                     expire_config_t const &expire_config)
 {
     for_each_segment(list, [&](geom::point_t const &a, geom::point_t const &b) {
         from_line_segment(a, b, expire_config);
     });
 }
 
-void expire_tiles::from_geometry(geom::point_t const &geom,
-                                 expire_config_t const &expire_config)
+void expire_tiles_t::from_geometry(geom::point_t const &geom,
+                                   expire_config_t const &expire_config)
 {
     geom::box_t const box = geom::envelope(geom);
     from_bbox(box, expire_config);
 }
 
-void expire_tiles::from_geometry(geom::linestring_t const &geom,
-                                 expire_config_t const &expire_config)
+void expire_tiles_t::from_geometry(geom::linestring_t const &geom,
+                                   expire_config_t const &expire_config)
 {
     from_point_list(geom, expire_config);
 }
 
-void expire_tiles::from_polygon_boundary(geom::polygon_t const &geom,
-                                         expire_config_t const &expire_config)
+void expire_tiles_t::from_polygon_boundary(geom::polygon_t const &geom,
+                                           expire_config_t const &expire_config)
 {
     from_point_list(geom.outer(), expire_config);
     for (auto const &inner : geom.inners()) {
@@ -90,8 +90,8 @@ void expire_tiles::from_polygon_boundary(geom::polygon_t const &geom,
     }
 }
 
-void expire_tiles::from_geometry(geom::polygon_t const &geom,
-                                 expire_config_t const &expire_config)
+void expire_tiles_t::from_geometry(geom::polygon_t const &geom,
+                                   expire_config_t const &expire_config)
 {
     if (expire_config.mode == expire_mode::boundary_only) {
         from_polygon_boundary(geom, expire_config);
@@ -105,16 +105,16 @@ void expire_tiles::from_geometry(geom::polygon_t const &geom,
     }
 }
 
-void expire_tiles::from_polygon_boundary(geom::multipolygon_t const &geom,
-                                         expire_config_t const &expire_config)
+void expire_tiles_t::from_polygon_boundary(geom::multipolygon_t const &geom,
+                                           expire_config_t const &expire_config)
 {
     for (auto const &sgeom : geom) {
         from_polygon_boundary(sgeom, expire_config);
     }
 }
 
-void expire_tiles::from_geometry(geom::multipolygon_t const &geom,
-                                 expire_config_t const &expire_config)
+void expire_tiles_t::from_geometry(geom::multipolygon_t const &geom,
+                                   expire_config_t const &expire_config)
 {
     if (expire_config.mode == expire_mode::boundary_only) {
         from_polygon_boundary(geom, expire_config);
@@ -130,14 +130,14 @@ void expire_tiles::from_geometry(geom::multipolygon_t const &geom,
 
 // False positive: Apparently clang-tidy can not see through the visit()
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-void expire_tiles::from_geometry(geom::geometry_t const &geom,
-                                 expire_config_t const &expire_config)
+void expire_tiles_t::from_geometry(geom::geometry_t const &geom,
+                                   expire_config_t const &expire_config)
 {
     geom.visit([&](auto const &g) { from_geometry(g, expire_config); });
 }
 
-void expire_tiles::from_geometry_if_3857(geom::geometry_t const &geom,
-                                         expire_config_t const &expire_config)
+void expire_tiles_t::from_geometry_if_3857(geom::geometry_t const &geom,
+                                           expire_config_t const &expire_config)
 {
     if (geom.srid() == PROJ_SPHERE_MERC) {
         from_geometry(geom, expire_config);
@@ -147,9 +147,9 @@ void expire_tiles::from_geometry_if_3857(geom::geometry_t const &geom,
 /*
  * Expire tiles that a line crosses
  */
-void expire_tiles::from_line_segment(geom::point_t const &a,
-                                     geom::point_t const &b,
-                                     expire_config_t const &expire_config)
+void expire_tiles_t::from_line_segment(geom::point_t const &a,
+                                       geom::point_t const &b,
+                                       expire_config_t const &expire_config)
 {
     auto tilec_a = coords_to_tile(a);
     auto tilec_b = coords_to_tile(b);
@@ -207,8 +207,8 @@ void expire_tiles::from_line_segment(geom::point_t const &a,
 /*
  * Expire tiles within a bounding box
  */
-int expire_tiles::from_bbox(geom::box_t const &box,
-                            expire_config_t const &expire_config)
+int expire_tiles_t::from_bbox(geom::box_t const &box,
+                              expire_config_t const &expire_config)
 {
     if (!enabled()) {
         return 0;
@@ -257,7 +257,7 @@ int expire_tiles::from_bbox(geom::box_t const &box,
     return 0;
 }
 
-quadkey_list_t expire_tiles::get_tiles()
+quadkey_list_t expire_tiles_t::get_tiles()
 {
     quadkey_list_t tiles;
     tiles.reserve(m_dirty_tiles.size());
@@ -267,7 +267,7 @@ quadkey_list_t expire_tiles::get_tiles()
     return tiles;
 }
 
-void expire_tiles::merge_and_destroy(expire_tiles *other)
+void expire_tiles_t::merge_and_destroy(expire_tiles_t *other)
 {
     if (m_map_width != other->m_map_width) {
         throw fmt_error("Unable to merge tile expiry sets when "
@@ -285,7 +285,7 @@ void expire_tiles::merge_and_destroy(expire_tiles *other)
     }
 }
 
-int expire_from_result(expire_tiles *expire, pg_result_t const &result,
+int expire_from_result(expire_tiles_t *expire, pg_result_t const &result,
                        expire_config_t const &expire_config)
 {
     auto const num_tuples = result.num_tuples();

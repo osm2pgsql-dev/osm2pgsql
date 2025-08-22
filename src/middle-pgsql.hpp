@@ -30,7 +30,7 @@
 #include "pgsql.hpp"
 
 class node_locations_t;
-class node_persistent_cache;
+class node_persistent_cache_t;
 
 struct middle_pgsql_options
 {
@@ -53,7 +53,7 @@ public:
     middle_query_pgsql_t(
         connection_params_t const &connection_params,
         std::shared_ptr<node_locations_t> cache,
-        std::shared_ptr<node_persistent_cache> persistent_cache,
+        std::shared_ptr<node_persistent_cache_t> persistent_cache,
         middle_pgsql_options const &options);
 
     osmium::Location get_node_location(osmid_t id) const override;
@@ -81,7 +81,7 @@ private:
 
     pg_conn_t m_db_connection;
     std::shared_ptr<node_locations_t> m_cache;
-    std::shared_ptr<node_persistent_cache> m_persistent_cache;
+    std::shared_ptr<node_persistent_cache_t> m_persistent_cache;
 
     middle_pgsql_options m_store_options;
 };
@@ -110,11 +110,11 @@ struct middle_pgsql_t : public middle_t
     void get_way_parents(idlist_t const &changed_ways,
                          idlist_t *parent_relations) const override;
 
-    class table_desc
+    class table_desc_t
     {
     public:
-        table_desc() = default;
-        table_desc(options_t const &options, std::string_view name);
+        table_desc_t() = default;
+        table_desc_t(options_t const &options, std::string_view name);
 
         std::string const &schema() const noexcept
         {
@@ -180,12 +180,12 @@ private:
     void build_relation_member_indexes();
 
     std::map<osmium::user_id_type, std::string> m_users;
-    osmium::nwr_array<table_desc> m_tables;
+    osmium::nwr_array<table_desc_t> m_tables;
 
     options_t const *m_options;
 
     std::shared_ptr<node_locations_t> m_cache;
-    std::shared_ptr<node_persistent_cache> m_persistent_cache;
+    std::shared_ptr<node_persistent_cache_t> m_persistent_cache;
 
     pg_conn_t m_db_connection;
 

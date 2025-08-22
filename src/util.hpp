@@ -25,12 +25,12 @@
 
 namespace util {
 
-class double_to_buffer
+class double_to_buffer_t
 {
     static constexpr std::size_t BUFFER_SIZE = 32;
 
 public:
-    explicit double_to_buffer(double value)
+    explicit double_to_buffer_t(double value)
     {
         auto const result =
             fmt::format_to_n(m_buffer.begin(), BUFFER_SIZE - 1, "{:g}", value);

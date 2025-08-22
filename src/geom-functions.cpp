@@ -134,7 +134,7 @@ class transform_visitor_t
 {
 public:
     explicit transform_visitor_t(geometry_t *output,
-                                 reprojection const *reprojection)
+                                 reprojection_t const *reprojection)
     : m_output(output), m_reprojection(reprojection)
     {}
 
@@ -220,14 +220,14 @@ private:
     }
 
     geometry_t *m_output;
-    reprojection const *m_reprojection;
+    reprojection_t const *m_reprojection;
 
 }; // class transform_visitor_t
 
 } // anonymous namespace
 
 void transform(geometry_t *output, geometry_t const &input,
-               reprojection const &reprojection)
+               reprojection_t const &reprojection)
 {
     assert(input.srid() == PROJ_LATLONG);
 
@@ -236,7 +236,8 @@ void transform(geometry_t *output, geometry_t const &input,
     input.visit(transform_visitor_t{output, &reprojection});
 }
 
-geometry_t transform(geometry_t const &input, reprojection const &reprojection)
+geometry_t transform(geometry_t const &input,
+                     reprojection_t const &reprojection)
 {
     geometry_t output;
     transform(&output, input, reprojection);

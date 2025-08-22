@@ -79,7 +79,7 @@ middle_ram_t::middle_ram_t(std::shared_ptr<thread_pool_t> thread_pool,
     }
 
     if (!options->flat_node_file.empty()) {
-        m_persistent_cache = std::make_shared<node_persistent_cache>(
+        m_persistent_cache = std::make_shared<node_persistent_cache_t>(
             options->flat_node_file, !options->append, options->droptemp);
     }
 }

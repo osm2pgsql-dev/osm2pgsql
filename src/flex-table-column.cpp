@@ -203,7 +203,7 @@ void flex_table_column_t::add_expire(expire_config_t const &config)
 }
 
 void flex_table_column_t::do_expire(geom::geometry_t const &geom,
-                                    std::vector<expire_tiles> *expire) const
+                                    std::vector<expire_tiles_t> *expire) const
 {
     assert(expire);
     for (auto const &expire_config : m_expires) {

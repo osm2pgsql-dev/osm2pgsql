@@ -392,7 +392,8 @@ options_t parse_command_line(int argc, char *argv[])
     app.add_flag_function("-l,--latlong",
                           [&](int64_t) {
                               options.projection =
-                                  reprojection::create_projection(PROJ_LATLONG);
+                                  reprojection_t::create_projection(
+                                      PROJ_LATLONG);
                           })
         ->description("Store data in degrees of latitude & longitude (WGS84).")
         ->group("Pgsql output options");
@@ -401,7 +402,7 @@ options_t parse_command_line(int argc, char *argv[])
     app.add_flag_function("-m,--merc",
                           [&](int64_t) {
                               options.projection =
-                                  reprojection::create_projection(
+                                  reprojection_t::create_projection(
                                       PROJ_SPHERE_MERC);
                           })
         ->description("Store data in Web Mercator [EPSG 3857]. This is the "
@@ -425,7 +426,7 @@ options_t parse_command_line(int argc, char *argv[])
 #ifdef HAVE_GENERIC_PROJ
                                  [&](int arg) {
                                      options.projection =
-                                         reprojection::create_projection(arg);
+                                         reprojection_t::create_projection(arg);
 #else
            [&](int) {
                throw std::runtime_error{
@@ -665,7 +666,8 @@ options_t parse_command_line(int argc, char *argv[])
     }
 
     if (!options.projection) {
-        options.projection = reprojection::create_projection(PROJ_SPHERE_MERC);
+        options.projection =
+            reprojection_t::create_projection(PROJ_SPHERE_MERC);
     }
 
     check_options_expire(&options);

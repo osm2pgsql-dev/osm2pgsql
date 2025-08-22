@@ -132,7 +132,7 @@ public:
     }
 
     void do_expire(geom::geometry_t const &geom,
-                   std::vector<expire_tiles> *expire) const;
+                   std::vector<expire_tiles_t> *expire) const;
 
 private:
     std::vector<expire_config_t> m_expires;

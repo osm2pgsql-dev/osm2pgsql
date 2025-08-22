@@ -43,7 +43,7 @@ double const Y09 = 100191.66201561989; // lat 0.9
 TEST_CASE("Transform geom::null_t", "[NoDB]")
 {
     auto const &reprojection =
-        reprojection::create_projection(PROJ_SPHERE_MERC);
+        reprojection_t::create_projection(PROJ_SPHERE_MERC);
 
     geom::geometry_t const geom{};
     auto const result = geom::transform(geom, *reprojection);
@@ -54,7 +54,7 @@ TEST_CASE("Transform geom::null_t", "[NoDB]")
 TEST_CASE("Transform geom::point_t", "[NoDB]")
 {
     auto const &reprojection =
-        reprojection::create_projection(PROJ_SPHERE_MERC);
+        reprojection_t::create_projection(PROJ_SPHERE_MERC);
 
     geom::geometry_t const geom{geom::point_t{5.5, 4.4}};
     auto const result = geom::transform(geom, *reprojection);
@@ -68,7 +68,7 @@ TEST_CASE("Transform geom::point_t", "[NoDB]")
 TEST_CASE("Transform geom::linestring_t", "[NoDB]")
 {
     auto const &reprojection =
-        reprojection::create_projection(PROJ_SPHERE_MERC);
+        reprojection_t::create_projection(PROJ_SPHERE_MERC);
 
     geom::geometry_t const geom{geom::linestring_t{{5.5, 4.4}, {3.3, 2.2}}};
     auto const result = geom::transform(geom, *reprojection);
@@ -83,7 +83,7 @@ TEST_CASE("Transform geom::linestring_t", "[NoDB]")
 TEST_CASE("Transform geom::polygon_t", "[NoDB]")
 {
     auto const &reprojection =
-        reprojection::create_projection(PROJ_SPHERE_MERC);
+        reprojection_t::create_projection(PROJ_SPHERE_MERC);
 
     geom::geometry_t geom{
         geom::polygon_t{geom::ring_t{{0, 0}, {0, 1}, {1, 1}, {1, 0}, {0, 0}}}};
@@ -117,7 +117,7 @@ TEST_CASE("Transform geom::polygon_t", "[NoDB]")
 TEST_CASE("Transform geom::multipoint_t", "[NoDB]")
 {
     auto const &reprojection =
-        reprojection::create_projection(PROJ_SPHERE_MERC);
+        reprojection_t::create_projection(PROJ_SPHERE_MERC);
 
     geom::geometry_t geom{geom::multipoint_t{}};
     auto &mp = geom.get<geom::multipoint_t>();
@@ -137,7 +137,7 @@ TEST_CASE("Transform geom::multipoint_t", "[NoDB]")
 TEST_CASE("Transform geom::multilinestring_t", "[NoDB]")
 {
     auto const &reprojection =
-        reprojection::create_projection(PROJ_SPHERE_MERC);
+        reprojection_t::create_projection(PROJ_SPHERE_MERC);
 
     geom::geometry_t geom{geom::multilinestring_t{}};
     auto &ml = geom.get<geom::multilinestring_t>();
@@ -163,7 +163,7 @@ TEST_CASE("Transform geom::multilinestring_t", "[NoDB]")
 TEST_CASE("Transform geom::multipolygon_t", "[NoDB]")
 {
     auto const &reprojection =
-        reprojection::create_projection(PROJ_SPHERE_MERC);
+        reprojection_t::create_projection(PROJ_SPHERE_MERC);
 
     geom::geometry_t geom{geom::multipolygon_t{}};
     auto &mp = geom.get<geom::multipolygon_t>();
@@ -199,7 +199,7 @@ TEST_CASE("Transform geom::multipolygon_t", "[NoDB]")
 TEST_CASE("Transform geom::collection_t", "[NoDB]")
 {
     auto const &reprojection =
-        reprojection::create_projection(PROJ_SPHERE_MERC);
+        reprojection_t::create_projection(PROJ_SPHERE_MERC);
 
     geom::geometry_t geom{geom::collection_t{}};
     auto &c = geom.get<geom::collection_t>();

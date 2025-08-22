@@ -16,15 +16,16 @@ namespace {
 thread_local unsigned int this_thread_num = 0;
 
 /// Global logger singleton
-logger the_logger{};
+logger_t the_logger{};
 
 } // anonymous namespace
 
 /// Access the global logger singleton
-logger &get_logger() noexcept { return the_logger; }
+logger_t &get_logger() noexcept { return the_logger; }
 
-void logger::generate_common_prefix(std::string *str, fmt::text_style const &ts,
-                                    char const *prefix) const
+void logger_t::generate_common_prefix(std::string *str,
+                                      fmt::text_style const &ts,
+                                      char const *prefix) const
 {
     *str += fmt::format("{:%Y-%m-%d %H:%M:%S}  ",
                         fmt::localtime(std::time(nullptr)));
@@ -38,7 +39,7 @@ void logger::generate_common_prefix(std::string *str, fmt::text_style const &ts,
     }
 }
 
-void logger::init_thread(unsigned int num)
+void logger_t::init_thread(unsigned int num)
 {
     // Store thread number in thread local variable
     this_thread_num = num;

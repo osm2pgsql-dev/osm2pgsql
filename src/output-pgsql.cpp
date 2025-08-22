@@ -52,7 +52,7 @@ double calculate_area(bool reproject_area, geom::geometry_t const &geom4326,
                       geom::geometry_t const &projected_geom)
 {
     static thread_local auto const proj3857 =
-        reprojection::create_projection(PROJ_SPHERE_MERC);
+        reprojection_t::create_projection(PROJ_SPHERE_MERC);
 
     if (reproject_area) {
         auto const ogeom = geom::transform(geom4326, *proj3857);
@@ -105,7 +105,7 @@ void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
             if (m_enable_way_area) {
                 double const area = calculate_area(
                     get_options()->reproject_area, geom, projected_geom);
-                util::double_to_buffer const tmp{area};
+                util::double_to_buffer_t const tmp{area};
                 tags->set("way_area", tmp.c_str());
             }
             m_tables[t_poly]->write_row(way.id(), *tags, wkb);
@@ -316,7 +316,7 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
             if (m_enable_way_area) {
                 double const area = calculate_area(
                     get_options()->reproject_area, sgeom, projected_geom);
-                util::double_to_buffer const tmp{area};
+                util::double_to_buffer_t const tmp{area};
                 outtags.set("way_area", tmp.c_str());
             }
             m_tables[t_poly]->write_row(-rel.id(), outtags, wkb);
@@ -469,7 +469,7 @@ output_pgsql_t::output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
     log_debug("Using projection SRS {} ({})", options.projection->target_srs(),
               options.projection->target_desc());
 
-    export_list exlist;
+    export_list_t exlist;
 
     m_enable_way_area = read_style_file(options.style, &exlist);
 

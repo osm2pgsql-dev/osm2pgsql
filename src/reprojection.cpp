@@ -28,7 +28,7 @@ geom::point_t lonlat2merc(geom::point_t point)
     return {c.x, c.y};
 }
 
-class latlon_reprojection_t : public reprojection
+class latlon_reprojection_t : public reprojection_t
 {
 public:
     geom::point_t reproject(geom::point_t point) const noexcept override
@@ -46,7 +46,7 @@ public:
     char const *target_desc() const noexcept override { return "Latlong"; }
 };
 
-class merc_reprojection_t : public reprojection
+class merc_reprojection_t : public reprojection_t
 {
 public:
     geom::point_t reproject(geom::point_t coords) const noexcept override
@@ -69,7 +69,7 @@ public:
 
 } // anonymous namespace
 
-std::shared_ptr<reprojection> reprojection::create_projection(int srs)
+std::shared_ptr<reprojection_t> reprojection_t::create_projection(int srs)
 {
     switch (srs) {
     case PROJ_LATLONG:
@@ -87,11 +87,11 @@ std::shared_ptr<reprojection> reprojection::create_projection(int srs)
     return make_generic_projection(srs);
 }
 
-reprojection const &get_projection(int srs)
+reprojection_t const &get_projection(int srs)
 {
     // In almost all cases there will be only one or two projections used, so
     // storing them in a vector and doing linear search is totally fine.
-    static std::vector<std::shared_ptr<reprojection>> projections;
+    static std::vector<std::shared_ptr<reprojection_t>> projections;
 
     for (auto const &p : projections) {
         if (p->target_srs() == srs) {
@@ -99,5 +99,5 @@ reprojection const &get_projection(int srs)
         }
     }
 
-    return *projections.emplace_back(reprojection::create_projection(srs));
+    return *projections.emplace_back(reprojection_t::create_projection(srs));
 }

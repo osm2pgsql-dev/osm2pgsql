@@ -18,18 +18,19 @@
 
 #include "osmtypes.hpp"
 
-class node_persistent_cache
+class node_persistent_cache_t
 {
 public:
-    node_persistent_cache(std::string file_name, bool create_file,
-                          bool remove_file);
-    ~node_persistent_cache() noexcept;
+    node_persistent_cache_t(std::string file_name, bool create_file,
+                            bool remove_file);
+    ~node_persistent_cache_t() noexcept;
 
-    node_persistent_cache(node_persistent_cache const &) = delete;
-    node_persistent_cache &operator=(node_persistent_cache const &) = delete;
+    node_persistent_cache_t(node_persistent_cache_t const &) = delete;
+    node_persistent_cache_t &
+    operator=(node_persistent_cache_t const &) = delete;
 
-    node_persistent_cache(node_persistent_cache &&) = delete;
-    node_persistent_cache &operator=(node_persistent_cache &&) = delete;
+    node_persistent_cache_t(node_persistent_cache_t &&) = delete;
+    node_persistent_cache_t &operator=(node_persistent_cache_t &&) = delete;
 
     void set(osmid_t id, osmium::Location location);
     osmium::Location get(osmid_t id) const noexcept;
@@ -49,6 +50,6 @@ private:
     int m_fd = -1;
     std::unique_ptr<index_t> m_index;
     bool m_remove_file;
-};
+}; // class node_persistent_cache_t
 
 #endif // OSM2PGSQL_NODE_PERSISTENT_CACHE_HPP

@@ -278,7 +278,7 @@ class table_connection_t
 public:
     table_connection_t(flex_table_t *table,
                        std::shared_ptr<db_copy_thread_t> const &copy_thread)
-    : m_proj(reprojection::create_projection(table->srid())), m_table(table),
+    : m_proj(reprojection_t::create_projection(table->srid())), m_table(table),
       m_target(std::make_shared<db_target_descr_t>(
           table->schema(), table->name(), table->id_column_names(),
           table->build_sql_column_list())),
@@ -314,7 +314,7 @@ public:
 
     void delete_rows_with(osmium::item_type type, osmid_t id);
 
-    reprojection const &proj() const noexcept
+    reprojection_t const &proj() const noexcept
     {
         assert(m_proj);
         return *m_proj;
@@ -335,7 +335,7 @@ public:
     }
 
 private:
-    std::shared_ptr<reprojection> m_proj;
+    std::shared_ptr<reprojection_t> m_proj;
 
     flex_table_t *m_table;
 

@@ -124,23 +124,24 @@ private:
      * This class makes sure all pool threads will be joined when
      * the pool is destructed.
      */
-    class thread_joiner
+    class thread_joiner_t
     {
 
         std::vector<std::thread> *m_threads;
 
     public:
-        explicit thread_joiner(std::vector<std::thread> *threads)
+        explicit thread_joiner_t(std::vector<std::thread> *threads)
         : m_threads(threads)
-        {}
+        {
+        }
 
-        thread_joiner(thread_joiner const &) = delete;
-        thread_joiner &operator=(thread_joiner const &) = delete;
+        thread_joiner_t(thread_joiner_t const &) = delete;
+        thread_joiner_t &operator=(thread_joiner_t const &) = delete;
 
-        thread_joiner(thread_joiner &&) = delete;
-        thread_joiner &operator=(thread_joiner &&) = delete;
+        thread_joiner_t(thread_joiner_t &&) = delete;
+        thread_joiner_t &operator=(thread_joiner_t &&) = delete;
 
-        ~thread_joiner()
+        ~thread_joiner_t()
         {
             for (auto &thread : *m_threads) {
                 if (thread.joinable()) {
@@ -149,13 +150,13 @@ private:
             }
         }
 
-    }; // class thread_joiner
+    }; // class thread_joiner_t
 
     static constexpr std::size_t MAX_QUEUE_SIZE = 32;
 
     osmium::thread::Queue<osmium::thread::function_wrapper> m_work_queue;
     std::vector<std::thread> m_threads;
-    thread_joiner m_joiner;
+    thread_joiner_t m_joiner;
 
     /**
      * This is the function run in each worker thread. It will loop over

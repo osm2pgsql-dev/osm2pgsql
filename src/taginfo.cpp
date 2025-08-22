@@ -19,18 +19,18 @@
 
 #include <osmium/util/string.hpp>
 
-void export_list::add(osmium::item_type type, taginfo const &info)
+void export_list_t::add(osmium::item_type type, taginfo const &info)
 {
     m_export_list(type).push_back(info);
 }
 
 std::vector<taginfo> const &
-export_list::get(osmium::item_type type) const noexcept
+export_list_t::get(osmium::item_type type) const noexcept
 {
     return m_export_list(type);
 }
 
-columns_t export_list::normal_columns(osmium::item_type type) const
+columns_t export_list_t::normal_columns(osmium::item_type type) const
 {
     columns_t columns;
 
@@ -89,7 +89,7 @@ unsigned get_tag_type(std::string const &tag)
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
 // This is legacy code which will be removed anyway.
-bool read_style_file(std::string const &filename, export_list *exlist)
+bool read_style_file(std::string const &filename, export_list_t *exlist)
 {
     bool enable_way_area = true;
 

@@ -345,7 +345,8 @@ SELECT "{id_column}", "{width_column}", "{name_column}", "{geom_column}"
         geom::geometry_t const geom{std::move(edge.points), PROJ_SPHERE_MERC};
         auto const wkb = geom_to_ewkb(geom);
         connection().exec_prepared("ins", edge.id, edge.width,
-                                   get_name(names, edge.id), binary_param(wkb));
+                                   get_name(names, edge.id),
+                                   binary_param_t(wkb));
     }
     connection().exec("COMMIT");
     timer(m_timer_write).stop();

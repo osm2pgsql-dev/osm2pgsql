@@ -20,8 +20,8 @@
 
 namespace {
 
-std::shared_ptr<reprojection> defproj{
-    reprojection::create_projection(PROJ_SPHERE_MERC)};
+std::shared_ptr<reprojection_t> defproj{
+    reprojection_t::create_projection(PROJ_SPHERE_MERC)};
 
 // We are using zoom level 12 here, because at that level a tile is about
 // 10,000 units wide/high which gives us easy numbers to work with.
@@ -32,7 +32,7 @@ constexpr uint32_t ZOOM = 12;
 TEST_CASE("expire null geometry does nothing", "[NoDB]")
 {
     expire_config_t const expire_config;
-    expire_tiles et{ZOOM, defproj};
+    expire_tiles_t et{ZOOM, defproj};
 
     SECTION("geom")
     {
@@ -53,7 +53,7 @@ TEST_CASE("expire null geometry does nothing", "[NoDB]")
 TEST_CASE("expire point at tile boundary", "[NoDB]")
 {
     expire_config_t const expire_config;
-    expire_tiles et{ZOOM, defproj};
+    expire_tiles_t et{ZOOM, defproj};
 
     geom::point_t const pt{0.0, 0.0};
 
@@ -83,7 +83,7 @@ TEST_CASE("expire point at tile boundary", "[NoDB]")
 TEST_CASE("expire point away from tile boundary", "[NoDB]")
 {
     expire_config_t const expire_config;
-    expire_tiles et{ZOOM, defproj};
+    expire_tiles_t et{ZOOM, defproj};
 
     geom::point_t const pt{5000.0, 5000.0};
 
@@ -110,7 +110,7 @@ TEST_CASE("expire point away from tile boundary", "[NoDB]")
 TEST_CASE("expire linestring away from tile boundary", "[NoDB]")
 {
     expire_config_t const expire_config;
-    expire_tiles et{ZOOM, defproj};
+    expire_tiles_t et{ZOOM, defproj};
 
     SECTION("line")
     {
@@ -141,7 +141,7 @@ TEST_CASE("expire linestring away from tile boundary", "[NoDB]")
 TEST_CASE("expire linestring crossing tile boundary", "[NoDB]")
 {
     expire_config_t const expire_config;
-    expire_tiles et{ZOOM, defproj};
+    expire_tiles_t et{ZOOM, defproj};
 
     SECTION("line")
     {
@@ -173,7 +173,7 @@ TEST_CASE("expire linestring crossing tile boundary", "[NoDB]")
 TEST_CASE("expire small polygon", "[NoDB]")
 {
     expire_config_t const expire_config;
-    expire_tiles et{ZOOM, defproj};
+    expire_tiles_t et{ZOOM, defproj};
 
     SECTION("polygon")
     {
@@ -218,7 +218,7 @@ TEST_CASE("expire large polygon as bbox", "[NoDB]")
     expire_config_t expire_config;
     expire_config.mode = expire_mode::hybrid;
     expire_config.full_area_limit = 40000;
-    expire_tiles et{ZOOM, defproj};
+    expire_tiles_t et{ZOOM, defproj};
 
     SECTION("polygon")
     {
@@ -273,7 +273,7 @@ TEST_CASE("expire large polygon as boundary", "[NoDB]")
     expire_config_t expire_config;
     expire_config.mode = expire_mode::hybrid;
     expire_config.full_area_limit = 10000;
-    expire_tiles et{ZOOM, defproj};
+    expire_tiles_t et{ZOOM, defproj};
 
     SECTION("polygon")
     {
@@ -335,7 +335,7 @@ TEST_CASE("expire large polygon as boundary", "[NoDB]")
 TEST_CASE("expire multipoint geometry", "[NoDB]")
 {
     expire_config_t const expire_config;
-    expire_tiles et{ZOOM, defproj};
+    expire_tiles_t et{ZOOM, defproj};
 
     geom::point_t const p1{0.0, 0.0};
     geom::point_t const p2{15000.0, 15000.0};
@@ -379,7 +379,7 @@ TEST_CASE("expire multipoint geometry", "[NoDB]")
 TEST_CASE("expire multilinestring geometry", "[NoDB]")
 {
     expire_config_t const expire_config;
-    expire_tiles et{ZOOM, defproj};
+    expire_tiles_t et{ZOOM, defproj};
 
     geom::linestring_t l1{{2000.0, 2000.0}, {3000.0, 3000.0}};
     geom::linestring_t l2{{15000.0, 15000.0}, {25000.0, 15000.0}};
@@ -407,7 +407,7 @@ TEST_CASE("expire multipolygon geometry", "[NoDB]")
     expire_config_t expire_config;
     expire_config.mode = expire_mode::hybrid;
     expire_config.full_area_limit = 10000;
-    expire_tiles et{ZOOM, defproj};
+    expire_tiles_t et{ZOOM, defproj};
 
     geom::polygon_t p1{{{2000.0, 2000.0},
                         {2000.0, 3000.0},
@@ -460,7 +460,7 @@ TEST_CASE("expire multipolygon geometry", "[NoDB]")
 TEST_CASE("expire geometry collection", "[NoDB]")
 {
     expire_config_t const expire_config;
-    expire_tiles et{ZOOM, defproj};
+    expire_tiles_t et{ZOOM, defproj};
 
     geom::collection_t collection;
     collection.add_geometry(geom::geometry_t{geom::point_t{0.0, 0.0}});
@@ -483,7 +483,7 @@ TEST_CASE("expire geometry collection", "[NoDB]")
 TEST_CASE("expire works if in 3857", "[NoDB]")
 {
     expire_config_t const expire_config;
-    expire_tiles et{ZOOM, defproj};
+    expire_tiles_t et{ZOOM, defproj};
 
     geom::geometry_t geom{geom::point_t{0.0, 0.0}};
     geom.set_srid(PROJ_SPHERE_MERC);
@@ -496,7 +496,7 @@ TEST_CASE("expire works if in 3857", "[NoDB]")
 TEST_CASE("expire doesn't do anything if not in 3857", "[NoDB]")
 {
     expire_config_t const expire_config;
-    expire_tiles et{ZOOM, defproj};
+    expire_tiles_t et{ZOOM, defproj};
 
     geom::geometry_t geom{geom::point_t{0.0, 0.0}};
     geom.set_srid(1234);

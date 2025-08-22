@@ -778,7 +778,7 @@ int output_flex_t::table_insert()
             }
         }
         table_connection.increment_insert_counter();
-    } catch (not_null_exception const &e) {
+    } catch (not_null_exception_t const &e) {
         copy_mgr->rollback_line();
         lua_pushboolean(lua_state(), false);
         lua_pushliteral(lua_state(), "null value in not null column.");
@@ -1207,7 +1207,7 @@ output_flex_t::output_flex_t(output_flex_t const *other,
     for (auto &expire_output : *m_expire_outputs) {
         m_expire_tiles.emplace_back(
             expire_output.maxzoom(),
-            reprojection::create_projection(PROJ_SPHERE_MERC));
+            reprojection_t::create_projection(PROJ_SPHERE_MERC));
     }
 }
 
@@ -1273,7 +1273,7 @@ output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
     for (auto const &expire_output : *m_expire_outputs) {
         m_expire_tiles.emplace_back(
             expire_output.maxzoom(),
-            reprojection::create_projection(PROJ_SPHERE_MERC));
+            reprojection_t::create_projection(PROJ_SPHERE_MERC));
     }
 
     create_expire_tables(*m_expire_outputs, get_options()->connection_params);

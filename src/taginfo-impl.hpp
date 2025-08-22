@@ -53,7 +53,7 @@ struct taginfo
 };
 
 /* list of exported tags */
-class export_list
+class export_list_t
 {
 public:
     void add(osmium::item_type type, taginfo const &info);
@@ -76,6 +76,6 @@ unsigned parse_tag_flags(std::string const &flags, int lineno);
  * Returns `true` if the 'way_area' column should (implicitly) exist, or
  * `false` if it should be suppressed.
  */
-bool read_style_file(std::string const &filename, export_list *exlist);
+bool read_style_file(std::string const &filename, export_list_t *exlist);
 
 #endif // OSM2PGSQL_TAGINFO_IMPL_HPP

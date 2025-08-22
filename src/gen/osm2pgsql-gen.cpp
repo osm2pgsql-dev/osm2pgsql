@@ -224,7 +224,7 @@ void run_tile_gen(std::atomic_flag *error_flag,
                   std::mutex *mut, unsigned int n)
 {
     try {
-        logger::init_thread(n);
+        logger_t::init_thread(n);
 
         log_debug("Started generalizer thread for '{}'.",
                   master_generalizer->strategy());

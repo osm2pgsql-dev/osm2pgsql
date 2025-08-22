@@ -19,7 +19,7 @@
 
 std::unique_ptr<tagtransform_t>
 tagtransform_t::make_tagtransform(options_t const *options,
-                                  export_list const &exlist)
+                                  export_list_t const &exlist)
 {
     if (!options->tag_transform_script.empty()) {
         log_debug("Using lua based tag transformations with script {}",

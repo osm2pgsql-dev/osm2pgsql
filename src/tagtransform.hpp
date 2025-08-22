@@ -16,14 +16,14 @@
 
 #include "osmtypes.hpp"
 
-class export_list;
+class export_list_t;
 struct options_t;
 
 class tagtransform_t
 {
 public:
     static std::unique_ptr<tagtransform_t>
-    make_tagtransform(options_t const *options, export_list const &exlist);
+    make_tagtransform(options_t const *options, export_list_t const &exlist);
 
     tagtransform_t() noexcept = default;
 

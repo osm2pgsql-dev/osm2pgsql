@@ -105,7 +105,7 @@ TEST_CASE("exec_prepared with binary parameter should work")
     auto const conn = db.db().connect();
     conn.exec("PREPARE test(bytea) AS SELECT length($1)");
 
-    binary_param const p{"foo \x01 bar"};
+    binary_param_t const p{"foo \x01 bar"};
     auto const result = conn.exec_prepared("test", p);
     REQUIRE(result.status() == PGRES_TUPLES_OK);
     REQUIRE(result.num_fields() == 1);
@@ -120,7 +120,7 @@ TEST_CASE("exec_prepared with mixed parameter types should work")
               " SELECT length($1) + length($2) + $3");
 
     std::string const p1{"foo bar"};
-    binary_param const p2{"foo \x01 bar"};
+    binary_param_t const p2{"foo \x01 bar"};
     int const p3 = 17;
     auto const result = conn.exec_prepared("test", p1, p2, p3);
     REQUIRE(result.status() == PGRES_TUPLES_OK);
