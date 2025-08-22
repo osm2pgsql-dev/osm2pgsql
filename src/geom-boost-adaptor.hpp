@@ -35,6 +35,7 @@ namespace boost::geometry::traits {
 template <>
 struct point_order<::geom::ring_t>
 {
+    // NOLINTNEXTLINE(readability-identifier-naming) - not in our namespace
     static order_selector const value = counterclockwise;
 };
 
