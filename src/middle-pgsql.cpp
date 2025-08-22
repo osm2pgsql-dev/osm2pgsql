@@ -987,7 +987,7 @@ void middle_pgsql_t::after_relations()
 middle_query_pgsql_t::middle_query_pgsql_t(
     connection_params_t const &connection_params,
     std::shared_ptr<node_locations_t> cache,
-    std::shared_ptr<node_persistent_cache> persistent_cache,
+    std::shared_ptr<node_persistent_cache_t> persistent_cache,
     middle_pgsql_options const &options)
 : m_db_connection(connection_params, "middle.query"), m_cache(std::move(cache)),
   m_persistent_cache(std::move(persistent_cache)), m_store_options(options)
@@ -1249,7 +1249,7 @@ middle_pgsql_t::middle_pgsql_t(std::shared_ptr<thread_pool_t> thread_pool,
         m_store_options.untagged_nodes = true;
     } else {
         m_store_options.use_flat_node_file = true;
-        m_persistent_cache = std::make_shared<node_persistent_cache>(
+        m_persistent_cache = std::make_shared<node_persistent_cache_t>(
             options->flat_node_file, !options->append, options->droptemp);
     }
 

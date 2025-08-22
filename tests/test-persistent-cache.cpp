@@ -15,20 +15,20 @@
 
 namespace {
 
-void write_and_read_location(node_persistent_cache *cache, osmid_t id, double x,
-                             double y)
+void write_and_read_location(node_persistent_cache_t *cache, osmid_t id,
+                             double x, double y)
 {
     cache->set(id, osmium::Location{x, y});
     REQUIRE(osmium::Location(x, y) == cache->get(id));
 }
 
-void read_location(node_persistent_cache const &cache, osmid_t id, double x,
+void read_location(node_persistent_cache_t const &cache, osmid_t id, double x,
                    double y)
 {
     REQUIRE(osmium::Location(x, y) == cache.get(id));
 }
 
-void delete_location(node_persistent_cache *cache, osmid_t id)
+void delete_location(node_persistent_cache_t *cache, osmid_t id)
 {
     cache->set(id, osmium::Location{});
     REQUIRE(osmium::Location{} == cache->get(id));
@@ -43,7 +43,7 @@ TEST_CASE("Persistent cache", "[NoDB]")
 
     // create a new cache
     {
-        node_persistent_cache cache{flat_node_file, true, false};
+        node_persistent_cache_t cache{flat_node_file, true, false};
 
         // write in order
         write_and_read_location(&cache, 10, 10.01, -45.3);
@@ -66,7 +66,7 @@ TEST_CASE("Persistent cache", "[NoDB]")
 
     // reopen the cache
     {
-        node_persistent_cache cache{flat_node_file, false, false};
+        node_persistent_cache_t cache{flat_node_file, false, false};
 
         // read all previously written locations
         read_location(cache, 10, 10.01, -45.3);
@@ -115,5 +115,5 @@ TEST_CASE("Opening non-existent persistent cache should fail in append mode",
         "test_middle_flat.nonexistent.flat.nodes.bin";
     testing::cleanup::file_t const flatnode_cleaner{flat_node_file};
 
-    REQUIRE_THROWS(node_persistent_cache(flat_node_file, false, false));
+    REQUIRE_THROWS(node_persistent_cache_t(flat_node_file, false, false));
 }

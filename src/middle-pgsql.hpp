@@ -30,7 +30,7 @@
 #include "pgsql.hpp"
 
 class node_locations_t;
-class node_persistent_cache;
+class node_persistent_cache_t;
 
 struct middle_pgsql_options
 {
@@ -53,7 +53,7 @@ public:
     middle_query_pgsql_t(
         connection_params_t const &connection_params,
         std::shared_ptr<node_locations_t> cache,
-        std::shared_ptr<node_persistent_cache> persistent_cache,
+        std::shared_ptr<node_persistent_cache_t> persistent_cache,
         middle_pgsql_options const &options);
 
     osmium::Location get_node_location(osmid_t id) const override;
@@ -81,7 +81,7 @@ private:
 
     pg_conn_t m_db_connection;
     std::shared_ptr<node_locations_t> m_cache;
-    std::shared_ptr<node_persistent_cache> m_persistent_cache;
+    std::shared_ptr<node_persistent_cache_t> m_persistent_cache;
 
     middle_pgsql_options m_store_options;
 };
@@ -185,7 +185,7 @@ private:
     options_t const *m_options;
 
     std::shared_ptr<node_locations_t> m_cache;
-    std::shared_ptr<node_persistent_cache> m_persistent_cache;
+    std::shared_ptr<node_persistent_cache_t> m_persistent_cache;
 
     pg_conn_t m_db_connection;
 

@@ -17,19 +17,20 @@
 #include <system_error>
 #include <utility>
 
-void node_persistent_cache::set(osmid_t id, osmium::Location location)
+void node_persistent_cache_t::set(osmid_t id, osmium::Location location)
 {
     m_index->set(static_cast<osmium::unsigned_object_id_type>(id), location);
 }
 
-osmium::Location node_persistent_cache::get(osmid_t id) const noexcept
+osmium::Location node_persistent_cache_t::get(osmid_t id) const noexcept
 {
     return m_index->get_noexcept(
         static_cast<osmium::unsigned_object_id_type>(id));
 }
 
-node_persistent_cache::node_persistent_cache(std::string file_name,
-                                             bool create_file, bool remove_file)
+node_persistent_cache_t::node_persistent_cache_t(std::string file_name,
+                                                 bool create_file,
+                                                 bool remove_file)
 : m_file_name(std::move(file_name)), m_remove_file(remove_file)
 {
     assert(!m_file_name.empty());
@@ -65,7 +66,7 @@ node_persistent_cache::node_persistent_cache(std::string file_name,
     }
 }
 
-node_persistent_cache::~node_persistent_cache() noexcept
+node_persistent_cache_t::~node_persistent_cache_t() noexcept
 {
     m_index.reset();
     if (m_fd >= 0) {
