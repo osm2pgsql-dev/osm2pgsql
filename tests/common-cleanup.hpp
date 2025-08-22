@@ -34,6 +34,12 @@ public:
         }
     }
 
+    file_t(file_t const &) = delete;
+    file_t &operator=(file_t const &) = delete;
+
+    file_t(file_t &&) = delete;
+    file_t &operator=(file_t const &&) = delete;
+
     ~file_t() noexcept { delete_file(true); }
 
 private:
