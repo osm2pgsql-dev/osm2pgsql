@@ -286,6 +286,7 @@ if (CLANG_TIDY)
 
     add_custom_target(clang-tidy
         ${CLANG_TIDY}
+        --config-file ${CMAKE_SOURCE_DIR}/.clang-tidy
         -p ${CMAKE_BINARY_DIR}
         ${CT_CHECK_FILES}
     )
