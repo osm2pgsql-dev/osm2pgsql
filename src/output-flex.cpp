@@ -778,7 +778,7 @@ int output_flex_t::table_insert()
             }
         }
         table_connection.increment_insert_counter();
-    } catch (not_null_exception const &e) {
+    } catch (not_null_exception_t const &e) {
         copy_mgr->rollback_line();
         lua_pushboolean(lua_state(), false);
         lua_pushliteral(lua_state(), "null value in not null column.");

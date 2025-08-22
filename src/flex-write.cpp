@@ -39,7 +39,7 @@ void write_null(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
                 flex_table_column_t const &column)
 {
     if (column.not_null()) {
-        throw not_null_exception{
+        throw not_null_exception_t{
             fmt::format("Can not add NULL to column '{}' declared NOT NULL.",
                         column.name()),
             &column};

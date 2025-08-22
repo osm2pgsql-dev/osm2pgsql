@@ -20,10 +20,10 @@
 
 class expire_tiles_t;
 
-class not_null_exception : public std::runtime_error
+class not_null_exception_t : public std::runtime_error
 {
 public:
-    not_null_exception(std::string const &message,
+    not_null_exception_t(std::string const &message,
                        flex_table_column_t const *column)
     : std::runtime_error(message), m_column(column)
     {}
@@ -32,7 +32,7 @@ public:
 
 private:
     flex_table_column_t const *m_column;
-}; // class not_null_exception
+}; // class not_null_exception_t
 
 void flex_write_column(lua_State *lua_state,
                        db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
