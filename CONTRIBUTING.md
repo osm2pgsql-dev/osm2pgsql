@@ -137,10 +137,10 @@ database created by `pg_virtualenv`.
 
 Tests in the `tests/bdd` directory use [behave](https://github.com/behave/behave),
 a Python implementation of a behaviour-driven test framework. To run the
-BDD tests you need to have behave and psycopg2 installed. On Ubuntu run:
+BDD tests you need to have behave and psycopg installed. On Ubuntu run:
 
 ```sh
-sudo apt-get install python3-psycopg2 python3-behave
+sudo apt-get install python3-psycopg python3-behave
 ```
 
 There are ctest directives to run the tests. If you want to run the tests
