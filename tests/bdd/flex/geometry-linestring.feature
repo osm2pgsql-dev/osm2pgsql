@@ -32,9 +32,9 @@ Feature: Creating linestring features from way
         When running osm2pgsql flex
 
         Then table osm2pgsql_test_lines contains exactly
-            | way_id | ST_AsText(sgeom) | ST_AsText(ST_GeometryN(mgeom, 1)) | ST_AsText(ST_GeometryN(xgeom, 1)) |
-            | 20     | 1, 2, 3          | 1, 2, 3                           | 1, 2, 3                           |
-            | 21     | 4, 5             | 4, 5                              | 4, 5                              |
+            | way_id | ST_AsText(sgeom) | ST_AsText(mgeom) | ST_AsText(xgeom) |
+            | 20     | 1, 2, 3          | [ 1, 2, 3 ]      | [ 1, 2, 3 ]      |
+            | 21     | 4, 5             | [ 4, 5 ]         | [ 4, 5 ]         |
 
     Scenario:
         Given the grid

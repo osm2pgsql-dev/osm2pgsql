@@ -178,15 +178,43 @@ class DBValueGeometry:
         self.factory = factory
 
     def set_coordinates(self, value):
-        m = re.fullmatch(r'(POINT|LINESTRING|POLYGON)\((.*)\)', value)
+        if value.startswith('GEOMETRYCOLLECTION('):
+            geoms = []
+            remain = value[19:-1]
+            while remain:
+                _, value, remain = self._parse_simple_wkt(remain)
+                remain = remain[1:] # delete comma
+                geoms.append(value)
+            self.geom_type = 'GEOMETRYCOLLECTION'
+            self.value = geoms
+        else:
+            self.geom_type, self.value, remain = self._parse_simple_wkt(value)
+            if remain:
+                raise RuntimeError('trailing content for geometry: ' + value)
+
+    def _parse_simple_wkt(self, value):
+        m = re.fullmatch(r'(MULTI)?(POINT|LINESTRING|POLYGON)\(([^A-Z]*)\)(.*)', value)
         if not m:
             raise RuntimeError(f'Unparsable WKT: {value}')
-        if m[1] == 'POINT':
-            self.value = self._parse_wkt_coord(m[2])
-        elif m[1] == 'LINESTRING':
-            self.value = self._parse_wkt_line(m[2])
-        elif m[1] == 'POLYGON':
-            self.value = [self._parse_wkt_line(ln) for ln in m[2][1:-1].split('),(')]
+        geom_type = (m[1] or '') + m[2]
+        if m[1] == 'MULTI':
+            splitup = m[3][1:-1].split('),(')
+            if m[2] == 'POINT':
+                value = [self._parse_wkt_coord(c) for c in splitup]
+            elif m[2] == 'LINESTRING':
+                value = [self._parse_wkt_line(c) for c in splitup]
+            elif m[2] == 'POLYGON':
+                value = [[self._parse_wkt_line(ln) for ln in poly[1:-1].split('),(')]
+                         for poly in splitup]
+        else:
+            if m[2] == 'POINT':
+                value = self._parse_wkt_coord(m[3])
+            elif m[2] == 'LINESTRING':
+                value = self._parse_wkt_line(m[3])
+            elif m[2] == 'POLYGON':
+                value = [self._parse_wkt_line(ln) for ln in m[3][1:-1].split('),(')]
+
+        return geom_type, value, m[4]
 
     def _parse_wkt_coord(self, coord):
         return tuple(DBValueFloat(float(f.strip()), self.precision) for f in coord.split())
@@ -195,14 +223,51 @@ class DBValueGeometry:
         return [self._parse_wkt_coord(pt) for pt in coords.split(',')]
 
     def __eq__(self, other):
-        if other.find(',') < 0:
-            geom = self._parse_input_coord(other)
-        elif other.find('(') < 0:
-            geom = self._parse_input_line(other)
+        if other.startswith('[') and other.endswith(']'):
+            gtype = 'MULTI'
+            toparse = other[1:-1].split(';')
+        elif other.startswith('{') and other.endswith('}'):
+            gtype = 'GEOMETRYCOLLECTION'
+            toparse = other[1:-1].split(';')
         else:
-            geom = [self._parse_input_line(ln) for ln in other.strip()[1:-1].split('),(')]
+            gtype = None
+            toparse = [other]
 
-        return self.value == geom
+        geoms = []
+        for sub in toparse:
+            sub = sub.strip()
+            if sub.find(',') < 0:
+                geoms.append(self._parse_input_coord(sub))
+                if gtype is None:
+                    gtype = 'POINT'
+                elif gtype.startswith('MULTI'):
+                    if gtype == 'MULTI':
+                        gtype = 'MULTIPOINT'
+                    elif gtype != 'MULTIPOINT':
+                        raise RuntimeError('MULTI* geometry with different geometry types is not supported.')
+            elif sub.find('(') < 0:
+                geoms.append(self._parse_input_line(sub))
+                if gtype is None:
+                    gtype = 'LINESTRING'
+                elif gtype.startswith('MULTI'):
+                    if gtype == 'MULTI':
+                        gtype = 'MULTILINESTRING'
+                    elif gtype != 'MULTILINESTRING':
+                        raise RuntimeError('MULTI* geometry with different geometry types is not supported.')
+            else:
+                geoms.append([self._parse_input_line(ln) for ln in sub.strip()[1:-1].split('),(')])
+                if gtype is None:
+                    gtype = 'POLYGON'
+                elif gtype.startswith('MULTI'):
+                    if gtype == 'MULTI':
+                        gtype = 'MULTIPOLYGON'
+                    elif gtype != 'MULTIPOLYGON':
+                        raise RuntimeError('MULTI* geometry with different geometry types is not supported.')
+
+        if not gtype.startswith('MULTI') and gtype != 'GEOMETRYCOLLECTION':
+            geoms = geoms[0]
+
+        return gtype == self.geom_type and self.value == geoms
 
     def _parse_input_coord(self, other):
         coords = other.split(' ')
