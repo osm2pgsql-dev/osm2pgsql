@@ -384,7 +384,7 @@ jobs:
     runs-on: windows-2025
 
     env:
-      OSMURL: https://download.geofabrik.de/europe/monaco-latest.osm.bz2
+      OSMURL: https://download.geofabrik.de/europe/monaco-latest.osm.pbf
 
     steps:
       - uses: actions/checkout@v4
@@ -398,8 +398,9 @@ jobs:
           & $env:PGBIN\psql -d osm -c "CREATE EXTENSION hstore; CREATE EXTENSION postgis;"
         shell: pwsh
       - name: Get test data
-        run: (new-object net.webclient).DownloadFile($env:OSMURL, "testfile.osm.bz2")
+        run: Invoke-WebRequest -Uri $env:OSMURL -OutFile "testfile.osm.pbf"
+        shell: pwsh
       - name: Execute osm2pgsql
-        run: ./osm2pgsql-bin/osm2pgsql --slim -d osm testfile.osm.bz2
+        run: ./osm2pgsql-bin/osm2pgsql --slim -d osm testfile.osm.pbf
         shell: bash
 
