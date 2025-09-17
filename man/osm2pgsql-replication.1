@@ -1,112 +1,72 @@
-.TH "OSM2PGSQL-REPLICATION" "1" "2.1.1" "" ""
+.TH "OSM2PGSQL-REPLICATION" "1" "2.2.0" "" ""
 .SH NAME
-osm2pgsql-replication \- osm2pgsql database updater
+osm2pgsql\-replication \- osm2pgsql database updater
 .SH SYNOPSIS
-.B osm2pgsql-replication
+.B osm2pgsql\-replication
 [-h] {init,update,status} ...
 .SH DESCRIPTION
-Update an osm2pgsql database with changes from a OSM replication server.
-.br
+Update an osm2pgsql database with changes from an OSM replication server.
 
-.br
 This tool initialises the updating process by looking at the import file
-.br
 or the newest object in the database. The state is then saved in a table
-.br
 in the database. Subsequent runs download newly available data and apply
-.br
 it to the database.
-.br
 
-.br
 See the help of the \(cqinit\(cq and \(cqupdate\(cq command for more information on
-.br
-how to use osm2pgsql\-replication.
-.SH OPTIONS
+how to use osm2pgsql-replication.
 
+.SH
+AVAILABLE COMMANDS
+.TP
+\fBosm2pgsql\-replication\fR \fI\,init\/\fR
+Initialise the replication process.
+.TP
+\fBosm2pgsql\-replication\fR \fI\,update\/\fR
+Download newly available data and apply it to the database.
+.TP
+\fBosm2pgsql\-replication\fR \fI\,status\/\fR
+Print information about the current replication status, optionally as JSON.
 
-.SS
-\fBSub-commands\fR
-.TP
-\fBosm2pgsql-replication\fR \fI\,init\/\fR
-    Initialise the replication process.
-.TP
-\fBosm2pgsql-replication\fR \fI\,update\/\fR
-    Download newly available data and apply it to the database.
-.TP
-\fBosm2pgsql-replication\fR \fI\,status\/\fR
-    Print information about the current replication status, optionally as JSON.
-.SH OPTIONS 'osm2pgsql-replication init'
-usage: osm2pgsql-replication init [-h] [-q] [-v] [-d DB] [-U NAME] [-H HOST]
-                                  [-P PORT] [-p PREFIX]
-                                  [--middle-schema SCHEMA] [--schema SCHEMA]
-                                  [--osm-file FILE | --server URL]
-                                  [--start-at TIME]
+.SH COMMAND \fI\,'osm2pgsql\-replication init'\/\fR
+usage: osm2pgsql\-replication init [\-h] [\-q] [\-v] [\-d DB] [\-U NAME] [\-H HOST]
+                                  [\-P PORT] [\-p PREFIX]
+                                  [\-\-middle\-schema SCHEMA] [\-\-schema SCHEMA]
+                                  [\-\-osm\-file FILE | \-\-server URL]
+                                  [\-\-start\-at TIME]
 
 Initialise the replication process.
-.br
 
-.br
 This function sets the replication service to use and determines from
-.br
 which date to apply updates. You must call this function at least once
-.br
 to set up the replication process. It can safely be called again later
-.br
 to change the replication servers or to roll back the update process and
-.br
 reapply updates.
-.br
 
-.br
 There are different methods available for initialisation. When no
-.br
 additional parameters are given, the data is initialised from the data
-.br
 in the database. If the data was imported from a file with replication
-.br
 information and the properties table is available (for osm2pgsql >= 1.9)
-.br
 then the replication from the file is used. Otherwise the minutely
-.br
 update service from openstreetmap.org is used as the default replication
-.br
 service. The start date is either taken from the database timestamp
-.br
 (for osm2pgsql >= 1.9) or determined from the newest way in the database
-.br
 by querying the OSM API about its creation date.
-.br
 
-.br
 The replication service can be changed with the \(cq\-\-server\(cq parameter.
-.br
 To use a different start date, add \(cq\-\-start\-at\(cq with an absolute
-.br
 ISO timestamp (e.g. 2007\-08\-20T12:21:53Z). When the program determines the
-.br
 start date from the database timestamp or way creation date, then it
-.br
 subtracts another 3 hours by default to ensure that all new changes are
-.br
 available. To change this rollback period, use \(cq\-\-start\-at\(cq with the
-.br
 number of minutes to rollback. This rollback mode can also be used to
-.br
 force initialisation to use the database date and ignore the date
-.br
 from the replication information in the file.
-.br
 
-.br
 The initialisation process can also use replication information from
-.br
 an OSM file directly and ignore all other date information.
-.br
 Use the command \(cqosm2pgsql-replication \-\-osm\-file <filename>\(cq for this.
 
-
-
+.SH DEFAULT ARGUMENTS \fI\,'osm2pgsql\-replication init'\/\fR
 .TP
 \fB\-q\fR, \fB\-\-quiet\fR
 Print only error messages
@@ -115,101 +75,88 @@ Print only error messages
 \fB\-v\fR, \fB\-\-verbose\fR
 Increase verboseness of output
 
+.SH DATABASE ARGUMENTS \fI\,'osm2pgsql\-replication init'\/\fR
+The following arguments can be used to set the connection parameters to the
+osm2pgsql database. You may also use libpq environment variables to set
+connection parameters, see https://www.postgresql.org/docs/current/libpq\-envars.html.
+If your database connection requires a password, use a pgpass file,
+see https://www.postgresql.org/docs/current/libpq\-pgpass.html.
+
 .TP
-\fB\-d\fR DB, \fB\-\-database\fR DB
+\fB\-d\fR \fI\,DB\/\fR, \fB\-\-database\fR \fI\,DB\/\fR
 Name of PostgreSQL database to connect to or conninfo string
 
 .TP
-\fB\-U\fR NAME, \fB\-\-username\fR NAME
+\fB\-U\fR \fI\,NAME\/\fR, \fB\-\-username\fR \fI\,NAME\/\fR, \fB\-\-user\fR \fI\,NAME\/\fR
 PostgreSQL user name
 
 .TP
-\fB\-H\fR HOST, \fB\-\-host\fR HOST
+\fB\-H\fR \fI\,HOST\/\fR, \fB\-\-host\fR \fI\,HOST\/\fR
 Database server host name or socket location
 
 .TP
-\fB\-P\fR PORT, \fB\-\-port\fR PORT
+\fB\-P\fR \fI\,PORT\/\fR, \fB\-\-port\fR \fI\,PORT\/\fR
 Database server port
 
 .TP
-\fB\-p\fR PREFIX, \fB\-\-prefix\fR PREFIX
+\fB\-p\fR \fI\,PREFIX\/\fR, \fB\-\-prefix\fR \fI\,PREFIX\/\fR
 Prefix for table names (default 'planet_osm')
 
 .TP
-\fB\-\-middle\-schema\fR SCHEMA
+\fB\-\-middle\-schema\fR \fI\,SCHEMA\/\fR
 Name of the schema to store the table for the replication state in
 
 .TP
-\fB\-\-schema\fR SCHEMA
+\fB\-\-schema\fR \fI\,SCHEMA\/\fR
 Name of the schema for the database
 
+.SH REPLICATION SOURCE ARGUMENTS \fI\,'osm2pgsql\-replication init'\/\fR
 .TP
-\fB\-\-osm\-file\fR FILE
+\fB\-\-osm\-file\fR \fI\,FILE\/\fR
 Get replication information from the given file.
 
 .TP
-\fB\-\-server\fR URL
+\fB\-\-server\fR \fI\,URL\/\fR
 Use replication server at the given URL
 
 .TP
-\fB\-\-start\-at\fR TIME
+\fB\-\-start\-at\fR \fI\,TIME\/\fR
 Time when to start replication. When an absolute timestamp (in ISO format) is given, it will be used. If a number is given, then replication starts the number of minutes before the known date of the database.
 
-.SH OPTIONS 'osm2pgsql-replication update'
-usage: osm2pgsql-replication update update [options] [-- param [param ...]]
+.SH COMMAND \fI\,'osm2pgsql\-replication update'\/\fR
+usage: osm2pgsql\-replication update update [options] [\-\- param [param ...]]
 
 Download newly available data and apply it to the database.
-.br
 
-.br
 The data is downloaded in chunks of \(cq\-\-max\-diff\-size\(cq MB. Each chunk is
-.br
 saved in a temporary file and imported with osm2pgsql from there. The
-.br
 temporary file is normally deleted afterwards unless you state an explicit
-.br
 location with \(cq\-\-diff\-file\(cq. Once the database is up to date with the
-.br
 replication source, the update process exits with 0.
-.br
 
-.br
 Any additional arguments to osm2pgsql need to be given after \(cq\-\-\(cq. Database
-.br
 and the prefix parameter are handed through to osm2pgsql. They do not need
-.br
 to be repeated. \(cq\-\-append\(cq and \(cq\-\-slim\(cq will always be added as well.
-.br
 
-.br
 Use the \(cq\-\-post\-processing\(cq parameter to execute a script after osm2pgsql has
-.br
 run successfully. If the updates consists of multiple runs because the
-.br
 maximum size of downloaded data was reached, then the script is executed
-.br
 each time that osm2pgsql has run. When the post\-processing fails, then
-.br
 the entire update run is considered a failure and the replication information
-.br
 is not updated. That means that when 'update' is run the next time it will
-.br
 recommence with downloading the diffs again and reapplying them to the
-.br
 database. This is usually safe. The script receives two parameters:
-.br
 the sequence ID and timestamp of the last successful run. The timestamp
-.br
 may be missing in the rare case that the replication service stops responding
-.br
 after the updates have been downloaded.
 
 .TP
 \fBparam\fR
 Extra parameters to hand in to osm2pgsql.
 
+.SH OPTIONS \fI\,'osm2pgsql\-replication update'\/\fR
 .TP
-\fB\-\-diff\-file\fR FILE
+\fB\-\-diff\-file\fR \fI\,FILE\/\fR
 File to save changes before they are applied to osm2pgsql.
 
 .TP
@@ -225,9 +172,10 @@ Path to osm2pgsql command
 Run updates only once, even when more data is available.
 
 .TP
-\fB\-\-post\-processing\fR SCRIPT
+\fB\-\-post\-processing\fR \fI\,SCRIPT\/\fR
 Post\-processing script to run after each execution of osm2pgsql.
 
+.SH DEFAULT ARGUMENTS \fI\,'osm2pgsql\-replication update'\/\fR
 .TP
 \fB\-q\fR, \fB\-\-quiet\fR
 Print only error messages
@@ -236,122 +184,92 @@ Print only error messages
 \fB\-v\fR, \fB\-\-verbose\fR
 Increase verboseness of output
 
+.SH DATABASE ARGUMENTS \fI\,'osm2pgsql\-replication update'\/\fR
+The following arguments can be used to set the connection parameters to the
+osm2pgsql database. You may also use libpq environment variables to set
+connection parameters, see https://www.postgresql.org/docs/current/libpq\-envars.html.
+If your database connection requires a password, use a pgpass file,
+see https://www.postgresql.org/docs/current/libpq\-pgpass.html.
+
 .TP
-\fB\-d\fR DB, \fB\-\-database\fR DB
+\fB\-d\fR \fI\,DB\/\fR, \fB\-\-database\fR \fI\,DB\/\fR
 Name of PostgreSQL database to connect to or conninfo string
 
 .TP
-\fB\-U\fR NAME, \fB\-\-username\fR NAME
+\fB\-U\fR \fI\,NAME\/\fR, \fB\-\-username\fR \fI\,NAME\/\fR, \fB\-\-user\fR \fI\,NAME\/\fR
 PostgreSQL user name
 
 .TP
-\fB\-H\fR HOST, \fB\-\-host\fR HOST
+\fB\-H\fR \fI\,HOST\/\fR, \fB\-\-host\fR \fI\,HOST\/\fR
 Database server host name or socket location
 
 .TP
-\fB\-P\fR PORT, \fB\-\-port\fR PORT
+\fB\-P\fR \fI\,PORT\/\fR, \fB\-\-port\fR \fI\,PORT\/\fR
 Database server port
 
 .TP
-\fB\-p\fR PREFIX, \fB\-\-prefix\fR PREFIX
+\fB\-p\fR \fI\,PREFIX\/\fR, \fB\-\-prefix\fR \fI\,PREFIX\/\fR
 Prefix for table names (default 'planet_osm')
 
 .TP
-\fB\-\-middle\-schema\fR SCHEMA
+\fB\-\-middle\-schema\fR \fI\,SCHEMA\/\fR
 Name of the schema to store the table for the replication state in
 
 .TP
-\fB\-\-schema\fR SCHEMA
+\fB\-\-schema\fR \fI\,SCHEMA\/\fR
 Name of the schema for the database
 
-
-.SH OPTIONS 'osm2pgsql-replication status'
-usage: osm2pgsql-replication status [-h] [-q] [-v] [-d DB] [-U NAME] [-H HOST]
-                                    [-P PORT] [-p PREFIX]
-                                    [--middle-schema SCHEMA] [--schema SCHEMA]
-                                    [--json]
+.SH COMMAND \fI\,'osm2pgsql\-replication status'\/\fR
+usage: osm2pgsql\-replication status [\-h] [\-q] [\-v] [\-d DB] [\-U NAME] [\-H HOST]
+                                    [\-P PORT] [\-p PREFIX]
+                                    [\-\-middle\-schema SCHEMA] [\-\-schema SCHEMA]
+                                    [\-\-json]
 
 Print information about the current replication status, optionally as JSON.
-.br
 
-.br
 Sample output:
-.br
 
-.br
     2021\-08\-17 15:20:28 [INFO]: Using replication service 'https://planet.openstreetmap.org/replication/minute', which is at sequence 4675115 ( 2021\-08\-17T13:19:43Z )
-.br
     2021\-08\-17 15:20:28 [INFO]: Replication server's most recent data is <1 minute old
-.br
     2021\-08\-17 15:20:28 [INFO]: Local database is 8288 sequences behind the server, i.e. 5 day(s) 20 hour(s) 58 minute(s)
-.br
     2021\-08\-17 15:20:28 [INFO]: Local database's most recent data is 5 day(s) 20 hour(s) 59 minute(s) old
-.br
 
-.br
 
-.br
 With the \(cq\-\-json\(cq option, the status is printed as a json object.
-.br
 
-.br
     {
-.br
       "server": {
-.br
         "base_url": "https://planet.openstreetmap.org/replication/minute",
-.br
         "sequence": 4675116,
-.br
         "timestamp": "2021\-08\-17T13:20:43Z",
-.br
         "age_sec": 27
-.br
       },
-.br
       "local": {
-.br
         "sequence": 4666827,
-.br
         "timestamp": "2021\-08\-11T16:21:09Z",
-.br
         "age_sec": 507601
-.br
       },
-.br
       "status": 0
-.br
     }
-.br
 
-.br
 
-.br
 \(cqstatus\(cq is 0 if there were no problems getting the status. 1 & 2 for
-.br
-improperly set up replication. 3 for network issues. If status ≠ 0, then
-.br
-the \(cqerror\(cq key is an error message (as string). \(cqstatus\(cq is used as the
-.br
-exit code.
-.br
+improperly set up replication. 3 for network issues. If status is greater 0,
+then the \(cqerror\(cq key is an error message (as string). \(cqstatus\(cq is used as
+the exit code.
 
-.br
-\(cqserver\(cq is the replication server's current status. \(cqsequence\(cq is it's
-.br
+\(cqserver\(cq is the replication server's current status. \(cqsequence\(cq is its
 sequence number, \(cqtimestamp\(cq the time of that, and 'age_sec' the age of the
-.br
 data in seconds.
-.br
 
-.br
 \(cqlocal\(cq is the status of your server.
 
-
+.SH OPTIONS \fI\,'osm2pgsql\-replication status'\/\fR
 .TP
 \fB\-\-json\fR
 Output status as json.
 
+.SH DEFAULT ARGUMENTS \fI\,'osm2pgsql\-replication status'\/\fR
 .TP
 \fB\-q\fR, \fB\-\-quiet\fR
 Print only error messages
@@ -360,36 +278,41 @@ Print only error messages
 \fB\-v\fR, \fB\-\-verbose\fR
 Increase verboseness of output
 
+.SH DATABASE ARGUMENTS \fI\,'osm2pgsql\-replication status'\/\fR
+The following arguments can be used to set the connection parameters to the
+osm2pgsql database. You may also use libpq environment variables to set
+connection parameters, see https://www.postgresql.org/docs/current/libpq\-envars.html.
+If your database connection requires a password, use a pgpass file,
+see https://www.postgresql.org/docs/current/libpq\-pgpass.html.
+
 .TP
-\fB\-d\fR DB, \fB\-\-database\fR DB
+\fB\-d\fR \fI\,DB\/\fR, \fB\-\-database\fR \fI\,DB\/\fR
 Name of PostgreSQL database to connect to or conninfo string
 
 .TP
-\fB\-U\fR NAME, \fB\-\-username\fR NAME
+\fB\-U\fR \fI\,NAME\/\fR, \fB\-\-username\fR \fI\,NAME\/\fR, \fB\-\-user\fR \fI\,NAME\/\fR
 PostgreSQL user name
 
 .TP
-\fB\-H\fR HOST, \fB\-\-host\fR HOST
+\fB\-H\fR \fI\,HOST\/\fR, \fB\-\-host\fR \fI\,HOST\/\fR
 Database server host name or socket location
 
 .TP
-\fB\-P\fR PORT, \fB\-\-port\fR PORT
+\fB\-P\fR \fI\,PORT\/\fR, \fB\-\-port\fR \fI\,PORT\/\fR
 Database server port
 
 .TP
-\fB\-p\fR PREFIX, \fB\-\-prefix\fR PREFIX
+\fB\-p\fR \fI\,PREFIX\/\fR, \fB\-\-prefix\fR \fI\,PREFIX\/\fR
 Prefix for table names (default 'planet_osm')
 
 .TP
-\fB\-\-middle\-schema\fR SCHEMA
+\fB\-\-middle\-schema\fR \fI\,SCHEMA\/\fR
 Name of the schema to store the table for the replication state in
 
 .TP
-\fB\-\-schema\fR SCHEMA
+\fB\-\-schema\fR \fI\,SCHEMA\/\fR
 Name of the schema for the database
-
 .SH SEE ALSO
 * osm2pgsql website (https://osm2pgsql.org)
-.br
 * osm2pgsql manual (https://osm2pgsql.org/doc/manual.html)
 

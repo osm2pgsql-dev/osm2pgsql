@@ -1,24 +1,21 @@
-.TH "OSM2PGSQL" "1" "2.1.1" "" ""
+.TH "OSM2PGSQL" "1" "2.2.0" "" ""
 .SH NAME
-.PP
-osm2pgsql - OpenStreetMap data to PostgreSQL converter
+osm2pgsql \- OpenStreetMap data to PostgreSQL converter
 .SH SYNOPSIS
-.PP
-\f[B]osm2pgsql\f[R] [\f[I]OPTIONS\f[R]] OSM-FILE\&...
+\f[B]osm2pgsql\f[R] [\f[I]OPTIONS\f[R]] OSM\-FILE\&...
 .SH DESCRIPTION
-.PP
 \f[B]osm2pgsql\f[R] imports OpenStreetMap data into a PostgreSQL/PostGIS
 database.
 It is an essential part of many rendering toolchains, the Nominatim
 geocoder and other applications processing OSM data.
 .PP
 \f[B]osm2pgsql\f[R] can run in either \[lq]create\[rq] mode (the
-default) or in \[lq]append\[rq] mode (option \f[B]-a, --append\f[R]).
+default) or in \[lq]append\[rq] mode (option \f[B]\-a, \-\-append\f[R]).
 .PP
 In \[lq]create\[rq] mode osm2pgsql will create the database tables
 required by the configuration and import the OSM file(s) specified on
 the command line into those tables.
-Note that you also have to use the \f[B]-s, --slim\f[R] option if you
+Note that you also have to use the \f[B]\-s, \-\-slim\f[R] option if you
 want your database to be updatable.
 .PP
 In \[lq]append\[rq] mode osm2pgsql will update the database tables with
@@ -26,108 +23,110 @@ the data from OSM change files specified on the command line.
 .PP
 This man page can only cover some of the basics and describe the command
 line options.
-See the Osm2pgsql Manual (https://osm2pgsql.org/doc/manual.html) for
-more information.
+See the \c
+.UR https://osm2pgsql.org/doc/manual.html
+Osm2pgsql Manual
+.UE \c
+\ for more information.
 .SH OPTIONS
-.PP
 This program follows the usual GNU command line syntax, with long
-options starting with two dashes (\f[V]--\f[R]).
+options starting with two dashes (\f[CR]\-\-\f[R]).
 Mandatory arguments to long options are mandatory for short options too.
 .SH MAIN OPTIONS
 .TP
--a, --append
+\-a, \-\-append
 Run in append mode.
 Adds the OSM change file into the database without removing existing
 data.
 .TP
--c, --create
+\-c, \-\-create
 Run in create mode.
-This is the default if \f[B]-a, --append\f[R] is not specified.
+This is the default if \f[B]\-a, \-\-append\f[R] is not specified.
 Removes existing data from the database tables!
 .SH HELP/VERSION OPTIONS
 .TP
--h, --help
+\-h, \-\-help
 Print help.
 .TP
--V, --version
+\-V, \-\-version
 Print osm2pgsql version.
 .SH LOGGING OPTIONS
 .TP
---log-level=LEVEL
+\-\-log\-level=LEVEL
 Set log level (`debug', `info' (default), `warn', or `error').
 .TP
---log-progress=VALUE
-Enable (\f[V]true\f[R]) or disable (\f[V]false\f[R]) progress logging.
-Setting this to \f[V]auto\f[R] will enable progress logging on the
+\-\-log\-progress=VALUE
+Enable (\f[CR]true\f[R]) or disable (\f[CR]false\f[R]) progress logging.
+Setting this to \f[CR]auto\f[R] will enable progress logging on the
 console and disable it if the output is redirected to a file.
 Default: true.
 .TP
---log-sql
+\-\-log\-sql
 Enable logging of SQL commands for debugging.
 .TP
---log-sql-data
+\-\-log\-sql\-data
 Enable logging of all data added to the database.
 This will write out a huge amount of data!
 For debugging.
 .TP
--v, --verbose
-Same as \f[V]--log-level=debug\f[R].
+\-v, \-\-verbose
+Same as \f[CR]\-\-log\-level=debug\f[R].
 .SH DATABASE OPTIONS
 .TP
--d, --database=NAME
+\-d, \-\-database=NAME
 The name of the PostgreSQL database to connect to.
-If this parameter contains an \f[V]=\f[R] sign or starts with a valid
-URI prefix (\f[V]postgresql://\f[R] or \f[V]postgres://\f[R]), it is
+If this parameter contains an \f[CR]=\f[R] sign or starts with a valid
+URI prefix (\f[CR]postgresql://\f[R] or \f[CR]postgres://\f[R]), it is
 treated as a conninfo string.
 See the PostgreSQL manual for details.
 .TP
--U, --username=NAME
+\-U, \-\-username=NAME, \-\-user=NAME
 Postgresql user name.
 .TP
--W, --password
+\-W, \-\-password
 Force password prompt.
 .TP
--H, --host=HOSTNAME
+\-H, \-\-host=HOSTNAME
 Database server hostname or unix domain socket location.
 .TP
--P, --port=PORT
+\-P, \-\-port=PORT
 Database server port.
 .TP
---schema=SCHEMA
+\-\-schema=SCHEMA
 Default for various schema settings throughout osm2pgsql (default:
-\f[V]public\f[R]).
+\f[CR]public\f[R]).
 The schema must exist in the database and be writable by the database
 user.
 .SH INPUT OPTIONS
 .TP
--r, --input-reader=FORMAT
+\-r, \-\-input\-reader=FORMAT
 Select format of the input file.
 Available choices are \f[B]auto\f[R] (default) for autodetecting the
 format, \f[B]xml\f[R] for OSM XML format files, \f[B]o5m\f[R] for o5m
 formatted files and \f[B]pbf\f[R] for OSM PBF binary format.
 .TP
--b, --bbox=MINLON,MINLAT,MAXLON,MAXLAT
+\-b, \-\-bbox=MINLON,MINLAT,MAXLON,MAXLAT
 Apply a bounding box filter on the imported data.
-Example: \f[B]--bbox\f[R] \f[B]-0.5,51.25,0.5,51.75\f[R]
+Example: \f[B]\-\-bbox\f[R] \f[B]\-0.5,51.25,0.5,51.75\f[R]
 .SH MIDDLE OPTIONS
 .TP
--i, --tablespace-index=TABLESPC
-Store all indexes in the PostgreSQL tablespace \f[V]TABLESPC\f[R].
+\-i, \-\-tablespace\-index=TABLESPC
+Store all indexes in the PostgreSQL tablespace \f[CR]TABLESPC\f[R].
 This option also affects the tables created by the pgsql output.
 This option is deprecated.
-Use the --tablespace-slim-index and/or --tablespace-main-index options
-instead.
+Use the \-\-tablespace\-slim\-index and/or \-\-tablespace\-main\-index
+options instead.
 .TP
---tablespace-slim-data=TABLESPC
+\-\-tablespace\-slim\-data=TABLESPC
 Store the slim mode tables in the given tablespace.
 .TP
---tablespace-slim-index=TABLESPC
+\-\-tablespace\-slim\-index=TABLESPC
 Store the indexes of the slim mode tables in the given tablespace.
 .TP
--p, --prefix=PREFIX
-Prefix for table names (default: \f[V]planet_osm\f[R]).
+\-p, \-\-prefix=PREFIX
+Prefix for table names (default: \f[CR]planet_osm\f[R]).
 .TP
--s, --slim
+\-s, \-\-slim
 Store temporary data in the database.
 Without this mode, all temporary data is stored in RAM and if you do not
 have enough the import will not work successfully.
@@ -136,7 +135,7 @@ with limited RAM, although if you do not have enough RAM to cache at
 least all of the nodes, the time to import the data will likely be
 greatly increased.
 .TP
---drop
+\-\-drop
 Drop the slim mode tables from the database and the flat node file once
 the import is complete.
 This can greatly reduce the size of the database, as the slim mode
@@ -150,56 +149,56 @@ nearly halve import time.
 Slim mode tables however have to be persistent if you want to be able to
 update your database, as these tables are needed for diff processing.
 .TP
--C, --cache=NUM
+\-C, \-\-cache=NUM
 Only for slim mode: Use up to \f[B]NUM\f[R] MB of RAM for caching nodes.
 Giving osm2pgsql sufficient cache to store all imported nodes typically
 greatly increases the speed of the import.
-Each cached node requires 8 bytes of cache, plus about 10% - 30%
+Each cached node requires 8 bytes of cache, plus about 10% \- 30%
 overhead.
 As a rule of thumb, give a bit more than the size of the import file in
 PBF format.
 If the RAM is not big enough, use about 75% of memory.
 Make sure to leave enough RAM for PostgreSQL.
-It needs at least the amount of \f[V]shared_buffers\f[R] given in its
+It needs at least the amount of \f[CR]shared_buffers\f[R] given in its
 configuration.
 Defaults to 800.
 .TP
--x, --extra-attributes
+\-x, \-\-extra\-attributes
 Include attributes of each object in the middle tables and make them
 available to the outputs.
 Attributes are: user name, user id, changeset id, timestamp and version.
 .TP
--F, --flat-nodes=FILENAME
+\-F, \-\-flat\-nodes=FILENAME
 Use a file on disk to store node locations instead of storing them in
-memory (in non-slim mode) or in the database (in slim mode).
+memory (in non\-slim mode) or in the database (in slim mode).
 This is much more efficient than storing the data in the database.
 Storing the node information for the full planet requires more than
 500GB in PostgreSQL, the same data is stored in \[lq]only\[rq] 90GB
-using the flat-nodes mode.
+using the flat\-nodes mode.
 This can also increase the speed of applying diff files.
-This option activates the flat-nodes mode and specifies the location of
+This option activates the flat\-nodes mode and specifies the location of
 the database file.
 It is a single large file.
 This mode is only recommended for full planet imports as it doesn\[cq]t
 work well with small imports.
 The default is disabled.
-The file will stay on disk after import, use --drop to remove it (but
+The file will stay on disk after import, use \-\-drop to remove it (but
 you can\[cq]t do updates then).
 .TP
---middle-schema=SCHEMA
+\-\-middle\-schema=SCHEMA
 Use PostgreSQL schema SCHEMA for all tables, indexes, and functions in
 the middle.
 The schema must exist in the database and be writable by the database
 user.
-By default the schema set with \f[V]--schema\f[R] is used, or
-\f[V]public\f[R] if that is not set.
+By default the schema set with \f[CR]\-\-schema\f[R] is used, or
+\f[CR]public\f[R] if that is not set.
 .TP
---middle-with-nodes
+\-\-middle\-with\-nodes
 When a flat nodes file is used, nodes are not stored in the database.
 Use this option to force storing nodes with tags in the database, too.
 .SH OUTPUT OPTIONS
 .TP
--O, --output=OUTPUT
+\-O, \-\-output=OUTPUT
 Specifies the output to use.
 Currently osm2pgsql supports \f[B]pgsql\f[R], \f[B]flex\f[R], and
 \f[B]null\f[R].
@@ -208,117 +207,123 @@ compatibility.
 New setups should use the \f[B]flex\f[R] output which allows for a much
 more flexible configuration.
 The \f[B]null\f[R] output does not write anything and is only useful for
-testing or with \f[B]--slim\f[R] for creating slim tables.
+testing or with \f[B]\-\-slim\f[R] for creating slim tables.
 .TP
--S, --style=FILE
+\-S, \-\-style=FILE
 The style file.
 This specifies how the data is imported into the database, its format
 depends on the output.
 (For the \f[B]pgsql\f[R] output, the default is
-\f[V]/usr/share/osm2pgsql/default.style\f[R], for other outputs there is
-no default.)
+\f[CR]/usr/share/osm2pgsql/default.style\f[R], for other outputs there
+is no default.)
 .SH PGSQL OUTPUT OPTIONS
 .TP
---tablespace-main-data=TABLESPC
-Store the data tables in the PostgreSQL tablespace \f[V]TABLESPC\f[R].
+\-\-tablespace\-main\-data=TABLESPC
+Store the data tables in the PostgreSQL tablespace \f[CR]TABLESPC\f[R].
 .TP
---tablespace-main-index=TABLESPC
-Store the indexes in the PostgreSQL tablespace \f[V]TABLESPC\f[R].
+\-\-tablespace\-main\-index=TABLESPC
+Store the indexes in the PostgreSQL tablespace \f[CR]TABLESPC\f[R].
 .TP
---latlong
+\-\-latlong
 Store coordinates in degrees of latitude & longitude.
 .TP
--m, --merc
+\-m, \-\-merc
 Store coordinates in Spherical Mercator (Web Mercator, EPSG:3857) (the
 default).
 .TP
--E, --proj=SRID
+\-E, \-\-proj=SRID
 Use projection EPSG:SRID.
 .TP
--p, --prefix=PREFIX
-Prefix for table names (default: \f[V]planet_osm\f[R]).
+\-p, \-\-prefix=PREFIX
+Prefix for table names (default: \f[CR]planet_osm\f[R]).
 This option affects the middle as well as the pgsql output table names.
 .TP
---tag-transform-script=SCRIPT
+\-\-tag\-transform\-script=SCRIPT
 Specify a Lua script to handle tag filtering and normalisation.
 The script contains callback functions for nodes, ways and relations,
 which each take a set of tags and returns a transformed, filtered set of
 tags which are then written to the database.
 .TP
--x, --extra-attributes
+\-x, \-\-extra\-attributes
 Include attributes (user name, user id, changeset id, timestamp and
 version).
 This also requires additional entries in your style file.
 .TP
--k, --hstore
+\-k, \-\-hstore
 Add tags without column to an additional hstore (key/value) column in
 the database tables.
 .TP
--j, --hstore-all
+\-j, \-\-hstore\-all
 Add all tags to an additional hstore (key/value) column in the database
 tables.
 .TP
--z, --hstore-column=PREFIX
-Add an additional hstore (key/value) column named \f[V]PREFIX\f[R]
-containing all tags that have a key starting with \f[V]PREFIX\f[R], eg
-\f[V]\[rs]--hstore-column \[dq]name:\[dq]\f[R] will produce an extra
-hstore column that contains all \f[V]name:xx\f[R] tags.
+\-z, \-\-hstore\-column=PREFIX
+Add an additional hstore (key/value) column named \f[CR]PREFIX\f[R]
+containing all tags that have a key starting with \f[CR]PREFIX\f[R], eg
+\f[CR]\[rs]\-\-hstore\-column \[dq]name:\[dq]\f[R] will produce an extra
+hstore column that contains all \f[CR]name:xx\f[R] tags.
 .TP
---hstore-match-only
-Only keep objects that have a value in at least one of the non-hstore
+\-\-hstore\-match\-only
+Only keep objects that have a value in at least one of the non\-hstore
 columns.
 .TP
---hstore-add-index
+\-\-hstore\-add\-index
 Create indexes for all hstore columns after import.
 .TP
--G, --multi-geometry
-Normally osm2pgsql splits multi-part geometries into separate database
+\-G, \-\-multi\-geometry
+Normally osm2pgsql splits multi\-part geometries into separate database
 rows per part.
 A single OSM object can therefore use several rows in the output tables.
-With this option, osm2pgsql instead generates multi-geometry features in
-the PostgreSQL tables.
+With this option, osm2pgsql instead generates multi\-geometry features
+in the PostgreSQL tables.
 .TP
--K, --keep-coastlines
+\-K, \-\-keep\-coastlines
 Keep coastline data rather than filtering it out.
-By default objects tagged \f[V]natural=coastline\f[R] will be discarded
+By default objects tagged \f[CR]natural=coastline\f[R] will be discarded
 based on the assumption that Shapefiles generated by OSMCoastline
 (https://osmdata.openstreetmap.de/) will be used for the coastline data.
 .TP
---reproject-area
+\-\-reproject\-area
 Compute area column using spherical mercator coordinates even if a
 different projection is used for the geometries.
 .TP
---output-pgsql-schema=SCHEMA
+\-\-output\-pgsql\-schema=SCHEMA
 Use PostgreSQL schema SCHEMA for all tables, indexes, and functions in
 the pgsql output.
 The schema must exist in the database and be writable by the database
 user.
-By default the schema set with \f[V]--schema\f[R] is used, or
-\f[V]public\f[R] if that is not set.
+By default the schema set with \f[CR]\-\-schema\f[R] is used, or
+\f[CR]public\f[R] if that is not set.
 .SH EXPIRE OPTIONS
 .TP
--e, --expire-tiles=[MIN_ZOOM-]MAX-ZOOM
+\-e, \-\-expire\-tiles=[MIN_ZOOM\-]MAX\-ZOOM
 Create a tile expiry list.
 .TP
--o, --expire-output=FILENAME
+\-o, \-\-expire\-output=FILENAME
 Output file name for expired tiles list.
 .TP
---expire-bbox-size=SIZE
+\-\-expire\-bbox\-size=SIZE
 Max size for a polygon to expire the whole polygon, not just the
 boundary.
 .SH ADVANCED OPTIONS
 .TP
--I, --disable-parallel-indexing
+\-I, \-\-disable\-parallel\-indexing
 Disable parallel clustering and index building on all tables, build one
 index after the other.
 .TP
---number-processes=THREADS
+\-\-number\-processes=THREADS
 Specifies the number of parallel threads used for certain operations.
 .SH SEE ALSO
 .IP \[bu] 2
-osm2pgsql website (https://osm2pgsql.org)
+\c
+.UR https://osm2pgsql.org
+osm2pgsql website
+.UE \c
 .IP \[bu] 2
-osm2pgsql manual (https://osm2pgsql.org/doc/manual.html)
+\c
+.UR https://osm2pgsql.org/doc/manual.html
+osm2pgsql manual
+.UE \c
 .IP \[bu] 2
 \f[B]postgres\f[R](1)
 .IP \[bu] 2
