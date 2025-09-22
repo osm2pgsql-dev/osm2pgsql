@@ -330,6 +330,7 @@ include(GNUInstallDirs)
 
 if (ENABLE_INSTALL)
     install(TARGETS osm2pgsql DESTINATION bin)
+    install(TARGETS osm2pgsql-expire DESTINATION bin)
     install(FILES default.style empty.style DESTINATION share/osm2pgsql)
     install(PROGRAMS scripts/osm2pgsql-replication DESTINATION bin)
     if (BUILD_GEN)
