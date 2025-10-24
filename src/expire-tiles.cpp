@@ -147,6 +147,10 @@ void expire_tiles_t::from_geometry(geom::multipolygon_t const &geom,
 void expire_tiles_t::from_geometry(geom::geometry_t const &geom,
                                    expire_config_t const &expire_config)
 {
+    if (!enabled()) {
+        return;
+    }
+
     geom.visit([&](auto const &g) { from_geometry(g, expire_config); });
 }
 
@@ -224,10 +228,6 @@ void expire_tiles_t::from_line_segment(geom::point_t const &a,
 int expire_tiles_t::from_bbox(geom::box_t const &box,
                               expire_config_t const &expire_config)
 {
-    if (!enabled()) {
-        return 0;
-    }
-
     double const width = box.width();
     double const height = box.height();
     if (width > tile_t::HALF_EARTH_CIRCUMFERENCE + 1) {

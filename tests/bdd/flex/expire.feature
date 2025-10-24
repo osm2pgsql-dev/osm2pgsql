@@ -1,4 +1,4 @@
-Feature: Changes on way with expire on zoom 0
+Feature: Changes on way with expire on zoom 1
 
     Background:
         Given the style file 'test_expire.lua'
@@ -71,7 +71,7 @@ Feature: Changes on way with expire on zoom 0
             | 11     |
         Then table osm2pgsql_test_expire contains exactly
             | zoom | x | y |
-            | 0    | 0 | 0 |
+            | 1    | 1 | 0 |
 
 
     Scenario: change in t1
@@ -88,7 +88,7 @@ Feature: Changes on way with expire on zoom 0
             | way_id |
         Then table osm2pgsql_test_expire contains exactly
             | zoom | x | y |
-            | 0    | 0 | 0 |
+            | 1    | 1 | 0 |
 
 
     Scenario: remove from t1
@@ -105,4 +105,4 @@ Feature: Changes on way with expire on zoom 0
             | way_id |
         Then table osm2pgsql_test_expire contains exactly
             | zoom | x | y |
-            | 0    | 0 | 0 |
+            | 1    | 1 | 0 |
