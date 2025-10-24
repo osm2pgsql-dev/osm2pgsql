@@ -1,0 +1,134 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<osm version="0.6" upload="false" generator="osmium/1.19.0">
+  <bounds minlat="55.5146371" minlon="7.1122742" maxlat="55.5635923" maxlon="7.1768188"/>
+  <bounds minlat="55.5146371" minlon="7.1122742" maxlat="55.5635923" maxlon="7.1768188"/>
+  <node id="1" lat="55.5557179" lon="7.1205162"/>
+  <node id="2" lat="55.5602311" lon="7.1357548"/>
+  <node id="3" lat="55.5553609" lon="7.148108"/>
+  <node id="4" lat="55.5596702" lon="7.1626252"/>
+  <node id="5" lat="55.5544684" lon="7.1701543"/>
+  <node id="6" lat="55.5510001" lon="7.1555469"/>
+  <node id="7" lat="55.5511786" lon="7.1207867"/>
+  <node id="8" lat="55.5464603" lon="7.1213728"/>
+  <node id="9" lat="55.5463838" lon="7.1362057"/>
+  <node id="10" lat="55.5384251" lon="7.1356196"/>
+  <node id="11" lat="55.5386802" lon="7.1208769"/>
+  <node id="12" lat="55.5424046" lon="7.1472965"/>
+  <node id="13" lat="55.5478376" lon="7.1569445"/>
+  <node id="14" lat="55.543578" lon="7.1658713"/>
+  <node id="15" lat="55.5427617" lon="7.1567191"/>
+  <node id="16" lat="55.5340624" lon="7.166277"/>
+  <node id="17" lat="55.534292" lon="7.1429233"/>
+  <node id="18" lat="55.5378638" lon="7.1568093"/>
+  <node id="19" lat="55.5279896" lon="7.1197047"/>
+  <node id="20" lat="55.5320467" lon="7.1315169"/>
+  <node id="21" lat="55.5307199" lon="7.1580266"/>
+  <node id="22" lat="55.5164282" lon="7.1427429"/>
+  <node id="23" lat="55.5192614" lon="7.122545"/>
+  <node id="24" lat="55.5240341" lon="7.1292626"/>
+  <node id="25" lat="55.527913" lon="7.1327342"/>
+  <node id="26" lat="55.5284744" lon="7.1421117"/>
+  <node id="27" lat="55.5240341" lon="7.1438249"/>
+  <node id="28" lat="55.5206907" lon="7.1352589"/>
+  <node id="29" lat="55.5095868" lon="7.1203809"/>
+  <node id="30" lat="55.5096379" lon="7.174302"/>
+  <node id="31" lat="55.4883402" lon="7.1745726"/>
+  <node id="32" lat="55.4744419" lon="7.1446364"/>
+  <node id="33" lat="55.4874717" lon="7.1186677"/>
+  <node id="34" lat="55.5036634" lon="7.1265124"/>
+  <node id="35" lat="55.5065742" lon="7.1320128"/>
+  <node id="36" lat="55.506421" lon="7.1624899"/>
+  <node id="37" lat="55.5034591" lon="7.1691624"/>
+  <node id="38" lat="55.4893108" lon="7.1692526"/>
+  <node id="39" lat="55.4829756" lon="7.1573503"/>
+  <node id="40" lat="55.4831289" lon="7.134267"/>
+  <node id="41" lat="55.4880847" lon="7.1242582"/>
+  <node id="42" lat="55.500446" lon="7.1391361"/>
+  <node id="43" lat="55.500446" lon="7.1572601"/>
+  <node id="44" lat="55.4908434" lon="7.1559977"/>
+  <node id="45" lat="55.490588" lon="7.1378737"/>
+  <node id="46" lat="55.4954918" lon="7.1524811"/>
+  <way id="1">
+    <nd ref="1"/>
+    <nd ref="2"/>
+    <nd ref="3"/>
+    <nd ref="4"/>
+    <nd ref="5"/>
+    <nd ref="6"/>
+    <nd ref="7"/>
+    <tag k="type" v="line"/>
+  </way>
+  <way id="2">
+    <nd ref="8"/>
+    <nd ref="9"/>
+    <nd ref="10"/>
+    <nd ref="11"/>
+    <nd ref="8"/>
+    <tag k="type" v="polygon"/>
+  </way>
+  <way id="3">
+    <nd ref="12"/>
+    <nd ref="13"/>
+    <nd ref="14"/>
+    <nd ref="15"/>
+    <nd ref="16"/>
+    <nd ref="17"/>
+    <nd ref="18"/>
+    <nd ref="12"/>
+    <tag k="type" v="polygon"/>
+  </way>
+  <way id="4">
+    <nd ref="19"/>
+    <nd ref="20"/>
+    <nd ref="21"/>
+    <nd ref="22"/>
+    <nd ref="23"/>
+    <nd ref="19"/>
+  </way>
+  <way id="5">
+    <nd ref="24"/>
+    <nd ref="25"/>
+    <nd ref="26"/>
+    <nd ref="27"/>
+    <nd ref="28"/>
+    <nd ref="24"/>
+  </way>
+  <way id="6">
+    <nd ref="29"/>
+    <nd ref="30"/>
+    <nd ref="31"/>
+    <nd ref="32"/>
+    <nd ref="33"/>
+    <nd ref="29"/>
+  </way>
+  <way id="7">
+    <nd ref="34"/>
+    <nd ref="35"/>
+    <nd ref="36"/>
+    <nd ref="37"/>
+    <nd ref="38"/>
+    <nd ref="39"/>
+    <nd ref="40"/>
+    <nd ref="41"/>
+    <nd ref="34"/>
+  </way>
+  <way id="8">
+    <nd ref="42"/>
+    <nd ref="43"/>
+    <nd ref="44"/>
+    <nd ref="45"/>
+    <nd ref="46"/>
+    <nd ref="42"/>
+  </way>
+  <relation id="1">
+    <member type="way" ref="4" role="outer"/>
+    <member type="way" ref="5" role="inner"/>
+    <tag k="type" v="multipolygon"/>
+  </relation>
+  <relation id="2">
+    <member type="way" ref="8" role="outer"/>
+    <member type="way" ref="6" role="outer"/>
+    <member type="way" ref="7" role="inner"/>
+    <tag k="type" v="multipolygon"/>
+  </relation>
+</osm>

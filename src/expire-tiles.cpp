@@ -136,28 +136,90 @@ expire_mode decide_expire_mode(TGEOM const &geom,
 
 } // anonymous namespace
 
+void expire_tiles_t::build_tile_list(std::vector<uint32_t> *tile_x_list,
+                                     geom::ring_t const &ring, double tile_y)
+{
+    assert(!ring.empty());
+    for (std::size_t i = 1; i < ring.size(); ++i) {
+        auto const t1 = coords_to_tile(ring[i]);
+        auto const t2 = coords_to_tile(ring[i - 1]);
+
+        if ((t1.y() < tile_y && t2.y() >= tile_y) ||
+            (t2.y() < tile_y && t1.y() >= tile_y)) {
+            auto const pos =
+                (tile_y - t1.y()) / (t2.y() - t1.y()) * (t2.x() - t1.x());
+            tile_x_list->push_back(static_cast<uint32_t>(std::clamp(
+                t1.x() + pos, 0.0, static_cast<double>(m_map_width - 1))));
+        }
+    }
+}
+
+void expire_tiles_t::from_polygon_area(geom::polygon_t const &geom,
+                                       geom::box_t box)
+{
+    if (!box.valid()) {
+        box = geom::envelope(geom);
+    }
+
+    // This uses a variation on a simple polygon fill algorithm, for instance
+    // described on https://alienryderflex.com/polygon_fill/ . For each row
+    // of tiles we find the intersections with the area boundary and "fill" in
+    // the tiles between them. Note that we don't need to take particular care
+    // about the boundary, because we simply use the algorithm we use for
+    // expiry along a line to do that, which will also take care of the buffer.
+
+    // Coordinates are numbered from bottom to top, tiles are numbered from top
+    // to bottom, so "min" and "max" are switched here.
+    auto const max_tile_y = static_cast<std::uint32_t>(
+        m_map_width * (0.5 - box.min().y() / tile_t::EARTH_CIRCUMFERENCE));
+    auto const min_tile_y = static_cast<std::uint32_t>(
+        m_map_width * (0.5 - box.max().y() / tile_t::EARTH_CIRCUMFERENCE));
+
+    std::vector<uint32_t> tile_x_list;
+
+    //  Loop through the tile rows from top to bottom
+    for (std::uint32_t tile_y = min_tile_y; tile_y < max_tile_y; ++tile_y) {
+
+        // Build a list of tiles crossed by the area boundary
+        tile_x_list.clear();
+        build_tile_list(&tile_x_list, geom.outer(),
+                        static_cast<double>(tile_y));
+        for (auto const &ring : geom.inners()) {
+            build_tile_list(&tile_x_list, ring, static_cast<double>(tile_y));
+        }
+
+        // Sort list of tiles from left to right
+        std::sort(tile_x_list.begin(), tile_x_list.end());
+
+        // Add the tiles between entering and leaving the area to expire list
+        assert(tile_x_list.size() % 2 == 0);
+        for (std::size_t i = 0; i < tile_x_list.size(); i += 2) {
+            if (tile_x_list[i] >= static_cast<uint32_t>(m_map_width - 1)) {
+                break;
+            }
+            if (tile_x_list[i + 1] > 0) {
+                for (std::uint32_t tile_x = tile_x_list[i];
+                     tile_x < tile_x_list[i + 1]; ++tile_x) {
+                    expire_tile(tile_x, tile_y);
+                }
+            }
+        }
+    }
+}
+
 void expire_tiles_t::from_geometry(geom::polygon_t const &geom,
                                    expire_config_t const &expire_config)
 {
     geom::box_t box;
     auto const mode = decide_expire_mode(geom, expire_config, &box);
 
-    if (mode == expire_mode::boundary_only) {
-        from_polygon_boundary(geom, expire_config);
-        return;
-    }
+    from_polygon_boundary(geom, expire_config);
 
-    if (!box.valid()) {
-        box = geom::envelope(geom);
-    }
-    from_bbox(box, expire_config);
-}
-
-void expire_tiles_t::from_polygon_boundary(geom::multipolygon_t const &geom,
-                                           expire_config_t const &expire_config)
-{
-    for (auto const &sgeom : geom) {
-        from_polygon_boundary(sgeom, expire_config);
+    // Only need to expire area if in full_area mode. If there is only a
+    // single tile expired the whole polygon is inside that tile and we
+    // don't need to do the polygon expire.
+    if (mode == expire_mode::full_area && m_dirty_tiles.size() > 1) {
+        from_polygon_area(geom, box);
     }
 }
 
@@ -167,15 +229,18 @@ void expire_tiles_t::from_geometry(geom::multipolygon_t const &geom,
     geom::box_t box;
     auto const mode = decide_expire_mode(geom, expire_config, &box);
 
-    if (mode == expire_mode::boundary_only) {
-        from_polygon_boundary(geom, expire_config);
-        return;
+    for (auto const &sgeom : geom) {
+        from_polygon_boundary(sgeom, expire_config);
     }
 
-    if (!box.valid()) {
-        box = geom::envelope(geom);
+    // Only need to expire area if in full_area mode. If there is only a
+    // single tile expired the whole polygon is inside that tile and we
+    // don't need to do the polygon expire.
+    if (mode == expire_mode::full_area && m_dirty_tiles.size() > 1) {
+        for (auto const &sgeom : geom) {
+            from_polygon_area(sgeom, geom::box_t{});
+        }
     }
-    from_bbox(box, expire_config);
 }
 
 // False positive: Apparently clang-tidy can not see through the visit()
@@ -256,35 +321,6 @@ void expire_tiles_t::from_line_segment(geom::point_t const &a,
             }
         }
     }
-}
-
-/*
- * Expire tiles within a bounding box
- */
-int expire_tiles_t::from_bbox(geom::box_t const &box,
-                              expire_config_t const &expire_config)
-{
-    /* Convert the box's Mercator coordinates into tile coordinates */
-    auto const tmp_min = coords_to_tile({box.min_x(), box.max_y()});
-    int const min_tile_x =
-        std::clamp(int(tmp_min.x() - expire_config.buffer), 0, m_map_width - 1);
-    int const min_tile_y =
-        std::clamp(int(tmp_min.y() - expire_config.buffer), 0, m_map_width - 1);
-
-    auto const tmp_max = coords_to_tile({box.max_x(), box.min_y()});
-    int const max_tile_x =
-        std::clamp(int(tmp_max.x() + expire_config.buffer), 0, m_map_width - 1);
-    int const max_tile_y =
-        std::clamp(int(tmp_max.y() + expire_config.buffer), 0, m_map_width - 1);
-
-    for (int iterator_x = min_tile_x; iterator_x <= max_tile_x; ++iterator_x) {
-        uint32_t const norm_x = normalise_tile_x_coord(iterator_x);
-        for (int iterator_y = min_tile_y; iterator_y <= max_tile_y;
-             ++iterator_y) {
-            expire_tile(norm_x, static_cast<uint32_t>(iterator_y));
-        }
-    }
-    return 0;
 }
 
 quadkey_list_t expire_tiles_t::get_tiles()
