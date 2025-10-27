@@ -71,8 +71,22 @@ void expire_tiles_t::from_point_list(geom::point_list_t const &list,
 void expire_tiles_t::from_geometry(geom::point_t const &geom,
                                    expire_config_t const &expire_config)
 {
-    geom::box_t const box = geom::envelope(geom);
-    from_bbox(box, expire_config);
+    auto const tilec = coords_to_tile(geom);
+
+    auto const ymin =
+        std::max(0U, static_cast<uint32_t>(tilec.y() - expire_config.buffer));
+
+    auto const ymax =
+        std::min(m_map_width - 1U,
+                 static_cast<uint32_t>(tilec.y() + expire_config.buffer));
+
+    for (int x = static_cast<int>(tilec.x() - expire_config.buffer);
+         x <= static_cast<int>(tilec.x() + expire_config.buffer); ++x) {
+        uint32_t const norm_x = normalise_tile_x_coord(x);
+        for (uint32_t y = ymin; y <= ymax; ++y) {
+            expire_tile(norm_x, y);
+        }
+    }
 }
 
 void expire_tiles_t::from_geometry(geom::linestring_t const &geom,

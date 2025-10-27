@@ -189,9 +189,10 @@ TEST_CASE("simple expire z10 bounds 1023, 0", "[NoDB]")
                      expire_config_t{});
 
     auto const tiles = get_tiles_ordered(&et, minzoom, maxzoom);
-    CHECK(tiles.size() == 1);
+    CHECK(tiles.size() == 2);
 
     auto itr = tiles.cbegin();
+    CHECK(*(itr++) == tile_t(10, 0, 0));
     CHECK(*(itr++) == tile_t(10, 1023, 0));
 }
 
@@ -205,9 +206,10 @@ TEST_CASE("simple expire z10 bounds 1023, 1023", "[NoDB]")
                      expire_config_t{});
 
     auto const tiles = get_tiles_ordered(&et, minzoom, maxzoom);
-    CHECK(tiles.size() == 1);
+    CHECK(tiles.size() == 2);
 
     auto itr = tiles.cbegin();
+    CHECK(*(itr++) == tile_t(10, 0, 1023));
     CHECK(*(itr++) == tile_t(10, 1023, 1023));
 }
 
