@@ -189,7 +189,7 @@ void output_expire_t::relation_add(osmium::Relation const &relation)
     osmium::memory::Buffer tmp_buffer{1024,
                                       osmium::memory::Buffer::auto_grow::yes};
     geom::geometry_t geom;
-    if (type == "multipolygon") {
+    if (type == "multipolygon" || type == "boundary") {
         log_debug("Creating multipolygon from relation {}...", relation.id());
         geom::create_multipolygon(&geom, relation, buffer, &tmp_buffer);
     } else if (type == "route" || type == "multilinestring") {
