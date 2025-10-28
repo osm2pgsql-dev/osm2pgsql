@@ -1,7 +1,7 @@
 
--- No maxzoom sets it to 0
 local eo = osm2pgsql.define_expire_output({
     table = 'osm2pgsql_test_expire',
+    maxzoom = 1,
 })
 
 local the_table = osm2pgsql.define_way_table('osm2pgsql_test_t1', {
