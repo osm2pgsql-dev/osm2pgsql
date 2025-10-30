@@ -454,11 +454,46 @@ int output_flex_t::app_get_bbox()
 
 int output_flex_t::app_as_point()
 {
-    check_context_and_state("as_point", "node",
-                            m_calling_context != calling_context::process_node);
+    check_for_object(lua_state(), "as_point");
+
+    if (m_calling_context == calling_context::process_node) {
+        if (lua_gettop(lua_state()) > 1) {
+            throw fmt_error("No parameter(s) needed for as_point().");
+        }
+        auto *geom = create_lua_geometry_object(lua_state());
+        geom::create_point(geom, *m_context_node);
+        return 1;
+    }
+
+    if (m_calling_context != calling_context::process_way) {
+        throw fmt_error(
+            "The function as_point() can only be called (directly "
+            "or indirectly) from the process_[untagged]_node/way() functions.");
+    }
+
+    if (lua_gettop(lua_state()) > 2) {
+        throw fmt_error("Too many arguments for function as_point()");
+    }
+
+    m_way_cache.add_nodes(middle());
+    auto const &nodes = m_way_cache.get().nodes();
+
+    int64_t n = 1; // get first node by default
+    if (lua_gettop(lua_state()) > 1) {
+        if (lua_type(lua_state(), 2) != LUA_TNUMBER) {
+            throw std::runtime_error{
+                "Argument #1 to 'as_point()' must be an integer."};
+        }
+        n = lua_tointeger(lua_state(), 2);
+        if (n < 0) { // negative index values count from the back
+            n += static_cast<int64_t>(nodes.size()) + 1;
+        }
+    }
 
     auto *geom = create_lua_geometry_object(lua_state());
-    geom::create_point(geom, *m_context_node);
+    if (n > 0 && static_cast<std::size_t>(n) <= nodes.size()) {
+        geom::create_point(geom, nodes[n - 1].location());
+    } // fall through returning null geometry if 0 or too large or small
 
     return 1;
 }

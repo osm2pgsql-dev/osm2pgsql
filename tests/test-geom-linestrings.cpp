@@ -115,6 +115,50 @@ TEST_CASE("create_linestring from invalid OSM data", "[NoDB]")
     REQUIRE(geom.is_null());
 }
 
+TEST_CASE("create_point from OSM way data", "[NoDB]")
+{
+    test_buffer_t buffer;
+    buffer.add_way("w20 Nn1x1y1,n2x2y2");
+
+    auto const &nodes = buffer.buffer().get<osmium::Way>(0).nodes();
+    geom::geometry_t geom;
+    geom::create_point(&geom, nodes[0].location());
+
+    REQUIRE(geom.is_point());
+    REQUIRE(geometry_type(geom) == "POINT");
+    REQUIRE(dimension(geom) == 0);
+    REQUIRE(num_geometries(geom) == 1);
+    REQUIRE(geom.get<geom::point_t>() == geom::point_t{1, 1});
+}
+
+TEST_CASE("create_point from OSM data without locations", "[NoDB]")
+{
+    test_buffer_t buffer;
+    buffer.add_way("w20 Nn1,n2");
+
+    auto const &nodes = buffer.buffer().get<osmium::Way>(0).nodes();
+    geom::geometry_t geom;
+    geom::create_point(&geom, nodes[0].location());
+
+    REQUIRE(geom.is_null());
+}
+
+TEST_CASE("create_point from way with single node", "[NoDB]")
+{
+    test_buffer_t buffer;
+    buffer.add_way("w20 Nn1x1y1");
+
+    auto const &nodes = buffer.buffer().get<osmium::Way>(0).nodes();
+    geom::geometry_t geom;
+    geom::create_point(&geom, nodes[0].location());
+
+    REQUIRE(geom.is_point());
+    REQUIRE(geometry_type(geom) == "POINT");
+    REQUIRE(dimension(geom) == 0);
+    REQUIRE(num_geometries(geom) == 1);
+    REQUIRE(geom.get<geom::point_t>() == geom::point_t{1, 1});
+}
+
 TEST_CASE("geom::segmentize w/o split", "[NoDB]")
 {
     geom::linestring_t const expected{{0, 0}, {1, 2}, {2, 2}};
