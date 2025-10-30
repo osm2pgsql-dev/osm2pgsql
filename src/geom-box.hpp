@@ -72,6 +72,11 @@ public:
         return !(a == b);
     }
 
+    bool valid() const noexcept
+    {
+        return m_min_x != std::numeric_limits<double>::max();
+    }
+
 private:
     double m_min_x = std::numeric_limits<double>::max();
     double m_min_y = std::numeric_limits<double>::max();
