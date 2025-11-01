@@ -19,11 +19,18 @@
 
 namespace geom {
 
+void create_point(geometry_t *geom, osmium::Location const &location)
+{
+    if (location.valid()) {
+        auto &point = geom->set<point_t>();
+        point.set_x(location.lon());
+        point.set_y(location.lat());
+    }
+}
+
 void create_point(geometry_t *geom, osmium::Node const &node)
 {
-    auto &point = geom->set<point_t>();
-    point.set_x(node.location().lon());
-    point.set_y(node.location().lat());
+    create_point(geom, node.location());
 }
 
 geometry_t create_point(osmium::Node const &node)

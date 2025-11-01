@@ -42,6 +42,20 @@ TEST_CASE("geom::point_t from location", "[NoDB]")
     REQUIRE(p == geom::point_t{3.141, 2.718});
 }
 
+TEST_CASE("geom::point_t from location with create_point", "[NoDB]")
+{
+    osmium::Location const location{1.1, 2.2};
+
+    geom::geometry_t geom;
+    geom::create_point(&geom, location);
+    REQUIRE(geom.is_point());
+
+    auto const &p = geom.get<geom::point_t>();
+    REQUIRE(p.x() == Approx(1.1));
+    REQUIRE(p.y() == Approx(2.2));
+    REQUIRE(p == geom::point_t{1.1, 2.2});
+}
+
 TEST_CASE("create_point from OSM data", "[NoDB]")
 {
     test_buffer_t buffer;

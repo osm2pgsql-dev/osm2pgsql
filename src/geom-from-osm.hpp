@@ -28,6 +28,15 @@
 namespace geom {
 
 /**
+ * Create a point geometry from a location. If the location is not valid,
+ * the output will not be changed.
+ *
+ * \param geom Pointer to an existing geometry which will be used as output.
+ * \param location The input location.
+ */
+void create_point(geometry_t *geom, osmium::Location const &location);
+
+/**
  * Create a point geometry from a node.
  *
  * \param geom Pointer to an existing geometry which will be used as output.
