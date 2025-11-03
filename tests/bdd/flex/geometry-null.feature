@@ -75,15 +75,15 @@ Feature: Null geometry handling
         When running osm2pgsql flex
 
         Then table osm2pgsql_test_null contains exactly
-            | osm_type | osm_id | ST_AsText(geom) | num |
-            | N        | 12     | 3.4 5.6         | 1   |
-            | W        | 20     | 10, 11          | 1   |
-            | W        | 21     | NULL            | 0   |
-            | W        | 22     | NULL            | 0   |
-            | W        | 23     | NULL            | 0   |
+            | osm_type | osm_id | geom!geo | num |
+            | N        | 12     | 3.4 5.6  | 1   |
+            | W        | 20     | 10, 11   | 1   |
+            | W        | 21     | NULL     | 0   |
+            | W        | 22     | NULL     | 0   |
+            | W        | 23     | NULL     | 0   |
 
         And table osm2pgsql_test_not_null contains exactly
-            | osm_type | osm_id | ST_AsText(geom) | num |
-            | N        | 12     | 3.4 5.6         | 1   |
-            | W        | 20     | 10, 11          | 1   |
+            | osm_type | osm_id | geom!geo | num |
+            | N        | 12     | 3.4 5.6  | 1   |
+            | W        | 20     | 10, 11   | 1   |
 

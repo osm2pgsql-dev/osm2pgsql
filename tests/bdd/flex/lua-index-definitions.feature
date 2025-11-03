@@ -26,7 +26,8 @@ Feature: Index definitions in Lua file
                 indexes = true
             })
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails
         And the error output contains
             """
             The 'indexes' field in definition of table 'mytable' is not an array.
@@ -48,7 +49,7 @@ Feature: Index definitions in Lua file
             """
         When running osm2pgsql flex
         Then statement mytable_indexes returns
-            | indexdef@substr |
+            | indexdef!substr |
             | USING gist (geom) |
 
     Scenario: Empty indexes field in table definition gets you no index
@@ -89,7 +90,7 @@ Feature: Index definitions in Lua file
             """
         When running osm2pgsql flex
         Then statement mytable_indexes returns
-            | indexdef@substr |
+            | indexdef!substr |
             | USING btree (name) |
 
     Scenario: Explicitly setting multiple indexes
@@ -113,7 +114,7 @@ Feature: Index definitions in Lua file
             """
         When running osm2pgsql flex
         Then statement mytable_indexes returns exactly
-            | indexdef@substr |
+            | indexdef!substr |
             | USING btree (name) |
             | USING gist (geom) |
             | USING btree (name, tags) |
@@ -135,7 +136,8 @@ Feature: Index definitions in Lua file
                 }
             })
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails
         And the error output contains
             """
             Index definition must contain a 'method' string field.
@@ -158,7 +160,8 @@ Feature: Index definitions in Lua file
                 }
             })
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails
         And the error output contains
             """
             Unknown index method 'ERROR'.
@@ -181,7 +184,8 @@ Feature: Index definitions in Lua file
                 }
             })
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails
         And the error output contains
             """
             You must set either the 'column' or the 'expression' field in index definition.
@@ -204,7 +208,8 @@ Feature: Index definitions in Lua file
                 }
             })
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails
         And the error output contains
             """
             Unknown column 'foo' in table 'mytable'.
@@ -227,7 +232,8 @@ Feature: Index definitions in Lua file
                 }
             })
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails
         And the error output contains
             """
             You must set either the 'column' or the 'expression' field in index definition.
@@ -252,7 +258,7 @@ Feature: Index definitions in Lua file
             """
         When running osm2pgsql flex
         Then statement mytable_indexes returns
-            | indexdef@substr |
+            | indexdef!substr |
             | USING btree (lower(name)) |
 
     Scenario: Include field must be a string or array
@@ -272,7 +278,8 @@ Feature: Index definitions in Lua file
                 }
             })
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails
         And the error output contains
             """
             The 'include' field in an index definition must contain a string or an array.
@@ -295,7 +302,8 @@ Feature: Index definitions in Lua file
                 }
             })
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails
         And the error output contains
             """
             Unknown column 'foo' in table 'mytable'.
@@ -320,7 +328,7 @@ Feature: Index definitions in Lua file
             """
         When running osm2pgsql flex
         Then statement mytable_indexes returns
-            | indexdef@substr |
+            | indexdef!substr |
             | USING btree (name) INCLUDE (tags) |
 
     Scenario: Include field works with array
@@ -342,7 +350,7 @@ Feature: Index definitions in Lua file
             """
         When running osm2pgsql flex
         Then statement mytable_indexes returns
-            | indexdef@substr |
+            | indexdef!substr |
             | USING btree (name) INCLUDE (tags) |
 
     Scenario: Tablespace needs a string
@@ -362,7 +370,8 @@ Feature: Index definitions in Lua file
                 }
             })
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails
         And the error output contains
             """
             Index definition field must contain a 'tablespace' string field (or nil for default: '').
@@ -387,7 +396,7 @@ Feature: Index definitions in Lua file
             """
         When running osm2pgsql flex
         Then statement mytable_indexes returns
-            | indexdef@substr |
+            | indexdef!substr |
             | USING btree (name) |
 
     Scenario: Unique needs a boolean
@@ -407,7 +416,8 @@ Feature: Index definitions in Lua file
                 }
             })
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails
         And the error output contains
             """
             Index definition field 'unique' must be a boolean field.
@@ -432,7 +442,7 @@ Feature: Index definitions in Lua file
             """
         When running osm2pgsql flex
         Then statement mytable_indexes returns
-            | indexdef@fullmatch |
+            | indexdef!re |
             | .*UNIQUE.*USING btree \(name\).* |
 
     Scenario: Where condition needs a string
@@ -452,7 +462,8 @@ Feature: Index definitions in Lua file
                 }
             })
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails
         And the error output contains
             """
             Index definition field must contain a 'where' string field (or nil for default: '').
@@ -477,7 +488,7 @@ Feature: Index definitions in Lua file
             """
         When running osm2pgsql flex
         Then statement mytable_indexes returns
-            | indexdef@substr |
+            | indexdef!substr |
             | USING btree (name) WHERE (name = lower(name)) |
 
 
@@ -497,7 +508,7 @@ Feature: Index definitions in Lua file
             """
         When running osm2pgsql flex
         Then statement mytable_indexes returns exactly
-            | indexdef@substr  |
+            | indexdef!substr |
             | USING gist (geom) |
 
     Scenario: Don't create id index if the configuration doesn't says so
@@ -516,7 +527,7 @@ Feature: Index definitions in Lua file
             """
         When running osm2pgsql flex
         Then statement mytable_indexes returns exactly
-            | indexdef@substr  |
+            | indexdef!substr |
             | USING gist (geom) |
 
     Scenario: Always create id index if the configuration says so
@@ -535,7 +546,7 @@ Feature: Index definitions in Lua file
             """
         When running osm2pgsql flex
         Then statement mytable_indexes returns
-            | indexdef@substr      |
+            | indexdef!substr |
             | USING btree (node_id) |
 
     Scenario: Create a unique id index when requested
@@ -555,7 +566,7 @@ Feature: Index definitions in Lua file
         When running osm2pgsql flex
         Then table mytable has 1562 rows
         Then statement mytable_indexes returns
-            | indexdef@fullmatch                           | is_primary |
+            | indexdef!re                                  | is_primary |
             | CREATE UNIQUE INDEX .* USING .*\(node_id\).* | False      |
 
     Scenario: Create a primary key id index when requested
@@ -575,5 +586,5 @@ Feature: Index definitions in Lua file
         When running osm2pgsql flex
         Then table mytable has 1562 rows
         Then statement mytable_indexes returns
-            | indexdef@fullmatch                         | is_primary |
+            | indexdef!re                                | is_primary |
             | CREATE UNIQUE INDEX .* USING .*\(node_id\) | True       |

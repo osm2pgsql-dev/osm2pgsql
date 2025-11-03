@@ -26,15 +26,15 @@ Feature: Tests for Lua geometry processing functions
             """
         When running osm2pgsql flex
         Then table osm2pgsql_test_points contains
-            | node_id | name  | ST_AsText(geom4326) | geom3857 = geomauto |
-            | 1       | point | 1.1 1.2             | True                |
+            | node_id | name  | geom4326!geo | geom3857 = geomauto |
+            | 1       | point | 1.1 1.2      | True                |
 
     Scenario:
         Given the 0.1 grid with origin 9.0 50.3
-            |    |    |  7 |    |    |  8 |
-            |    |    |    | 11 | 12 |    |
-            |  3 |  4 |    |  9 | 10 |    |
             |  1 |  2 |  5 |    |    |  6 |
+            |  3 |  4 |    |  9 | 10 |    |
+            |    |    |    | 11 | 12 |    |
+            |    |    |  7 |    |    |  8 |
         And the OSM data
             """
             w1 Tnatural=water,name=poly Nn1,n2,n4,n3,n1
@@ -94,12 +94,12 @@ Feature: Tests for Lua geometry processing functions
             """
         When running osm2pgsql flex
         Then table osm2pgsql_test_ways contains
-            | way_id | name  | ST_AsText(geom) | ST_AsText(geomsimple) |
-            | 1      | poly  | 1, 2, 4, 3, 1   | 1, 4, 1               |
+            | way_id | name  | geom!geo      | geomsimple!geo |
+            | 1      | poly  | 1, 2, 4, 3, 1 | 1, 4, 1               |
         And table osm2pgsql_test_polygons contains
-            | area_id | name  | ST_AsText(geom)                    | ST_AsText(center) | type    |
-            | 1       | poly  | (1, 2, 4, 3, 1)                    | 9.05 50.05        | POLYGON |
-            | -1      | multi | (5, 6, 8, 7, 5),(9, 11, 12, 10, 9) | NULL              | POLYGON |
+            | area_id | name  | geom!geo                           | center!geo | type    |
+            | 1       | poly  | (1, 2, 4, 3, 1)                    | 9.05 50.05 | POLYGON |
+            | -1      | multi | (5, 6, 8, 7, 5),(9, 11, 12, 10, 9) | NULL       | POLYGON |
 
     Scenario:
         Given the grid
@@ -131,7 +131,7 @@ Feature: Tests for Lua geometry processing functions
             """
         When running osm2pgsql flex
         Then table osm2pgsql_test_roads contains
-            | way_id | n | ST_AsText(geom)      |
+            | way_id | n | geom!geo             |
             | 1      | 1 | 1, 2                 |
             | 1      | 2 | 2, 3                 |
             | 1      | 3 | 3, 20.2 19.9         |

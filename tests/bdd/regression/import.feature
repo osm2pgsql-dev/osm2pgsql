@@ -8,14 +8,14 @@ Feature: Imports of the test database
 
         Then table planet_osm_point has 1342 rows
         And table planet_osm_polygon contains
-            | count(*) | round(sum(ST_Area(way))) | round(sum(way_area)) |
-            | 4130     | 1247245186               | 1247245413           |
+            | count(*) | sum(ST_Area(way))::int | sum(way_area)::int |
+            | 4130     | 1247245186             | 1247243136         |
         And table planet_osm_line contains
-            | count(*) | round(sum(ST_Length(way))) |
-            | 3231     | 4211350                    |
+            | count(*) | sum(ST_Length(way))::int |
+            | 3231     | 4211350                  |
         And table planet_osm_roads contains
-            | count(*) | round(sum(ST_Length(way))) |
-            | 375      | 2032023                    |
+            | count(*) | sum(ST_Length(way))::int |
+            | 375      | 2032023                  |
 
         And there are no tables planet_osm_nodes, planet_osm_ways, planet_osm_rels
 
@@ -39,14 +39,14 @@ Feature: Imports of the test database
 
         Then table planet_osm_point has 1342 rows
         And table planet_osm_polygon contains
-            | count(*) | round(sum(ST_Area(way))) | round(sum(way_area)) |
-            | 4130     | 1247245186               | 1247245413           |
+            | count(*) | sum(ST_Area(way))::int | sum(way_area)::int |
+            | 4130     | 1247245186             | 1247243136         |
         And table planet_osm_line contains
-            | count(*) | round(sum(ST_Length(way))) |
-            | 3231     | 4211350                    |
+            | count(*) | sum(ST_Length(way))::int |
+            | 3231     | 4211350                  |
         And table planet_osm_roads contains
-            | count(*) | round(sum(ST_Length(way))) |
-            | 375      | 2032023                    |
+            | count(*) | sum(ST_Length(way))::int |
+            | 375      | 2032023                  |
 
         And there are <have table> planet_osm_nodes, planet_osm_ways, planet_osm_rels
 
@@ -57,21 +57,22 @@ Feature: Imports of the test database
 
 
     Scenario Outline: Import with Lua tagtransform
-        Given the default lua tagtransform
         When running osm2pgsql pgsql
-            | --create |
-            | <slim> |
+            | --create                   |
+            | <slim>                     |
+            | --tag-transform-script     |
+            | {STYLE_DATA_DIR}/style.lua |
 
         Then table planet_osm_point has 1342 rows
         And table planet_osm_polygon contains
-            | count(*) | round(sum(ST_Area(way))) | round(sum(way_area)) |
-            | 4136     | 1272140688               | 1272140891           |
+            | count(*) | sum(ST_Area(way))::int | sum(way_area)::int |
+            | 4136     | 1272140688             | 1272138496         |
         And table planet_osm_line contains
-            | count(*) | round(sum(ST_Length(way))) |
-            | 3231     | 4211350                    |
+            | count(*) | sum(ST_Length(way))::int |
+            | 3231     | 4211350                  |
         And table planet_osm_roads contains
-            | count(*) | round(sum(ST_Length(way))) |
-            | 375      | 2032023                    |
+            | count(*) | sum(ST_Length(way))::int |
+            | 375      | 2032023                  |
 
         And there are <have table> planet_osm_nodes, planet_osm_ways, planet_osm_rels
 
@@ -128,14 +129,14 @@ Feature: Imports of the test database
 
         Then table planet_osm_point has 1342 rows
         And table planet_osm_polygon contains
-            | count(*) | round(sum(ST_Area(way))) | round(sum(way_area)) |
-            | 4130     | 1247245186               | 1247245413           |
+            | count(*) | sum(ST_Area(way))::int | sum(way_area)::int |
+            | 4130     | 1247245186             | 1247243136         |
         And table planet_osm_line contains
-            | count(*) | round(sum(ST_Length(way))) |
-            | 3231     | 4211350                    |
+            | count(*) | sum(ST_Length(way))::int |
+            | 3231     | 4211350                  |
         And table planet_osm_roads contains
-            | count(*) | round(sum(ST_Length(way))) |
-            | 375      | 2032023                    |
+            | count(*) | sum(ST_Length(way))::int |
+            | 375      | 2032023                  |
 
         And there are tables planet_osm_nodes, planet_osm_ways, planet_osm_rels
 

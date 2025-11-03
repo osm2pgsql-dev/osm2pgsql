@@ -20,8 +20,8 @@ Feature: Tests that empty insert command does something
             end
             """
 
-        Then running osm2pgsql flex fails
-
+        When running osm2pgsql flex
+        Then execution fails
         And the error output contains
             """
             Need two parameters

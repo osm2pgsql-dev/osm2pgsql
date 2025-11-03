@@ -43,9 +43,9 @@ Feature: Creating (multi)point features from nodes and relations
         When running osm2pgsql flex
 
         Then table osm2pgsql_test_points contains exactly
-            | osm_type | osm_id | ST_AsText(geom) |
-            | N        | 1      | 1               |
-            | N        | 5      | 5               |
-            | R        | 30     | 1               |
-            | R        | 31     | [ 5; 1 ]        |
+            | osm_type | osm_id | geom!geo |
+            | N        | 1      | 1        |
+            | N        | 5      | 5        |
+            | R        | 30     | 1        |
+            | R        | 31     | [ 5; 1 ] |
 

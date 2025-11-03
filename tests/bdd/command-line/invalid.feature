@@ -7,16 +7,18 @@ Feature: Errors for invalid command line parameter combinations
             """
 
     Scenario: create and append cannot be used together
-        Then running osm2pgsql pgsql with parameters fails
+        When running osm2pgsql pgsql with parameters
             | -c | -a |
+        Then execution fails
         And the error output contains
             """
             --append and --create options can not be used at the same time
             """
 
     Scenario: append can only be used with slim mode
-        Then running osm2pgsql pgsql with parameters fails
+        When running osm2pgsql pgsql with parameters
             | -a |
+        Then execution fails
         And the error output contains
             """
             --append can only be used with slim mode

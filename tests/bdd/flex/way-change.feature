@@ -4,8 +4,8 @@ Feature: Changing ways in a flex database
         Given the style file 'test_output_flex_way.lua'
 
         Given the 0.1 grid with origin 10.0 10.1
-            | 11 | 13 | 15 | 17 | 19 |
             | 10 | 12 | 14 | 16 | 18 |
+            | 11 | 13 | 15 | 17 | 19 |
 
     Scenario Outline:
         Given the OSM data

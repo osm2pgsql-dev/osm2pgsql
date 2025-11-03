@@ -45,9 +45,9 @@ Feature: Tests for area() function
             """
         When running osm2pgsql flex
         Then table osm2pgsql_test_polygon contains
-            | name  | ST_Area(geom)  | area         | ST_Area(ST_Transform(geom, 4326)) |
-            | poly  | <st_area poly> | <area poly>  | 0.01 |
-            | multi | <st_area multi>| <area multi> | 0.08 |
+            | name  | ST_Area(geom)!~1%  | area!~1%     | ST_Area(ST_Transform(geom, 4326))!~1% |
+            | poly  | <st_area poly>     | <area poly>  | 0.01 |
+            | multi | <st_area multi>    | <area multi> | 0.08 |
 
         Examples:
             | geom proj | area proj | st_area poly | area poly    | st_area multi | area multi    |

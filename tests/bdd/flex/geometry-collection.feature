@@ -45,7 +45,7 @@ Feature: Create geometry collections from relations
             | 33     | node   | ST_GeometryCollection | 1                      | ST_Point                               |
 
         And table osm2pgsql_test_collection contains exactly
-            | osm_id | ST_AsText(geom)                    |
+            | osm_id | geom!geo                           |
             | 30     | { 10, 11, 12, 13, 10 }             |
             | 31     | { 10, 11, 12, 13, 10; 14, 15, 16 } |
             | 32     | { 17; 14, 15, 16 }                 |
@@ -105,6 +105,6 @@ Feature: Create geometry collections from relations
         When running osm2pgsql flex
 
         Then table osm2pgsql_test_collection contains exactly
-            | osm_id | name  | ST_AsText(geom)                    |
+            | osm_id | name  | geom!geo                           |
             | 30     | three | { 10, 11, 12, 13, 10; 10, 11, 13 } |
 

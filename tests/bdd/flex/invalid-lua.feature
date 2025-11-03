@@ -9,4 +9,5 @@ Feature: Tests for basic Lua functions
             """
             this-is-not-valid-lua
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails

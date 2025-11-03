@@ -25,8 +25,6 @@ Feature: Test for delete callbacks
         Then table change contains exactly
             | osm_type | osm_id |
 
-        Given the input file '008-ch.osc.gz'
-
         Given the SQL statement grouped_counts
             """
             SELECT osm_type,
@@ -38,6 +36,7 @@ Feature: Test for delete callbacks
             """
 
     Scenario: Delete callbacks are called
+        Given the input file '008-ch.osc.gz'
         When running osm2pgsql flex with parameters
             | --slim | -a |
         Then statement grouped_counts returns exactly
@@ -46,6 +45,7 @@ Feature: Test for delete callbacks
             | W        | 4     | 9         |
             | R        | 1     | 3         |
 
+        Given the input file '008-ch.osc.gz'
         When running osm2pgsql flex with parameters
             | --slim | -a |
         Then statement grouped_counts returns exactly
@@ -78,6 +78,7 @@ Feature: Test for delete callbacks
 
 
             """
+        Given the input file '008-ch.osc.gz'
         When running osm2pgsql flex with parameters
             | --slim | -a |
         Then statement grouped_counts returns exactly
@@ -111,6 +112,7 @@ Feature: Test for delete callbacks
 
 
             """
+        Given the input file '008-ch.osc.gz'
         When running osm2pgsql flex with parameters
             | --slim | -a |
         Then statement grouped_counts returns exactly

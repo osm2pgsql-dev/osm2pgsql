@@ -41,7 +41,7 @@ Feature: Creating (multi)linestring features from way and relations
         When running osm2pgsql flex
 
         Then table osm2pgsql_test_lines contains exactly
-            | osm_type | osm_id | ST_AsText(geom)      |
+            | osm_type | osm_id | geom!geo             |
             | W        | 20     | 1, 2, 3              |
             | W        | 21     | 4, 5, 6              |
             | R        | 30     | 1, 2, 3              |
@@ -77,7 +77,7 @@ Feature: Creating (multi)linestring features from way and relations
         When running osm2pgsql flex
 
         Then table osm2pgsql_test_roads contains exactly
-            | relation_id | ST_GeometryType(geom) |  ST_AsText(merged) |
-            | 30          | ST_MultiLineString    |  [ 1, 2, 3 ]       |
-            | 31          | ST_MultiLineString    |  [ 1, 2; 3, 4 ]    |
+            | relation_id | ST_GeometryType(geom) |  merged!geo     |
+            | 30          | ST_MultiLineString    |  [ 1, 2, 3 ]    |
+            | 31          | ST_MultiLineString    |  [ 1, 2; 3, 4 ] |
 
