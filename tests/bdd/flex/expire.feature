@@ -26,7 +26,6 @@ Feature: Changes on way with expire on zoom 0
             """
             w10 v1 dV Ta=b Nn10,n11
             """
-        And an empty grid
 
         When running osm2pgsql flex with parameters
             | --slim | -a |
@@ -43,7 +42,6 @@ Feature: Changes on way with expire on zoom 0
             """
             n1 v2 dV x1 y2
             """
-        And an empty grid
 
         When running osm2pgsql flex with parameters
             | --slim | -a |
@@ -60,7 +58,6 @@ Feature: Changes on way with expire on zoom 0
             """
             w10 v1 dV Tt1=yes Nn10,n11
             """
-        And an empty grid
 
         When running osm2pgsql flex with parameters
             | --slim | -a |
@@ -79,7 +76,6 @@ Feature: Changes on way with expire on zoom 0
             """
             w11 v2 dV Ta=b Nn10,n11
             """
-        And an empty grid
 
         When running osm2pgsql flex with parameters
             | --slim | -a |
@@ -96,7 +92,6 @@ Feature: Changes on way with expire on zoom 0
             """
             w11 v2 dD
             """
-        And an empty grid
 
         When running osm2pgsql flex with parameters
             | --slim | -a |

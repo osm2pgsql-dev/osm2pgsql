@@ -21,8 +21,6 @@ def get_import_file(context):
     if context.import_file is not None:
         return str(context.import_file), None
 
-    context.geometry_factory.complete_node_list(context.import_data['n'])
-
     # sort by OSM id
     for obj in context.import_data.values():
         obj.sort(key=lambda l: int(l.split(' ')[0][1:]))

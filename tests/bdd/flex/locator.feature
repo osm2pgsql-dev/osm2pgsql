@@ -199,8 +199,7 @@ Feature: Locators
             | way_id | region | ST_AsText(geom)         |
             | 20     | P1     | (10 0,20 10,10 10,10 0) |
 
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             n10 v1 dV Tamenity=post_box x15.0 y8.0
             n11 v1 dV Tamenity=post_box x15.0 y2.0

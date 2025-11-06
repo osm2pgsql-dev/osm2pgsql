@@ -33,8 +33,7 @@ Feature: Deleting relations in a stage-2 flex database
             | 13     |
             | 14     |
 
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             r32 v2 dD
             """
@@ -78,8 +77,7 @@ Feature: Deleting relations in a stage-2 flex database
             | 13     |
             | 14     |
 
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             r32 v2 dD
             """
@@ -125,8 +123,7 @@ Feature: Deleting relations in a stage-2 flex database
             | 13     |
             | 14     |
 
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             <input>
             """
@@ -176,8 +173,7 @@ Feature: Deleting relations in a stage-2 flex database
             | 13     |
             | 14     |
 
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             <input>
             """
@@ -228,8 +224,7 @@ Feature: Deleting relations in a stage-2 flex database
             | 13     |
             | 14     |
 
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             <input>
             """

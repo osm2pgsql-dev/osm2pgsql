@@ -27,8 +27,7 @@ Feature: Adding nodes to a flex database
 
 
     Scenario: node is not relevant
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             n10 v1 dV Tt=ag x0 y0
             r30 v2 dV Tt=ag Mn10@,n11@,n12@mark,n13@,n14@mark
@@ -49,8 +48,7 @@ Feature: Adding nodes to a flex database
 
 
     Scenario: add to t1
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             n10 v1 dV Tt1=yes x0 y0
             r30 v2 dV Tt=ag Mn10@,n11@,n12@mark,n13@,n14@mark
@@ -72,8 +70,7 @@ Feature: Adding nodes to a flex database
 
 
     Scenario: add to t2
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             n10 v1 dV Tt2=yes x0 y0
             r30 v2 dV Tt=ag Mn10@mark,n11@,n12@mark,n13@,n14@mark
@@ -95,8 +92,7 @@ Feature: Adding nodes to a flex database
 
 
     Scenario: add to t1 and t2
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             n10 v1 dV Tt1=yes,t2=yes x0 y0
             r30 v2 dV Tt=ag Mn10@mark,n11@,n12@mark,n13@,n14@mark
@@ -119,8 +115,7 @@ Feature: Adding nodes to a flex database
 
 
     Scenario: add to tboth (only stage1)
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             n10 v1 dV Ttboth=yes x0 y0
             r30 v2 dV Tt=ag Mn10@,n11@,n12@mark,n13@,n14@mark
@@ -142,8 +137,7 @@ Feature: Adding nodes to a flex database
 
 
     Scenario: add to tboth (stage1 and stage2)
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             n10 v1 dV Ttboth=yes x0 y0
             r30 v2 dV Tt=ag Mn10@mark,n11@,n12@mark,n13@,n14@mark
