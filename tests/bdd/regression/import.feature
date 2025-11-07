@@ -7,14 +7,15 @@ Feature: Imports of the test database
         When running osm2pgsql pgsql
 
         Then table planet_osm_point has 1342 rows
-        And table planet_osm_line has 3231 rows
-        And table planet_osm_roads has 375 rows
-        And table planet_osm_polygon has 4130 rows
-
-        Then the sum of 'cast(ST_Area(way) as numeric)' in table planet_osm_polygon is 1247245186
-        And the sum of 'cast(way_area as numeric)' in table planet_osm_polygon is 1247245413
-        And the sum of 'ST_Length(way)' in table planet_osm_line is 4211350
-        And the sum of 'ST_Length(way)' in table planet_osm_roads is 2032023
+        And table planet_osm_polygon contains
+            | count(*) | round(sum(ST_Area(way))) | round(sum(way_area)) |
+            | 4130     | 1247245186               | 1247245413           |
+        And table planet_osm_line contains
+            | count(*) | round(sum(ST_Length(way))) |
+            | 3231     | 4211350                    |
+        And table planet_osm_roads contains
+            | count(*) | round(sum(ST_Length(way))) |
+            | 375      | 2032023                    |
 
         And there are no tables planet_osm_nodes, planet_osm_ways, planet_osm_rels
 
@@ -37,14 +38,15 @@ Feature: Imports of the test database
             | <drop> |
 
         Then table planet_osm_point has 1342 rows
-        And table planet_osm_line has 3231 rows
-        And table planet_osm_roads has 375 rows
-        And table planet_osm_polygon has 4130 rows
-
-        Then the sum of 'cast(ST_Area(way) as numeric)' in table planet_osm_polygon is 1247245186
-        And the sum of 'cast(way_area as numeric)' in table planet_osm_polygon is 1247245413
-        And the sum of 'ST_Length(way)' in table planet_osm_line is 4211350
-        And the sum of 'ST_Length(way)' in table planet_osm_roads is 2032023
+        And table planet_osm_polygon contains
+            | count(*) | round(sum(ST_Area(way))) | round(sum(way_area)) |
+            | 4130     | 1247245186               | 1247245413           |
+        And table planet_osm_line contains
+            | count(*) | round(sum(ST_Length(way))) |
+            | 3231     | 4211350                    |
+        And table planet_osm_roads contains
+            | count(*) | round(sum(ST_Length(way))) |
+            | 375      | 2032023                    |
 
         And there are <have table> planet_osm_nodes, planet_osm_ways, planet_osm_rels
 
@@ -61,14 +63,15 @@ Feature: Imports of the test database
             | <slim> |
 
         Then table planet_osm_point has 1342 rows
-        And table planet_osm_line has 3231 rows
-        And table planet_osm_roads has 375 rows
-        And table planet_osm_polygon has 4136 rows
-
-        Then the sum of 'cast(ST_Area(way) as numeric)' in table planet_osm_polygon is 1272140688
-        And the sum of 'cast(way_area as numeric)' in table planet_osm_polygon is 1272140891
-        And the sum of 'ST_Length(way)' in table planet_osm_line is 4211350
-        And the sum of 'ST_Length(way)' in table planet_osm_roads is 2032023
+        And table planet_osm_polygon contains
+            | count(*) | round(sum(ST_Area(way))) | round(sum(way_area)) |
+            | 4136     | 1272140688               | 1272140891           |
+        And table planet_osm_line contains
+            | count(*) | round(sum(ST_Length(way))) |
+            | 3231     | 4211350                    |
+        And table planet_osm_roads contains
+            | count(*) | round(sum(ST_Length(way))) |
+            | 375      | 2032023                    |
 
         And there are <have table> planet_osm_nodes, planet_osm_ways, planet_osm_rels
 
@@ -102,15 +105,18 @@ Feature: Imports of the test database
         When running osm2pgsql pgsql with parameters
             | --slim   | -j |
 
-        Then table planet_osm_point has 1360 rows
-        And table planet_osm_line has 3254 rows
-        And table planet_osm_roads has 375 rows
-        And table planet_osm_polygon has 4131 rows
-
-        Then the sum of 'array_length(akeys(tags),1)' in table planet_osm_point is 4228
-        And the sum of 'array_length(akeys(tags),1)' in table planet_osm_roads is 2317
-        And the sum of 'array_length(akeys(tags),1)' in table planet_osm_line is 10387
-        And the sum of 'array_length(akeys(tags),1)' in table planet_osm_polygon is 9538
+        Then table planet_osm_point contains
+            | count(*) | sum(array_length(akeys(tags), 1)) |
+            | 1360     | 4228                              |
+        Then table planet_osm_line contains
+            | count(*) | sum(array_length(akeys(tags), 1)) |
+            | 3254     | 10387                             |
+        Then table planet_osm_roads contains
+            | count(*) | sum(array_length(akeys(tags), 1)) |
+            | 375      | 2317                              |
+        Then table planet_osm_polygon contains
+            | count(*) | sum(array_length(akeys(tags), 1)) |
+            | 4131     | 9538                              |
 
 
     Scenario Outline: Import slim with various tweaks
@@ -121,14 +127,15 @@ Feature: Imports of the test database
             | <param3> |
 
         Then table planet_osm_point has 1342 rows
-        And table planet_osm_line has 3231 rows
-        And table planet_osm_roads has 375 rows
-        And table planet_osm_polygon has 4130 rows
-
-        Then the sum of 'cast(ST_Area(way) as numeric)' in table planet_osm_polygon is 1247245186
-        And the sum of 'cast(way_area as numeric)' in table planet_osm_polygon is 1247245413
-        And the sum of 'ST_Length(way)' in table planet_osm_line is 4211350
-        And the sum of 'ST_Length(way)' in table planet_osm_roads is 2032023
+        And table planet_osm_polygon contains
+            | count(*) | round(sum(ST_Area(way))) | round(sum(way_area)) |
+            | 4130     | 1247245186               | 1247245413           |
+        And table planet_osm_line contains
+            | count(*) | round(sum(ST_Length(way))) |
+            | 3231     | 4211350                    |
+        And table planet_osm_roads contains
+            | count(*) | round(sum(ST_Length(way))) |
+            | 375      | 2032023                    |
 
         And there are tables planet_osm_nodes, planet_osm_ways, planet_osm_rels
 

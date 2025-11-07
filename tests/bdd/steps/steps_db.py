@@ -44,23 +44,6 @@ def db_table_row_count(context, table, row_num, has_where):
            f"Table {table}: expected {row_num} rows, got {actual}"
 
 
-@then(r"the sum of '(?P<formula>.+)' in table (?P<table>.+) is (?P<result>\d+)(?P<has_where> with condition)?")
-def db_table_sum_up(context, table, formula, result, has_where):
-    assert table_exists(context.db, table)
-
-    query = sql.SQL("SELECT round(sum({})) FROM {}")\
-               .format(sql.SQL(formula), sql.Identifier(*table.split('.', 2)))
-
-    if has_where:
-        query = sql.SQL("{} WHERE {}").format(query, sql.SQL(context.text))
-
-
-    actual = scalar(context.db, query)
-
-    assert actual == int(result),\
-           f"Table {table}: expected sum {result}, got {actual}"
-
-
 @then("there (?:is|are) (?P<exists>no )?tables? (?P<tables>.+)")
 def db_table_existance(context, exists, tables):
     for table in tables.split(','):
