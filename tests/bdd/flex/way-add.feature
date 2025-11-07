@@ -31,8 +31,7 @@ Feature: Adding ways to a flex database
 
 
     Scenario: way is not relevant
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             w10 v1 dV Tt=ag Nn10,n11
             r30 v2 dV Tt=ag Mw10@,w11@,w12@mark,w13@,w14@mark
@@ -53,8 +52,7 @@ Feature: Adding ways to a flex database
 
 
     Scenario: add to t1
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             w10 v1 dV Tt1=yes Nn10,n11
             r30 v2 dV Tt=ag Mw10@,w11@,w12@mark,w13@,w14@mark
@@ -76,8 +74,7 @@ Feature: Adding ways to a flex database
 
 
     Scenario: add to t2
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             w10 v1 dV Tt2=yes Nn10,n11
             r30 v2 dV Tt=ag Mw10@mark,w11@,w12@mark,w13@,w14@mark
@@ -99,8 +96,7 @@ Feature: Adding ways to a flex database
 
 
     Scenario: add to t1 and t2
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             w10 v1 dV Tt1=yes,t2=yes Nn10,n11
             r30 v2 dV Tt=ag Mw10@mark,w11@,w12@mark,w13@,w14@mark
@@ -123,8 +119,7 @@ Feature: Adding ways to a flex database
 
 
     Scenario: add to tboth (only stage1)
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             w10 v1 dV Ttboth=yes Nn10,n11
             r30 v2 dV Tt=ag Mw10@,w11@,w12@mark,w13@,w14@mark
@@ -146,8 +141,7 @@ Feature: Adding ways to a flex database
 
 
     Scenario: add to tboth (stage1 and stage2)
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             w10 v1 dV Ttboth=yes Nn10,n11
             r30 v2 dV Tt=ag Mw10@mark,w11@,w12@mark,w13@,w14@mark

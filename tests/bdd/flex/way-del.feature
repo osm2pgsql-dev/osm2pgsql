@@ -31,8 +31,7 @@ Feature: Deleting ways in a 2-stage flex database
             | 13     |
             | 14     |
 
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             w10 v2 dD
             """
@@ -74,8 +73,7 @@ Feature: Deleting ways in a 2-stage flex database
             | 13     |
             | 14     |
 
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             w10 v2 dD
             """
@@ -117,8 +115,7 @@ Feature: Deleting ways in a 2-stage flex database
             | 13     |
             | 14     |
 
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             w10 v2 dD
             """
@@ -159,8 +156,7 @@ Feature: Deleting ways in a 2-stage flex database
             | 13     |
             | 14     |
 
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             w10 v2 dD
             """
@@ -202,8 +198,7 @@ Feature: Deleting ways in a 2-stage flex database
             | 13     |
             | 14     |
 
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             w10 v2 dD
             """
@@ -245,8 +240,7 @@ Feature: Deleting ways in a 2-stage flex database
             | 13     |
             | 14     |
 
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             w10 v2 dD
             """
@@ -289,8 +283,7 @@ Feature: Deleting ways in a 2-stage flex database
             | 13     |
             | 14     |
 
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             w10 v2 dD
             """
@@ -332,8 +325,7 @@ Feature: Deleting ways in a 2-stage flex database
             | 13     |
             | 14     |
 
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             w10 v2 dD
             """

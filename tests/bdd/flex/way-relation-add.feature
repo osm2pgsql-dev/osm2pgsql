@@ -34,8 +34,7 @@ Feature: Adding relations to a 2-stage flex database
             | 13     |
             | 14     |
 
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             r32 v2 dV Tt=ag Mw10@mark,w11@,w12@,w13@,w14@,w15@
             """
@@ -86,8 +85,7 @@ Feature: Adding relations to a 2-stage flex database
             | 13     |
             | 14     |
 
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             r32 v2 dV Tt=ag Mw10@mark,w11@,w12@,w13@,w14@,w15@
             """
@@ -133,8 +131,7 @@ Feature: Adding relations to a 2-stage flex database
             | 13     |
             | 14     |
 
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             r32 v2 dV Tt=ag Mw10@mark,w11@,w12@,w13@,w14@,w15@
             """
@@ -180,8 +177,7 @@ Feature: Adding relations to a 2-stage flex database
             | 13     | NULL    |
             | 14     | {30}    |
 
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             r32 v2 dV Tt=ag Mw10@mark,w11@,w12@,w13@,w14@,w15@
             """
@@ -231,8 +227,7 @@ Feature: Adding relations to a 2-stage flex database
             | 13     | NULL    |
             | 14     | {30}    |
 
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             r32 v2 dV Tt=ag Mw10@mark,w11@,w12@,w13@,w14@,w15@
             """
@@ -277,8 +272,7 @@ Feature: Adding relations to a 2-stage flex database
             | 13     |
             | 14     |
 
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             r32 v2 dV Tt=ag Mw10@,w11@,w12@,w13@,w14@,w15@
             """
@@ -328,8 +322,7 @@ Feature: Adding relations to a 2-stage flex database
             | 13     |
             | 14     |
 
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             r32 v2 dV Tt=ag Mw10@mark,w11@,w12@,w13@,w14@,w15@
             """
@@ -375,8 +368,7 @@ Feature: Adding relations to a 2-stage flex database
             | 13     |
             | 14     |
 
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             r32 v2 dV Tt=ag Mw10@,w11@,w12@,w13@,w14@,w15@
             """
@@ -422,8 +414,7 @@ Feature: Adding relations to a 2-stage flex database
             | 13     | NULL    |
             | 14     | {30}    |
 
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             r32 v2 dV Tt=ag Mw10@,w11@,w12@,w13@,w14@,w15@
             """
@@ -468,8 +459,7 @@ Feature: Adding relations to a 2-stage flex database
             | 13     | NULL    |
             | 14     | {30}    |
 
-        Given an empty grid
-        And the OSM data
+        Given the OSM data
             """
             r32 v2 dV Tt=ag Mw10@,w11@,w12@,w13@,w14@,w15@
             """

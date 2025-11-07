@@ -64,10 +64,6 @@ class GeometryFactory:
         return ','.join([self.mk_wkt_point(x) for x in geom.split(',')])
 
 
-    def remove_grid(self):
-        self.grid = {}
-
-
     def set_grid(self, lines, grid_step, origin_x, origin_y):
         """ Replace the grid with one from the given lines.
         """
@@ -92,23 +88,17 @@ class GeometryFactory:
         """
         return self.grid.get(nodeid)
 
+    def as_opl_lines(self):
+        return [f"n{nid} x{c[0]:.{self.grid_precision}f} y{c[1]:.{self.grid_precision}f}"
+                for nid, c in self.grid.items()]
 
-    def complete_node_list(self, nodes):
-        todos = set(self.grid.keys())
+    def complete_opl(self, opl):
+        if opl[0] != 'n' or ' x' in opl:
+            return opl
 
-        for i in range(len(nodes)):
-            line = nodes[i]
-            nid = int(line[1:].split(' ')[0])
+        nid = int(opl.split(' ', 1)[0][1:])
 
-            if ' x' not in line:
-                assert ' y' not in line
+        coords = self.grid_node(nid)
+        assert coords is not None, f"Coordinates missing for node {nid}"
 
-                coords = self.grid_node(nid)
-                assert coords is not None, f"Coordinates missing for node {nid}"
-                nodes[i] = f"{line} x{coords[0]:.{self.grid_precision}f} y{coords[1]:.{self.grid_precision}f}"
-
-            todos.discard(nid)
-
-        for nid in todos:
-            coords = self.grid_node(nid)
-            nodes.append(f"n{nid} x{coords[0]:.{self.grid_precision}f} y{coords[1]:.{self.grid_precision}f}")
+        return f"{opl} x{coords[0]:.{self.grid_precision}f} y{coords[1]:.{self.grid_precision}f}"
