@@ -223,8 +223,9 @@ GNU General Public License for more details.
 
 ## Maintainers
 
-The current maintainers of osm2pgsql are [Sarah Hoffmann](https://github.com/lonvia/)
-and [Paul Norman](https://github.com/pnorman/).
+The current maintainers of osm2pgsql are [Sarah Hoffmann](https://github.com/lonvia/),
+[Paul Norman](https://github.com/pnorman/) and
+[Jochen Topf](https://github.com/joto).
 
 ## Contributing
 
