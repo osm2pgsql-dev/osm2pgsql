@@ -162,32 +162,15 @@ Feature: Imports of the test database
             | -j |
             | -x |
 
-        Then table planet_osm_point has 1360 rows with condition
-            """
-            tags ? 'osm_user' AND
-            tags ? 'osm_version' AND
-            tags ? 'osm_uid' AND
-            tags ? 'osm_changeset'
-            """
-        And table planet_osm_line has 3254 rows with condition
-            """
-            tags ? 'osm_user' AND
-            tags ? 'osm_version' AND
-            tags ? 'osm_uid' AND
-            tags ? 'osm_changeset'
-            """
-        And table planet_osm_roads has 375 rows with condition
-            """
-            tags ? 'osm_user' AND
-            tags ? 'osm_version' AND
-            tags ? 'osm_uid' AND
-            tags ? 'osm_changeset'
-            """
-        And table planet_osm_polygon has 4131 rows with condition
-            """
-            tags ? 'osm_user' AND
-            tags ? 'osm_version' AND
-            tags ? 'osm_uid' AND
-            tags ? 'osm_changeset'
-            """
-
+        Then table planet_osm_point contains
+            | count(*) | every(tags ?& ARRAY['osm_user', 'osm_version', 'osm_uid', 'osm_changeset']) |
+            | 1360     | True |
+        Then table planet_osm_line contains
+            | count(*) | every(tags ?& ARRAY['osm_user', 'osm_version', 'osm_uid', 'osm_changeset']) |
+            | 3254     | True |
+        Then table planet_osm_roads contains
+            | count(*) | every(tags ?& ARRAY['osm_user', 'osm_version', 'osm_uid', 'osm_changeset']) |
+            | 375      | True |
+        Then table planet_osm_polygon contains
+            | count(*) | every(tags ?& ARRAY['osm_user', 'osm_version', 'osm_uid', 'osm_changeset']) |
+            | 4131     | True |

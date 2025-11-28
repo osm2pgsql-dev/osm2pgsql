@@ -29,14 +29,11 @@ def delete_table(context, table):
         cur.execute("DROP TABLE " + table)
 
 
-@then(r"table (?P<table>.+) has (?P<row_num>\d+) rows?(?P<has_where> with condition)?")
-def db_table_row_count(context, table, row_num, has_where):
+@then(r"table (?P<table>.+) has (?P<row_num>\d+) rows?")
+def db_table_row_count(context, table, row_num):
     assert table_exists(context.db, table)
 
     query = sql.SQL("SELECT count(*) FROM {}").format(sql.Identifier(*table.split('.', 2)))
-
-    if has_where:
-        query = sql.SQL("{} WHERE {}").format(query, sql.SQL(context.text))
 
     actual = scalar(context.db, query)
 
@@ -77,6 +74,23 @@ def db_check_table_content(context, table, exact):
 
     assert not exact or not actuals,\
            f"Unexpected lines in row:\n{actuals}"
+
+
+@then("table (?P<table>.+) doesn't contain")
+def db_check_table_absence(context, table):
+    assert table_exists(context.db, table)
+
+    rows = sql.SQL(', '.join(h.rsplit('@')[0] for h in context.table.headings))
+
+    with context.db.cursor() as cur:
+        cur.execute(sql.SQL("SELECT {} FROM {}")
+                       .format(rows, sql.Identifier(*table.split('.', 2))))
+
+        actuals = list(DBRow(r, context.table.headings, context.geometry_factory) for r in cur)
+
+    for row in context.table.rows:
+        assert not row in actuals, f"Row unexpectedly found: {row}. Full content:\n{actuals}"
+
 
 @then("(?P<query>SELECT .*)")
 def db_check_sql_statement(context, query):

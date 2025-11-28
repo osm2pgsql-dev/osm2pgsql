@@ -40,10 +40,9 @@ Feature: Changing ways in a flex database
         Then table osm2pgsql_test_t1 contains
             | way_id |
             | 11     |
-        And table osm2pgsql_test_t1 has <num_w10> rows with condition
-            """
-            way_id = 10
-            """
+        And table osm2pgsql_test_t1 <exist_w10>
+            | way_id |
+            | 10     |
         Then table osm2pgsql_test_t2 contains exactly
             | way_id |
             | 10     |
@@ -54,9 +53,9 @@ Feature: Changing ways in a flex database
             | 14     |
 
         Examples:
-            | input                             | num_w10 |
-            | w10 v2 dV Tt2=yes Nn10,n11        | 0       |
-            | w10 v2 dV Tt1=yes,t2=yes Nn10,n11 | 1       |
+            | input                             | exist_w10       |
+            | w10 v2 dV Tt2=yes Nn10,n11        | doesn't contain |
+            | w10 v2 dV Tt1=yes,t2=yes Nn10,n11 | contains        |
 
 
     Scenario Outline: change way from t2
@@ -96,19 +95,18 @@ Feature: Changing ways in a flex database
         Then table osm2pgsql_test_t2 contains
             | way_id |
             | 12     |
-        And table osm2pgsql_test_t2 has <num_w10> rows with condition
-            """
-            way_id = 10
-            """
+        And table osm2pgsql_test_t2 <exist_w10>
+            | way_id |
+            | 10     |
         Then table osm2pgsql_test_tboth contains exactly
             | way_id |
             | 13     |
             | 14     |
 
         Examples:
-            | input                             | num_w10 |
-            | w10 v2 dV Tt1=yes Nn10,n11        | 0       |
-            | w10 v2 dV Tt1=yes,t2=yes Nn10,n11 | 1       |
+            | input                             | exist_w10       |
+            | w10 v2 dV Tt1=yes Nn10,n11        | doesn't contain |
+            | w10 v2 dV Tt1=yes,t2=yes Nn10,n11 | contains        |
 
 
     Scenario Outline: change way from t1 and t2
@@ -145,26 +143,24 @@ Feature: Changing ways in a flex database
         Then table osm2pgsql_test_t1 contains
             | way_id |
             | 11     |
-        And table osm2pgsql_test_t1 has <num_t1> rows with condition
-            """
-            way_id = 10
-            """
+        And table osm2pgsql_test_t1 <exist_t1>
+            | way_id |
+            | 10     |
         Then table osm2pgsql_test_t2 contains
             | way_id |
             | 12     |
-        And table osm2pgsql_test_t2 has <num_t2> rows with condition
-            """
-            way_id = 10
-            """
+        And table osm2pgsql_test_t2 <exist_t2>
+            | way_id |
+            | 10     |
         Then table osm2pgsql_test_tboth contains exactly
             | way_id |
             | 13     |
             | 14     |
 
         Examples:
-            | input                      | num_t1 | num_t2 |
-            | w10 v2 dV Tt1=yes Nn10,n11 | 1      | 0      |
-            | w10 v2 dV Tt2=yes Nn10,n11 | 0      | 1      |
+            | input                      | exist_t1        | exist_t2 |
+            | w10 v2 dV Tt1=yes Nn10,n11 | contains        | doesn't contain |
+            | w10 v2 dV Tt2=yes Nn10,n11 | doesn't contain | contains        |
 
 
     Scenario Outline: change valid geom to invalid geom

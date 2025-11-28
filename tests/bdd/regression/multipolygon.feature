@@ -54,15 +54,14 @@ Feature: Import and update of multipolygon areas
             | 138    | 1     |
             | 140    | 1     |
 
-        Then table planet_osm_polygon has 0 rows with condition
-            """
-            osm_id IN (109, 104)
-            """
+        Then table planet_osm_polygon doesn't contain
+            | osm_id |
+            | 109    |
+            | 104    |
 
-        Then table planet_osm_polygon has 0 rows with condition
-            """
-            osm_id = -33 and "natural" = 'water'
-            """
+        Then table planet_osm_polygon doesn't contain
+            | osm_id | "natural" |
+            | -33    | water     |
 
         Then SELECT osm_id, CASE WHEN '<param1>' = '-G' THEN min(ST_NumGeometries(way)) ELSE count(*) END FROM planet_osm_polygon GROUP BY osm_id
            | osm_id | count |
@@ -118,15 +117,15 @@ Feature: Import and update of multipolygon areas
             | 138    | 1     |
             | 140    | 1     |
 
-        Then table planet_osm_polygon has 0 rows with condition
-            """
-            osm_id IN (-25, 109, 104)
-            """
+        Then table planet_osm_polygon doesn't contain
+            | osm_id |
+            | -25    |
+            | 109    |
+            | 104    |
 
-        Then table planet_osm_polygon has 0 rows with condition
-            """
-            osm_id = -33 and "natural" = 'water'
-            """
+        Then table planet_osm_polygon doesn't contain
+            | osm_id | "natural" |
+            | -33    | water     |
 
         Examples:
             | param1 | lua         |
