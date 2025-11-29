@@ -122,6 +122,7 @@ def before_scenario(context, scenario):
     context.geometry_factory = GeometryFactory()
     context.osm2pgsql_replication.ReplicationServer = ReplicationServerMock()
     context.urlrequest_responses = {}
+    context.sql_statements = {}
 
     def _mock_urlopen(request):
         if not request.full_url in context.urlrequest_responses:
@@ -153,10 +154,3 @@ def test_db(context, **kwargs):
 def working_directory(context, **kwargs):
     with tempfile.TemporaryDirectory() as tmpdir:
         yield Path(tmpdir)
-
-
-def before_tag(context, tag):
-    if tag == 'needs-pg-index-includes':
-        if context.config.userdata['PG_VERSION'] < 110000:
-            context.scenario.skip("No index includes in PostgreSQL < 11")
-

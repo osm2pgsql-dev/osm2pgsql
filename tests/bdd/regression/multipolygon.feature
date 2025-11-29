@@ -3,6 +3,16 @@ Feature: Import and update of multipolygon areas
     Background:
         Given the input file 'test_multipolygon.osm'
 
+        Given the SQL statement grouped_polygons
+            """
+            SELECT osm_id,
+                   count(*) AS count,
+                   round(sum(ST_Area(way))) AS area,
+                   round(sum(way_area::numeric)) AS way_area
+            FROM planet_osm_polygon
+            GROUP BY osm_id
+            """
+
     Scenario Outline: Import and update slim
         Given <lua> lua tagtransform
         When running osm2pgsql pgsql with parameters
@@ -35,7 +45,7 @@ Feature: Import and update of multipolygon areas
             | osm_id | landuse     | name       | ST_NumInteriorRing(way) |
             | -3     | residential | Name_rel11 | 2                       |
 
-        Then SELECT osm_id, round(sum(ST_Area(way))), round(sum(way_area::numeric)) FROM planet_osm_polygon GROUP BY osm_id
+        Then statement grouped_polygons returns
             | osm_id | area  | way_area |
             | -13    | 17581 | 17581    |
             | -7     | 16169 | 16169    |
@@ -43,7 +53,7 @@ Feature: Import and update of multipolygon areas
             | -39    | 10377 | 10378    |
             | -40    | 12397 | 12397    |
 
-        Then SELECT osm_id, count(*) FROM planet_osm_polygon GROUP BY osm_id
+        Then statement grouped_polygons returns
             | osm_id | count |
             | -25    | 1     |
             | 113    | 1     |
@@ -63,7 +73,15 @@ Feature: Import and update of multipolygon areas
             | osm_id | "natural" |
             | -33    | water     |
 
-        Then SELECT osm_id, CASE WHEN '<param1>' = '-G' THEN min(ST_NumGeometries(way)) ELSE count(*) END FROM planet_osm_polygon GROUP BY osm_id
+        Given the SQL statement geometries_polygon
+            """
+            SELECT osm_id,
+                   CASE WHEN '<param1>' = '-G' THEN min(ST_NumGeometries(way))
+                   ELSE count(*) END AS count
+            FROM planet_osm_polygon
+            GROUP BY osm_id
+            """
+        Then statement geometries_polygon returns
            | osm_id | count |
            | -13    | 2     |
            | -7     | 2     |
@@ -99,7 +117,7 @@ Feature: Import and update of multipolygon areas
             | osm_id | landuse     | name       | ST_NumInteriorRing(way) |
             | -3     | residential | Name_rel11 | 2                       |
 
-        Then SELECT osm_id, round(sum(ST_Area(way))), round(sum(way_area::numeric)) FROM planet_osm_polygon GROUP BY osm_id
+        Then statement grouped_polygons returns
             | osm_id | area  | way_area |
             | -13    | 17581 | 17581    |
             | -7     | 16169 | 16169    |
@@ -107,7 +125,7 @@ Feature: Import and update of multipolygon areas
             | -39    | 10377 | 10378    |
             | -40    | 12397 | 12397    |
 
-        Then SELECT osm_id, count(*) FROM planet_osm_polygon GROUP BY osm_id
+        Then statement grouped_polygons returns
             | osm_id | count |
             | 113    | 1     |
             | 118    | 1     |

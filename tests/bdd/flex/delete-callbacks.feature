@@ -27,21 +27,29 @@ Feature: Test for delete callbacks
 
         Given the input file '008-ch.osc.gz'
 
+        Given the SQL statement grouped_counts
+            """
+            SELECT osm_type,
+                   count(*),
+                   sum(extra) AS sum_extra,
+                   sum(osm_id) AS sum_osm_id
+            FROM change
+            GROUP BY osm_type
+            """
+
     Scenario: Delete callbacks are called
         When running osm2pgsql flex with parameters
             | --slim | -a |
-
-        Then SELECT osm_type, count(*), sum(extra) FROM change GROUP BY osm_type
-            | osm_type | count | sum |
-            | N        | 16773 | 16779 |
-            | W        | 4     | 9 |
-            | R        | 1     | 3 |
+        Then statement grouped_counts returns exactly
+            | osm_type | count | sum_extra |
+            | N        | 16773 | 16779     |
+            | W        | 4     | 9         |
+            | R        | 1     | 3         |
 
         When running osm2pgsql flex with parameters
             | --slim | -a |
-
-        Then SELECT osm_type, count(*), sum(osm_id) FROM change GROUP BY osm_type
-            | osm_type | count | sum |
+        Then statement grouped_counts returns exactly
+            | osm_type | count | sum_osm_id |
             | N        | 16773 | 37856781001834 |
             | W        | 4     | 350933407 |
             | R        | 1     | 2871571 |
@@ -72,8 +80,8 @@ Feature: Test for delete callbacks
             """
         When running osm2pgsql flex with parameters
             | --slim | -a |
-        Then SELECT osm_type, count(*), sum(extra) FROM change GROUP BY osm_type
-            | osm_type | count | sum |
+        Then statement grouped_counts returns exactly
+            | osm_type | count | sum_extra |
             | N        | 16773 | 16773 |
             | W        | 4     | 4 |
             | R        | 1     | 1 |
@@ -105,8 +113,8 @@ Feature: Test for delete callbacks
             """
         When running osm2pgsql flex with parameters
             | --slim | -a |
-        Then SELECT osm_type, count(*), sum(extra) FROM change GROUP BY osm_type
-            | osm_type | count | sum |
+        Then statement grouped_counts returns exactly
+            | osm_type | count | sum_extra |
             | N        | 16773 | 16773|
             | W        | 4     | 4|
             | R        | 1     | 1|
