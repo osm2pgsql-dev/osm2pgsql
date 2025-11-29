@@ -17,16 +17,67 @@
 #include <cerrno>
 #include <system_error>
 
+void expire_output_t::add_tiles(
+    std::unordered_set<quadkey_t> const &dirty_tiles)
+{
+    std::lock_guard<std::mutex> const guard{*m_tiles_mutex};
+
+    if (m_overall_tile_limit_reached) {
+        return;
+    }
+
+    if (dirty_tiles.size() > m_max_tiles_geometry) {
+        log_warn("Tile limit {} reached for single geometry!",
+                 m_max_tiles_geometry);
+        return;
+    }
+
+    /**
+     * This check is not quite correct, because some tiles could be in both,
+     * the dirty_list and in m_tiles, which means we might not reach
+     * m_max_tiles_overall if we join those in. But this check is much
+     * easier and cheaper than trying to add all the tiles into the dirty_list,
+     * checking each time whether we reached the limit. And with the number
+     * of tiles involved in doesn't matter that much anyway.
+     */
+    if (dirty_tiles.size() + m_tiles.size() > m_max_tiles_overall) {
+        m_overall_tile_limit_reached = true;
+        log_warn("Overall tile limit {} reached for this run!",
+                 m_max_tiles_overall);
+        return;
+    }
+
+    m_tiles.insert(dirty_tiles.cbegin(), dirty_tiles.cend());
+}
+
+bool expire_output_t::empty() noexcept
+{
+    std::lock_guard<std::mutex> const guard{*m_tiles_mutex};
+    return m_tiles.empty();
+}
+
+quadkey_list_t expire_output_t::get_tiles()
+{
+    std::lock_guard<std::mutex> const guard{*m_tiles_mutex};
+    quadkey_list_t tile_list;
+
+    tile_list.reserve(m_tiles.size());
+    tile_list.assign(m_tiles.cbegin(), m_tiles.cend());
+    std::sort(tile_list.begin(), tile_list.end());
+    m_tiles.clear();
+
+    return tile_list;
+}
+
 std::size_t
-expire_output_t::output(quadkey_list_t const &tile_list,
-                        connection_params_t const &connection_params) const
+expire_output_t::output(connection_params_t const &connection_params)
 {
     std::size_t num = 0;
     if (!m_filename.empty()) {
-        num = output_tiles_to_file(tile_list);
+        num = output_tiles_to_file(get_tiles());
     }
     if (!m_table.empty()) {
-        num = output_tiles_to_table(tile_list, connection_params);
+        num = output_tiles_to_table(get_tiles(), connection_params);
     }
     return num;
 }

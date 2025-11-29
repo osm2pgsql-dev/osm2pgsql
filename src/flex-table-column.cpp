@@ -202,13 +202,18 @@ void flex_table_column_t::add_expire(expire_config_t const &config)
     m_expires.push_back(config);
 }
 
-void flex_table_column_t::do_expire(geom::geometry_t const &geom,
-                                    std::vector<expire_tiles_t> *expire) const
+void flex_table_column_t::do_expire(
+    geom::geometry_t const &geom, std::vector<expire_tiles_t> *expire,
+    std::vector<expire_output_t> *expire_outputs) const
 {
     assert(expire);
+    assert(expire_outputs);
+
     for (auto const &expire_config : m_expires) {
         assert(expire_config.expire_output < expire->size());
-        (*expire)[expire_config.expire_output].from_geometry(geom,
-                                                             expire_config);
+        auto &expire_tiles = expire->at(expire_config.expire_output);
+        expire_tiles.from_geometry(geom, expire_config);
+        expire_tiles.commit_tiles(
+            &expire_outputs->at(expire_config.expire_output));
     }
 }

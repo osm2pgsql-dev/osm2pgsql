@@ -83,14 +83,14 @@ public:
     void way_delete(osmium::Way * /*way*/) override {}
     void relation_delete(osmium::Relation const & /*rel*/) override {}
 
-    void merge_expire_trees(output_t * /*other*/) override {}
-
     void print(std::string const &format);
 
 private:
+    void create_expire_tiles(geom::geometry_t const &geom);
+
     config_t m_config;
-    expire_tiles_t m_expire_tiles;
     expire_output_t m_expire_output;
+    expire_tiles_t m_expire_tiles;
 }; // class output_expire_t
 
 std::shared_ptr<output_t> output_expire_t::clone(
@@ -106,9 +106,18 @@ output_expire_t::output_expire_t(std::shared_ptr<middle_query_t> const &mid,
 : output_t(mid, std::move(thread_pool), options), m_config(cfg),
   m_expire_tiles(cfg.zoom, cfg.projection)
 {
+    m_expire_output.set_minzoom(cfg.zoom);
+    m_expire_output.set_maxzoom(cfg.zoom);
 }
 
 output_expire_t::~output_expire_t() = default;
+
+void output_expire_t::create_expire_tiles(geom::geometry_t const &geom)
+{
+    auto const geom_merc = geom::transform(geom, *m_config.projection);
+    m_expire_tiles.from_geometry(geom_merc, m_config.expire_config);
+    m_expire_tiles.commit_tiles(&m_expire_output);
+}
 
 void output_expire_t::node_add(osmium::Node const &node)
 {
@@ -116,10 +125,7 @@ void output_expire_t::node_add(osmium::Node const &node)
         return;
     }
 
-    auto const geom_merc =
-        geom::transform(geom::create_point(node), *m_config.projection);
-
-    m_expire_tiles.from_geometry(geom_merc, m_config.expire_config);
+    create_expire_tiles(geom::create_point(node));
 }
 
 void output_expire_t::way_add(osmium::Way *way)
@@ -152,9 +158,7 @@ void output_expire_t::way_add(osmium::Way *way)
         return;
     }
 
-    auto const geom_merc = geom::transform(geom, *m_config.projection);
-
-    m_expire_tiles.from_geometry(geom_merc, m_config.expire_config);
+    create_expire_tiles(geom);
 }
 
 void output_expire_t::relation_add(osmium::Relation const &relation)
@@ -207,9 +211,7 @@ void output_expire_t::relation_add(osmium::Relation const &relation)
         return;
     }
 
-    auto const geom_merc = geom::transform(geom, *m_config.projection);
-
-    m_expire_tiles.from_geometry(geom_merc, m_config.expire_config);
+    create_expire_tiles(geom);
 }
 
 std::string tile_to_json(tile_t const &tile)
@@ -251,6 +253,8 @@ std::string geojson_end() { return "]}\n"; }
 
 void print_tiles(std::vector<tile_t> const &tiles)
 {
+    log_debug("Writing out {} tiles in 'geojson' format...", tiles.size());
+
     fmt::print("{}\n", geojson_start());
     bool first = true;
     for (auto const &tile : tiles) {
@@ -334,7 +338,9 @@ config_t parse_command_line(int argc, char *argv[])
 
 void output_expire_t::print(std::string const &format)
 {
-    auto const tiles = m_expire_tiles.get_tiles();
+    auto const tiles = m_expire_output.get_tiles();
+    log_debug("Writing out {} tiles in '{}' format...", tiles.size(), format);
+
     if (format == "tiles") {
         for (auto const &qk : tiles) {
             auto const tile = tile_t::from_quadkey(qk, m_config.zoom);
@@ -398,6 +404,12 @@ int main(int argc, char *argv[])
         auto const &suffix = input.back();
         if (suffix == "osm" || suffix == "pbf" || suffix == "opl") {
             // input is an OSM file
+
+            if (cfg.zoom == 0) {
+                throw std::runtime_error{
+                    "You have to set the zoom level with -z, --zoom"};
+            }
+
             auto thread_pool = std::make_shared<thread_pool_t>(1U);
             log_debug("Started pool with {} threads.",
                       thread_pool->num_threads());
@@ -427,6 +439,7 @@ int main(int argc, char *argv[])
             }
             print_tiles(tiles);
         }
+        log_debug("Done.");
     } catch (std::exception const &e) {
         log_error("{}", e.what());
         return 1;

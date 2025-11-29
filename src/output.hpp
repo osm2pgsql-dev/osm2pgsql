@@ -102,8 +102,6 @@ public:
     virtual void way_delete(osmium::Way *way) = 0;
     virtual void relation_delete(osmium::Relation const &rel) = 0;
 
-    virtual void merge_expire_trees(output_t * /*other*/) {}
-
     output_requirements const &get_requirements() const noexcept
     {
         return m_output_requirements;

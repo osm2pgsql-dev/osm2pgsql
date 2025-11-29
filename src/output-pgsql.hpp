@@ -81,8 +81,6 @@ public:
     void way_delete(osmium::Way *way) override;
     void relation_delete(osmium::Relation const &rel) override;
 
-    void merge_expire_trees(output_t *other) override;
-
 private:
     void pgsql_out_way(osmium::Way const &way, taglist_t *tags, bool polygon,
                        bool roads);
@@ -108,6 +106,7 @@ private:
 
     std::shared_ptr<reprojection_t> m_proj;
     expire_config_t m_expire_config;
+    expire_output_t m_expire_output;
     expire_tiles_t m_expire;
 
     osmium::memory::Buffer m_buffer;

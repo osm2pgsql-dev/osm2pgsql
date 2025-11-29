@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "expire-config.hpp"
+#include "expire-output.hpp"
 #include "geom.hpp"
 #include "geom-box.hpp"
 #include "logging.hpp"
@@ -31,9 +32,8 @@ class expire_tiles_t
 {
 public:
     expire_tiles_t(uint32_t max_zoom,
-                   std::shared_ptr<reprojection_t> projection);
-
-    bool empty() const noexcept { return m_dirty_tiles.empty(); }
+                   std::shared_ptr<reprojection_t> projection,
+                   std::size_t max_tiles_geometry = DEFAULT_MAX_TILES_GEOMETRY);
 
     bool enabled() const noexcept { return m_maxzoom != 0; }
 
@@ -83,10 +83,13 @@ public:
     quadkey_list_t get_tiles();
 
     /**
-     * Merge the list of expired tiles in the other object into this
-     * object, destroying the list in the other object.
+     * Must be called after calling expire_tile() one or more times for a
+     * single geometry to "commit" all tiles to be expired for that geometry.
+     *
+     * \param expire_output The expire output to write tiles to. If this is
+     *                      the nullptr, nothing is done.
      */
-    void merge_and_destroy(expire_tiles_t *other);
+    void commit_tiles(expire_output_t* expire_output);
 
 private:
     /**
@@ -113,11 +116,9 @@ private:
     /// This is where we collect all the expired tiles.
     std::unordered_set<quadkey_t> m_dirty_tiles;
 
-    /// The tile which has been added last to the unordered set.
-    tile_t m_prev_tile;
-
     std::shared_ptr<reprojection_t> m_projection;
 
+    std::size_t m_max_tiles_geometry;
     uint32_t m_maxzoom;
     int m_map_width;
 
