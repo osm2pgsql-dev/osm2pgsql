@@ -1,5 +1,16 @@
 Feature: Index definitions in Lua file
 
+    Background:
+        Given the SQL statement mytable_indexes
+            """
+            SELECT indexdef, indisprimary as is_primary
+            FROM pg_catalog.pg_index, pg_catalog.pg_indexes
+            WHERE schemaname = 'public'
+                  AND tablename = 'mytable'
+                  AND indrelid = tablename::regclass
+                  AND indexrelid = indexname::regclass
+            """
+
     Scenario: Indexes field in table definition must be an array
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
@@ -36,9 +47,9 @@ Feature: Index definitions in Lua file
             })
             """
         When running osm2pgsql flex
-        Then SELECT schemaname, tablename FROM pg_catalog.pg_indexes WHERE tablename = 'mytable' AND indexdef LIKE '%USING gist (geom)%'
-            | schemaname | tablename |
-            | public     | mytable   |
+        Then statement mytable_indexes returns
+            | indexdef@substr |
+            | USING gist (geom) |
 
     Scenario: Empty indexes field in table definition gets you no index
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
@@ -56,8 +67,8 @@ Feature: Index definitions in Lua file
             })
             """
         When running osm2pgsql flex
-        Then SELECT schemaname, tablename FROM pg_catalog.pg_indexes WHERE tablename = 'mytable'
-            | schemaname | tablename |
+        Then statement mytable_indexes returns exactly
+            | indexdef |
 
     Scenario: Explicitly setting an index column works
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
@@ -77,9 +88,9 @@ Feature: Index definitions in Lua file
             })
             """
         When running osm2pgsql flex
-        Then SELECT schemaname, tablename FROM pg_catalog.pg_indexes WHERE tablename = 'mytable' AND indexdef LIKE '%USING btree (name)%'
-            | schemaname | tablename |
-            | public     | mytable   |
+        Then statement mytable_indexes returns
+            | indexdef@substr |
+            | USING btree (name) |
 
     Scenario: Explicitly setting multiple indexes
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
@@ -101,15 +112,11 @@ Feature: Index definitions in Lua file
             })
             """
         When running osm2pgsql flex
-        Then SELECT schemaname, tablename FROM pg_catalog.pg_indexes WHERE tablename = 'mytable' AND indexdef LIKE '%USING btree (name)%'
-            | schemaname | tablename |
-            | public     | mytable   |
-        And SELECT schemaname, tablename FROM pg_catalog.pg_indexes WHERE tablename = 'mytable' AND indexdef LIKE '%USING gist (geom)%'
-            | schemaname | tablename |
-            | public     | mytable   |
-        And SELECT schemaname, tablename FROM pg_catalog.pg_indexes WHERE tablename = 'mytable' AND indexdef LIKE '%USING btree (name, tags)%'
-            | schemaname | tablename |
-            | public     | mytable   |
+        Then statement mytable_indexes returns exactly
+            | indexdef@substr |
+            | USING btree (name) |
+            | USING gist (geom) |
+            | USING btree (name, tags) |
 
     Scenario: Method can not be missing
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
@@ -244,9 +251,9 @@ Feature: Index definitions in Lua file
             })
             """
         When running osm2pgsql flex
-        Then SELECT schemaname, tablename FROM pg_catalog.pg_indexes WHERE tablename = 'mytable' AND indexdef LIKE '%USING btree (lower(name))%'
-            | schemaname | tablename |
-            | public     | mytable   |
+        Then statement mytable_indexes returns
+            | indexdef@substr |
+            | USING btree (lower(name)) |
 
     @needs-pg-index-includes
     Scenario: Include field must be a string or array
@@ -315,9 +322,9 @@ Feature: Index definitions in Lua file
             })
             """
         When running osm2pgsql flex
-        Then SELECT schemaname, tablename FROM pg_catalog.pg_indexes WHERE tablename = 'mytable' AND indexdef LIKE '%USING btree (name)%' AND indexdef LIKE '%INCLUDE (tags)%'
-            | schemaname | tablename |
-            | public     | mytable   |
+        Then statement mytable_indexes returns
+            | indexdef@substr |
+            | USING btree (name) INCLUDE (tags) |
 
     @needs-pg-index-includes
     Scenario: Include field works with array
@@ -338,9 +345,9 @@ Feature: Index definitions in Lua file
             })
             """
         When running osm2pgsql flex
-        Then SELECT schemaname, tablename FROM pg_catalog.pg_indexes WHERE tablename = 'mytable' AND indexdef LIKE '%USING btree (name)%' AND indexdef LIKE '%INCLUDE (tags)%'
-            | schemaname | tablename |
-            | public     | mytable   |
+        Then statement mytable_indexes returns
+            | indexdef@substr |
+            | USING btree (name) INCLUDE (tags) |
 
     Scenario: Tablespace needs a string
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
@@ -383,9 +390,9 @@ Feature: Index definitions in Lua file
             })
             """
         When running osm2pgsql flex
-        Then SELECT schemaname, tablename FROM pg_catalog.pg_indexes WHERE tablename = 'mytable' AND indexdef LIKE '%USING btree (name)%'
-            | schemaname | tablename |
-            | public     | mytable   |
+        Then statement mytable_indexes returns
+            | indexdef@substr |
+            | USING btree (name) |
 
     Scenario: Unique needs a boolean
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
@@ -428,9 +435,9 @@ Feature: Index definitions in Lua file
             })
             """
         When running osm2pgsql flex
-        Then SELECT schemaname, tablename FROM pg_catalog.pg_indexes WHERE tablename = 'mytable' AND indexdef LIKE '%USING btree (name)%' AND indexdef LIKE '%UNIQUE%'
-            | schemaname | tablename |
-            | public     | mytable   |
+        Then statement mytable_indexes returns
+            | indexdef@fullmatch |
+            | .*UNIQUE.*USING btree \(name\).* |
 
     Scenario: Where condition needs a string
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
@@ -473,9 +480,9 @@ Feature: Index definitions in Lua file
             })
             """
         When running osm2pgsql flex
-        Then table pg_catalog.pg_indexes contains
-            | schemaname | tablename | indexdef@fullmatch |
-            | public     | mytable   | .*USING btree \(name\).*WHERE \(name = lower\(name\)\).* |
+        Then statement mytable_indexes returns
+            | indexdef@substr |
+            | USING btree (name) WHERE (name = lower(name)) |
 
 
     Scenario: Don't create id index if the configuration doesn't mention it
@@ -493,9 +500,9 @@ Feature: Index definitions in Lua file
             })
             """
         When running osm2pgsql flex
-        Then table pg_catalog.pg_indexes doesn't contain
-            | schemaname | tablename | indexname@fullmatch |
-            | public     | mytable   | .*node_id.*         |
+        Then statement mytable_indexes returns exactly
+            | indexdef@substr  |
+            | USING gist (geom) |
 
     Scenario: Don't create id index if the configuration doesn't says so
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
@@ -512,9 +519,9 @@ Feature: Index definitions in Lua file
             })
             """
         When running osm2pgsql flex
-        Then table pg_catalog.pg_indexes doesn't contain
-            | schemaname | tablename | indexname@fullmatch |
-            | public     | mytable   | .*node_id.*         |
+        Then statement mytable_indexes returns exactly
+            | indexdef@substr  |
+            | USING gist (geom) |
 
     Scenario: Always create id index if the configuration says so
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
@@ -531,16 +538,16 @@ Feature: Index definitions in Lua file
             })
             """
         When running osm2pgsql flex
-        Then table pg_catalog.pg_indexes contains
-            | schemaname | tablename | indexname@fullmatch |
-            | public     | mytable   | .*node_id.*         |
+        Then statement mytable_indexes returns
+            | indexdef@substr      |
+            | USING btree (node_id) |
 
     Scenario: Create a unique id index when requested
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
             local t = osm2pgsql.define_table({
-                name = 'foo',
+                name = 'mytable',
                 ids = { type = 'node', id_column = 'node_id', create_index = 'unique' },
                 columns = {}
             })
@@ -550,20 +557,17 @@ Feature: Index definitions in Lua file
             end
             """
         When running osm2pgsql flex
-        Then table foo has 1562 rows
-        Then table pg_catalog.pg_indexes contains
-            | tablename | indexdef@fullmatch |
-            | foo       | CREATE UNIQUE INDEX .* USING .*\(node_id\) |
-        And SELECT count(*) FROM pg_catalog.pg_index WHERE indrelid = 'foo'::regclass and indisprimary
-            | count |
-            | 0     |
+        Then table mytable has 1562 rows
+        Then statement mytable_indexes returns
+            | indexdef@fullmatch                           | is_primary |
+            | CREATE UNIQUE INDEX .* USING .*\(node_id\).* | False      |
 
     Scenario: Create a primary key id index when requested
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
             """
             local t = osm2pgsql.define_table({
-                name = 'foo',
+                name = 'mytable',
                 ids = { type = 'node', id_column = 'node_id', create_index = 'primary_key' },
                 columns = {}
             })
@@ -573,10 +577,7 @@ Feature: Index definitions in Lua file
             end
             """
         When running osm2pgsql flex
-        Then table foo has 1562 rows
-        Then table pg_catalog.pg_indexes contains
-            | tablename | indexdef@fullmatch |
-            | foo       | CREATE UNIQUE INDEX .* USING .*\(node_id\) |
-        And SELECT count(*) FROM pg_catalog.pg_index WHERE indrelid = 'foo'::regclass and indisprimary
-            | count |
-            | 1     |
+        Then table mytable has 1562 rows
+        Then statement mytable_indexes returns
+            | indexdef@fullmatch                         | is_primary |
+            | CREATE UNIQUE INDEX .* USING .*\(node_id\) | True       |

@@ -122,6 +122,7 @@ def before_scenario(context, scenario):
     context.geometry_factory = GeometryFactory()
     context.osm2pgsql_replication.ReplicationServer = ReplicationServerMock()
     context.urlrequest_responses = {}
+    context.sql_statements = {}
 
     def _mock_urlopen(request):
         if not request.full_url in context.urlrequest_responses:

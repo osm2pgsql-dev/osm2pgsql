@@ -92,18 +92,29 @@ def db_check_table_absence(context, table):
         assert not row in actuals, f"Row unexpectedly found: {row}. Full content:\n{actuals}"
 
 
-@then("(?P<query>SELECT .*)")
-def db_check_sql_statement(context, query):
+@given("the SQL statement (?P<sql>.+)")
+def db_define_sql_statement(context, sql):
+    context.sql_statements[sql] = context.text
+
+@then("statement (?P<stmt>.+) returns(?P<exact> exactly)?")
+def db_check_sql_statement(context, stmt, exact):
     with context.db.cursor() as cur:
-        cur.execute(query)
+        assert stmt in context.sql_statements
+        cur.execute(context.sql_statements[stmt])
 
         actuals = list(DBRow(r, context.table.headings, context.geometry_factory) for r in cur)
 
     linenr = 1
     for row in context.table.rows:
-        assert any(r == row for r in actuals),\
-               f"{linenr}. entry not found in table. Full content:\n{actuals}"
+        try:
+            actuals.remove(row)
+        except ValueError:
+            assert False,\
+                   f"{linenr}. entry not found in result. Full response:\n{actuals}"
         linenr += 1
+
+    assert not exact or not actuals,\
+           f"Unexpected lines in result:\n{actuals}"
 
 
 ### Helper functions and classes
@@ -152,6 +163,8 @@ class DBRow:
                 self.data.append(DBValueGeometry(value, props, factory))
             elif props == 'fullmatch':
                 self.data.append(DBValueRegex(value))
+            elif props == 'substr':
+                self.data.append(DBValueSubString(value))
             else:
                 self.data.append(str(value))
 
@@ -307,6 +320,18 @@ class DBValueRegex:
 
     def __eq__(self, other):
         return re.fullmatch(str(other), self.value) is not None
+
+    def __repr__(self):
+        return repr(self.value)
+
+
+class DBValueSubString:
+
+    def __init__(self, value):
+        self.value = str(value)
+
+    def __eq__(self, other):
+        return str(other) in self.value
 
     def __repr__(self):
         return repr(self.value)
