@@ -98,9 +98,12 @@ def db_define_sql_statement(context, sql):
 
 @then("statement (?P<stmt>.+) returns(?P<exact> exactly)?")
 def db_check_sql_statement(context, stmt, exact):
+    assert stmt in context.sql_statements
+    rows = sql.SQL(', '.join(h.rsplit('@')[0] for h in context.table.headings))
+
     with context.db.cursor() as cur:
-        assert stmt in context.sql_statements
-        cur.execute(context.sql_statements[stmt])
+        cur.execute(sql.SQL("SELECT {} FROM ({}) _sql_statement")
+                       .format(rows, sql.SQL(context.sql_statements[stmt])))
 
         actuals = list(DBRow(r, context.table.headings, context.geometry_factory) for r in cur)
 
