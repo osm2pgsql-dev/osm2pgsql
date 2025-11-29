@@ -255,7 +255,6 @@ Feature: Index definitions in Lua file
             | indexdef@substr |
             | USING btree (lower(name)) |
 
-    @needs-pg-index-includes
     Scenario: Include field must be a string or array
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
@@ -279,7 +278,6 @@ Feature: Index definitions in Lua file
             The 'include' field in an index definition must contain a string or an array.
             """
 
-    @needs-pg-index-includes
     Scenario: Include field must contain a valid column
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
@@ -303,7 +301,6 @@ Feature: Index definitions in Lua file
             Unknown column 'foo' in table 'mytable'.
             """
 
-    @needs-pg-index-includes
     Scenario: Include field works with string
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
@@ -326,7 +323,6 @@ Feature: Index definitions in Lua file
             | indexdef@substr |
             | USING btree (name) INCLUDE (tags) |
 
-    @needs-pg-index-includes
     Scenario: Include field works with array
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style
