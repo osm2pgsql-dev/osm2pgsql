@@ -29,16 +29,15 @@ Feature: Test forward propagation of changes
         When running osm2pgsql pgsql with parameters
             | --slim | -a | --latlong |
 
-        Then table planet_osm_point has 1 row
-        Then table planet_osm_line has 1 row
-        Then table planet_osm_line has 0 rows with condition
-            """
-            abs(ST_X(ST_StartPoint(way)) - 3.0) < 0.0001
-            """
-        Then table planet_osm_line has 1 row with condition
-            """
-            abs(ST_X(ST_StartPoint(way)) - 3.1) < 0.0001
-            """
-        Then table planet_osm_roads has 1 row
-        Then table planet_osm_polygon has 1 row
-
+        Then table planet_osm_point contains exactly
+            | osm_id |
+            | 12     |
+        Then table planet_osm_line contains exactly
+            | osm_id | round(ST_X(ST_StartPoint(way))::numeric, 1) |
+            | 21     | 3.1                                         |
+        Then table planet_osm_roads contains exactly
+            | osm_id |
+            | 21     |
+        Then table planet_osm_polygon contains exactly
+            | osm_id |
+            | 20     |

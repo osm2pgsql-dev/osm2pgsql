@@ -473,9 +473,10 @@ Feature: Index definitions in Lua file
             })
             """
         When running osm2pgsql flex
-        Then SELECT schemaname, tablename FROM pg_catalog.pg_indexes WHERE tablename = 'mytable' AND indexdef LIKE '%USING btree (name)%' AND indexdef LIKE '%WHERE (name = lower(name))%'
-            | schemaname | tablename |
-            | public     | mytable   |
+        Then table pg_catalog.pg_indexes contains
+            | schemaname | tablename | indexdef@fullmatch |
+            | public     | mytable   | .*USING btree \(name\).*WHERE \(name = lower\(name\)\).* |
+
 
     Scenario: Don't create id index if the configuration doesn't mention it
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
@@ -492,10 +493,9 @@ Feature: Index definitions in Lua file
             })
             """
         When running osm2pgsql flex
-        Then table pg_catalog.pg_indexes has 0 rows with condition
-            """
-            schemaname = 'public' AND tablename = 'mytable' AND indexname LIKE '%node_id%'
-            """
+        Then table pg_catalog.pg_indexes doesn't contain
+            | schemaname | tablename | indexname@fullmatch |
+            | public     | mytable   | .*node_id.*         |
 
     Scenario: Don't create id index if the configuration doesn't says so
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
@@ -512,10 +512,9 @@ Feature: Index definitions in Lua file
             })
             """
         When running osm2pgsql flex
-        Then table pg_catalog.pg_indexes has 0 rows with condition
-            """
-            schemaname = 'public' AND tablename = 'mytable' AND indexname LIKE '%node_id%'
-            """
+        Then table pg_catalog.pg_indexes doesn't contain
+            | schemaname | tablename | indexname@fullmatch |
+            | public     | mytable   | .*node_id.*         |
 
     Scenario: Always create id index if the configuration says so
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
@@ -532,10 +531,9 @@ Feature: Index definitions in Lua file
             })
             """
         When running osm2pgsql flex
-        Then table pg_catalog.pg_indexes has 1 rows with condition
-            """
-            schemaname = 'public' AND tablename = 'mytable' AND indexname LIKE '%node_id%'
-            """
+        Then table pg_catalog.pg_indexes contains
+            | schemaname | tablename | indexname@fullmatch |
+            | public     | mytable   | .*node_id.*         |
 
     Scenario: Create a unique id index when requested
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
@@ -553,13 +551,12 @@ Feature: Index definitions in Lua file
             """
         When running osm2pgsql flex
         Then table foo has 1562 rows
-        And SELECT indexdef FROM pg_indexes WHERE tablename = 'foo'
-            | indexdef@fullmatch |
-            | CREATE UNIQUE INDEX .* USING .*\(node_id\) |
-        And table pg_catalog.pg_index has 0 rows with condition
-            """
-            indrelid = 'foo'::regclass and indisprimary
-            """
+        Then table pg_catalog.pg_indexes contains
+            | tablename | indexdef@fullmatch |
+            | foo       | CREATE UNIQUE INDEX .* USING .*\(node_id\) |
+        And SELECT count(*) FROM pg_catalog.pg_index WHERE indrelid = 'foo'::regclass and indisprimary
+            | count |
+            | 0     |
 
     Scenario: Create a primary key id index when requested
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
@@ -577,11 +574,9 @@ Feature: Index definitions in Lua file
             """
         When running osm2pgsql flex
         Then table foo has 1562 rows
-        And SELECT indexdef FROM pg_indexes WHERE tablename = 'foo'
-            | indexdef@fullmatch |
-            | CREATE UNIQUE INDEX .* USING .*\(node_id\) |
-        And table pg_catalog.pg_index has 1 row with condition
-            """
-            indrelid = 'foo'::regclass and indisprimary
-            """
-
+        Then table pg_catalog.pg_indexes contains
+            | tablename | indexdef@fullmatch |
+            | foo       | CREATE UNIQUE INDEX .* USING .*\(node_id\) |
+        And SELECT count(*) FROM pg_catalog.pg_index WHERE indrelid = 'foo'::regclass and indisprimary
+            | count |
+            | 1     |
