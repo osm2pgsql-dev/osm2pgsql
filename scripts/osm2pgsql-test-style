@@ -135,8 +135,8 @@ def hook_before_all(context):
         LOG.critical("osm2pgsql binary used: %s", context.user_args.osm2pgsql_binary)
         raise RuntimeError('Error running osm2pgsql')
 
-        LOG.info('Check if proj is available: %s',
-                 'yes' if context.user_args.test_proj else 'no')
+    LOG.info('Check if proj is available: %s',
+             'yes' if context.user_args.test_proj else 'no')
 
     # Feature check: proj
     if context.user_args.test_proj == 'auto':

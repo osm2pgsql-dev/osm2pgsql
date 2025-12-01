@@ -125,8 +125,8 @@ find_program(BEHAVE_BIN NAMES behave)
 if (BEHAVE_BIN)
     foreach(BDD_TEST IN ITEMS command-line flex regression)
         add_test(NAME bdd-${BDD_TEST}
-                 COMMAND ./run-bdd-tests ${CMAKE_CURRENT_SOURCE_DIR}/bdd/${BDD_TEST}
-                 WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
+                 COMMAND python3 scripts/osm2pgsql-test-style --style-data-dir ${PROJECT_SOURCE_DIR} --test-data-dir ${CMAKE_CURRENT_SOURCE_DIR}/data/ --osm2pgsql-binary $<TARGET_FILE:osm2pgsql> ${CMAKE_CURRENT_SOURCE_DIR}/bdd/${BDD_TEST}
+                 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
         message(STATUS "Added test: bdd-${BDD_TEST}")
     endforeach(BDD_TEST)
 
