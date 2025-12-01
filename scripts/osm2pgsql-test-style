@@ -16,6 +16,7 @@ import sys
 import tempfile
 import math
 import re
+import os
 import contextlib
 import json
 import datetime as dt
@@ -505,6 +506,9 @@ def execute_osm2pgsql(context, output):
         env['LUA_PATH'] = context.user_args.lua_path
     if context.user_args.themepark_path:
         env['THEMEPARK_PATH'] = context.user_args.themepark_path
+    for k in ['PGPORT', 'PGPASSWORD', 'PGUSER', 'PGHOST']:
+        if k in os.environ:
+            env[k] = os.environ[k]
 
     proc = Popen(cmdline, cwd=str(context.workdir),
                  stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env)
