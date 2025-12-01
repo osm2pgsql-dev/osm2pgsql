@@ -118,14 +118,15 @@ if (NOT WIN32)
     set_tests_properties(FixtureTablespaceCleanup PROPERTIES FIXTURES_CLEANUP Tablespace)
 endif()
 
+configure_file(run-bdd-tests.in ${PROJECT_BINARY_DIR}/run-bdd-tests)
 
 find_program(BEHAVE_BIN NAMES behave)
 
 if (BEHAVE_BIN)
     foreach(BDD_TEST IN ITEMS command-line flex regression)
         add_test(NAME bdd-${BDD_TEST}
-                 COMMAND behave -DBINARY=$<TARGET_FILE:osm2pgsql> ${BDD_TEST}
-                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bdd)
+                 COMMAND ./run-bdd-tests ${CMAKE_CURRENT_SOURCE_DIR}/bdd/${BDD_TEST}
+                 WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
         message(STATUS "Added test: bdd-${BDD_TEST}")
     endforeach(BDD_TEST)
 
