@@ -501,17 +501,8 @@ def execute_osm2pgsql(context, output):
         context.import_file = None
         data_stdin = None
 
-    env = {}
-    if context.user_args.lua_path:
-        env['LUA_PATH'] = context.user_args.lua_path
-    if context.user_args.themepark_path:
-        env['THEMEPARK_PATH'] = context.user_args.themepark_path
-    for k in ['PGPORT', 'PGPASSWORD', 'PGUSER', 'PGHOST']:
-        if k in os.environ:
-            env[k] = os.environ[k]
-
     proc = Popen(cmdline, cwd=str(context.workdir),
-                 stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env)
+                 stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
     outdata = proc.communicate(input=data_stdin)
     context.osm2pgsql_cmdline = ' '.join(cmdline)
@@ -794,10 +785,6 @@ def get_parser():
                         help='(optional) directory to search for test data')
     parser.add_argument('--style-data-dir', type=Path,
                         help='(optional) directory to search for style files')
-    parser.add_argument('--lua-path',
-                        help='Additional paths to take into account for finding lua modules')
-    parser.add_argument('--themepark-path',
-                        help='Additional paths to take into account for finding themepark themes')
     parser.add_argument('--test-db', default='osm2pgsql-test',
                         help='Name of database to use for testing (default: osm2pgsql-test)')
     parser.add_argument('--template-test-db', default='osm2pgsql-test-template',
