@@ -143,48 +143,48 @@ BDD tests you need to have behave and psycopg installed. On Ubuntu run:
 sudo apt-get install python3-psycopg python3-behave
 ```
 
+The BDD tests are run through the osm2pgsql-test-style tester. See the
+[section on testing](https://osm2pgsql.org/doc/manual.html#style-testing)
+in the manual for details.
+
 There are ctest directives to run the tests. If you want to run the tests
 manually, for example to run single tests during development, you can
-switch to the bdd test directory and run behave directly from there:
+use the `run-bdd-tests` script in the build directory. It is a thin
+wrapper around osm2pgsql-test-style which properly sets up the paths
+for the osm2pgsql binary and test data paths:
 
 ```sh
-cd osm2pgsql/tests/bdd
-behave -DBINARY=<your build directory>/osm2pgsql
+cd build
+./run-bdd-tests ../tests/bdd/regression/
 ```
-
-Per default, behave assumes that the build directory is under `osm2pgsql/build`.
-If your setup works like that, you can leave out the `-D` parameter.
-
-To make this a bit easier a shell script `run-behave` is provided in your
-build directory which sets those correct paths and calls `behave`. If run
-with `-p` as first option it will wrap the call to `behave` in a call to
-`pg_virtualenv` for your convenience. All other command line parameters of
-`run-behave` will be passed through to behave.
 
 To run a single test, simply add the name of the test file, followed by a
 column and the line number of the test:
 
 ```sh
-behave flex/area.feature:71
+./run-bdd-tests ../tests/bdd/flex/area.feature:71
 ```
 
-If you need to inspect the database that a test produces, you can add
-`-DKEEP_TEST_DB` and behave won't remove the database after the test is
-finished. This makes of course only sense, when running a single test.
+You can pass any additional parameters to the script that osm2pgsql-test-style
+would take. If you need to inspect the database that a test produces, you add
+`--keep-test-db` and behave won't remove the database after the test is
+finished. This makes only sense, when running a single test.
 When running under pg_virtualenv, don't forget to keep the virtual environment
 as well. You can use the handy `-s` switch:
 
 ```sh
-pg_virtualenv -s behave -DKEEP_TEST_DB flex/area.feature:71
+pg_virtualenv -s ./run-bdd-tests ../tests/bdd/flex/area.feature:71
 ```
 
 It drops you into a shell when the behave test fails, where you can use
 psql to look at the database. Or start a shell in the virtual environment
 with `pg_virtualenv bash` and run behave from there.
 
-The BDDs automatically detect if osm2pgsql was compiled with Lua and
+The BDDs automatically detect if osm2pgsql was compiled with
 proj support and skip tests accordingly. They also check for the test
-tablespace `tablespacetest` for tests that need tablespaces.
+tablespace `tablespacetest` for tests that need tablespaces. To force
+running the proj and tablespace tests use `--test-proj yes` and
+`--test-tablespace yes` respectively.
 
 BDD tests hide print statements by default. For development purposes they
 can be shown by adding these lines to `tests/bdd/.behaverc`:
