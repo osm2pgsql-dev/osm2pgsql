@@ -50,8 +50,8 @@ Feature: Test handling of invalid geometries
 
     Scenario: Invalid way geometry should be ignored
         Given the grid with origin 10.0 10.0
-            | 10 | 11 |
             |    | 12 |
+            | 10 | 11 |
         And the OSM data
             """
             n14 v1 dV x10.0 y10.0
@@ -66,9 +66,9 @@ Feature: Test handling of invalid geometries
 
         Then table osm2pgsql_test_polygon has 0 rows
         Then table osm2pgsql_test_line contains exactly
-            | osm_id | ST_AsText(geom) |
-            | 20     | 10, 12          |
-            | 21     | 10, 12          |
+            | osm_id | geom!geo |
+            | 20     | 10, 12   |
+            | 21     | 10, 12   |
 
 
     Scenario: Invalid area geometry from way should be ignored
@@ -86,7 +86,7 @@ Feature: Test handling of invalid geometries
 
         Then table osm2pgsql_test_line has 0 rows
         Then table osm2pgsql_test_polygon contains exactly
-            | osm_id | ST_AsText(geom)  |
+            | osm_id | geom!geo         |
             | 20     | (10, 12, 11, 10) |
             | 21     | (10, 12, 11, 10) |
 

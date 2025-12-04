@@ -30,8 +30,9 @@ Feature: Tests for the osm2pgsql-replication script without property table
             | --slim |
         And deleting table osm2pgsql_properties
 
-        Then running osm2pgsql-replication fails with returncode 1
+        When running osm2pgsql-replication
             | init | --osm-file={TEST_DATA_DIR}/008-ch.osc.gz |
+        Then execution fails with return code 1
         And the error output contains
             """
             has no usable replication headers
@@ -66,10 +67,11 @@ Feature: Tests for the osm2pgsql-replication script without property table
 
         And deleting table foobar.osm2pgsql_properties
 
-        Then running osm2pgsql-replication fails with returncode 1
+        When running osm2pgsql-replication
             | init |
             | --osm-file={TEST_DATA_DIR}/liechtenstein-2013-08-03.osm.pbf |
-         And the error output contains
+        Then execution fails with return code 1
+        And the error output contains
             """
             Database needs to be imported in --slim mode.
             """
@@ -141,8 +143,9 @@ Feature: Tests for the osm2pgsql-replication script without property table
         When running osm2pgsql pgsql with parameters
             | --slim |
 
-        Then running osm2pgsql-replication fails with returncode 1
+        When running osm2pgsql-replication
             | update |
+        Then execution fails with return code 1
         And the error output contains
             """
             Updates not set up correctly.
@@ -215,8 +218,9 @@ Feature: Tests for the osm2pgsql-replication script without property table
             | --slim |
         And deleting table osm2pgsql_properties
 
-        Then running osm2pgsql-replication fails with returncode 1
+        When running osm2pgsql-replication
             | status | --json |
+        Then execution fails with return code 1
         And the standard output contains
             """
             "status": 1
@@ -238,7 +242,8 @@ Feature: Tests for the osm2pgsql-replication script without property table
 
         And running osm2pgsql-replication
             | status | --json |
-        Then the standard output contains
+        Then execution is successful
+        And the standard output contains
             """
             "status": 0
             "server": {"base_url": "https://planet.openstreetmap.org/replication/minute", "sequence": 347, "timestamp": "2020-10-24T03:00:00Z"

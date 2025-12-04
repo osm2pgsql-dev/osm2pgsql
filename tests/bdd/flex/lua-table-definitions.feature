@@ -6,7 +6,8 @@ Feature: Table definitions in Lua file
             """
             local t = osm2pgsql.define_table()
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails
         And the error output contains
             """
             Argument #1 to 'define_table' must be a table.
@@ -18,7 +19,8 @@ Feature: Table definitions in Lua file
             """
             local t = osm2pgsql.define_table({})
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails
         And the error output contains
             """
             The table must contain a 'name' string field.
@@ -32,7 +34,8 @@ Feature: Table definitions in Lua file
                 name = false
             })
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails
         And the error output contains
             """
             The table must contain a 'name' string field.
@@ -46,7 +49,8 @@ Feature: Table definitions in Lua file
                 name = 'foo'
             })
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails
         And the error output contains
             """
             No 'columns' field (or not an array) in table 'foo'.
@@ -61,7 +65,8 @@ Feature: Table definitions in Lua file
                 columns = 123
             })
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails
         And the error output contains
             """
             No 'columns' field (or not an array) in table 'foo'.
@@ -76,7 +81,8 @@ Feature: Table definitions in Lua file
                 columns = {}
             })
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails
         And the error output contains
             """
             No columns defined for table 'foo'.
@@ -110,7 +116,8 @@ Feature: Table definitions in Lua file
                 { column = 'baz' }
             })
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails
         And the error output contains
             """
             Table with name 'foo' already exists.

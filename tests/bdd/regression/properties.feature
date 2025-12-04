@@ -7,12 +7,14 @@ Feature: Updates to the test database with properties check
         When running osm2pgsql pgsql with parameters
             | -c             |
             | <param_create> |
+        Then execution is successful
 
         Given the input file '000466354.osc.gz'
-        Then running osm2pgsql pgsql with parameters fails
+        When running osm2pgsql pgsql with parameters
             | -a             |
             | --slim         |
             | <param_append> |
+        Then execution fails
         And the error output contains
             """
             <message>
@@ -30,11 +32,13 @@ Feature: Updates to the test database with properties check
         When running osm2pgsql null with parameters
             | -c     |
             | --slim |
+        Then execution is successful
 
         Given the input file '000466354.osc.gz'
-        When running osm2pgsql nooutput with parameters
+        When running osm2pgsql with parameters
             | -a     |
             | --slim |
+        Then execution is successful
         Then the error output contains
             """
             Using output 'null' (same as on import).
@@ -71,10 +75,11 @@ Feature: Updates to the test database with properties check
             | --flat-nodes=x |
 
         Given the input file '000466354.osc.gz'
-        Then running osm2pgsql pgsql with parameters fails
+        When running osm2pgsql pgsql with parameters
             | -a             |
             | --slim         |
             | --flat-nodes=y |
+        Then execution fails
         And the error output contains
             """
             Unable to open flatnode file
@@ -86,9 +91,10 @@ Feature: Updates to the test database with properties check
             | --slim |
 
         Given the input file '000466354.osc.gz'
-        Then running osm2pgsql null with parameters fails
+        When running osm2pgsql null with parameters
             | -a     |
             | --slim |
+        Then execution fails
         And the error output contains
             """
             Different output specified on command line

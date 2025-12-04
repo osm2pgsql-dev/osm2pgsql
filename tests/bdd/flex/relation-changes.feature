@@ -162,8 +162,8 @@ Feature: Handling changes to relations
 
     Scenario Outline: Changing nodes in a valid relation
         Given the 0.1 grid with origin 10.0 10.0
-            | 10 | 11 |
             |    | 12 |
+            | 10 | 11 |
         And the OSM data
             """
             w20 v1 dV Nn10,n11,n12

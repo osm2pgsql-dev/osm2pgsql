@@ -12,7 +12,8 @@ Feature: Expire configuration in Lua file
                 { column = 'some', expire = {{ output = eo }} }
             })
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails
         And the error output contains
             """
             Expire only allowed for geometry columns in Web Mercator projection.
@@ -33,7 +34,8 @@ Feature: Expire configuration in Lua file
                   expire = {{ output = eo }} }
             })
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails
         And the error output contains
             """
             Expire only allowed for geometry columns in Web Mercator projection.
@@ -51,7 +53,8 @@ Feature: Expire configuration in Lua file
                 { column = 'some', type = 'geometry', expire = {{ output = 'abc' }} }
             })
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails
         And the error output contains
             """
             Expire output must be of type ExpireOutput.
@@ -115,7 +118,8 @@ Feature: Expire configuration in Lua file
                 }}
             })
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails
         And the error output contains
             """
             Optional expire field 'buffer' must contain a number.
@@ -139,7 +143,8 @@ Feature: Expire configuration in Lua file
                 t:insert({ some = object:as_point() })
             end
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails
         And the error output contains
             """
             Unknown expire mode 'foo'.
@@ -161,7 +166,8 @@ Feature: Expire configuration in Lua file
                 }}
             })
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails
         And the error output contains
             """
             Optional expire field 'full_area_limit' must contain a number.

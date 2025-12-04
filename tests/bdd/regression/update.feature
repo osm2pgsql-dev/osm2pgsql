@@ -69,9 +69,11 @@ Feature: Updates to the test database
 
 
     Scenario: Simple updates with lua tagtransform
-        Given the default lua tagtransform
         When running osm2pgsql pgsql with parameters
             | --slim   |
+            | --tag-transform-script     |
+            | {STYLE_DATA_DIR}/style.lua |
+
 
         Given the input file '000466354.osc.gz'
         When running osm2pgsql pgsql with parameters

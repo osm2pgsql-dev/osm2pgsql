@@ -1,0 +1,3 @@
+#!/bin/sh
+
+python3 @PROJECT_SOURCE_DIR@/scripts/osm2pgsql-test-style --style-data-dir @PROJECT_SOURCE_DIR@ --test-data-dir @CMAKE_CURRENT_SOURCE_DIR@/data/ --osm2pgsql-binary @PROJECT_BINARY_DIR@/osm2pgsql "$@"

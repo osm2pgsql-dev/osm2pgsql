@@ -29,8 +29,8 @@ Feature: Test get_bbox() function
         When running osm2pgsql flex
 
         Then table osm2pgsql_test_points contains exactly
-            | node_id | min_x | max_x | min_y | max_y | ST_AsText(geom) |
-            | 10      | 20.0  | 20.0  | 10.1  | 10.1  | <geometry>      |
+            | node_id | min_x | max_x | min_y | max_y | geom!geo   |
+            | 10      | 20.0  | 20.0  | 10.1  | 10.1  | <geometry> |
 
         Examples:
             | projection | geometry            |
@@ -39,8 +39,8 @@ Feature: Test get_bbox() function
 
     Scenario Outline: for ways
         Given the 0.1 grid with origin 20.0 10.1
-            | 10 | 11 |
             |    | 12 |
+            | 10 | 11 |
         And the OSM data
             """
             w20 v1 dV Thighway=primary Nn10,n11,n12
@@ -69,8 +69,8 @@ Feature: Test get_bbox() function
         When running osm2pgsql flex
 
         Then table osm2pgsql_test_highways contains exactly
-            | way_id | min_x | max_x | min_y | max_y | ST_AsText(geom) |
-            | 20     | 20.0  | 20.1  | 10.0  | 10.1  | <geometry>      |
+            | way_id | min_x | max_x | min_y | max_y | geom!geo   |
+            | 20     | 20.0  | 20.1  | 10.0  | 10.1  | <geometry> |
 
         Examples:
             | projection | geometry                                                    |
@@ -79,8 +79,8 @@ Feature: Test get_bbox() function
 
     Scenario Outline: for relations with way members only
         Given the 0.1 grid with origin 20.0 10.1
-            | 10 | 11 |
             |    | 12 |
+            | 10 | 11 |
         And the OSM data
             """
             w20 v1 dV Nn10,n11
@@ -115,9 +115,9 @@ Feature: Test get_bbox() function
         When running osm2pgsql flex
 
         Then table osm2pgsql_test_routes contains exactly
-            | relation_id | min_x | max_x | min_y | max_y | ST_AsText(geom) |
-            | 30          | 20.0  | 20.1  | 10.1  | 10.1  | <geom30>        |
-            | 31          | 20.0  | 20.1  | 10.0  | 10.1  | <geom31>        |
+            | relation_id | min_x | max_x | min_y | max_y | geom!geo |
+            | 30          | 20.0  | 20.1  | 10.1  | 10.1  | <geom30> |
+            | 31          | 20.0  | 20.1  | 10.0  | 10.1  | <geom31> |
 
         Examples:
             | projection | geom30                                  | geom31                                                      |

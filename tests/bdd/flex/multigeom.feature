@@ -79,7 +79,7 @@ Feature: Handling of multiple geometries
         When running osm2pgsql flex
 
         Then table osm2pgsql_test_polygon contains exactly
-            | osm_id | ST_GeometryType(geom) | ST_AsText(geom)      |
+            | osm_id | ST_GeometryType(geom) | geom!geo             |
             | 20     | ST_Polygon            | (10, 11, 12, 13, 10) |
             | -30    | ST_Polygon            | (10, 11, 12, 13, 10) |
             | -31    | ST_Polygon            | (10, 11, 12, 13, 10) |

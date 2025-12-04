@@ -9,7 +9,8 @@ Feature: Locators
             local regions = osm2pgsql.define_locator()
             print(regions:name())
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails
         And the error output contains
             """
             Argument #1 to 'define_locator' must be a Lua table.
@@ -54,7 +55,8 @@ Feature: Locators
             local regions = osm2pgsql.define_locator({ name = 'test' })
             print(regions.name())
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails
         And the error output contains
             """
             Argument #1 has to be of type osm2pgsql.Locator.
@@ -74,7 +76,8 @@ Feature: Locators
                 local r = regions:first_intersecting()
             end
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails
         And the error output contains
             """
             Error in 'first_intersecting': Need locator and geometry arguments
@@ -94,7 +97,8 @@ Feature: Locators
                 local r = regions:all_intersecting()
             end
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails
         And the error output contains
             """
             Error in 'all_intersecting': Need locator and geometry arguments
@@ -131,9 +135,9 @@ Feature: Locators
             """
         When running osm2pgsql flex
         Then table osm2pgsql_test_points contains exactly
-            | node_id | region | ST_AsText(geom) |
-            | 10      | B1     | 0.5 0.5         |
-            | 12      | B2     | 1.5 1.5         |
+            | node_id | region | geom!geo |
+            | 10      | B1     | 0.5 0.5  |
+            | 12      | B2     | 1.5 1.5  |
 
     Scenario: Define and use a locator with all_intersecting
         Given the OSM data
@@ -167,15 +171,15 @@ Feature: Locators
             """
         When running osm2pgsql flex
         Then table osm2pgsql_test_points contains exactly
-            | node_id | num_regions | ST_AsText(geom) |
-            | 10      | 1           | 0.5 0.5         |
-            | 12      | 1           | 1.5 1.5         |
-            | 13      | 2           | 1 1             |
+            | node_id | num_regions | geom!geo |
+            | 10      | 1           | 0.5 0.5  |
+            | 12      | 1           | 1.5 1.5  |
+            | 13      | 2           | 1 1      |
 
     Scenario: Define and use a locator with polygon from db
         Given the 10.0 grid with origin 10.0 10.0
-            | 10 | 11 |
             | 12 |    |
+            | 10 | 11 |
         And the OSM data
             """
             w20 v1 dV Tsome=boundary Nn10,n11,n12,n10
@@ -196,7 +200,7 @@ Feature: Locators
             """
         When running osm2pgsql flex
         Then table osm2pgsql_test_regions contains exactly
-            | way_id | region | ST_AsText(geom)         |
+            | way_id | region | geom!geo                |
             | 20     | P1     | (10 0,20 10,10 10,10 0) |
 
         Given the OSM data
@@ -227,8 +231,8 @@ Feature: Locators
             """
         When running osm2pgsql flex
         Then table osm2pgsql_test_points contains exactly
-            | node_id | region | ST_AsText(geom) |
-            | 10      | P1     | 15 8            |
+            | node_id | region | geom!geo |
+            | 10      | P1     | 15 8     |
 
     Scenario: Define and use a locator with relation from db
         Given the 10.0 grid with origin 10.0 10.0
@@ -254,7 +258,7 @@ Feature: Locators
             """
         When running osm2pgsql flex
         Then table osm2pgsql_test_regions contains exactly
-            | way_id | region | ST_AsText(geom)               |
+            | way_id | region | geom!geo                      |
             | 29     | P1     | (10 0,20 0,20 10,10 10, 10 0) |
 
         Given the 10.0 grid with origin 10.0 10.0

@@ -1,7 +1,7 @@
 Feature: Tests for bad input data
 
     Scenario: Overly large relations are ignored
-        Given the python-formatted OSM data
+        Given the OSM data format string
             """
             n1 x45 y34
             r1 Ttype=multipolygon M{','.join('n' + str(i) + '@' for i in range(33000))}

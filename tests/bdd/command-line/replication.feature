@@ -44,11 +44,13 @@ Feature: Tests for the osm2pgsql-replication script with property table
             """
             n34 Tamenity=restaurant x77 y45.3
             """
+        And the replication service at http://example.com/europe/liechtenstein-updates
         When running osm2pgsql pgsql with parameters
             | --slim |
 
-        Then running osm2pgsql-replication fails with returncode 1
+        When running osm2pgsql-replication
             | init |
+        Then execution fails with return code 1
         And the error output contains
             """
             Cannot get timestamp from database.
@@ -56,10 +58,12 @@ Feature: Tests for the osm2pgsql-replication script with property table
 
     Scenario: Replication cannot initialised on non-updatable database
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
+        And the replication service at http://example.com/europe/liechtenstein-updates
         When running osm2pgsql pgsql
 
-        Then running osm2pgsql-replication fails with returncode 1
+        When running osm2pgsql-replication
             | init |
+        Then execution fails with return code 1
         And the error output contains
             """
             Database needs to be imported in --slim mode.
@@ -130,8 +134,9 @@ Feature: Tests for the osm2pgsql-replication script with property table
         When running osm2pgsql pgsql with parameters
             | --slim |
 
-        Then running osm2pgsql-replication fails with returncode 1
+        When running osm2pgsql-replication
             | init | --middle-schema=foobar |
+        Then execution fails with return code 1
         And the error output contains
             """
             Database needs to be imported in --slim mode.
@@ -275,8 +280,9 @@ Feature: Tests for the osm2pgsql-replication script with property table
         When running osm2pgsql pgsql with parameters
             | --slim |
 
-        Then running osm2pgsql-replication fails with returncode 1
+        When running osm2pgsql-replication
             | update |
+        Then execution fails with return code 1
         And the error output contains
             """
             Updates not set up correctly.
@@ -354,8 +360,9 @@ Feature: Tests for the osm2pgsql-replication script with property table
         When running osm2pgsql pgsql with parameters
             | --slim |
 
-        Then running osm2pgsql-replication fails with returncode 2
+        When running osm2pgsql-replication
             | status | --json |
+        Then execution fails with return code 2
         And the standard output contains
             """
             "status": 2
@@ -374,7 +381,8 @@ Feature: Tests for the osm2pgsql-replication script with property table
 
         And running osm2pgsql-replication
             | status | --json |
-        Then the standard output contains
+        Then execution is successful
+        And the standard output contains
             """
             "status": 0
             "server": {"base_url": "http://example.com/europe/liechtenstein-updates", "sequence": 10000001, "timestamp": "2013-10-01T01:00:00Z"
@@ -391,8 +399,9 @@ Feature: Tests for the osm2pgsql-replication script with property table
         When running osm2pgsql pgsql with parameters
             | --slim |
 
-        Then running osm2pgsql-replication fails with returncode 1
+        When running osm2pgsql-replication
             | init | --server | http://example.com/europe/liechtenstein-updates |
+        Then execution fails with return code 1
         And the error output contains
             """
             The replication service does not have diff files for the requested date.
@@ -408,8 +417,9 @@ Feature: Tests for the osm2pgsql-replication script with property table
         When running osm2pgsql pgsql with parameters
             | --slim |
 
-        Then running osm2pgsql-replication fails with returncode 1
+        When running osm2pgsql-replication
             | init |
+        Then execution fails with return code 1
         And the error output contains
             """
             Cannot load state information for 9999999 from replication service http://example.com/europe/liechtenstein-updates.

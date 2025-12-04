@@ -32,9 +32,9 @@ Feature: Creating linestring features from way
         When running osm2pgsql flex
 
         Then table osm2pgsql_test_lines contains exactly
-            | way_id | ST_AsText(sgeom) | ST_AsText(mgeom) | ST_AsText(xgeom) |
-            | 20     | 1, 2, 3          | [ 1, 2, 3 ]      | [ 1, 2, 3 ]      |
-            | 21     | 4, 5             | [ 4, 5 ]         | [ 4, 5 ]         |
+            | way_id | sgeom!geo | mgeom!geo   | xgeom!geo   |
+            | 20     | 1, 2, 3   | [ 1, 2, 3 ] | [ 1, 2, 3 ] |
+            | 21     | 4, 5      | [ 4, 5 ]    | [ 4, 5 ]    |
 
     Scenario:
         Given the grid
@@ -58,7 +58,8 @@ Feature: Creating linestring features from way
             end
 
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails
 
         And the error output contains
             """

@@ -34,25 +34,25 @@ Feature: Creating point features from way
         When running osm2pgsql flex
 
         Then table osm2pgsql_test_points contains exactly
-            | way_id | n    | ST_AsText(geom) |
-            | 20     | NULL | 1               |
-            | 20     | 0    | NULL            |
-            | 20     | 1    | 1               |
-            | 20     | 2    | 2               |
-            | 20     | 3    | 3               |
-            | 20     | 4    | NULL            |
-            | 20     | -1   | 3               |
-            | 20     | -2   | 2               |
-            | 20     | -3   | 1               |
-            | 21     | NULL | 4               |
-            | 21     | 0    | NULL            |
-            | 21     | 1    | 4               |
-            | 21     | 2    | 5               |
-            | 21     | 3    | NULL            |
-            | 21     | 4    | NULL            |
-            | 21     | -1   | 5               |
-            | 21     | -2   | 4               |
-            | 21     | -3   | NULL            |
+            | way_id | n    | geom!geo |
+            | 20     | NULL | 1        |
+            | 20     | 0    | NULL     |
+            | 20     | 1    | 1        |
+            | 20     | 2    | 2        |
+            | 20     | 3    | 3        |
+            | 20     | 4    | NULL     |
+            | 20     | -1   | 3        |
+            | 20     | -2   | 2        |
+            | 20     | -3   | 1        |
+            | 21     | NULL | 4        |
+            | 21     | 0    | NULL     |
+            | 21     | 1    | 4        |
+            | 21     | 2    | 5        |
+            | 21     | 3    | NULL     |
+            | 21     | 4    | NULL     |
+            | 21     | -1   | 5        |
+            | 21     | -2   | 4        |
+            | 21     | -3   | NULL     |
 
     Scenario:
         Given the grid
@@ -67,7 +67,8 @@ Feature: Creating point features from way
                 local geom = object:as_point('foo')
             end
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails
 
         And the error output contains
             """
@@ -87,7 +88,8 @@ Feature: Creating point features from way
                 local geom = object:as_point(1, 'foo')
             end
             """
-        Then running osm2pgsql flex fails
+        When running osm2pgsql flex
+        Then execution fails
 
         And the error output contains
             """

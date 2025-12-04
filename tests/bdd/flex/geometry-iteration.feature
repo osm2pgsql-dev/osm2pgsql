@@ -44,13 +44,13 @@ Feature: Tests for iterating over a (multi)geometry
             """
         When running osm2pgsql flex
         Then table osm2pgsql_test_routes contains exactly
-            | relation_id | ST_AsText(geom) | num_all | num_one |
-            | 30          | 1, 2, 3         | 2       | 1       |
-            | 30          | 4, 5, 6         | 2       | 1       |
-            | 31          | 1, 2, 3         | 1       | 1       |
+            | relation_id | geom!geo | num_all | num_one |
+            | 30          | 1, 2, 3  | 2       | 1       |
+            | 30          | 4, 5, 6  | 2       | 1       |
+            | 31          | 1, 2, 3  | 1       | 1       |
         And table osm2pgsql_test_firsts contains exactly
-            | relation_id | ST_AsText(geom) |
-            | 30          | 1, 2, 3         |
-            | 31          | 1, 2, 3         |
-            | 33          | NULL            |
+            | relation_id | geom!geo |
+            | 30          | 1, 2, 3  |
+            | 31          | 1, 2, 3  |
+            | 33          | NULL     |
 

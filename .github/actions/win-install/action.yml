@@ -16,6 +16,6 @@ runs:
           proj[core]:x64-windows \
           zlib:x64-windows
       shell: bash
-    - name: Install psycopg2 and behave
-      run: python -m pip install psycopg2 behave osmium
+    - name: Install psycopg and behave
+      run: python -m pip install psycopg behave osmium
       shell: bash
