@@ -20,7 +20,7 @@ to install and run osm2pgsql.
 * update the database from OSM change files and replication diffs
 * usable for importing a small geographic area on a tiny laptop up to
   importing the whole world on a large server machine
-* runs on Linux, Windows and MacOS
+* runs on Linux, macOS, Windows and FreeBSD
 * [and more](https://osm2pgsql.org/about/features/)
 
 ## Installing
@@ -29,6 +29,7 @@ to install and run osm2pgsql.
   the latest version via backports.
 * __macOS__: osm2pgsql is available through [Homebrew](https://brew.sh/)
 * __Windows__: use our [binary builds](https://osm2pgsql.org/download/windows/)
+* __FreeBSD__: osm2pgsql is available in the [FreeBSD ports tree](https://cgit.freebsd.org/ports/tree/converters/osm2pgsql)
 
 For detailed instructions, visit
 the [Installation page](https://osm2pgsql.org/doc/install.html).
