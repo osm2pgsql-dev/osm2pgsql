@@ -29,7 +29,7 @@ to install and run osm2pgsql.
   the latest version via backports.
 * __macOS__: osm2pgsql is available through [Homebrew](https://brew.sh/)
 * __Windows__: use our [binary builds](https://osm2pgsql.org/download/windows/)
-* __FreeBSD__: osm2pgsql is available in the [FreeBSD ports tree](https://cgit.freebsd.org/ports/tree/converters/osm2pgsql)
+* __FreeBSD__: osm2pgsql is available in the [FreeBSD ports tree](https://ports.freebsd.org/cgi/ports.cgi?query=osm2pgsql)
 
 For detailed instructions, visit
 the [Installation page](https://osm2pgsql.org/doc/install.html).
