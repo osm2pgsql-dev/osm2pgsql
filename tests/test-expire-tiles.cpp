@@ -89,15 +89,14 @@ TEST_CASE("tile to quadkey", "[NoDB]")
 
 TEST_CASE("simple expire z1", "[NoDB]")
 {
-    uint32_t const minzoom = 1;
-    uint32_t const maxzoom = 1;
-    expire_tiles_t et{minzoom, defproj};
+    uint32_t const zoom = 1;
+    expire_tiles_t et{zoom, defproj};
 
     // as big a bbox as possible at the origin to dirty all four
     // quadrants of the world.
     et.from_bbox({-10000, -10000, 10000, 10000}, expire_config_t{});
 
-    auto const tiles = get_tiles_ordered(&et, minzoom, maxzoom);
+    auto const tiles = get_tiles_ordered(&et, zoom, zoom);
     CHECK(tiles.size() == 4);
 
     auto itr = tiles.cbegin();
@@ -109,15 +108,14 @@ TEST_CASE("simple expire z1", "[NoDB]")
 
 TEST_CASE("simple expire z3", "[NoDB]")
 {
-    uint32_t const minzoom = 3;
-    uint32_t const maxzoom = 3;
-    expire_tiles_t et{minzoom, defproj};
+    uint32_t const zoom = 3;
+    expire_tiles_t et{zoom, defproj};
 
     // as big a bbox as possible at the origin to dirty all four
     // quadrants of the world.
     et.from_bbox({-10000, -10000, 10000, 10000}, expire_config_t{});
 
-    auto const tiles = get_tiles_ordered(&et, minzoom, maxzoom);
+    auto const tiles = get_tiles_ordered(&et, zoom, zoom);
     CHECK(tiles.size() == 4);
 
     auto itr = tiles.cbegin();
@@ -129,15 +127,14 @@ TEST_CASE("simple expire z3", "[NoDB]")
 
 TEST_CASE("simple expire z18", "[NoDB]")
 {
-    uint32_t const minzoom = 18;
-    uint32_t const maxzoom = 18;
-    expire_tiles_t et{minzoom, defproj};
+    uint32_t const zoom = 18;
+    expire_tiles_t et{zoom, defproj};
 
     // dirty a smaller bbox this time, as at z18 the scale is
     // pretty small.
     et.from_bbox({-1, -1, 1, 1}, expire_config_t{});
 
-    auto const tiles = get_tiles_ordered(&et, minzoom, maxzoom);
+    auto const tiles = get_tiles_ordered(&et, zoom, zoom);
     CHECK(tiles.size() == 4);
 
     auto itr = tiles.cbegin();
@@ -149,14 +146,13 @@ TEST_CASE("simple expire z18", "[NoDB]")
 
 TEST_CASE("simple expire z10 bounds 0, 0", "[NoDB]")
 {
-    uint32_t const minzoom = 10;
-    uint32_t const maxzoom = 10;
-    expire_tiles_t et{minzoom, defproj};
+    uint32_t const zoom = 10;
+    expire_tiles_t et{zoom, defproj};
 
     et.from_geometry(geom::point_t{-20037508.34, 20037508.34},
                      expire_config_t{});
 
-    auto const tiles = get_tiles_ordered(&et, minzoom, maxzoom);
+    auto const tiles = get_tiles_ordered(&et, zoom, zoom);
     CHECK(tiles.size() == 1);
 
     auto itr = tiles.cbegin();
@@ -165,14 +161,13 @@ TEST_CASE("simple expire z10 bounds 0, 0", "[NoDB]")
 
 TEST_CASE("simple expire z10 bounds 0, 1023", "[NoDB]")
 {
-    uint32_t const minzoom = 10;
-    uint32_t const maxzoom = 10;
-    expire_tiles_t et{minzoom, defproj};
+    uint32_t const zoom = 10;
+    expire_tiles_t et{zoom, defproj};
 
     et.from_geometry(geom::point_t{-20037508.34, -20037508.34},
                      expire_config_t{});
 
-    auto const tiles = get_tiles_ordered(&et, minzoom, maxzoom);
+    auto const tiles = get_tiles_ordered(&et, zoom, zoom);
     CHECK(tiles.size() == 1);
 
     auto itr = tiles.cbegin();
@@ -181,14 +176,13 @@ TEST_CASE("simple expire z10 bounds 0, 1023", "[NoDB]")
 
 TEST_CASE("simple expire z10 bounds 1023, 0", "[NoDB]")
 {
-    uint32_t const minzoom = 10;
-    uint32_t const maxzoom = 10;
-    expire_tiles_t et{minzoom, defproj};
+    uint32_t const zoom = 10;
+    expire_tiles_t et{zoom, defproj};
 
     et.from_geometry(geom::point_t{20037508.34, 20037508.34},
                      expire_config_t{});
 
-    auto const tiles = get_tiles_ordered(&et, minzoom, maxzoom);
+    auto const tiles = get_tiles_ordered(&et, zoom, zoom);
     CHECK(tiles.size() == 2);
 
     auto itr = tiles.cbegin();
@@ -198,14 +192,13 @@ TEST_CASE("simple expire z10 bounds 1023, 0", "[NoDB]")
 
 TEST_CASE("simple expire z10 bounds 1023, 1023", "[NoDB]")
 {
-    uint32_t const minzoom = 10;
-    uint32_t const maxzoom = 10;
-    expire_tiles_t et{minzoom, defproj};
+    uint32_t const zoom = 10;
+    expire_tiles_t et{zoom, defproj};
 
     et.from_geometry(geom::point_t{20037508.34, -20037508.34},
                      expire_config_t{});
 
-    auto const tiles = get_tiles_ordered(&et, minzoom, maxzoom);
+    auto const tiles = get_tiles_ordered(&et, zoom, zoom);
     CHECK(tiles.size() == 2);
 
     auto itr = tiles.cbegin();
