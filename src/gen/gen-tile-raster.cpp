@@ -237,8 +237,13 @@ void gen_tile_raster_union_t::process(tile_t const &tile)
         timer(m_timer_write).start();
         for (auto const &geom : geometries) {
             auto const wkb = geom_to_ewkb(geom);
-            connection().exec_prepared("insert_geoms", binary_param_t{wkb},
-                                       tile.x(), tile.y(), param);
+            if (with_group_by()) {
+                connection().exec_prepared("insert_geoms", binary_param_t{wkb},
+                                           tile.x(), tile.y(), param);
+            } else {
+                connection().exec_prepared("insert_geoms", binary_param_t{wkb},
+                                           tile.x(), tile.y());
+            }
         }
         timer(m_timer_write).stop();
         log_gen("Inserted {} generalized polygons", geometries.size());
