@@ -230,17 +230,6 @@ int expire_tiles_t::from_bbox(geom::box_t const &box,
 {
     double const width = box.width();
     double const height = box.height();
-    if (width > tile_t::HALF_EARTH_CIRCUMFERENCE + 1) {
-        /* Over half the planet's width within the bounding box - assume the
-           box crosses the international date line and split it into two boxes */
-        int ret = from_bbox({-tile_t::HALF_EARTH_CIRCUMFERENCE, box.min_y(),
-                             box.min_x(), box.max_y()},
-                            expire_config);
-        ret += from_bbox({box.max_x(), box.min_y(),
-                          tile_t::HALF_EARTH_CIRCUMFERENCE, box.max_y()},
-                         expire_config);
-        return ret;
-    }
 
     if (expire_config.mode == expire_mode::hybrid &&
         (width > expire_config.full_area_limit ||
