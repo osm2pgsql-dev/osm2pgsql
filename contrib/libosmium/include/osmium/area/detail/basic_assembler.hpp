@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2025 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2026 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -290,7 +290,7 @@ namespace osmium {
                     }
                 }
 
-                ProtoRing* find_enclosing_ring(NodeRefSegment* segment) {
+                ProtoRing* find_enclosing_ring(NodeRefSegment const* segment) {
                     if (debug()) {
                         std::cerr << "    Looking for ring enclosing " << *segment << "\n";
                     }
@@ -553,7 +553,7 @@ namespace osmium {
                         return;
                     }
 
-                    std::stable_sort(rings.begin(), rings.end(), [](ProtoRing* a, ProtoRing* b) {
+                    std::stable_sort(rings.begin(), rings.end(), [](ProtoRing const* a, ProtoRing const* b) {
                         return a->min_segment() < b->min_segment();
                     });
 
@@ -824,7 +824,7 @@ namespace osmium {
                     });
 
                     find_inner_outer_complex();
-                    ProtoRing* outer_ring = find_enclosing_ring(ring_min->ring().min_segment());
+                    const ProtoRing* outer_ring = find_enclosing_ring(ring_min->ring().min_segment());
                     const bool ring_min_is_outer = !outer_ring;
                     if (debug()) {
                         std::cerr << "  Open ring is " << (ring_min_is_outer ? "outer" : "inner") << " ring\n";
@@ -858,7 +858,7 @@ namespace osmium {
                         if (!open_ring_its.empty()) {
                             ++m_stats.open_rings;
                             if (m_config.problem_reporter) {
-                                for (auto& it : open_ring_its) {
+                                for (const auto& it : open_ring_its) {
                                     m_config.problem_reporter->report_ring_not_closed(it->get_node_ref_start(), nullptr);
                                     m_config.problem_reporter->report_ring_not_closed(it->get_node_ref_stop(), nullptr);
                                 }
@@ -912,7 +912,7 @@ namespace osmium {
                                                                       [this, &location](const slocation& lhs, const slocation& rhs) {
                                                                           return lhs.location(m_segment_list, location) < rhs.location(m_segment_list, location);
                                                                       }));
-                        for (auto& loc : locs) {
+                        for (const auto& loc : locs) {
                             if (!m_segment_list[loc.item].is_done()) {
                                 count_remaining -= add_new_ring_complex(loc);
                                 if (count_remaining == 0) {

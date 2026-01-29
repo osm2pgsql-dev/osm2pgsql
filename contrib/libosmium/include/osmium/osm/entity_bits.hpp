@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2025 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2026 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -44,6 +44,8 @@ namespace osmium {
      * @brief Bit field for OSM entity types.
      */
     namespace osm_entity_bits {
+
+        // NOLINTBEGIN(clang-analyzer-optin.core.EnumCastOutOfRange)
 
         /**
          * Describes zero or more OSM entities.
@@ -122,6 +124,8 @@ namespace osmium {
             }
             return static_cast<osmium::osm_entity_bits::type>(1U << (ut - 1U));
         }
+
+        // NOLINTEND(clang-analyzer-optin.core.EnumCastOutOfRange)
 
     } // namespace osm_entity_bits
 
