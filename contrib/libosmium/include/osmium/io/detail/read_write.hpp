@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2025 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2026 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -104,6 +104,9 @@ namespace osmium {
 #endif
 
                 if (filename.empty() || filename == "-") {
+#ifdef _WIN32
+                    _setmode(0, _O_BINARY);
+#endif
                     return 0; // stdin
                 }
 

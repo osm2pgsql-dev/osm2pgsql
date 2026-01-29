@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2025 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2026 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -124,6 +124,11 @@ namespace osmium {
                         if (!osmium::io::detail::read_exactly(m_fd, buffer.data(), static_cast<unsigned int>(buffer.size()))) {
                             return 0; // EOF
                         }
+
+                        if (m_offset_ptr) {
+                            *m_offset_ptr += buffer.size();
+                        }
+
                         return check_size(get_size_in_network_byte_order(buffer.data()));
                     }
 
@@ -209,6 +214,10 @@ namespace osmium {
 
                         if (!osmium::io::detail::read_exactly(m_fd, &*buffer.begin(), static_cast<unsigned int>(size))) {
                             throw osmium::pbf_error{"unexpected EOF"};
+                        }
+
+                        if (m_offset_ptr) {
+                            *m_offset_ptr += buffer.size();
                         }
                     } else {
                         ensure_available_in_input_queue(size);

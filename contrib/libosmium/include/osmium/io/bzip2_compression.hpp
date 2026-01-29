@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2025 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2026 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -109,6 +109,9 @@ namespace osmium {
                 file_wrapper() noexcept = default;
 
                 file_wrapper(const int fd, const char* mode) {
+                    if (fd < 0) {
+                        throw std::system_error{errno, std::system_category(), "file descriptor must be >= 0"};
+                    }
 #ifdef _MSC_VER
                     osmium::detail::disable_invalid_parameter_handler diph;
 #endif
@@ -152,7 +155,7 @@ namespace osmium {
 
                         // Do not close stdout
                         if (fileno(wrapped_file) == 1) {
-                            return;
+                            return; // NOLINT(clang-analyzer-unix.Stream)
                         }
 
                         if (fclose(wrapped_file) != 0) {
@@ -313,7 +316,18 @@ namespace osmium {
                                     throw bzip2_error{"bzip2 error: read open failed", bzerror};
                                 }
                             } else {
-                                m_stream_end = true;
+                                // Close current stream and try to open a new one for multi-stream files
+                                ::BZ2_bzReadClose(&bzerror, m_bzfile);
+                                if (bzerror != BZ_OK) {
+                                    throw bzip2_error{"bzip2 error: read close failed", bzerror};
+                                }
+                                // Try to open a new stream - there might be more bzip2 streams concatenated
+                                m_bzfile = ::BZ2_bzReadOpen(&bzerror, m_file.file(), 0, 0, nullptr, 0);
+                                if (!m_bzfile || bzerror != BZ_OK) {
+                                    // If we can't open a new stream, we've truly reached the end
+                                    m_stream_end = true;
+                                    m_bzfile = nullptr;
+                                }
                             }
                         } else {
                             m_stream_end = true;
