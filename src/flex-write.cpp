@@ -258,7 +258,8 @@ bool is_compatible(geom::geometry_t const &geom,
 void flex_write_column(lua_State *lua_state,
                        db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
                        flex_table_column_t const &column,
-                       std::vector<expire_tiles_t> *expire)
+                       std::vector<expire_tiles_t> *expire,
+                       std::vector<expire_output_t> *expire_outputs)
 {
     lua_getfield(lua_state, -1, column.name().c_str());
     int const ltype = lua_type(lua_state, -1);
@@ -423,12 +424,12 @@ void flex_write_column(lua_State *lua_state,
                      type == table_column_type::multilinestring ||
                      type == table_column_type::multipolygon);
                 if (geom->srid() == column.srid()) {
-                    column.do_expire(*geom, expire);
+                    column.do_expire(*geom, expire, expire_outputs);
                     copy_mgr->add_hex_geom(geom_to_ewkb(*geom, wrap_multi));
                 } else {
                     auto const &proj = get_projection(column.srid());
                     auto const tgeom = geom::transform(*geom, proj);
-                    column.do_expire(tgeom, expire);
+                    column.do_expire(tgeom, expire, expire_outputs);
                     copy_mgr->add_hex_geom(geom_to_ewkb(tgeom, wrap_multi));
                 }
             } else {

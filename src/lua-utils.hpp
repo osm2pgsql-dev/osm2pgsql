@@ -70,6 +70,11 @@ uint32_t luaX_get_table_optional_uint32(lua_State *lua_state, char const *key,
                                         uint32_t min, uint32_t max,
                                         char const *range);
 
+uint64_t luaX_get_table_optional_uint64(lua_State *lua_state, char const *key,
+                                        int table_index, char const *error_msg,
+                                        uint64_t min, uint64_t max,
+                                        char const *range);
+
 bool luaX_get_table_bool(lua_State *lua_state, char const *key, int table_index,
                          char const *error_msg, bool default_value);
 

@@ -217,6 +217,30 @@ uint32_t luaX_get_table_optional_uint32(lua_State *lua_state, char const *key,
     return static_cast<uint32_t>(num);
 }
 
+uint64_t luaX_get_table_optional_uint64(lua_State *lua_state, char const *key,
+                                        int table_index, char const *error_msg,
+                                        uint64_t min, uint64_t max,
+                                        char const *range)
+{
+    assert(lua_state);
+    assert(key);
+    assert(error_msg);
+    lua_getfield(lua_state, table_index, key);
+    if (lua_isnil(lua_state, -1)) {
+        return 0;
+    }
+    if (!lua_isnumber(lua_state, -1)) {
+        throw fmt_error("{} must contain an integer.", error_msg);
+    }
+
+    auto const num = lua_tonumber(lua_state, -1);
+    if (num < static_cast<double>(min) || num > static_cast<double>(max)) {
+        throw fmt_error("{} must be between {}.", error_msg, range);
+    }
+
+    return static_cast<uint64_t>(num);
+}
+
 // Lua 5.1 doesn't support luaL_traceback, unless LuaJIT is used
 #if LUA_VERSION_NUM < 502 && !defined(HAVE_LUAJIT)
 

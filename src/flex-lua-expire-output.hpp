@@ -42,6 +42,8 @@ public:
     int minzoom() const noexcept;
     int schema() const noexcept;
     int table() const noexcept;
+    int max_tiles_geometry() const noexcept;
+    int max_tiles_overall() const noexcept;
 
 }; // class lua_wrapper_expire_output_t
 

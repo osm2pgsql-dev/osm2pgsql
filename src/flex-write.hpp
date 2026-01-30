@@ -37,6 +37,7 @@ private:
 void flex_write_column(lua_State *lua_state,
                        db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
                        flex_table_column_t const &column,
-                       std::vector<expire_tiles_t> *expire);
+                       std::vector<expire_tiles_t> *expire,
+                       std::vector<expire_output_t> *expire_outputs);
 
 #endif // OSM2PGSQL_FLEX_WRITE_HPP

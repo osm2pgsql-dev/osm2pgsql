@@ -15,8 +15,14 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
+#include <mutex>
 #include <string>
+#include <unordered_set>
 #include <utility>
+
+constexpr std::size_t DEFAULT_MAX_TILES_GEOMETRY = 10'000'000;
+constexpr std::size_t DEFAULT_MAX_TILES_OVERALL = 50'000'000;
 
 class pg_conn_t;
 class connection_params_t;
@@ -53,9 +59,45 @@ public:
     uint32_t maxzoom() const noexcept { return m_maxzoom; }
     void set_maxzoom(uint32_t maxzoom) noexcept { m_maxzoom = maxzoom; }
 
-    std::size_t output(quadkey_list_t const &tile_list,
-                       connection_params_t const &connection_params) const;
+    std::size_t max_tiles_geometry() const noexcept
+    {
+        return m_max_tiles_geometry;
+    }
 
+    void set_max_tiles_geometry(std::size_t max_tiles_geometry) noexcept
+    {
+        m_max_tiles_geometry = max_tiles_geometry;
+    }
+
+    std::size_t max_tiles_overall() const noexcept
+    {
+        return m_max_tiles_overall;
+    }
+
+    void set_max_tiles_overall(std::size_t max_tiles_overall) noexcept
+    {
+        m_max_tiles_overall = max_tiles_overall;
+    }
+
+    bool empty() noexcept;
+
+    void add_tiles(std::unordered_set<quadkey_t> const &dirty_tiles);
+
+    quadkey_list_t get_tiles();
+
+    /**
+     * Write the list of tiles to a database table or file.
+     *
+     * \param connection_params Database connection parameters
+     */
+    std::size_t output(connection_params_t const &connection_params);
+
+    /**
+     * Create table for tiles.
+     */
+    void create_output_table(pg_conn_t const &db_connection) const;
+
+private:
     /**
      * Write the list of tiles to a file.
      *
@@ -75,11 +117,16 @@ public:
                           connection_params_t const &connection_params) const;
 
     /**
-     * Create table for tiles.
+     * Access to the m_tiles collection of expired tiles must go through
+     * this mutex, because it can happend from several threads at the same
+     * time. Mutex is wrapped in a shared_ptr to make this class movable so
+     * we can store instances in std::vector.
      */
-    void create_output_table(pg_conn_t const &db_connection) const;
+    std::shared_ptr<std::mutex> m_tiles_mutex = std::make_shared<std::mutex>();
 
-private:
+    /// This is where we collect all the expired tiles.
+    std::unordered_set<quadkey_t> m_tiles;
+
     /// The filename (if any) for output
     std::string m_filename;
 
@@ -94,6 +141,22 @@ private:
 
     /// Zoom level we capture tiles on
     uint32_t m_maxzoom = 0;
+
+    /**
+     * The following two settings are for protecting osm2pgsql from overload as
+     * well as downstream tile expiry mechanisms in case of large changes to
+     * OSM data (possibly from vandalism). They should be large enough to not
+     * trigger in normal use.
+     */
+
+    /// Maximum number of tiles that can be affected by a single geometry.
+    std::size_t m_max_tiles_geometry = DEFAULT_MAX_TILES_GEOMETRY;
+
+    /// Maximum number of tiles that can be affected per run.
+    std::size_t m_max_tiles_overall = DEFAULT_MAX_TILES_OVERALL;
+
+    /// Has the overall tile limit been reached already.
+    bool m_overall_tile_limit_reached = false;
 
 }; // class expire_output_t
 

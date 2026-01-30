@@ -252,17 +252,6 @@ public:
                       &output_t::pending_relation_stage1c);
     }
 
-    /**
-     * Collect expiry tree information from all clones and merge it back
-     * into the original output.
-     */
-    void merge_expire_trees()
-    {
-        for (auto const &clone : m_clones) {
-            m_output->merge_expire_trees(clone.get());
-        }
-    }
-
 private:
     /// Get the next id from the queue.
     static osmid_t pop_id(idlist_t *queue, std::mutex *mutex)
@@ -392,7 +381,6 @@ void osmdata_t::process_dependents()
             m_rels_pending_tracker.sort_unique();
             proc.process_relations(std::move(m_rels_pending_tracker));
         }
-        proc.merge_expire_trees();
     }
 
     // stage 1c processing: mark parent relations of marked objects as changed

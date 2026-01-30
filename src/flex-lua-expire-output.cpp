@@ -62,6 +62,26 @@ create_expire_output(lua_State *lua_state, std::string const &default_schema,
     }
     lua_pop(lua_state, 1); // "minzoom"
 
+    // optional "max_tiles_geometry" field
+    auto const max_tiles_geometry = luaX_get_table_optional_uint64(
+        lua_state, "max_tiles_geometry", -1,
+        "The 'max_tiles_geometry' field in a expire output", 1, (4ULL << 20ULL),
+        "1 and 4 << 20");
+    if (max_tiles_geometry > 0) {
+        new_expire_output.set_max_tiles_geometry(max_tiles_geometry);
+    }
+    lua_pop(lua_state, 1); // "max_tiles_geometry"
+
+    // optional "max_tiles_overall" field
+    auto const max_tiles_overall = luaX_get_table_optional_uint64(
+        lua_state, "max_tiles_overall", -1,
+        "The 'max_tiles_overall' field in a expire output", 1, (4ULL << 20ULL),
+        "1 and 4 << 20");
+    if (max_tiles_overall > 0) {
+        new_expire_output.set_max_tiles_overall(max_tiles_overall);
+    }
+    lua_pop(lua_state, 1); // "max_tiles_overall"
+
     return new_expire_output;
 }
 
@@ -71,6 +91,8 @@ TRAMPOLINE_WRAPPED_OBJECT(expire_output, maxzoom)
 TRAMPOLINE_WRAPPED_OBJECT(expire_output, minzoom)
 TRAMPOLINE_WRAPPED_OBJECT(expire_output, schema)
 TRAMPOLINE_WRAPPED_OBJECT(expire_output, table)
+TRAMPOLINE_WRAPPED_OBJECT(expire_output, max_tiles_geometry)
+TRAMPOLINE_WRAPPED_OBJECT(expire_output, max_tiles_overall)
 
 } // anonymous namespace
 
@@ -106,7 +128,11 @@ void lua_wrapper_expire_output_t::init(lua_State *lua_state)
          {"maxzoom", lua_trampoline_expire_output_maxzoom},
          {"minzoom", lua_trampoline_expire_output_minzoom},
          {"schema", lua_trampoline_expire_output_schema},
-         {"table", lua_trampoline_expire_output_table}});
+         {"table", lua_trampoline_expire_output_table},
+         {"max_tiles_geometry",
+          lua_trampoline_expire_output_max_tiles_geometry},
+         {"max_tiles_overall",
+          lua_trampoline_expire_output_max_tiles_overall}});
 }
 
 int lua_wrapper_expire_output_t::tostring() const
@@ -148,5 +174,19 @@ int lua_wrapper_expire_output_t::schema() const noexcept
 int lua_wrapper_expire_output_t::table() const noexcept
 {
     luaX_pushstring(lua_state(), self().table());
+    return 1;
+}
+
+int lua_wrapper_expire_output_t::max_tiles_geometry() const noexcept
+{
+    lua_pushinteger(lua_state(),
+                    static_cast<lua_Integer>(self().max_tiles_geometry()));
+    return 1;
+}
+
+int lua_wrapper_expire_output_t::max_tiles_overall() const noexcept
+{
+    lua_pushinteger(lua_state(),
+                    static_cast<lua_Integer>(self().max_tiles_overall()));
     return 1;
 }

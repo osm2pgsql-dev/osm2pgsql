@@ -151,8 +151,6 @@ public:
     void way_delete(osmium::Way *way) override;
     void relation_delete(osmium::Relation const &rel) override;
 
-    void merge_expire_trees(output_t *other) override;
-
     int app_as_point();
     int app_as_linestring();
     int app_as_polygon();

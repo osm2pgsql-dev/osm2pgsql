@@ -27,20 +27,30 @@
 #include "wkb.hpp"
 
 expire_tiles_t::expire_tiles_t(uint32_t max_zoom,
-                               std::shared_ptr<reprojection_t> projection)
-: m_projection(std::move(projection)), m_maxzoom(max_zoom),
-  m_map_width(static_cast<int>(1U << m_maxzoom))
-{}
+                               std::shared_ptr<reprojection_t> projection,
+                               std::size_t max_tiles_geometry)
+: m_projection(std::move(projection)), m_max_tiles_geometry(max_tiles_geometry),
+  m_maxzoom(max_zoom), m_map_width(static_cast<int>(1U << m_maxzoom))
+{
+}
 
 void expire_tiles_t::expire_tile(uint32_t x, uint32_t y)
 {
-    // Only try to insert to tile into the set if the last inserted tile
-    // is different from this tile.
-    tile_t const new_tile{m_maxzoom, x, y};
-    if (!m_prev_tile.valid() || m_prev_tile != new_tile) {
-        m_dirty_tiles.insert(new_tile.quadkey());
-        m_prev_tile = new_tile;
+    if (m_dirty_tiles.size() > m_max_tiles_geometry) {
+        return;
     }
+
+    tile_t const new_tile{m_maxzoom, x, y};
+    m_dirty_tiles.insert(new_tile.quadkey());
+}
+
+void expire_tiles_t::commit_tiles(expire_output_t *expire_output)
+{
+    if (!expire_output || m_dirty_tiles.empty()) {
+        return;
+    }
+    expire_output->add_tiles(m_dirty_tiles);
+    m_dirty_tiles.clear();
 }
 
 uint32_t expire_tiles_t::normalise_tile_x_coord(int x) const
@@ -279,24 +289,6 @@ quadkey_list_t expire_tiles_t::get_tiles()
     std::sort(tiles.begin(), tiles.end());
     m_dirty_tiles.clear();
     return tiles;
-}
-
-void expire_tiles_t::merge_and_destroy(expire_tiles_t *other)
-{
-    if (m_map_width != other->m_map_width) {
-        throw fmt_error("Unable to merge tile expiry sets when "
-                        "map_width does not match: {} != {}.",
-                        m_map_width, other->m_map_width);
-    }
-
-    if (m_dirty_tiles.empty()) {
-        using std::swap;
-        swap(m_dirty_tiles, other->m_dirty_tiles);
-    } else {
-        m_dirty_tiles.insert(other->m_dirty_tiles.cbegin(),
-                             other->m_dirty_tiles.cend());
-        other->m_dirty_tiles.clear();
-    }
 }
 
 int expire_from_result(expire_tiles_t *expire, pg_result_t const &result,

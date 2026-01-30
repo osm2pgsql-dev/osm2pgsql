@@ -102,6 +102,7 @@ void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
         auto const wkb = geom_to_ewkb(projected_geom);
         if (!wkb.empty()) {
             m_expire.from_geometry_if_3857(projected_geom, m_expire_config);
+            m_expire.commit_tiles(&m_expire_output);
             if (m_enable_way_area) {
                 double const area = calculate_area(
                     get_options()->reproject_area, geom, projected_geom);
@@ -117,6 +118,7 @@ void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
             geom::transform(geom::create_linestring(way), *m_proj), split_at));
         for (auto const &sgeom : geoms) {
             m_expire.from_geometry_if_3857(sgeom, m_expire_config);
+            m_expire.commit_tiles(&m_expire_output);
             auto const wkb = geom_to_ewkb(sgeom);
             m_tables[t_line]->write_row(way.id(), *tags, wkb);
             if (roads) {
@@ -180,12 +182,7 @@ void output_pgsql_t::stop()
     }
 
     if (get_options()->expire_tiles_zoom_min > 0) {
-        expire_output_t expire_out;
-        expire_out.set_filename(get_options()->expire_tiles_filename);
-        expire_out.set_minzoom(get_options()->expire_tiles_zoom_min);
-        expire_out.set_maxzoom(get_options()->expire_tiles_zoom);
-        auto const count =
-            expire_out.output_tiles_to_file(m_expire.get_tiles());
+        auto const count = m_expire_output.output(connection_params_t{});
         log_info("Wrote {} entries to expired tiles list", count);
     }
 }
@@ -218,6 +215,7 @@ void output_pgsql_t::node_add(osmium::Node const &node)
 
     auto const geom = geom::transform(geom::create_point(node), *m_proj);
     m_expire.from_geometry_if_3857(geom, m_expire_config);
+    m_expire.commit_tiles(&m_expire_output);
     auto const wkb = geom_to_ewkb(geom);
     m_tables[t_point]->write_row(node.id(), outtags, wkb);
 }
@@ -296,6 +294,7 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
         auto const geoms = geom::split_multi(std::move(projected_geom));
         for (auto const &sgeom : geoms) {
             m_expire.from_geometry_if_3857(sgeom, m_expire_config);
+            m_expire.commit_tiles(&m_expire_output);
             auto const wkb = geom_to_ewkb(sgeom);
             m_tables[t_line]->write_row(-rel.id(), outtags, wkb);
             if (roads) {
@@ -312,6 +311,7 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
         for (auto const &sgeom : geoms) {
             auto const projected_geom = geom::transform(sgeom, *m_proj);
             m_expire.from_geometry_if_3857(projected_geom, m_expire_config);
+            m_expire.commit_tiles(&m_expire_output);
             auto const wkb = geom_to_ewkb(projected_geom);
             if (m_enable_way_area) {
                 double const area = calculate_area(
@@ -461,6 +461,10 @@ output_pgsql_t::output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
              "https://osm2pgsql.org/doc/"
              "faq.html#the-pgsql-output-is-deprecated-what-does-that-mean");
 
+    m_expire_output.set_filename(options.expire_tiles_filename);
+    m_expire_output.set_minzoom(options.expire_tiles_zoom_min);
+    m_expire_output.set_maxzoom(options.expire_tiles_zoom);
+
     m_expire_config.full_area_limit = get_options()->expire_tiles_max_bbox;
     if (get_options()->expire_tiles_max_bbox > 0.0) {
         m_expire_config.mode = expire_mode::hybrid;
@@ -524,6 +528,7 @@ output_pgsql_t::output_pgsql_t(
   m_enable_way_area(other->m_enable_way_area),
   m_ignore_untagged_objects(other->m_ignore_untagged_objects),
   m_proj(get_options()->projection), m_expire_config(other->m_expire_config),
+  m_expire_output(other->m_expire_output),
   m_expire(get_options()->expire_tiles_zoom, get_options()->projection),
   m_buffer(1024, osmium::memory::Buffer::auto_grow::yes),
   m_rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes),
@@ -537,11 +542,3 @@ output_pgsql_t::output_pgsql_t(
 }
 
 output_pgsql_t::~output_pgsql_t() = default;
-
-void output_pgsql_t::merge_expire_trees(output_t *other)
-{
-    auto *const opgsql = dynamic_cast<output_pgsql_t *>(other);
-    if (opgsql) {
-        m_expire.merge_and_destroy(&opgsql->m_expire);
-    }
-}

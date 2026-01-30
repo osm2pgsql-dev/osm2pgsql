@@ -809,7 +809,7 @@ int output_flex_t::table_insert()
                 copy_mgr->add_column(id);
             } else {
                 flex_write_column(lua_state(), copy_mgr, column,
-                                  &m_expire_tiles);
+                                  &m_expire_tiles, m_expire_outputs.get());
             }
         }
         table_connection.increment_insert_counter();
@@ -1020,12 +1020,11 @@ void output_flex_t::stop()
 
     assert(m_expire_outputs->size() == m_expire_tiles.size());
     for (std::size_t i = 0; i < m_expire_outputs->size(); ++i) {
-        if (!m_expire_tiles[i].empty()) {
-            auto const &eo = (*m_expire_outputs)[i];
+        if (!(*m_expire_outputs)[i].empty()) {
+            auto &eo = (*m_expire_outputs)[i];
 
             std::size_t const count =
-                eo.output(m_expire_tiles[i].get_tiles(),
-                          get_options()->connection_params);
+                eo.output(get_options()->connection_params);
 
             log_info("Wrote {} entries to expire output [{}].", count, i);
         }
@@ -1113,7 +1112,8 @@ void output_flex_t::delete_from_table(table_connection_t *table_connection,
                 if (column.has_expire()) {
                     for (int i = 0; i < num_tuples; ++i) {
                         auto const geom = ewkb_to_geom(result.get(i, col));
-                        column.do_expire(geom, &m_expire_tiles);
+                        column.do_expire(geom, &m_expire_tiles,
+                                         m_expire_outputs.get());
                     }
                     ++col;
                 }
@@ -1242,7 +1242,8 @@ output_flex_t::output_flex_t(output_flex_t const *other,
     for (auto &expire_output : *m_expire_outputs) {
         m_expire_tiles.emplace_back(
             expire_output.maxzoom(),
-            reprojection_t::create_projection(PROJ_SPHERE_MERC));
+            reprojection_t::create_projection(PROJ_SPHERE_MERC),
+            expire_output.max_tiles_geometry());
     }
 }
 
@@ -1308,7 +1309,8 @@ output_flex_t::output_flex_t(std::shared_ptr<middle_query_t> const &mid,
     for (auto const &expire_output : *m_expire_outputs) {
         m_expire_tiles.emplace_back(
             expire_output.maxzoom(),
-            reprojection_t::create_projection(PROJ_SPHERE_MERC));
+            reprojection_t::create_projection(PROJ_SPHERE_MERC),
+            expire_output.max_tiles_geometry());
     }
 
     create_expire_tables(*m_expire_outputs, get_options()->connection_params);
@@ -1514,13 +1516,4 @@ void output_flex_t::reprocess_marked()
 
     // We don't need these any more so can free the memory.
     m_stage2_way_ids->clear();
-}
-
-void output_flex_t::merge_expire_trees(output_t *other)
-{
-    auto *const opgsql = dynamic_cast<output_flex_t *>(other);
-    assert(m_expire_tiles.size() == opgsql->m_expire_tiles.size());
-    for (std::size_t i = 0; i < m_expire_tiles.size(); ++i) {
-        m_expire_tiles[i].merge_and_destroy(&opgsql->m_expire_tiles[i]);
-    }
 }
