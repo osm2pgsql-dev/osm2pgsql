@@ -175,7 +175,7 @@ void get_tiles_from_table(pg_conn_t const &connection, std::string const &table,
                           std::vector<std::pair<uint32_t, uint32_t>> *tiles)
 {
     auto const result = connection.exec(
-        R"(SELECT x, y FROM "{}" WHERE zoom = {})", table, zoom);
+        R"(DELETE FROM "{}" WHERE zoom = {} RETURNING x, y)", table, zoom);
 
     tiles->reserve(result.num_tuples());
 
@@ -476,8 +476,6 @@ private:
             log_debug("Running generalizer for expire list from table '{}'...",
                       table);
             get_tiles_from_table(db_connection, table, zoom, &tile_list);
-            log_debug("Truncating table '{}'...", table);
-            db_connection.exec("TRUNCATE {}", table);
         } else {
             auto const extent =
                 get_extent_from_db(db_connection, m_dbschema, params, zoom);
