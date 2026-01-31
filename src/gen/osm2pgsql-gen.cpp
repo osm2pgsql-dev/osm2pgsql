@@ -171,11 +171,30 @@ tile_extent get_extent_from_db(pg_conn_t const &db_connection,
 }
 
 void get_tiles_from_table(pg_conn_t const &connection, std::string const &table,
-                          uint32_t zoom,
+                          uint32_t zoom, int64_t max_tiles_per_run,
                           std::vector<std::pair<uint32_t, uint32_t>> *tiles)
 {
-    auto const result = connection.exec(
-        R"(DELETE FROM "{}" WHERE zoom = {} RETURNING x, y)", table, zoom);
+    std::string query;
+    if (max_tiles_per_run == 0) {
+        query = fmt::format(
+            R"(DELETE FROM "{}" WHERE zoom = {} RETURNING x, y)", table, zoom);
+    } else {
+        query = fmt::format(R"(
+WITH to_delete AS (
+  SELECT t.ctid FROM "{0}" AS t
+    WHERE zoom = {1}
+    ORDER BY first
+    FOR UPDATE
+    LIMIT {2}
+)
+DELETE FROM "{0}" AS et
+  USING to_delete AS del
+  WHERE et.ctid = del.ctid
+  RETURNING x, y;)",
+                            table, zoom, max_tiles_per_run);
+    }
+
+    auto const result = connection.exec(query);
 
     tiles->reserve(result.num_tuples());
 
@@ -473,9 +492,12 @@ private:
         std::vector<std::pair<uint32_t, uint32_t>> tile_list;
         if (m_append) {
             auto const table = params.get_string("expire_list");
+            auto const max_tiles_per_run =
+                params.get_int64("max_tiles_per_run", 0);
             log_debug("Running generalizer for expire list from table '{}'...",
                       table);
-            get_tiles_from_table(db_connection, table, zoom, &tile_list);
+            get_tiles_from_table(db_connection, table, zoom, max_tiles_per_run,
+                                 &tile_list);
         } else {
             auto const extent =
                 get_extent_from_db(db_connection, m_dbschema, params, zoom);
