@@ -114,19 +114,43 @@ void expire_tiles_t::from_polygon_boundary(geom::polygon_t const &geom,
     }
 }
 
+namespace {
+
+template <typename TGEOM>
+expire_mode decide_expire_mode(TGEOM const &geom,
+                               expire_config_t const &expire_config,
+                               geom::box_t *box)
+{
+    if (expire_config.mode != expire_mode::hybrid) {
+        return expire_config.mode;
+    }
+
+    *box = geom::envelope(geom);
+    if (box->width() > expire_config.full_area_limit ||
+        box->height() > expire_config.full_area_limit) {
+        return expire_mode::boundary_only;
+    }
+
+    return expire_mode::full_area;
+}
+
+} // anonymous namespace
+
 void expire_tiles_t::from_geometry(geom::polygon_t const &geom,
                                    expire_config_t const &expire_config)
 {
-    if (expire_config.mode == expire_mode::boundary_only) {
+    geom::box_t box;
+    auto const mode = decide_expire_mode(geom, expire_config, &box);
+
+    if (mode == expire_mode::boundary_only) {
         from_polygon_boundary(geom, expire_config);
         return;
     }
 
-    geom::box_t const box = geom::envelope(geom);
-    if (from_bbox(box, expire_config)) {
-        /* Bounding box too big - just expire tiles on the boundary */
-        from_polygon_boundary(geom, expire_config);
+    if (!box.valid()) {
+        box = geom::envelope(geom);
     }
+    from_bbox(box, expire_config);
 }
 
 void expire_tiles_t::from_polygon_boundary(geom::multipolygon_t const &geom,
@@ -140,16 +164,18 @@ void expire_tiles_t::from_polygon_boundary(geom::multipolygon_t const &geom,
 void expire_tiles_t::from_geometry(geom::multipolygon_t const &geom,
                                    expire_config_t const &expire_config)
 {
-    if (expire_config.mode == expire_mode::boundary_only) {
+    geom::box_t box;
+    auto const mode = decide_expire_mode(geom, expire_config, &box);
+
+    if (mode == expire_mode::boundary_only) {
         from_polygon_boundary(geom, expire_config);
         return;
     }
 
-    geom::box_t const box = geom::envelope(geom);
-    if (from_bbox(box, expire_config)) {
-        /* Bounding box too big - just expire tiles on the boundary */
-        from_polygon_boundary(geom, expire_config);
+    if (!box.valid()) {
+        box = geom::envelope(geom);
     }
+    from_bbox(box, expire_config);
 }
 
 // False positive: Apparently clang-tidy can not see through the visit()
@@ -238,15 +264,6 @@ void expire_tiles_t::from_line_segment(geom::point_t const &a,
 int expire_tiles_t::from_bbox(geom::box_t const &box,
                               expire_config_t const &expire_config)
 {
-    double const width = box.width();
-    double const height = box.height();
-
-    if (expire_config.mode == expire_mode::hybrid &&
-        (width > expire_config.full_area_limit ||
-         height > expire_config.full_area_limit)) {
-        return -1;
-    }
-
     /* Convert the box's Mercator coordinates into tile coordinates */
     auto const tmp_min = coords_to_tile({box.min_x(), box.max_y()});
     int const min_tile_x =

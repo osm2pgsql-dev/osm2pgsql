@@ -16,6 +16,7 @@ TEST_CASE("box_t getter/setter", "[NoDB]")
 {
     geom::box_t box{1.0, 2.0, 3.0, 4.0};
 
+    REQUIRE(box.valid());
     REQUIRE(box.min_x() == Approx(1.0));
     REQUIRE(box.max_x() == Approx(3.0));
     REQUIRE(box.min_y() == Approx(2.0));
@@ -57,7 +58,9 @@ TEST_CASE("Extend box_t with points", "[NoDB]")
 {
     geom::box_t box;
 
+    REQUIRE_FALSE(box.valid());
     box.extend(geom::point_t{1.0, 2.0});
+    REQUIRE(box.valid());
 
     REQUIRE(box.min_x() == Approx(1.0));
     REQUIRE(box.max_x() == Approx(1.0));
