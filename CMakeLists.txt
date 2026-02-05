@@ -196,7 +196,7 @@ endif()
 
 find_program(LUA_EXE NAMES lua lua5.4 lua5.3 lua5.2 lua5.1)
 
-find_package(Boost 1.50 REQUIRED)
+find_package(Boost CONFIG 1.50 REQUIRED)
 include_directories(SYSTEM ${Boost_INCLUDE_DIR})
 
 find_package(PostgreSQL REQUIRED)
