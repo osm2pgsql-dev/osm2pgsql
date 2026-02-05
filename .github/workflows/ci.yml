@@ -165,7 +165,6 @@ jobs:
     env:
       CC: gcc-12
       CXX: g++-12
-      EXTRA_FLAGS: -Wno-stringop-overread
       LUA_VERSION: 5.3
       LUAJIT_OPTION: ON
       POSTGRESQL_VERSION: 13
@@ -262,7 +261,6 @@ jobs:
     env:
       CC: gcc-12
       CXX: g++-12
-      EXTRA_FLAGS: -Wno-stringop-overread
       LUA_VERSION: 5.4
       LUAJIT_OPTION: ON
       POSTGRESQL_VERSION: 16
