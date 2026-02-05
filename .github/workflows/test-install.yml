@@ -22,7 +22,7 @@ jobs:
       POSTGRESQL_VERSION: 16
       POSTGIS_VERSION: 3
       BUILD_TYPE: Release
-      CXXFLAGS: -pedantic -Wextra -Wno-stringop-overread -Werror
+      CXXFLAGS: -pedantic -Wextra -Werror
       PREFIX: /usr/local
       OSMURL: https://download.geofabrik.de/europe/monaco-latest.osm.pbf
       OSMFILE: monaco-latest.osm.pbf

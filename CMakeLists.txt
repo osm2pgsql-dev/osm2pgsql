@@ -52,6 +52,10 @@ else()
     add_compile_options(-Wall)
 endif()
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    add_definitions(-Wno-stringop-overread -Wno-maybe-uninitialized)
+endif()
+
 option(EXTERNAL_LIBOSMIUM "Do not use the bundled libosmium" OFF)
 option(EXTERNAL_PROTOZERO "Do not use the bundled protozero" OFF)
 option(EXTERNAL_FMT       "Do not use the bundled fmt"       OFF)
@@ -67,7 +71,7 @@ endif()
 set(MINIMUM_POSTGRESQL_SERVER_VERSION "11")
 set(MINIMUM_POSTGRESQL_SERVER_VERSION_NUM "110000")
 
-set(PostgreSQL_ADDITIONAL_VERSIONS "17" "16" "15" "14" "13" "12" "11")
+set(PostgreSQL_ADDITIONAL_VERSIONS "19" "18" "17" "16" "15" "14" "13" "12" "11")
 
 #############################################################
 # Version
@@ -196,7 +200,7 @@ endif()
 
 find_program(LUA_EXE NAMES lua lua5.4 lua5.3 lua5.2 lua5.1)
 
-find_package(Boost 1.50 REQUIRED)
+find_package(Boost CONFIG 1.50 REQUIRED)
 include_directories(SYSTEM ${Boost_INCLUDE_DIR})
 
 find_package(PostgreSQL REQUIRED)
