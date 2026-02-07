@@ -13,6 +13,7 @@
 #include <set>
 
 #include "expire-tiles.hpp"
+#include "geom-functions.hpp"
 #include "reprojection.hpp"
 #include "tile-output.hpp"
 #include "tile.hpp"
@@ -45,7 +46,7 @@ void expire_centroids(expire_tiles_t *et, std::set<tile_t> const &tiles)
 {
     for (auto const &t : tiles) {
         auto const p = t.center();
-        et->from_bbox({p.x(), p.y(), p.x(), p.y()}, expire_config_t{});
+        et->from_geometry(p, expire_config_t{});
     }
 }
 
@@ -94,7 +95,14 @@ TEST_CASE("simple expire z1", "[NoDB]")
 
     // as big a bbox as possible at the origin to dirty all four
     // quadrants of the world.
-    et.from_bbox({-10000, -10000, 10000, 10000}, expire_config_t{});
+    geom::geometry_t const geom{
+        geom::polygon_t{geom::ring_t{{-10000, -10000},
+                                     {-10000, 10000},
+                                     {10000, 10000},
+                                     {10000, -1000},
+                                     {-10000, -10000}}}};
+
+    et.from_geometry(geom, expire_config_t{});
 
     auto const tiles = get_tiles_ordered(&et, zoom, zoom);
     REQUIRE(tiles.size() == 4);
@@ -113,7 +121,14 @@ TEST_CASE("simple expire z3", "[NoDB]")
 
     // as big a bbox as possible at the origin to dirty all four
     // quadrants of the world.
-    et.from_bbox({-10000, -10000, 10000, 10000}, expire_config_t{});
+    geom::geometry_t const geom{
+        geom::polygon_t{geom::ring_t{{-10000, -10000},
+                                     {-10000, 10000},
+                                     {10000, 10000},
+                                     {10000, -1000},
+                                     {-10000, -10000}}}};
+
+    et.from_geometry(geom, expire_config_t{});
 
     auto const tiles = get_tiles_ordered(&et, zoom, zoom);
     CHECK(tiles.size() == 4);
@@ -132,7 +147,10 @@ TEST_CASE("simple expire z18", "[NoDB]")
 
     // dirty a smaller bbox this time, as at z18 the scale is
     // pretty small.
-    et.from_bbox({-1, -1, 1, 1}, expire_config_t{});
+    geom::geometry_t const geom{geom::polygon_t{
+        geom::ring_t{{-1, -1}, {-1, 1}, {1, 1}, {1, -1}, {-1, -1}}}};
+
+    et.from_geometry(geom, expire_config_t{});
 
     auto const tiles = get_tiles_ordered(&et, zoom, zoom);
     CHECK(tiles.size() == 4);
@@ -310,6 +328,48 @@ TEST_CASE("expire longer diagonal line", "[NoDB]")
     CHECK(tiles.count(tile_t(18, 140222, 82056)) == 1);
 }
 
+TEST_CASE("expire polygon in Z shape", "[NoDB]")
+{
+    uint32_t const zoom = 17;
+    expire_tiles_t et{zoom, defproj};
+
+    geom::geometry_t const geom{geom::polygon_t{geom::ring_t{
+        {7.1390, 55.5498},
+        {7.1637, 55.5495},
+        {7.1633, 55.5457},
+        {7.1489, 55.5430},
+        {7.1493, 55.5401},
+        {7.1628, 55.5401},
+        {7.1632, 55.5379},
+        {7.1469, 55.5381},
+        {7.1380, 55.5437},
+        {7.1486, 55.5452},
+        {7.1528, 55.5480},
+        {7.1390, 55.5484},
+        {7.1390, 55.5498}
+    }}};
+
+    auto const geom_merc = geom::transform(geom, *defproj);
+
+    et.from_geometry(geom_merc, expire_config_t{});
+
+    auto const tiles = get_tiles_unordered(&et, zoom);
+    REQUIRE(tiles.size() == 76);
+
+    CHECK(tiles.count(tile_t(17, 68135, 41106)) == 1);
+    CHECK(tiles.count(tile_t(17, 68135, 41107)) == 1);
+    CHECK(tiles.count(tile_t(17, 68135, 41108)) == 0);
+    CHECK(tiles.count(tile_t(17, 68135, 41109)) == 1);
+
+    CHECK(tiles.count(tile_t(17, 68134, 41109)) == 0);
+    CHECK(tiles.count(tile_t(17, 68134, 41110)) == 1);
+    CHECK(tiles.count(tile_t(17, 68134, 41111)) == 0);
+
+    CHECK(tiles.count(tile_t(17, 68144, 41111)) == 0);
+    CHECK(tiles.count(tile_t(17, 68144, 41112)) == 1);
+    CHECK(tiles.count(tile_t(17, 68144, 41113)) == 1);
+}
+
 /**
  * Test tile expiry on two zoom levels.
  */
@@ -321,7 +381,10 @@ TEST_CASE("simple expire z17 and z18", "[NoDB]")
 
     // dirty a smaller bbox this time, as at z18 the scale is
     // pretty small.
-    et.from_bbox({-1, -1, 1, 1}, expire_config_t{});
+    geom::geometry_t const geom{geom::polygon_t{
+        geom::ring_t{{-1, -1}, {-1, 1}, {1, 1}, {1, -1}, {-1, -1}}}};
+
+    et.from_geometry(geom, expire_config_t{});
 
     auto const tiles = get_tiles_ordered(&et, minzoom, maxzoom);
     CHECK(tiles.size() == 8);
@@ -347,7 +410,11 @@ TEST_CASE("simple expire z17 and z18 in one superior tile", "[NoDB]")
     uint32_t const maxzoom = 18;
     expire_tiles_t et{maxzoom, defproj};
 
-    et.from_bbox({-163, 140, -140, 164}, expire_config_t{});
+    geom::geometry_t const geom{geom::polygon_t{geom::ring_t{
+        {-163, 140}, {-163, 164}, {-140, 164}, {-140, 140}, {-163, 140}}}};
+
+    et.from_geometry(geom, expire_config_t{});
+
     auto const tiles = get_tiles_ordered(&et, minzoom, maxzoom);
     CHECK(tiles.size() == 5);
 

@@ -93,7 +93,6 @@ class ReplicationServerMock:
         numdiffs = int((max_size + 1023)/1024)
         return min(self.state_infos[-1].sequence, start_id + numdiffs - 1)
 
-
 # Replication module is optional
 _repfl_spec = importlib.util.spec_from_loader(
     'osm2pgsql_replication',
@@ -510,6 +509,30 @@ def execute_osm2pgsql(context, output):
     context.osm2pgsql_returncode = proc.returncode
     context.osm2pgsql_params = {'-d': context.user_args.test_db}
 
+@when("running osm2pgsql-expire with parameters")
+def execute_osm2pgsql_expire(context):
+
+    cmdline = [context.user_args.osm2pgsql_binary + '-expire']
+
+    test_dir = (context.user_args.test_data_dir or Path('.')).resolve()
+    def _template(param):
+        return param.replace('{TEST_DATA_DIR}', str(test_dir))
+
+    if context.table:
+        assert not any('<' in h for h in context.table.headings), \
+            "Substition in the first line of a table are not supported."
+        cmdline.extend(_template(h) for h in context.table.headings if h)
+        for row in context.table:
+            cmdline.extend(_template(c) for c in row if c)
+
+    proc = Popen(cmdline, cwd=str(context.workdir),
+                 stdout=PIPE, stderr=PIPE)
+
+    outdata = proc.communicate()
+    context.osm2pgsql_cmdline = ' '.join(cmdline)
+    context.osm2pgsql_outdata = [d.decode('utf-8').replace('\\n', '\n') for d in outdata]
+    context.osm2pgsql_returncode = proc.returncode
+
 @then("execution is successful")
 def osm2pgsql_check_success(context):
     assert context.osm2pgsql_returncode == 0, \
@@ -540,6 +563,21 @@ def check_program_output(context, kind):
         line = line.strip()
         assert line in s,\
                f"Output '{line}' not found in {kind} output:\n{s}\n"
+
+@then(r"the (?P<kind>\w+) output matches contents of (?P<result_file>.*)")
+def check_program_output_against_file(context, kind, result_file):
+    if kind == 'error':
+        s = context.osm2pgsql_outdata[1]
+    elif kind == 'standard':
+        s = context.osm2pgsql_outdata[0]
+    else:
+        assert not "Expect one of error, standard"
+
+    test_dir = (context.user_args.test_data_dir or Path('.')).resolve()
+    with open(test_dir / result_file, 'r') as fd:
+        expected = fd.read()
+        assert s == expected, \
+               f"Output does not match contents of {result_file}. Actual output:\n{s}"
 
 ################### Steps: Running Replication #####################
 

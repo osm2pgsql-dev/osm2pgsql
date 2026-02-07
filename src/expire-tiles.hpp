@@ -40,8 +40,7 @@ public:
     void from_polygon_boundary(geom::polygon_t const &geom,
                                expire_config_t const &expire_config);
 
-    void from_polygon_boundary(geom::multipolygon_t const &geom,
-                               expire_config_t const &expire_config);
+    void from_polygon_area(geom::polygon_t const &geom, geom::box_t box);
 
     void from_geometry(geom::nullgeom_t const & /*geom*/,
                        expire_config_t const & /*expire_config*/)
@@ -74,8 +73,6 @@ public:
     void from_geometry_if_3857(geom::geometry_t const &geom,
                                expire_config_t const &expire_config);
 
-    int from_bbox(geom::box_t const &box, expire_config_t const &expire_config);
-
     /**
      * Get tiles as a vector of quadkeys and remove them from the expire_tiles_t
      * object.
@@ -106,6 +103,9 @@ private:
     void expire_tile(uint32_t x, uint32_t y);
 
     uint32_t normalise_tile_x_coord(int x) const;
+
+    void build_tile_list(std::vector<uint32_t> *tile_x_list,
+                         geom::ring_t const &ring, double tile_y);
 
     void from_line_segment(geom::point_t const &a, geom::point_t const &b,
                            expire_config_t const &expire_config);
