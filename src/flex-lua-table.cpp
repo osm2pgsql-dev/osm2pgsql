@@ -310,6 +310,15 @@ void parse_and_set_expire_options(lua_State *lua_state,
         }
         lua_pop(lua_state, 1); // "buffer"
 
+        lua_getfield(lua_state, -1, "diff_expire");
+        if (lua_isboolean(lua_state, -1)) {
+            config.diff_expire = lua_toboolean(lua_state, -1);
+        } else if (!lua_isnil(lua_state, -1)) {
+            throw std::runtime_error{
+                "Optional expire field 'diff_expire' must contain a boolean."};
+        }
+        lua_pop(lua_state, 1); // "diff_expire"
+
         // Actually add the expire only if we are in append mode.
         if (append_mode) {
             column->add_expire(config);

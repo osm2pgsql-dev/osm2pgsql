@@ -8,6 +8,7 @@
  */
 
 #include "flex-lua-geom.hpp"
+#include "flex-table-column.hpp"
 #include "flex-write.hpp"
 #include "geom-functions.hpp"
 #include "json-writer.hpp"
@@ -257,11 +258,9 @@ bool is_compatible(geom::geometry_t const &geom,
 
 } // anonymous namespace
 
-void flex_write_column(lua_State *lua_state,
+void flex_write_column(lua_State *lua_state, geometry_cache_t *geom_cache,
                        db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
-                       flex_table_column_t const &column,
-                       std::vector<expire_tiles_t> *expire,
-                       std::vector<expire_output_t> *expire_outputs)
+                       flex_table_column_t const &column)
 {
     lua_getfield(lua_state, -1, column.name().c_str());
     int const ltype = lua_type(lua_state, -1);
@@ -446,13 +445,13 @@ void flex_write_column(lua_State *lua_state,
                      type == table_column_type::multilinestring ||
                      type == table_column_type::multipolygon);
                 if (geom->srid() == column.srid()) {
-                    column.do_expire(*geom, expire, expire_outputs);
                     copy_mgr->add_hex_geom(geom_to_ewkb(*geom, wrap_multi));
+                    geom_cache->add_new(&column, *geom);
                 } else {
                     auto const &proj = get_projection(column.srid());
-                    auto const tgeom = geom::transform(*geom, proj);
-                    column.do_expire(tgeom, expire, expire_outputs);
+                    auto tgeom = geom::transform(*geom, proj);
                     copy_mgr->add_hex_geom(geom_to_ewkb(tgeom, wrap_multi));
+                    geom_cache->add_new(&column, std::move(tgeom));
                 }
             } else {
                 write_null(copy_mgr, column);

@@ -43,6 +43,9 @@ struct expire_config_t
     /// Expire mode.
     expire_mode mode = expire_mode::full_area;
 
+    /// Do expire based on symmetric difference of old and new geometry
+    bool diff_expire = false;
+
 }; // struct expire_config_t
 
 #endif // OSM2PGSQL_EXPIRE_CONFIG_HPP

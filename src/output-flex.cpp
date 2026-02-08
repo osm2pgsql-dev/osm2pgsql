@@ -810,8 +810,8 @@ int output_flex_t::table_insert()
             } else if (column.type() == table_column_type::id_num) {
                 copy_mgr->add_column(id);
             } else {
-                flex_write_column(lua_state(), copy_mgr, column,
-                                  &m_expire_tiles, m_expire_outputs.get());
+                flex_write_column(lua_state(), &m_geometry_cache, copy_mgr,
+                                  column);
             }
         }
         table_connection.increment_insert_counter();
@@ -927,6 +927,7 @@ void output_flex_t::pending_way(osmid_t id)
     if (func) {
         get_mutex_and_call_lua_function(func, m_way_cache.get());
     }
+    expire_geoms_from_cache(true);
 }
 
 void output_flex_t::select_relation_members()
@@ -997,6 +998,7 @@ void output_flex_t::pending_relation(osmid_t id)
     select_relation_members();
     delete_from_tables(osmium::item_type::relation, id);
     process_relation();
+    expire_geoms_from_cache(true);
 }
 
 void output_flex_t::pending_relation_stage1c(osmid_t id)
@@ -1121,13 +1123,13 @@ void output_flex_t::node_add(osmium::Node const &node)
     auto const &func =
         node.tags().empty() ? m_process_untagged_node : m_process_node;
 
-    if (!func) {
-        return;
+    if (func) {
+        m_context_node = &node;
+        get_mutex_and_call_lua_function(func, node);
+        m_context_node = nullptr;
     }
 
-    m_context_node = &node;
-    get_mutex_and_call_lua_function(func, node);
-    m_context_node = nullptr;
+    expire_geoms_from_cache();
 }
 
 void output_flex_t::way_add(osmium::Way *way)
@@ -1137,12 +1139,12 @@ void output_flex_t::way_add(osmium::Way *way)
     auto const &func =
         way->tags().empty() ? m_process_untagged_way : m_process_way;
 
-    if (!func) {
-        return;
+    if (func) {
+        m_way_cache.init(way);
+        get_mutex_and_call_lua_function(func, m_way_cache.get());
     }
 
-    m_way_cache.init(way);
-    get_mutex_and_call_lua_function(func, m_way_cache.get());
+    expire_geoms_from_cache();
 }
 
 void output_flex_t::relation_add(osmium::Relation const &relation)
@@ -1150,13 +1152,13 @@ void output_flex_t::relation_add(osmium::Relation const &relation)
     auto const &func = relation.tags().empty() ? m_process_untagged_relation
                                                : m_process_relation;
 
-    if (!func) {
-        return;
+    if (func) {
+        m_relation_cache.init(relation);
+        select_relation_members();
+        get_mutex_and_call_lua_function(func, relation);
     }
 
-    m_relation_cache.init(relation);
-    select_relation_members();
-    get_mutex_and_call_lua_function(func, relation);
+    expire_geoms_from_cache();
 }
 
 void output_flex_t::delete_from_table(table_connection_t *table_connection,
@@ -1175,9 +1177,8 @@ void output_flex_t::delete_from_table(table_connection_t *table_connection,
             for (auto const &column : table_connection->table().columns()) {
                 if (column.has_expire()) {
                     for (int i = 0; i < num_tuples; ++i) {
-                        auto const geom = ewkb_to_geom(result.get(i, col));
-                        column.do_expire(geom, &m_expire_tiles,
-                                         m_expire_outputs.get());
+                        m_geometry_cache.add_old(
+                            &column, ewkb_to_geom(result.get(i, col)));
                     }
                     ++col;
                 }
@@ -1206,6 +1207,7 @@ void output_flex_t::node_delete(osmium::Node const &node)
     }
 
     node_delete(node.id());
+    expire_geoms_from_cache();
 }
 
 void output_flex_t::way_delete(osmium::Way *way)
@@ -1217,6 +1219,7 @@ void output_flex_t::way_delete(osmium::Way *way)
     }
 
     way_delete(way->id());
+    expire_geoms_from_cache();
 }
 
 void output_flex_t::relation_delete(osmium::Relation const &rel)
@@ -1227,6 +1230,7 @@ void output_flex_t::relation_delete(osmium::Relation const &rel)
     }
 
     relation_delete(rel.id());
+    expire_geoms_from_cache();
 }
 
 /* Delete is easy, just remove all traces of this object. We don't need to
@@ -1486,6 +1490,16 @@ void output_flex_t::init_lua(std::string const &filename,
         lua_state(), calling_context::main, "after_relations"};
 
     lua_remove(lua_state(), 1); // global "osm2pgsql"
+}
+
+void output_flex_t::expire_geoms_from_cache(bool enable_diff_expire)
+{
+    for (auto &[column, geoms] : m_geometry_cache) {
+        column->do_expire(&geoms.first, &geoms.second, &m_expire_tiles,
+                          m_expire_outputs.get(), enable_diff_expire);
+    }
+
+    m_geometry_cache.clear();
 }
 
 idlist_t const &output_flex_t::get_marked_node_ids()
