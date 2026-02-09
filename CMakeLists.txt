@@ -245,7 +245,7 @@ endif()
 message(STATUS "Libraries used to build: ${LIBS}")
 
 #############################################################
-# Build the library and executable file
+# Build the library and executable files
 #############################################################
 
 add_subdirectory(src)
