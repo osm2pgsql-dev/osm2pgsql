@@ -209,6 +209,10 @@ public:
 
     std::string operator()(geom::point_t const &geom) const
     {
+        constexpr std::size_t SIZE_POINT_HEADER_WITH_SRID = 1UL + 4UL + 4UL;
+        constexpr std::size_t SIZE_POINT =
+            SIZE_POINT_HEADER_WITH_SRID + SIZE_COORDINATE_PAIR;
+
         std::string data;
 
         if (m_ensure_multi) {
@@ -216,11 +220,9 @@ public:
             write_length(&data, 1);
             write_point(&data, geom);
         } else {
-            // 9 byte header plus one set of coordinates
-            constexpr std::size_t SIZE = 9 + 2 * 8;
-            data.reserve(SIZE);
+            data.reserve(SIZE_POINT);
             write_point(&data, geom, m_srid);
-            assert(data.size() == SIZE);
+            assert(data.size() == SIZE_POINT);
         }
 
         return data;
@@ -228,18 +230,27 @@ public:
 
     std::string operator()(geom::linestring_t const &geom) const
     {
+        constexpr std::size_t SIZE_HEADER_WITH_COUNT = 1UL + 4UL + 4UL;
+        constexpr std::size_t SIZE_HEADER_WITH_COUNT_AND_SRID =
+            SIZE_HEADER_WITH_COUNT + 4UL;
+
         std::string data;
 
+        std::size_t const coords_size = geom.size() * SIZE_COORDINATE_PAIR;
+
         if (m_ensure_multi) {
-            // Two 13 bytes headers plus n sets of coordinates
-            data.reserve(2UL * 13UL + geom.size() * (2UL * 8UL));
+            data.reserve(SIZE_HEADER_WITH_COUNT_AND_SRID +
+                         SIZE_HEADER_WITH_COUNT + coords_size);
             write_header(&data, wkb_multi_line, m_srid);
             write_length(&data, 1);
             write_linestring(&data, geom);
+            assert(data.size() == SIZE_HEADER_WITH_COUNT_AND_SRID +
+                                      SIZE_HEADER_WITH_COUNT + coords_size);
         } else {
-            // 13 byte header plus n sets of coordinates
-            data.reserve(13UL + geom.size() * (2UL * 8UL));
+            data.reserve(SIZE_HEADER_WITH_COUNT_AND_SRID + coords_size);
             write_linestring(&data, geom, m_srid);
+            assert(data.size() ==
+                   SIZE_HEADER_WITH_COUNT_AND_SRID + coords_size);
         }
 
         return data;
@@ -289,6 +300,8 @@ public:
     }
 
 private:
+    static constexpr std::size_t SIZE_COORDINATE_PAIR = 2UL * sizeof(double);
+
     uint32_t m_srid;
     bool m_ensure_multi;
 
