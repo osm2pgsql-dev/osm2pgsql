@@ -431,7 +431,7 @@ options_t parse_command_line(int argc, char *argv[])
                                      options.projection =
                                          reprojection_t::create_projection(arg);
 #else
-           [&](int) {
+           [](int) {
                throw std::runtime_error{
                    "Generic projections not available in this build."};
 #endif

@@ -91,7 +91,7 @@ void locator_t::build_index()
 void locator_t::all_intersecting_visit(geom::geometry_t const &geom,
                                        std::set<std::string> *results)
 {
-    geom.visit(overloaded{[&](geom::nullgeom_t const & /*val*/) {},
+    geom.visit(overloaded{[](geom::nullgeom_t const & /*val*/) {},
                           [&](geom::collection_t const &val) {
                               for (auto const &sgeom : val) {
                                   all_intersecting_visit(sgeom, results);
@@ -120,7 +120,7 @@ std::set<std::string> locator_t::all_intersecting(geom::geometry_t const &geom)
 void locator_t::first_intersecting_visit(geom::geometry_t const &geom,
                                          std::string *result)
 {
-    geom.visit(overloaded{[&](geom::nullgeom_t const & /*val*/) {},
+    geom.visit(overloaded{[](geom::nullgeom_t const & /*val*/) {},
                           [&](geom::collection_t const &val) {
                               for (auto const &sgeom : val) {
                                   first_intersecting_visit(sgeom, result);

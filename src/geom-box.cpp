@@ -99,7 +99,7 @@ box_t envelope(geom::collection_t const &geom)
 
 box_t envelope(geometry_t const &geom)
 {
-    return geom.visit([&](auto const &g) { return envelope(g); });
+    return geom.visit([](auto const &g) { return envelope(g); });
 }
 
 } // namespace geom
