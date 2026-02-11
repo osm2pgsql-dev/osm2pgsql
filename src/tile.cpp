@@ -36,13 +36,16 @@ geom::point_t tile_t::to_world_coords(geom::point_t p,
 
 geom::point_t tile_t::center() const noexcept
 {
-    return to_world_coords({0.5, 0.5}, 1);
+    constexpr double MIDDLE = 0.5;
+    return to_world_coords({MIDDLE, MIDDLE}, 1);
 }
 
 namespace {
 
 // Quadkey implementation uses bit interleaving code from
 // https://github.com/lemire/Code-used-on-Daniel-Lemire-s-blog/blob/master/2018/01/08/interleave.c
+
+// NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
 
 uint64_t interleave_uint32_with_zeros(uint32_t input) noexcept
 {
@@ -65,6 +68,8 @@ uint32_t deinterleave_lowuint32(uint64_t word) noexcept
     word = (word ^ (word >> 16U)) & 0x00000000ffffffffULL;
     return static_cast<uint32_t>(word);
 }
+
+// NOLINTEND(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
 
 uint32_t parse_num_with_max(std::string const &str, uint32_t max)
 {
