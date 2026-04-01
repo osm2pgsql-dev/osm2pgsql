@@ -165,6 +165,7 @@ public:
     int app_get_bbox();
 
     int table_insert();
+    int table_in_id_cache();
 
     // Get the flex table that is as first parameter on the Lua stack.
     flex_table_t &get_table_from_param();
@@ -215,6 +216,21 @@ private:
     void delete_from_tables(osmium::item_type type, osmid_t osm_id);
 
     lua_State *lua_state() noexcept { return m_lua_state.get(); }
+
+    void create_id_cache(flex_table_t const &table)
+    {
+        if (table.num() >= m_id_caches.size()) {
+            m_id_caches.resize(table.num() + 1);
+        }
+        m_id_caches[table.num()] = std::make_shared<idlist_t>();
+    }
+
+    idlist_t &get_id_cache(flex_table_t const &table)
+    {
+        auto& c = m_id_caches[table.num()];
+        assert(c);
+        return *c;
+    }
 
     class way_cache_t
     {
@@ -273,6 +289,8 @@ private:
     std::shared_ptr<std::vector<expire_output_t>> m_expire_outputs =
         std::make_shared<std::vector<expire_output_t>>();
 
+    std::vector<std::shared_ptr<idlist_t>> m_id_caches;
+
     std::vector<table_connection_t> m_table_connections;
 
     /// The connection to the database server.
@@ -325,5 +343,6 @@ private:
 };
 
 int lua_trampoline_table_insert(lua_State *lua_state);
+int lua_trampoline_table_in_id_cache(lua_State *lua_state);
 
 #endif // OSM2PGSQL_OUTPUT_FLEX_HPP

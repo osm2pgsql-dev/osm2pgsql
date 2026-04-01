@@ -215,6 +215,10 @@ public:
 
     void analyze(pg_conn_t const &db_connection) const;
 
+    void enable_id_cache() noexcept;
+
+    bool with_id_cache() const noexcept;
+
 private:
     /// The schema this table is in
     std::string m_schema;
@@ -270,6 +274,9 @@ private:
 
     /// Index should be a primary key.
     bool m_primary_key_index = false;
+
+    /// Do we want an ID cache for this table?
+    bool m_with_id_cache = false;
 
 }; // class flex_table_t
 

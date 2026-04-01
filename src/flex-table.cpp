@@ -263,6 +263,10 @@ void flex_table_t::analyze(pg_conn_t const &db_connection) const
     analyze_table(db_connection, schema(), name());
 }
 
+void flex_table_t::enable_id_cache() noexcept { m_with_id_cache = true; }
+
+bool flex_table_t::with_id_cache() const noexcept { return m_with_id_cache; }
+
 namespace {
 
 void enable_check_trigger(pg_conn_t const &db_connection,

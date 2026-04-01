@@ -61,6 +61,7 @@ void write_table_list_to_debug_log(std::vector<flex_table_t> const &tables)
         log_debug("  - data_tablespace={}", table.data_tablespace());
         log_debug("  - index_tablespace={}", table.index_tablespace());
         log_debug("  - cluster={}", table.cluster_by_geom());
+        log_debug("  - id_cache={}", table.with_id_cache());
         for (auto const &index : table.indexes()) {
             log_debug("  - INDEX USING {}", index.method());
             if (index.name().empty()) {

@@ -89,6 +89,7 @@ TRAMPOLINE(app_as_geometrycollection, as_geometrycollection)
 } // anonymous namespace
 
 TRAMPOLINE(table_insert, insert)
+TRAMPOLINE(table_in_id_cache, in_id_cache)
 
 prepared_lua_function_t::prepared_lua_function_t(lua_State *lua_state,
                                                  calling_context context,
@@ -269,6 +270,9 @@ void flush_tables(std::vector<table_connection_t> &table_connections)
 {
     for (auto &table : table_connections) {
         table.flush();
+    }
+    for (auto &table : table_connections) {
+        table.sync();
     }
 }
 
@@ -789,6 +793,10 @@ int output_flex_t::table_insert()
     auto const &object = check_and_get_context_object(table);
     osmid_t const id = table.map_id(object.type(), object.id());
 
+    if (table.with_id_cache()) {
+        get_id_cache(table).push_back(id);
+    }
+
     table_connection.new_line();
     auto *copy_mgr = table_connection.copy_mgr();
 
@@ -820,6 +828,46 @@ int output_flex_t::table_insert()
     copy_mgr->finish_line();
 
     lua_pushboolean(lua_state(), true);
+    return 1;
+}
+
+int output_flex_t::table_in_id_cache()
+{
+    if (m_calling_context == calling_context::process_node) {
+        throw std::runtime_error{
+            "Id cache not available while processing nodes."};
+    }
+
+    // The first parameter is the table object.
+    auto const &table = get_table_from_param();
+
+    if (!table.with_id_cache()) {
+        throw fmt_error("No ID cache on table '{}'.", table.name());
+    }
+
+    // The second parameter is an array of ids
+    if (!lua_istable(lua_state(), 1) || !luaX_is_array(lua_state())) {
+        throw std::runtime_error{"Second parameter must be an array of ids."};
+    }
+
+    std::vector<osmid_t> ids;
+    luaX_for_each(lua_state(),
+                  [&]() { ids.push_back(lua_tointeger(lua_state(), -1)); });
+
+    auto const &cache = get_id_cache(table);
+    lua_createtable(lua_state(), 0, 0);
+
+    lua_Integer n = 0;
+    lua_Integer idx = 1;
+    for (auto const id : ids) {
+        if (cache.contains(id)) {
+            lua_pushinteger(lua_state(), ++n);
+            lua_pushinteger(lua_state(), idx);
+            lua_rawset(lua_state(), -3);
+        }
+        ++idx;
+    }
+
     return 1;
 }
 
@@ -980,6 +1028,28 @@ void output_flex_t::after_nodes()
     }
 
     flush_tables(m_table_connections);
+
+    for (auto &table : *m_tables) {
+        if (table.with_id_cache()) {
+            auto &cache = get_id_cache(table);
+            if (get_options()->append) {
+                log_debug("Initializing cache for table '{}' from database...",
+                          table.name());
+                auto const result = m_db_connection.exec(
+                    "SELECT \"{}\" FROM {}", table.id_column_names(),
+                    table.full_name());
+
+                cache.reserve(result.num_tuples());
+                for (int i = 0; i < result.num_tuples(); ++i) {
+                    cache.push_back(
+                        osmium::string_to_object_id(result.get_value(i, 0)));
+                }
+            }
+            cache.sort_unique();
+            log_debug("Cache for table '{}' initialized with {} entries.",
+                      table.name(), cache.size());
+        }
+    }
 }
 
 void output_flex_t::after_ways()
@@ -1199,6 +1269,10 @@ void output_flex_t::relation_modify(osmium::Relation const &rel)
 void output_flex_t::start()
 {
     for (auto &table : m_table_connections) {
+        if (table.table().with_id_cache()) {
+            log_debug("Enable cache for table '{}'.", table.table().name());
+            create_id_cache(table.table());
+        }
         table.start(m_db_connection, get_options()->append);
     }
 
@@ -1212,6 +1286,7 @@ output_flex_t::output_flex_t(output_flex_t const *other,
                              std::shared_ptr<db_copy_thread_t> copy_thread)
 : output_t(other, std::move(mid)), m_locators(other->m_locators),
   m_tables(other->m_tables), m_expire_outputs(other->m_expire_outputs),
+  m_id_caches(other->m_id_caches),
   m_db_connection(get_options()->connection_params, "out.flex.thread"),
   m_stage2_way_ids(other->m_stage2_way_ids),
   m_copy_thread(std::move(copy_thread)), m_lua_state(other->m_lua_state),
