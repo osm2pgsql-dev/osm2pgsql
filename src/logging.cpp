@@ -27,8 +27,18 @@ void logger_t::generate_common_prefix(std::string *str,
                                       fmt::text_style const &ts,
                                       char const *prefix) const
 {
-    *str += fmt::format("{:%Y-%m-%d %H:%M:%S}  ",
-                        fmt::localtime(std::time(nullptr)));
+    auto const now = std::time(nullptr);
+    std::tm tm_local{};
+#ifdef _MSC_VER
+    if (localtime_s(&tm_local, &now) != 0) {
+        throw fmt::format_error("time_t value out of range");
+    }
+#else
+    if (!localtime_r(&now, &tm_local)) {
+        throw fmt::format_error("time_t value out of range");
+    }
+#endif
+    *str += fmt::format("{:%F %T}  ", tm_local);
 
     if (m_current_level == log_level::debug) {
         *str += fmt::format(ts, "[{:02d}] ", this_thread_num);
