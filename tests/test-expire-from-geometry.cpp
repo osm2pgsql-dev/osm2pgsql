@@ -9,8 +9,9 @@
 
 #include <catch.hpp>
 
-#include <random>
+#include <memory>
 #include <set>
+#include <utility>
 
 #include "expire-tiles.hpp"
 #include "projection.hpp"

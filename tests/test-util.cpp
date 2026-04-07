@@ -12,7 +12,6 @@
 #include "util.hpp"
 
 #include <cstring>
-#include <limits>
 #include <string>
 #include <vector>
 

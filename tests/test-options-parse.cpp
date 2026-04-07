@@ -12,7 +12,6 @@
 #include <vector>
 
 #include "command-line-parser.hpp"
-#include "taginfo-impl.hpp"
 #include "tagtransform.hpp"
 
 namespace {

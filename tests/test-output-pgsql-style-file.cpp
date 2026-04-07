@@ -9,8 +9,7 @@
 
 #include <catch.hpp>
 
-#include "common-import.hpp"
-#include "common-options.hpp"
+#include "taginfo-impl.hpp"
 
 TEST_CASE("Parse default style file")
 {

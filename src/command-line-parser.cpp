@@ -15,7 +15,6 @@
 #include "pgsql.hpp"
 #include "projection.hpp"
 #include "reprojection.hpp"
-#include "util.hpp"
 #include "version.hpp"
 
 #include <osmium/util/string.hpp>

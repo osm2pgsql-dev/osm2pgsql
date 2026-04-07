@@ -7,7 +7,6 @@
  * For a full list of authors see the git log.
  */
 
-#include <algorithm>
 #include <cassert>
 #include <chrono>
 #include <functional>

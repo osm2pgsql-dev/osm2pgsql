@@ -7,24 +7,23 @@
  * For a full list of authors see the git log.
  */
 
-#include <algorithm>
-#include <cerrno>
-#include <cmath>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <stdexcept>
-#include <string>
-
 #include "expire-tiles.hpp"
+
 #include "format.hpp"
 #include "geom-functions.hpp"
 #include "options.hpp"
 #include "projection.hpp"
 #include "reprojection.hpp"
-#include "table.hpp"
 #include "tile.hpp"
 #include "wkb.hpp"
+
+#include <algorithm>
+#include <cerrno>
+#include <cmath>
+#include <cstdlib>
+#include <cstring>
+#include <memory>
+#include <vector>
 
 expire_tiles_t::expire_tiles_t(uint32_t max_zoom,
                                std::shared_ptr<reprojection_t> projection,

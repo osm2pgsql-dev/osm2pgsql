@@ -9,7 +9,6 @@
 
 #include "canvas.hpp"
 
-#include "hex.hpp"
 #include "raster.hpp"
 #include "tile.hpp"
 

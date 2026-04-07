@@ -13,17 +13,14 @@
 #include "debug-output.hpp"
 #include "expire-output.hpp"
 #include "expire-tiles.hpp"
-#include "flex-index.hpp"
 #include "flex-lua-expire-output.hpp"
 #include "flex-lua-geom.hpp"
 #include "flex-lua-index.hpp"
 #include "flex-lua-locator.hpp"
 #include "flex-lua-table.hpp"
-#include "flex-lua-wrapper.hpp"
 #include "flex-write.hpp"
 #include "format.hpp"
 #include "geom-from-osm.hpp"
-#include "geom-functions.hpp"
 #include "logging.hpp"
 #include "lua-init.hpp"
 #include "lua-setup.hpp"
@@ -38,10 +35,7 @@
 #include "reprojection.hpp"
 #include "thread-pool.hpp"
 #include "util.hpp"
-#include "version.hpp"
 #include "wkb.hpp"
-
-#include <osmium/osm/types_from_string.hpp>
 
 #include <cassert>
 #include <cstdlib>
