@@ -18,7 +18,7 @@ jobs:
       PSYCOPG: 2
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
@@ -37,7 +37,7 @@ jobs:
       PSYCOPG: 2
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
@@ -56,7 +56,7 @@ jobs:
       PSYCOPG: 2
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
@@ -76,7 +76,7 @@ jobs:
       PSYCOPG: 2
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
@@ -95,7 +95,7 @@ jobs:
       PSYCOPG: 2
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
@@ -115,7 +115,7 @@ jobs:
       PSYCOPG: 2
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
@@ -135,7 +135,7 @@ jobs:
       PSYCOPG: 2
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
@@ -154,7 +154,7 @@ jobs:
       PSYCOPG: 2
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
@@ -173,7 +173,7 @@ jobs:
       PSYCOPG: 2
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
@@ -192,7 +192,7 @@ jobs:
       PSYCOPG: 2
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
@@ -211,7 +211,7 @@ jobs:
       PSYCOPG: 2
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
@@ -231,7 +231,7 @@ jobs:
       PSYCOPG: 2
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
@@ -250,7 +250,7 @@ jobs:
       PSYCOPG: 2
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
@@ -269,7 +269,7 @@ jobs:
       PSYCOPG: 2
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
@@ -289,7 +289,7 @@ jobs:
       PSYCOPG: 3
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
@@ -310,7 +310,7 @@ jobs:
       PSYCOPG: 3
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
@@ -330,7 +330,7 @@ jobs:
       PSYCOPG: 3
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
@@ -346,8 +346,8 @@ jobs:
       VCPKG_DEFAULT_BINARY_CACHE: C:/vcpkg_binary_cache
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v4
+      - uses: actions/checkout@v6
+      - uses: actions/cache@v5
         with:
           path: |
             C:/vcpkg_binary_cache
@@ -371,7 +371,7 @@ jobs:
         working-directory: build
         if: matrix.os == 'windows-2025'
       - name: 'Upload Artifact'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: osm2pgsql-win64
           path: c:/artifact
@@ -385,8 +385,8 @@ jobs:
       OSMURL: https://download.geofabrik.de/europe/monaco-latest.osm.pbf
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v6
         with:
           name: osm2pgsql-win64
       - uses: ./.github/actions/win-postgres
