@@ -18,7 +18,7 @@ jobs:
       PIP_OPTION: --break-system-packages
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/ubuntu-prerequisites
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/clang-tidy
