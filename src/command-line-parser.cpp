@@ -228,14 +228,16 @@ void check_options_expire(options_t *options)
 {
     // Zoom level 31 is the technical limit because we use 32-bit integers for
     // the x and y index of a tile ID.
-    if (options->expire_tiles_zoom_min > 31) {
-        options->expire_tiles_zoom_min = 31;
+    constexpr uint32_t ZOOM_MAX = 31;
+
+    if (options->expire_tiles_zoom_min > ZOOM_MAX) {
+        options->expire_tiles_zoom_min = ZOOM_MAX;
         log_warn("Minimum zoom level for tile expiry is too "
                  "large and has been set to 31.");
     }
 
-    if (options->expire_tiles_zoom > 31) {
-        options->expire_tiles_zoom = 31;
+    if (options->expire_tiles_zoom > ZOOM_MAX) {
+        options->expire_tiles_zoom = ZOOM_MAX;
         log_warn("Maximum zoom level for tile expiry is too "
                  "large and has been set to 31.");
     }

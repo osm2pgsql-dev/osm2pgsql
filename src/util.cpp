@@ -22,19 +22,22 @@ namespace util {
 
 std::string human_readable_duration(uint64_t seconds)
 {
-    if (seconds < 60UL) {
+    constexpr uint64_t SECONDS_IN_MINUTE = 60UL;
+    constexpr uint64_t MINUTES_IN_HOUR = 60UL;
+
+    if (seconds < SECONDS_IN_MINUTE) {
         return fmt::format("{}s", seconds);
     }
 
-    if (seconds < (60UL * 60UL)) {
-        return fmt::format("{}s ({}m {}s)", seconds, seconds / 60,
-                           seconds % 60);
+    uint64_t const mins = seconds / SECONDS_IN_MINUTE;
+    uint64_t const secs = seconds % SECONDS_IN_MINUTE;
+
+    if (seconds < (SECONDS_IN_MINUTE * MINUTES_IN_HOUR)) {
+        return fmt::format("{}s ({}m {}s)", seconds, mins, secs);
     }
 
-    auto const secs = seconds % 60;
-    auto const mins = seconds / 60;
-    return fmt::format("{}s ({}h {}m {}s)", seconds, mins / 60, mins % 60,
-                       secs);
+    return fmt::format("{}s ({}h {}m {}s)", seconds, mins / MINUTES_IN_HOUR,
+                       mins % MINUTES_IN_HOUR, secs);
 }
 
 std::string human_readable_duration(std::chrono::microseconds duration)

@@ -113,29 +113,29 @@ void middle_ram_t::stop()
 {
     assert(m_middle_state == middle_state::done);
 
-    auto const mbyte = 1024 * 1024;
+    constexpr auto MBYTE = 1024 * 1024;
 
     if (m_persistent_cache) {
         log_debug("Middle 'ram': Node locations on disk: size={} bytes={}M",
                   m_persistent_cache->size(),
-                  m_persistent_cache->used_memory() / mbyte);
+                  m_persistent_cache->used_memory() / MBYTE);
     } else {
         log_debug("Middle 'ram': Node locations in memory: size={} bytes={}M",
                   m_node_locations.size(),
-                  m_node_locations.used_memory() / mbyte);
+                  m_node_locations.used_memory() / MBYTE);
     }
 
     log_debug("Middle 'ram': Way nodes data: size={} capacity={} bytes={}M",
               m_way_nodes_data.size(), m_way_nodes_data.capacity(),
-              m_way_nodes_data.capacity() / mbyte);
+              m_way_nodes_data.capacity() / MBYTE);
 
     log_debug("Middle 'ram': Way nodes index: size={} capacity={} bytes={}M",
               m_way_nodes_index.size(), m_way_nodes_index.capacity(),
-              m_way_nodes_index.used_memory() / mbyte);
+              m_way_nodes_index.used_memory() / MBYTE);
 
     log_debug("Middle 'ram': Object data: size={} capacity={} bytes={}M",
               m_object_buffer.committed(), m_object_buffer.capacity(),
-              m_object_buffer.capacity() / mbyte);
+              m_object_buffer.capacity() / MBYTE);
 
     std::size_t index_size = 0;
     std::size_t index_capacity = 0;
@@ -146,13 +146,13 @@ void middle_ram_t::stop()
         index_mem += index.used_memory();
     }
     log_debug("Middle 'ram': Object indexes: size={} capacity={} bytes={}M",
-              index_size, index_capacity, index_mem / mbyte);
+              index_size, index_capacity, index_mem / MBYTE);
 
     log_debug("Middle 'ram': Memory used overall: {}MBytes",
               (m_node_locations.used_memory() + m_way_nodes_data.capacity() +
                m_way_nodes_index.used_memory() + m_object_buffer.capacity() +
                index_mem) /
-                  mbyte);
+                  MBYTE);
 
     m_node_locations.clear();
 
