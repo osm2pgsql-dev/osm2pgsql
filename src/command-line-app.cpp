@@ -97,7 +97,7 @@ void command_line_app_t::init_logging_options(bool with_progress, bool with_sql)
     if (with_progress) {
         add_option_function<std::string>(
             "--log-progress",
-            [&](std::string const &arg) {
+            [](std::string const &arg) {
                 if (arg == "true") {
                     get_logger().enable_progress();
                 } else if (arg == "false") {

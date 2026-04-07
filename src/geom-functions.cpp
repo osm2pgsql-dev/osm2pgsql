@@ -41,18 +41,16 @@ std::string_view geometry_type(geometry_t const &geom)
 {
     using namespace std::literals::string_view_literals;
     return geom.visit(overloaded{
-        [&](geom::nullgeom_t const & /*input*/) { return "NULL"sv; },
-        [&](geom::point_t const & /*input*/) { return "POINT"sv; },
-        [&](geom::linestring_t const & /*input*/) { return "LINESTRING"sv; },
-        [&](geom::polygon_t const & /*input*/) { return "POLYGON"sv; },
-        [&](geom::multipoint_t const & /*input*/) { return "MULTIPOINT"sv; },
-        [&](geom::multilinestring_t const & /*input*/) {
+        [](geom::nullgeom_t const & /*input*/) { return "NULL"sv; },
+        [](geom::point_t const & /*input*/) { return "POINT"sv; },
+        [](geom::linestring_t const & /*input*/) { return "LINESTRING"sv; },
+        [](geom::polygon_t const & /*input*/) { return "POLYGON"sv; },
+        [](geom::multipoint_t const & /*input*/) { return "MULTIPOINT"sv; },
+        [](geom::multilinestring_t const & /*input*/) {
             return "MULTILINESTRING"sv;
         },
-        [&](geom::multipolygon_t const & /*input*/) {
-            return "MULTIPOLYGON"sv;
-        },
-        [&](geom::collection_t const & /*input*/) {
+        [](geom::multipolygon_t const & /*input*/) { return "MULTIPOLYGON"sv; },
+        [](geom::collection_t const & /*input*/) {
             return "GEOMETRYCOLLECTION"sv;
         }});
 }
@@ -62,7 +60,7 @@ std::string_view geometry_type(geometry_t const &geom)
 std::size_t num_geometries(geometry_t const &geom)
 {
     return geom.visit(
-        [&](auto const &input) { return input.num_geometries(); });
+        [](auto const &input) { return input.num_geometries(); });
 }
 
 /****************************************************************************/
@@ -353,14 +351,14 @@ geometry_t segmentize(geometry_t const &input, double max_segment_length)
 double area(geometry_t const &geom)
 {
     return std::abs(geom.visit(
-        overloaded{[&](geom::nullgeom_t const & /*input*/) { return 0.0; },
-                   [&](geom::collection_t const &input) {
+        overloaded{[](geom::nullgeom_t const & /*input*/) { return 0.0; },
+                   [](geom::collection_t const &input) {
                        return std::accumulate(input.cbegin(), input.cend(), 0.0,
                                               [](double sum, auto const &geom) {
                                                   return sum + area(geom);
                                               });
                    },
-                   [&](auto const &input) {
+                   [](auto const &input) {
                        return static_cast<double>(boost::geometry::area(input));
                    }}));
 }
@@ -390,21 +388,21 @@ double spherical_area(geometry_t const &geom)
     assert(geom.srid() == PROJ_LATLONG);
 
     return std::abs(geom.visit(overloaded{
-        [&](geom::nullgeom_t const & /*input*/) { return 0.0; },
-        [&](geom::collection_t const &input) {
+        [](geom::nullgeom_t const & /*input*/) { return 0.0; },
+        [](geom::collection_t const &input) {
             return std::accumulate(input.cbegin(), input.cend(), 0.0,
                                    [](double sum, auto const &geom) {
                                        return sum + spherical_area(geom);
                                    });
         },
-        [&](geom::polygon_t const &input) { return spherical_area(input); },
-        [&](geom::multipolygon_t const &input) {
+        [](geom::polygon_t const &input) { return spherical_area(input); },
+        [](geom::multipolygon_t const &input) {
             return std::accumulate(input.cbegin(), input.cend(), 0.0,
-                                   [&](double sum, auto const &geom) {
+                                   [](double sum, auto const &geom) {
                                        return sum + spherical_area(geom);
                                    });
         },
-        [&](auto const & /*input*/) { return 0.0; }}));
+        [](auto const & /*input*/) { return 0.0; }}));
 }
 
 /****************************************************************************/
@@ -412,15 +410,15 @@ double spherical_area(geometry_t const &geom)
 double length(geometry_t const &geom)
 {
     return geom.visit(overloaded{
-        [&](geom::nullgeom_t const & /*input*/) { return 0.0; },
-        [&](geom::collection_t const &input) {
+        [](geom::nullgeom_t const & /*input*/) { return 0.0; },
+        [](geom::collection_t const &input) {
             double total = 0.0;
             for (auto const &item : input) {
                 total += length(item);
             }
             return total;
         },
-        [&](auto const &input) {
+        [](auto const &input) {
             return static_cast<double>(boost::geometry::length(input));
         }});
 }

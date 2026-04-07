@@ -173,7 +173,7 @@ void write_collection(std::string *data, geom::collection_t const &geom,
 
     for (auto const &item : geom) {
         item.visit(overloaded{
-            [&](geom::nullgeom_t const & /*input*/) {},
+            [](geom::nullgeom_t const & /*input*/) {},
             [&](geom::point_t const &input) { write_point(data, input); },
             [&](geom::linestring_t const &input) {
                 write_linestring(data, input);
