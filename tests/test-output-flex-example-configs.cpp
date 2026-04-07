@@ -11,7 +11,6 @@
 
 #include "common-import.hpp"
 #include "common-options.hpp"
-#include "format.hpp"
 
 #include <osmium/util/string.hpp>
 

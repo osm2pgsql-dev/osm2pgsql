@@ -15,11 +15,7 @@
  * emit the final geometry-enabled output formats
 */
 
-#include <future>
-#include <iostream>
-#include <limits>
 #include <memory>
-#include <stdexcept>
 #include <string>
 
 #include <cassert>
@@ -37,13 +33,11 @@
 #include "options.hpp"
 #include "osmtypes.hpp"
 #include "output-pgsql.hpp"
-#include "pgsql.hpp"
 #include "projection.hpp"
 #include "reprojection.hpp"
 #include "taginfo-impl.hpp"
 #include "tagtransform.hpp"
 #include "util.hpp"
-#include "wildcmp.hpp"
 #include "wkb.hpp"
 
 namespace {

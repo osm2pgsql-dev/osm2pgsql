@@ -16,8 +16,7 @@
 #include "output-null.hpp"
 #include "output-pgsql.hpp"
 
-#include <stdexcept>
-#include <string>
+#include <memory>
 #include <utility>
 
 std::shared_ptr<output_t>

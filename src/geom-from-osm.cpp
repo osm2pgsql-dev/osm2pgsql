@@ -10,8 +10,11 @@
 #include "geom-from-osm.hpp"
 
 #include "geom-area-assembler.hpp"
-#include "osmtypes.hpp"
 
+#include <osmium/memory/buffer.hpp>
+#include <osmium/osm/location.hpp>
+#include <osmium/osm/node.hpp>
+#include <osmium/osm/relation.hpp>
 #include <osmium/osm/way.hpp>
 
 #include <cassert>

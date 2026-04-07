@@ -1,9 +1,6 @@
 #include "format.hpp"
 #include "reprojection.hpp"
 
-#include <osmium/geom/coordinates.hpp>
-#include <osmium/geom/util.hpp>
-
 #include <proj.h>
 
 namespace {

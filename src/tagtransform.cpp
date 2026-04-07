@@ -14,8 +14,7 @@
 #include "tagtransform-c.hpp"
 #include "tagtransform-lua.hpp"
 
-#include <stdexcept>
-#include <utility>
+#include <memory>
 
 std::unique_ptr<tagtransform_t>
 tagtransform_t::make_tagtransform(options_t const *options,

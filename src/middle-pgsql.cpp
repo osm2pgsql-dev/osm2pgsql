@@ -15,7 +15,6 @@
  * emit the final geometry-enabled output formats
 */
 
-#include <array>
 #include <cassert>
 #include <cstdint>
 #include <cstdlib>

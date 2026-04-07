@@ -9,9 +9,6 @@
 
 #include <catch.hpp>
 
-#include "common-buffer.hpp"
-
-#include "geom-from-osm.hpp"
 #include "geom-functions.hpp"
 #include "geom-output.hpp"
 #include "geom-pole-of-inaccessibility.hpp"

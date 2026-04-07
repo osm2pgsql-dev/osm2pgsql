@@ -11,6 +11,8 @@
 
 #include <osmium/thread/util.hpp>
 
+#include <ctime>
+
 namespace {
 
 thread_local unsigned int this_thread_num = 0;

@@ -11,7 +11,6 @@
 
 #include "canvas.hpp"
 #include "format.hpp"
-#include "pgsql.hpp"
 #include "tile.hpp"
 
 #include <string>
