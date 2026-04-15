@@ -63,6 +63,13 @@ public:
     void reserve(std::size_t size) { m_list.reserve(size); }
 
     /**
+     * Is the specified id in the list?
+     *
+     * You must have called sort_unique() before calling this.
+     */
+    bool contains(osmid_t id) const;
+
+    /**
      * Remove id at the end of the list and return it.
      *
      * \pre \code !m_list.empty()) \endcode

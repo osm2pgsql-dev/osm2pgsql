@@ -22,6 +22,11 @@ osmid_t idlist_t::pop_id()
     return id;
 }
 
+bool idlist_t::contains(osmid_t id) const
+{
+    return std::binary_search(m_list.begin(), m_list.end(), id);
+}
+
 void idlist_t::sort_unique()
 {
     std::sort(m_list.begin(), m_list.end());

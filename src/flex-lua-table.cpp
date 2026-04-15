@@ -174,6 +174,17 @@ void setup_flex_table_id_columns(lua_State *lua_state, flex_table_t *table)
         throw fmt_error("Unknown ids type: {}.", type);
     }
 
+    bool const cache =
+        luaX_get_table_bool(lua_state, "cache", -1, "The ids", false);
+    lua_pop(lua_state, 1); // "cache"
+    if (cache) {
+        if (type == "node") {
+            table->enable_id_cache();
+        } else {
+            throw std::runtime_error{"ID cache only available for node ids."};
+        }
+    }
+
     std::string const name =
         luaX_get_table_string(lua_state, "id_column", -1, "The ids field");
     lua_pop(lua_state, 1); // "id_column"
@@ -459,6 +470,7 @@ void lua_wrapper_table_t::init(lua_State *lua_state)
     luaX_set_up_metatable(lua_state, "Table", OSM2PGSQL_TABLE_CLASS,
                           {{"__tostring", lua_trampoline_table_tostring},
                            {"insert", lua_trampoline_table_insert},
+                           {"in_id_cache", lua_trampoline_table_in_id_cache},
                            {"name", lua_trampoline_table_name},
                            {"schema", lua_trampoline_table_schema},
                            {"cluster", lua_trampoline_table_cluster},
