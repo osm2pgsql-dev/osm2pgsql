@@ -94,14 +94,18 @@ class ReplicationServerMock:
         return min(self.state_infos[-1].sequence, start_id + numdiffs - 1)
 
 # Replication module is optional
-_repfl_spec = importlib.util.spec_from_loader(
-    'osm2pgsql_replication',
-    SourceFileLoader('osm2pgsql_replication',
-                     str(Path(__file__, '..', 'osm2pgsql-replication').resolve())))
+_replication_path = Path(__file__, '..', 'osm2pgsql-replication').resolve()
 
-if _repfl_spec:
+if _replication_path.is_file():
+    _repfl_spec = importlib.util.spec_from_loader(
+        'osm2pgsql_replication',
+        SourceFileLoader('osm2pgsql_replication', str(_replication_path)))
+
     osm2pgsql_replication = importlib.util.module_from_spec(_repfl_spec)
-    _repfl_spec.loader.exec_module(osm2pgsql_replication)
+    try:
+        _repfl_spec.loader.exec_module(osm2pgsql_replication)
+    except Exception as e:
+        raise RuntimeError(f"osm2pgsql_replication script found but not readable.")
 
     from osmium.replication.server import OsmosisState
 else:
