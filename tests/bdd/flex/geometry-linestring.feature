@@ -17,6 +17,8 @@ Feature: Creating linestring features from way
                 { column = 'mgeom', type = 'multilinestring', projection = 4326 },
                 { column = 'xgeom', type = 'multilinestring', projection = 4326 },
                 { column = 'npoints', type = 'int' },
+                { column = 'length', type = 'real' },
+                { column = 'slength', type = 'real' },
             })
 
             function osm2pgsql.process_way(object)
@@ -26,6 +28,8 @@ Feature: Creating linestring features from way
                         mgeom = object:as_multilinestring(),
                         xgeom = object:as_linestring(),
                         npoints = object:as_linestring():n_points(),
+                        length = object:as_linestring():length(),
+                        slength = object:as_linestring():spherical_length(),
                     })
                 end
             end
@@ -34,9 +38,9 @@ Feature: Creating linestring features from way
         When running osm2pgsql flex
 
         Then table osm2pgsql_test_lines contains exactly
-            | way_id | sgeom!geo | mgeom!geo   | xgeom!geo   | npoints |
-            | 20     | 1, 2, 3   | [ 1, 2, 3 ] | [ 1, 2, 3 ] | 3       |
-            | 21     | 4, 5      | [ 4, 5 ]    | [ 4, 5 ]    | 2       |
+            | way_id | sgeom!geo | mgeom!geo   | xgeom!geo   | npoints | length     | slength   |
+            | 20     | 1, 2, 3   | [ 1, 2, 3 ] | [ 1, 2, 3 ] | 3       | 0.24142136 | 25718.176 |
+            | 21     | 4, 5      | [ 4, 5 ]    | [ 4, 5 ]    | 2       | 0.14142136 | 15235.885 |
 
     Scenario:
         Given the grid
