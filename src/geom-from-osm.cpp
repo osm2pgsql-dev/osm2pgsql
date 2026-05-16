@@ -85,13 +85,15 @@ void fill_polygon(polygon_t *polygon, osmium::Area const &area,
 
 } // anonymous namespace
 
-void create_linestring(geometry_t *geom, osmium::Way const &way)
+bool create_linestring(geometry_t *geom, osmium::Way const &way)
 {
     auto &line = geom->set<linestring_t>();
 
     if (!fill_point_list(&line, way.nodes())) {
         geom->reset();
     }
+
+    return way.nodes().size() == line.size();
 }
 
 geometry_t create_linestring(osmium::Way const &way)
@@ -101,7 +103,7 @@ geometry_t create_linestring(osmium::Way const &way)
     return geom;
 }
 
-void create_polygon(geometry_t *geom, osmium::Way const &way,
+bool create_polygon(geometry_t *geom, osmium::Way const &way,
                     osmium::memory::Buffer *area_buffer)
 {
     auto &polygon = geom->set<polygon_t>();
@@ -109,20 +111,22 @@ void create_polygon(geometry_t *geom, osmium::Way const &way,
     // A closed way with less than 4 nodes can never be a valid polygon
     if (way.nodes().size() < 4U) {
         geom->reset();
-        return;
+        return false;
     }
 
     geom::area_assembler_t assembler{area_buffer};
 
     if (!assembler(way)) {
         geom->reset();
-        return;
+        return false;
     }
 
     auto const &area = assembler.get_area();
     auto const &ring = *area.cbegin<osmium::OuterRing>();
 
     fill_point_list(&polygon.outer(), ring);
+
+    return assembler.stats().duplicate_nodes == 0;
 }
 
 geometry_t create_polygon(osmium::Way const &way,

@@ -66,3 +66,46 @@ Feature: Creating linestring features from way
             Geometry data for geometry column 'geom' has the wrong type (LINESTRING).
             """
 
+    Scenario:
+        Given the grid
+            | 1 | 2 |   |
+            |   |   | 3 |
+        And the OSM data
+            """
+            w20 Thighway=motorway Nn1,n2,n3,n1
+            w21 Thighway=motorway Nn1,n2,n2,n3,n1
+            w22 Thighway=motorway Nn1,n2,n3,n1,n1
+            w23 Thighway=motorway Nn1,n2,n3
+            w24 Thighway=motorway Nn2,n2
+            """
+        And the lua style
+            """
+            local lines = osm2pgsql.define_way_table('osm2pgsql_test_lines', {
+                { column = 'lgeom', type = 'linestring', projection = 4326 },
+                { column = 'pgeom', type = 'polygon', projection = 4326 },
+                { column = 'lclean', type = 'bool' },
+                { column = 'pclean', type = 'bool' },
+            })
+
+            function osm2pgsql.process_way(object)
+                lgeom, lclean = object:as_linestring()
+                pgeom, pclean = object:as_polygon()
+                lines:insert({
+                    lgeom = lgeom,
+                    pgeom = pgeom,
+                    lclean = lclean,
+                    pclean = pclean,
+                })
+            end
+
+            """
+        When running osm2pgsql flex
+
+        Then table osm2pgsql_test_lines contains exactly
+            | way_id | lgeom!geo  | lclean | pgeom!geo    | pclean |
+            | 20     | 1, 2, 3, 1 | True   | (1, 2, 3, 1) | True   |
+            | 21     | 1, 2, 3, 1 | False  | (1, 2, 3, 1) | False  |
+            | 22     | 1, 2, 3, 1 | False  | (1, 2, 3, 1) | False  |
+            | 23     | 1, 2, 3    | True   | NULL         | NULL   |
+            | 24     | NULL       | NULL   | NULL         | NULL   |
+

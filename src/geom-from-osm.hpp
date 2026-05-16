@@ -63,7 +63,7 @@ void create_point(geometry_t *geom, osmium::Node const &node);
  * \param geom Pointer to an existing geometry which will be used as output.
  * \param way The input way.
  */
-void create_linestring(geometry_t *geom, osmium::Way const &way);
+bool create_linestring(geometry_t *geom, osmium::Way const &way);
 
 /**
  * Create a linestring geometry from a way. Nodes without location are ignored.
@@ -87,7 +87,7 @@ void create_linestring(geometry_t *geom, osmium::Way const &way);
  * \param way The input way.
  * \param area_buffer Temporary buffer used to create area.
  */
-void create_polygon(geometry_t *geom, osmium::Way const &way,
+bool create_polygon(geometry_t *geom, osmium::Way const &way,
                     osmium::memory::Buffer *area_buffer);
 
 /**

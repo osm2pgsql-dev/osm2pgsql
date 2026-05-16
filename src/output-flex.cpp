@@ -504,9 +504,14 @@ int output_flex_t::app_as_linestring()
     m_way_cache.add_nodes(middle());
 
     auto *geom = create_lua_geometry_object(lua_state());
-    geom::create_linestring(geom, m_way_cache.get());
+    bool const okay = geom::create_linestring(geom, m_way_cache.get());
 
-    return 1;
+    if (geom->is_null()) {
+        return 1;
+    }
+
+    lua_pushboolean(lua_state(), okay);
+    return 2;
 }
 
 int output_flex_t::app_as_polygon()
@@ -517,9 +522,15 @@ int output_flex_t::app_as_polygon()
     m_way_cache.add_nodes(middle());
 
     auto *geom = create_lua_geometry_object(lua_state());
-    geom::create_polygon(geom, m_way_cache.get(), &m_area_buffer);
+    bool const okay =
+        geom::create_polygon(geom, m_way_cache.get(), &m_area_buffer);
 
-    return 1;
+    if (geom->is_null()) {
+        return 1;
+    }
+
+    lua_pushboolean(lua_state(), okay);
+    return 2;
 }
 
 int output_flex_t::app_as_multipoint()
