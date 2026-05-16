@@ -14,6 +14,8 @@
 #include "lua-utils.hpp"
 #include "wkb.hpp"
 
+#include <osmium/osm/timestamp.hpp>
+
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -356,6 +358,26 @@ void flex_write_column(lua_State *lua_state,
                          lua_tolstring(lua_state, -1, nullptr));
         } else {
             throw fmt_error("Invalid type '{}' for real column.",
+                            lua_typename(lua_state, ltype));
+        }
+    } else if (column.type() == table_column_type::timestamp) {
+        if (ltype == LUA_TNUMBER) {
+            auto const ts = osmium::Timestamp{lua_tointeger(lua_state, -1)};
+            copy_mgr->add_column(ts.to_iso());
+        } else if (ltype == LUA_TSTRING) {
+            copy_mgr->add_column(lua_tolstring(lua_state, -1, nullptr));
+        } else {
+            throw fmt_error("Invalid type '{}' for timestamp column.",
+                            lua_typename(lua_state, ltype));
+        }
+    } else if (column.type() == table_column_type::timestamptz) {
+        if (ltype == LUA_TNUMBER) {
+            auto const ts = osmium::Timestamp{lua_tointeger(lua_state, -1)};
+            copy_mgr->add_column(ts.to_iso());
+        } else if (ltype == LUA_TSTRING) {
+            copy_mgr->add_column(lua_tolstring(lua_state, -1, nullptr));
+        } else {
+            throw fmt_error("Invalid type '{}' for timestamptz column.",
                             lua_typename(lua_state, ltype));
         }
     } else if (column.type() == table_column_type::hstore) {
