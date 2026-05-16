@@ -85,6 +85,7 @@ void osmdata_t::after_nodes()
         m_mid->get_node_parents(m_changed_nodes, &m_ways_pending_tracker,
                                 &m_rels_pending_tracker);
         m_changed_nodes.clear();
+        m_changed_nodes.shrink_to_fit();
     }
 }
 
@@ -136,6 +137,7 @@ void osmdata_t::after_ways()
         m_mid->get_way_parents(m_changed_ways, &m_rels_pending_tracker);
 
         m_changed_ways.clear();
+        m_changed_ways.shrink_to_fit();
         return;
     }
 
@@ -183,6 +185,7 @@ void osmdata_t::after_relations()
         m_rels_pending_tracker.remove_ids_if_in(m_changed_relations);
 
         m_changed_relations.clear();
+        m_changed_relations.shrink_to_fit();
     }
 
     m_output->sync();
