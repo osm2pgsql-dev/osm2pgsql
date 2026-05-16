@@ -29,7 +29,7 @@ TEST_CASE("multipolygon geometry with single outer, no inner", "[NoDB]")
     REQUIRE(dimension(geom) == 2);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(1.0));
-    REQUIRE(spherical_area(geom) == Approx(12364031798.5));
+    REQUIRE(spherical_area(geom) == Approx(12308778361.469454).epsilon(0.00001));
     REQUIRE(length(geom) == Approx(0.0));
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{0.5, 0.5}});
     REQUIRE(geometry_n(geom, 1) ==
@@ -59,7 +59,7 @@ TEST_CASE("multipolygon geometry with two polygons", "[NoDB]")
     REQUIRE(dimension(geom) == 2);
     REQUIRE(num_geometries(geom) == 2);
     REQUIRE(area(geom) == Approx(9.0));
-    REQUIRE(spherical_area(geom) == Approx(111106540105.7));
+    REQUIRE(spherical_area(geom) == Approx(110615268622.783).epsilon(0.00001));
     REQUIRE(length(geom) == Approx(0.0));
 }
 

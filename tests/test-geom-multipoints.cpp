@@ -32,6 +32,7 @@ TEST_CASE("multipoint_t with a single point", "[NoDB]")
     REQUIRE(dimension(geom) == 0);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(0.0));
+    REQUIRE(spherical_area(geom) == Approx(0.0));
     REQUIRE(length(geom) == Approx(0.0));
     REQUIRE(reverse(geom) == geom);
     REQUIRE(centroid(geom) == geom::geometry_t{point});
@@ -55,6 +56,7 @@ TEST_CASE("multipoint_t with several points", "[NoDB]")
     REQUIRE(geometry_type(geom) == "MULTIPOINT");
     REQUIRE(num_geometries(geom) == 3);
     REQUIRE(area(geom) == Approx(0.0));
+    REQUIRE(spherical_area(geom) == Approx(0.0));
     REQUIRE(length(geom) == Approx(0.0));
     REQUIRE(reverse(geom) == geom);
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{2, 1}});
@@ -92,6 +94,7 @@ TEST_CASE("create_multipoint from OSM data", "[NoDB]")
     REQUIRE(c[3] == geom::point_t{3, 1});
 
     REQUIRE(area(geom) == Approx(0.0));
+    REQUIRE(spherical_area(geom) == Approx(0.0));
     REQUIRE(length(geom) == Approx(0.0));
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{2, 1}});
 }
@@ -118,6 +121,7 @@ TEST_CASE("create_multipoint from OSM data with only a single point", "[NoDB]")
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(geom.get<geom::point_t>() == geom::point_t{1, 0});
     REQUIRE(area(geom) == Approx(0.0));
+    REQUIRE(spherical_area(geom) == Approx(0.0));
     REQUIRE(length(geom) == Approx(0.0));
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{1, 0}});
 }

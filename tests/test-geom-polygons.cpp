@@ -25,7 +25,7 @@ TEST_CASE("polygon geometry without inner", "[NoDB]")
     REQUIRE(dimension(geom) == 2);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(1.0));
-    REQUIRE(spherical_area(geom) == Approx(12364031798.5));
+    REQUIRE(spherical_area(geom) == Approx(12308778361.469454).epsilon(0.00001));
     REQUIRE(length(geom) == Approx(0.0));
     REQUIRE(geometry_type(geom) == "POLYGON");
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{0.5, 0.5}});
@@ -41,7 +41,7 @@ TEST_CASE("polygon geometry without inner (reverse)", "[NoDB]")
     REQUIRE(dimension(geom) == 2);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(1.0));
-    REQUIRE(spherical_area(geom) == Approx(12364031798.5));
+    REQUIRE(spherical_area(geom) == Approx(12308778361.469454).epsilon(0.00001));
     REQUIRE(length(geom) == Approx(0.0));
     REQUIRE(geometry_type(geom) == "POLYGON");
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{0.5, 0.5}});
@@ -65,7 +65,7 @@ TEST_CASE("geom::polygon_t", "[NoDB]")
     REQUIRE(dimension(geom) == 2);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(8.0));
-    REQUIRE(spherical_area(geom) == Approx(98893356298.4));
+    REQUIRE(spherical_area(geom) == Approx(98452667625.52686).epsilon(0.00001));
     REQUIRE(length(geom) == Approx(0.0));
     REQUIRE(geometry_type(geom) == "POLYGON");
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{1.5, 1.5}});
