@@ -164,15 +164,16 @@ def hook_before_scenario(context, scenario):
     context.nodes = NodeStore()
     context.sql_statements = {}
     context.urlrequest_responses = {}
-    osm2pgsql_replication.ReplicationServer = None
+    if osm2pgsql_replication is not None:
+        osm2pgsql_replication.ReplicationServer = None
 
-    def _mock_urlopen(request):
-        if not request.full_url in context.urlrequest_responses:
-            raise urllib.error.URLError('Unknown URL')
+        def _mock_urlopen(request):
+            if not request.full_url in context.urlrequest_responses:
+                raise urllib.error.URLError('Unknown URL')
 
-        return contextlib.closing(io.BytesIO(context.urlrequest_responses[request.full_url].encode('utf-8')))
+            return contextlib.closing(io.BytesIO(context.urlrequest_responses[request.full_url].encode('utf-8')))
 
-    osm2pgsql_replication.urlrequest.urlopen = _mock_urlopen
+        osm2pgsql_replication.urlrequest.urlopen = _mock_urlopen
 
 
 
