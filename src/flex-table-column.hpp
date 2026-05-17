@@ -32,6 +32,9 @@ enum class table_column_type : uint8_t
 
     real,
 
+    timestamp,
+    timestamptz,
+
     hstore,
     json,
     jsonb,

@@ -12,6 +12,8 @@ Feature: Tests for including extra attributes
                     { column = 'version', type = 'int4' },
                     { column = 'changeset', type = 'int4' },
                     { column = 'timestamp', type = 'int4' },
+                    { column = 'timestamp_ts', type = 'timestamp' },
+                    { column = 'timestamp_ts_tz', type = 'timestamptz' },
                     { column = 'uid', type = 'int4' },
                     { column = 'user', type = 'text' },
                     { column = 'geom', type = 'linestring', not_null = true },
@@ -20,7 +22,10 @@ Feature: Tests for including extra attributes
 
             function osm2pgsql.process_way(object)
                 object.geom = object:as_linestring()
-                attr_table:insert(object)
+                a = object
+                a.timestamp_ts = a.timestamp
+                a.timestamp_ts_tz = a.timestamp
+                attr_table:insert(a)
             end
             """
 
@@ -36,8 +41,8 @@ Feature: Tests for including extra attributes
             | --slim |
 
         Then table osm2pgsql_test_attr contains
-            | type | way_id | tags->'highway' | tags->'osm_version' | version | changeset | timestamp  | uid  | "user" |
-            | way  | 20     | primary         | NULL                | 1       | 31        | 1578832496 | 17   | test   |
+            | type | way_id | tags->'highway' | tags->'osm_version' | version | changeset | timestamp  | timestamp_ts::text  | to_char(timestamp_ts_tz AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') | uid  | "user" |
+            | way  | 20     | primary         | NULL                | 1       | 31        | 1578832496 | 2020-01-12 12:34:56 | 2020-01-12T12:34:56Z                                                      | 17   | test   |
 
         Given the grid
             |    |    |
@@ -46,8 +51,8 @@ Feature: Tests for including extra attributes
             | --slim | --append |
 
         Then table osm2pgsql_test_attr contains
-            | type |  way_id | tags->'highway' | tags->'osm_version' | version | changeset | timestamp | uid  | "user" |
-            | way  |  20     | primary         | NULL                | NULL    | NULL      | NULL      | NULL | NULL   |
+            | type |  way_id | tags->'highway' | tags->'osm_version' | version | changeset | timestamp | timestamp_ts | timestamp_ts_tz | uid  | "user" |
+            | way  |  20     | primary         | NULL                | NULL    | NULL      | NULL      | NULL         | NULL            | NULL | NULL   |
 
 
     Scenario: Importing data with extra attributes

@@ -43,6 +43,8 @@ std::vector<column_type_lookup> const COLUMN_TYPES = {
      {"int8", table_column_type::int8},
      {"bigint", table_column_type::int8},
      {"real", table_column_type::real},
+     {"timestamp", table_column_type::timestamp},
+     {"timestamptz", table_column_type::timestamptz},
      {"hstore", table_column_type::hstore},
      {"json", table_column_type::json},
      {"jsonb", table_column_type::jsonb},
@@ -142,6 +144,10 @@ std::string flex_table_column_t::sql_type_name() const
         return "int8";
     case table_column_type::real:
         return "real";
+    case table_column_type::timestamp:
+        return "timestamp";
+    case table_column_type::timestamptz:
+        return "timestamptz";
     case table_column_type::hstore:
         return "hstore";
     case table_column_type::json:
