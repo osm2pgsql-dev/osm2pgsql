@@ -20,7 +20,8 @@ TEST_CASE("null geometry", "[NoDB]")
 
     REQUIRE(dimension(geom) == 0);
     REQUIRE(num_geometries(geom) == 0);
-    REQUIRE(area(geom) == 0.0);
+    REQUIRE(area(geom) == Approx(0.0));
+    REQUIRE(spherical_area(geom) == Approx(0.0));
     REQUIRE(length(geom) == Approx(0.0));
     REQUIRE(geometry_type(geom) == "NULL");
     REQUIRE(centroid(geom).is_null());

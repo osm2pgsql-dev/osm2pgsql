@@ -369,16 +369,14 @@ namespace {
 
 double spherical_area(polygon_t const &geom)
 {
-    boost::geometry::strategy::area::spherical<> const spherical_earth{
-        6371008.8};
-
     using sph_point = boost::geometry::model::point<
-        double, 2,
-        boost::geometry::cs::spherical_equatorial<boost::geometry::degree>>;
+        double, 2, boost::geometry::cs::geographic<boost::geometry::degree>>;
 
     boost::geometry::model::polygon<sph_point> sph_geom;
     boost::geometry::convert(geom, sph_geom);
-    return boost::geometry::area(sph_geom, spherical_earth);
+    return boost::geometry::area(sph_geom,
+                                 boost::geometry::strategy::area::geographic<
+                                     boost::geometry::strategy::vincenty>{});
 }
 
 } // anonymous namespace

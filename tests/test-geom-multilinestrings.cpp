@@ -35,6 +35,7 @@ TEST_CASE("create_multilinestring with single line", "[NoDB]")
     REQUIRE(dimension(geom) == 1);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(0.0));
+    REQUIRE(spherical_area(geom) == Approx(0.0));
     REQUIRE(length(geom) == Approx(1.0));
     auto const &ml = geom.get<geom::multilinestring_t>();
     REQUIRE(ml.num_geometries() == 1);
@@ -60,6 +61,7 @@ TEST_CASE("create_multilinestring with single line and no force_multi",
     REQUIRE(geometry_type(geom) == "LINESTRING");
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(0.0));
+    REQUIRE(spherical_area(geom) == Approx(0.0));
     REQUIRE(length(geom) == Approx(1.0));
     auto const &l = geom.get<geom::linestring_t>();
     REQUIRE(l.num_geometries() == 1);
@@ -93,6 +95,7 @@ TEST_CASE(
     REQUIRE(geometry_type(geom) == "LINESTRING");
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(0.0));
+    REQUIRE(spherical_area(geom) == Approx(0.0));
     REQUIRE(length(geom) == Approx(1.0));
     auto const &l = geom.get<geom::linestring_t>();
     REQUIRE(l.num_geometries() == 1);
