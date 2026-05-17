@@ -52,6 +52,7 @@ TEST_CASE("line geometry", "[NoDB]")
 {
     geom::geometry_t const geom{geom::linestring_t{{1, 1}, {2, 2}}};
 
+    REQUIRE(geom.n_points() == 2);
     REQUIRE(dimension(geom) == 1);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(0.0));

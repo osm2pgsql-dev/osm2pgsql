@@ -29,6 +29,7 @@ TEST_CASE("multipoint_t with a single point", "[NoDB]")
 
     REQUIRE(geom.is_multipoint());
     REQUIRE(geometry_type(geom) == "MULTIPOINT");
+    REQUIRE(geom.n_points() == 1);
     REQUIRE(dimension(geom) == 0);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(0.0));
@@ -54,6 +55,7 @@ TEST_CASE("multipoint_t with several points", "[NoDB]")
 
     REQUIRE(geom.is_multipoint());
     REQUIRE(geometry_type(geom) == "MULTIPOINT");
+    REQUIRE(geom.n_points() == 3);
     REQUIRE(num_geometries(geom) == 3);
     REQUIRE(area(geom) == Approx(0.0));
     REQUIRE(spherical_area(geom) == Approx(0.0));
@@ -85,6 +87,7 @@ TEST_CASE("create_multipoint from OSM data", "[NoDB]")
 
     REQUIRE(geometry_type(geom) == "MULTIPOINT");
     REQUIRE(dimension(geom) == 0);
+    REQUIRE(geom.n_points() == 4);
     REQUIRE(num_geometries(geom) == 4);
 
     auto const &c = geom.get<geom::multipoint_t>();

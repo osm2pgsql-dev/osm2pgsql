@@ -24,6 +24,7 @@
 #include <cassert>
 #include <cmath>
 #include <initializer_list>
+#include <numeric>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -35,6 +36,11 @@ class nullgeom_t
 {
 public:
     [[nodiscard]] constexpr static std::size_t num_geometries() noexcept
+    {
+        return 0;
+    }
+
+    [[nodiscard]] constexpr static std::size_t n_points() noexcept
     {
         return 0;
     }
@@ -65,6 +71,11 @@ public:
     constexpr point_t(double x, double y) noexcept : m_x(x), m_y(y) {}
 
     [[nodiscard]] constexpr static std::size_t num_geometries() noexcept
+    {
+        return 1;
+    }
+
+    [[nodiscard]] constexpr static std::size_t n_points() noexcept
     {
         return 1;
     }
@@ -148,6 +159,11 @@ public:
         return 1;
     }
 
+    [[nodiscard]] std::size_t n_points() const noexcept
+    {
+        return size();
+    }
+
 }; // class linestring_t
 
 class ring_t : public point_list_t
@@ -185,6 +201,8 @@ public:
     friend bool operator==(polygon_t const &a, polygon_t const &b) noexcept;
 
     friend bool operator!=(polygon_t const &a, polygon_t const &b) noexcept;
+
+    [[nodiscard]] std::size_t n_points() const;
 
 private:
     ring_t m_outer;
@@ -256,6 +274,15 @@ public:
     }
 
     void reserve(std::size_t size) { m_geometry.reserve(size); }
+
+    [[nodiscard]] std::size_t n_points() const
+    {
+        return std::accumulate(m_geometry.cbegin(), m_geometry.cend(),
+                               std::size_t{0},
+                               [](std::size_t sum, auto const &geom) {
+                                   return sum + geom.n_points();
+                               });
+    }
 
 private:
     std::vector<GEOM> m_geometry;
@@ -399,6 +426,8 @@ public:
     {
         return !(a == b);
     }
+
+    [[nodiscard]] std::size_t n_points() const;
 
 private:
     std::variant<nullgeom_t, point_t, linestring_t, polygon_t, multipoint_t,
