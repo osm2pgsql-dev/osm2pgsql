@@ -58,6 +58,8 @@ public:
 
     void clear() noexcept { m_list.clear(); }
 
+    void shrink_to_fit() noexcept { m_list.shrink_to_fit(); }
+
     void push_back(osmid_t id) { m_list.push_back(id); }
 
     void reserve(std::size_t size) { m_list.reserve(size); }
