@@ -4,7 +4,7 @@ on: [ push, pull_request ]
 
 jobs:
 
-  ubuntu22-pg11-gcc10-jit:
+  ubuntu22-pg12-gcc10-jit:
     runs-on: ubuntu-22.04
 
     env:
@@ -12,7 +12,7 @@ jobs:
       CXX: g++-10
       LUA_VERSION: 5.3
       LUAJIT_OPTION: ON
-      POSTGRESQL_VERSION: 11
+      POSTGRESQL_VERSION: 12
       POSTGIS_VERSION: 3
       BUILD_TYPE: Release
       PSYCOPG: 2
@@ -23,7 +23,7 @@ jobs:
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
 
-  ubuntu22-pg11-clang13-jit:
+  ubuntu22-pg12-clang13-jit:
     runs-on: ubuntu-22.04
 
     env:
@@ -31,7 +31,7 @@ jobs:
       CXX: clang++-13
       LUA_VERSION: 5.3
       LUAJIT_OPTION: ON
-      POSTGRESQL_VERSION: 11
+      POSTGRESQL_VERSION: 12
       POSTGIS_VERSION: 3
       BUILD_TYPE: Release
       PSYCOPG: 2
@@ -42,7 +42,7 @@ jobs:
       - uses: ./.github/actions/linux-cmake
       - uses: ./.github/actions/build-and-test
 
-  ubuntu22-pg11-gcc10:
+  ubuntu22-pg12-gcc10:
     runs-on: ubuntu-22.04
 
     env:
@@ -50,7 +50,7 @@ jobs:
       CXX: g++-10
       LUA_VERSION: 5.3
       LUAJIT_OPTION: OFF
-      POSTGRESQL_VERSION: 11
+      POSTGRESQL_VERSION: 12
       POSTGIS_VERSION: 3
       BUILD_TYPE: Debug
       PSYCOPG: 2
@@ -62,7 +62,7 @@ jobs:
       - uses: ./.github/actions/build-and-test
 
 
-  ubuntu22-pg11-clang13:
+  ubuntu22-pg12-clang13:
     runs-on: ubuntu-22.04
 
     env:
@@ -70,7 +70,7 @@ jobs:
       CXX: clang++-13
       LUA_VERSION: 5.3
       LUAJIT_OPTION: OFF
-      POSTGRESQL_VERSION: 11
+      POSTGRESQL_VERSION: 12
       POSTGIS_VERSION: 3
       BUILD_TYPE: Debug
       PSYCOPG: 2
