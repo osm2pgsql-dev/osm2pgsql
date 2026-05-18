@@ -28,6 +28,7 @@ TEST_CASE("polygon geometry without inner", "[NoDB]")
     REQUIRE(area(geom) == Approx(1.0));
     REQUIRE(spherical_area(geom) == Approx(12308778361.469454).epsilon(0.00001));
     REQUIRE(length(geom) == Approx(0.0));
+    REQUIRE(spherical_length(geom) == Approx(0.0));
     REQUIRE(geometry_type(geom) == "POLYGON");
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{0.5, 0.5}});
     REQUIRE(geometry_n(geom, 1) == geom);

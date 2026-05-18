@@ -367,16 +367,26 @@ double area(geometry_t const &geom)
 
 namespace {
 
+using sph_point = boost::geometry::model::point<
+    double, 2, boost::geometry::cs::geographic<boost::geometry::degree>>;
+
 double spherical_area(polygon_t const &geom)
 {
-    using sph_point = boost::geometry::model::point<
-        double, 2, boost::geometry::cs::geographic<boost::geometry::degree>>;
-
     boost::geometry::model::polygon<sph_point> sph_geom;
     boost::geometry::convert(geom, sph_geom);
+
     return boost::geometry::area(sph_geom,
                                  boost::geometry::strategy::area::geographic<
                                      boost::geometry::strategy::vincenty>{});
+}
+
+double spherical_length(linestring_t const &geom)
+{
+    boost::geometry::model::linestring<sph_point> sph_geom;
+    boost::geometry::convert(geom, sph_geom);
+
+    return static_cast<double>(boost::geometry::length(
+        sph_geom, boost::geometry::strategy::distance::vincenty<>{}));
 }
 
 } // anonymous namespace
@@ -401,6 +411,27 @@ double spherical_area(geometry_t const &geom)
                                    });
         },
         [](auto const & /*input*/) { return 0.0; }}));
+}
+
+double spherical_length(geometry_t const &geom)
+{
+    assert(geom.srid() == PROJ_LATLONG);
+
+    return geom.visit(overloaded{
+        [](geom::collection_t const &input) {
+            return std::accumulate(input.cbegin(), input.cend(), 0.0,
+                                   [](double sum, auto const &geom) {
+                                       return sum + spherical_length(geom);
+                                   });
+        },
+        [](geom::linestring_t const &input) { return spherical_length(input); },
+        [](geom::multilinestring_t const &input) {
+            return std::accumulate(input.cbegin(), input.cend(), 0.0,
+                                   [](double sum, auto const &geom) {
+                                       return sum + spherical_length(geom);
+                                   });
+        },
+        [](auto const & /*input*/) { return 0.0; }});
 }
 
 /****************************************************************************/
