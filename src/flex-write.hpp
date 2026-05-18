@@ -19,6 +19,7 @@
 #include <vector>
 
 class expire_tiles_t;
+class geometry_cache_t;
 
 class not_null_exception_t : public std::runtime_error
 {
@@ -34,10 +35,8 @@ private:
     flex_table_column_t const *m_column;
 }; // class not_null_exception_t
 
-void flex_write_column(lua_State *lua_state,
+void flex_write_column(lua_State *lua_state, geometry_cache_t *geom_cache,
                        db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
-                       flex_table_column_t const &column,
-                       std::vector<expire_tiles_t> *expire,
-                       std::vector<expire_output_t> *expire_outputs);
+                       flex_table_column_t const &column);
 
 #endif // OSM2PGSQL_FLEX_WRITE_HPP

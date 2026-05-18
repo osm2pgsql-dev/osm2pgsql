@@ -18,6 +18,7 @@
 #include <cassert>
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 enum class table_column_type : uint8_t
@@ -53,6 +54,8 @@ enum class table_column_type : uint8_t
     id_type,
     id_num
 };
+
+class geometry_cache_t;
 
 /**
  * A column in a flex_table_t.
@@ -134,9 +137,11 @@ public:
         return m_expires;
     }
 
-    void do_expire(geom::geometry_t const &geom,
+    void do_expire(std::vector<geom::geometry_t> *geoms_old,
+                   std::vector<geom::geometry_t> *geoms_new,
                    std::vector<expire_tiles_t> *expire,
-                   std::vector<expire_output_t> *expire_outputs) const;
+                   std::vector<expire_output_t> *expire_outputs,
+                   bool enable_diff_expire) const;
 
 private:
     std::vector<expire_config_t> m_expires;
@@ -170,6 +175,40 @@ private:
 
     /// Column will be created but not filled by osm2pgsql.
     bool m_create_only = false;
-};
+}; // class flex_table_column_t
+
+/**
+ * While processing an OSM object, this cache is used to hold all old and all
+ * new geometries stored in all geometry columns with expire config in a table.
+ * Later those geometries are used to calculate the expire.
+ */
+class geometry_cache_t
+{
+public:
+    template <typename GEOM>
+    void add_old(flex_table_column_t const *column, GEOM &&geom)
+    {
+        m_geometries[column].first.push_back(std::forward<GEOM>(geom));
+    }
+
+    template <typename GEOM>
+    void add_new(flex_table_column_t const *column, GEOM &&geom)
+    {
+        m_geometries[column].second.push_back(std::forward<GEOM>(geom));
+    }
+
+    auto begin() noexcept { return m_geometries.begin(); }
+
+    auto end() noexcept { return m_geometries.end(); }
+
+    void clear() { m_geometries.clear(); }
+
+private:
+    std::unordered_map<
+        flex_table_column_t const *,
+        std::pair<std::vector<geom::geometry_t>, std::vector<geom::geometry_t>>>
+        m_geometries;
+
+}; // class geometry_cache_t
 
 #endif // OSM2PGSQL_FLEX_TABLE_COLUMN_HPP

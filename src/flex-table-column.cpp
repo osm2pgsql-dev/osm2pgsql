@@ -10,6 +10,8 @@
 #include "flex-table-column.hpp"
 
 #include "format.hpp"
+#include "geom-boost-adaptor.hpp"
+#include "overloaded.hpp"
 #include "pgsql-capabilities.hpp"
 #include "projection.hpp"
 #include "util.hpp"
@@ -208,18 +210,146 @@ void flex_table_column_t::add_expire(expire_config_t const &config)
     m_expires.push_back(config);
 }
 
-void flex_table_column_t::do_expire(
-    geom::geometry_t const &geom, std::vector<expire_tiles_t> *expire,
-    std::vector<expire_output_t> *expire_outputs) const
+namespace {
+
+/**
+ * This expires all geometries in "geoms" by themselves. Used when we don't
+ * need diff expire.
+ */
+void separate_expire(std::vector<geom::geometry_t> const &geoms,
+                     expire_config_t const &expire_config,
+                     expire_tiles_t &expire_tiles,
+                     std::vector<expire_output_t> *expire_outputs)
 {
+    assert(expire_outputs);
+
+    for (auto const &geom : geoms) {
+        expire_tiles.from_geometry(geom, expire_config);
+    }
+    expire_tiles.commit_tiles(&expire_outputs->at(expire_config.expire_output));
+}
+
+/**
+ * When doing diff expire, we need to calculate the symmetric difference
+ * between old and new geometries. The difference is done by type, so points
+ * are compared with points, linestrings with linestrings, etc. This function
+ * separates out the input geometries by the three fundamental types.
+ */
+// NOLINTBEGIN(cppcoreguidelines-rvalue-reference-param-not-moved)
+template <typename T>
+void classify_geometries(T input_geoms, geom::multipoint_t *points,
+                         geom::multilinestring_t *linestrings,
+                         geom::multipolygon_t *polygons)
+{
+    assert(points);
+    assert(linestrings);
+    assert(polygons);
+
+    for (auto &&geom : *input_geoms) {
+        visit(overloaded{
+                  [&](geom::nullgeom_t && /*input*/) {},
+                  [&](geom::point_t &&input) { points->add_geometry(input); },
+                  [&](geom::linestring_t &&input) {
+                      linestrings->add_geometry(std::move(input));
+                  },
+                  [&](geom::polygon_t &&input) {
+                      polygons->add_geometry(std::move(input));
+                  },
+                  [&](geom::multipoint_t &&input) {
+                      for (auto &&point : input) {
+                          points->add_geometry(point);
+                      }
+                  },
+                  [&](geom::multilinestring_t &&input) {
+                      for (auto &&linestring : input) {
+                          linestrings->add_geometry(std::move(linestring));
+                      }
+                  },
+                  [&](geom::multipolygon_t &&input) {
+                      for (auto &&polygon : input) {
+                          polygons->add_geometry(std::move(polygon));
+                      }
+                  },
+                  [&](geom::collection_t &&input) {
+                      classify_geometries(&input, points, linestrings,
+                                          polygons);
+                  }},
+              std::move(geom));
+    }
+}
+// NOLINTEND(cppcoreguidelines-rvalue-reference-param-not-moved)
+
+template <typename T>
+void diff_and_expire(geom::multigeometry_t<T> const &old_geoms,
+                     geom::multigeometry_t<T> const &new_geoms,
+                     expire_config_t const &expire_config,
+                     expire_tiles_t &expire_tiles)
+{
+    std::vector<T> diffs;
+    boost::geometry::sym_difference(old_geoms, new_geoms, diffs);
+    for (auto const &geom : diffs) {
+        expire_tiles.from_geometry(geom, expire_config);
+    }
+}
+
+void diff_expire(std::vector<geom::geometry_t> *geoms_old,
+                 std::vector<geom::geometry_t> *geoms_new,
+                 expire_config_t const &expire_config,
+                 expire_tiles_t &expire_tiles,
+                 std::vector<expire_output_t> *expire_outputs)
+{
+    assert(geoms_old);
+    assert(geoms_new);
+    assert(expire_outputs);
+
+    geom::multipoint_t old_points;
+    geom::multilinestring_t old_linestrings;
+    geom::multipolygon_t old_polygons;
+
+    classify_geometries(geoms_old, &old_points, &old_linestrings,
+                        &old_polygons);
+
+    geom::multipoint_t new_points;
+    geom::multilinestring_t new_linestrings;
+    geom::multipolygon_t new_polygons;
+
+    classify_geometries(geoms_new, &new_points, &new_linestrings,
+                        &new_polygons);
+
+    diff_and_expire(old_points, new_points, expire_config, expire_tiles);
+    diff_and_expire(old_linestrings, new_linestrings, expire_config,
+                    expire_tiles);
+    diff_and_expire(old_polygons, new_polygons, expire_config, expire_tiles);
+
+    expire_tiles.commit_tiles(&expire_outputs->at(expire_config.expire_output));
+}
+
+} // anonymous namespace
+
+void flex_table_column_t::do_expire(
+    std::vector<geom::geometry_t> *geoms_old,
+    std::vector<geom::geometry_t> *geoms_new,
+    std::vector<expire_tiles_t> *expire,
+    std::vector<expire_output_t> *expire_outputs, bool enable_diff_expire) const
+{
+    assert(geoms_old);
+    assert(geoms_new);
     assert(expire);
     assert(expire_outputs);
 
     for (auto const &expire_config : m_expires) {
         assert(expire_config.expire_output < expire->size());
         auto &expire_tiles = expire->at(expire_config.expire_output);
-        expire_tiles.from_geometry(geom, expire_config);
-        expire_tiles.commit_tiles(
-            &expire_outputs->at(expire_config.expire_output));
+
+        if (!expire_config.diff_expire || !enable_diff_expire ||
+            geoms_old->empty() || geoms_new->empty()) {
+            separate_expire(*geoms_old, expire_config, expire_tiles,
+                            expire_outputs);
+            separate_expire(*geoms_new, expire_config, expire_tiles,
+                            expire_outputs);
+        } else {
+            diff_expire(geoms_old, geoms_new, expire_config, expire_tiles,
+                        expire_outputs);
+        }
     }
 }

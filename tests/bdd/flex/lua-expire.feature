@@ -220,6 +220,48 @@ Feature: Expire configuration in Lua file
         When running osm2pgsql flex
         Then table bar has 1562 rows
 
+    Scenario: Expire with diff_expire that's not a boolean fails
+        Given the input file 'liechtenstein-2013-08-03.osm.pbf'
+        And the lua style
+            """
+            local eo = osm2pgsql.define_expire_output({
+                filename = 'bar',
+                maxzoom = 12
+            })
+            osm2pgsql.define_node_table('bar', {
+                { column = 'some',
+                  type = 'geometry',
+                  expire = {
+                    { output = eo, diff_expire = 'foo' }
+                }}
+            })
+            """
+        When running osm2pgsql flex
+        Then execution fails
+        And the error output contains
+            """
+            Optional expire field 'diff_expire' must contain a boolean.
+            """
+
+    Scenario: Expire with diff_expire that's a boolean is okay
+        Given the input file 'liechtenstein-2013-08-03.osm.pbf'
+        And the lua style
+            """
+            local eo = osm2pgsql.define_expire_output({
+                filename = 'bar',
+                maxzoom = 12
+            })
+            osm2pgsql.define_node_table('bar', {
+                { column = 'some',
+                  type = 'geometry',
+                  expire = {
+                    { output = eo, diff_expire = true }
+                }}
+            })
+            """
+        When running osm2pgsql flex
+        Then execution is successful
+
     Scenario: Expire into table is okay
         Given the input file 'liechtenstein-2013-08-03.osm.pbf'
         And the lua style

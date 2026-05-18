@@ -215,6 +215,13 @@ private:
 
     void delete_from_tables(osmium::item_type type, osmid_t osm_id);
 
+    /**
+     * Actually do expire from the geometries in the cache. Diff expire is
+     * only enabled in stage 1c, because we are only sure then that only the
+     * geometry changed and nothing else.
+     */
+    void expire_geoms_from_cache(bool enable_diff_expire = false);
+
     lua_State *lua_state() noexcept { return m_lua_state.get(); }
 
     void create_id_cache(flex_table_t const &table)
@@ -306,6 +313,9 @@ private:
     // This is shared between all clones of the output and must only be
     // accessed while protected using the lua_mutex.
     std::shared_ptr<lua_State> m_lua_state;
+
+    // Caches for old and new geometries from a single OSM object
+    geometry_cache_t m_geometry_cache;
 
     std::vector<expire_tiles_t> m_expire_tiles;
 
