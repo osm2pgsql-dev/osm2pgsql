@@ -70,7 +70,7 @@ option to `ON`) but make sure you are using a compatible version:
 * [protozero](https://github.com/mapbox/protozero) (>= 1.6.3)
 
 It also requires access to a database server running
-[PostgreSQL](https://www.postgresql.org/) (version 11+ works, 13+ strongly
+[PostgreSQL](https://www.postgresql.org/) (version 12+ works, 14+ strongly
 recommended) and [PostGIS](https://www.postgis.net/) (version 3.0+).
 
 Make sure you have installed the development packages for the libraries
