@@ -109,7 +109,7 @@ namespace osmium {
             class XMLOutputBlock : public OutputBlock {
 
                 // operation (create, modify, delete) for osc files
-                enum class operation {
+                enum class operation : std::uint8_t {
                     op_none   = 0,
                     op_create = 1,
                     op_modify = 2,
@@ -243,6 +243,15 @@ namespace osmium {
                     m_last_op = op;
                 }
 
+                static operation get_operation(const osmium::OSMObject &object) noexcept {
+                    if (object.deleted()) {
+                        return operation::op_delete;
+                    }
+
+                    return object.version() == 1 ? operation::op_create
+                                                 : operation::op_modify;
+                }
+
             public:
 
                 XMLOutputBlock(osmium::memory::Buffer&& buffer, const xml_output_options& options) :
@@ -266,7 +275,7 @@ namespace osmium {
 
                 void node(const osmium::Node& node) {
                     if (m_options.use_change_ops) {
-                        open_close_op_tag(node.visible() ? (node.version() == 1 ? operation::op_create : operation::op_modify) : operation::op_delete);
+                        open_close_op_tag(get_operation(node));
                     }
 
                     write_prefix();
@@ -293,7 +302,7 @@ namespace osmium {
 
                 void way(const osmium::Way& way) {
                     if (m_options.use_change_ops) {
-                        open_close_op_tag(way.visible() ? (way.version() == 1 ? operation::op_create : operation::op_modify) : operation::op_delete);
+                        open_close_op_tag(get_operation(way));
                     }
 
                     write_prefix();
@@ -334,7 +343,7 @@ namespace osmium {
 
                 void relation(const osmium::Relation& relation) {
                     if (m_options.use_change_ops) {
-                        open_close_op_tag(relation.visible() ? (relation.version() == 1 ? operation::op_create : operation::op_modify) : operation::op_delete);
+                        open_close_op_tag(get_operation(relation));
                     }
 
                     write_prefix();

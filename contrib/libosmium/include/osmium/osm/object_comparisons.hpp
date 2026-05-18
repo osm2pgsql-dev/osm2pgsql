@@ -154,17 +154,17 @@ namespace osmium {
      * (negative IDs first, then positive IDs, both in the order of their
      * absolute values), but later versions of an object are ordered before
      * earlier versions of the same object. This is useful when the last
-     * version of an object needs to be used.
+     * version of an object needs to be used. Object visibility is not taken
+     * into account, so objects with different visibilities keep their order.
      */
     struct object_order_type_id_reverse_version {
 
         bool operator()(const osmium::OSMObject& lhs, const osmium::OSMObject& rhs) const noexcept {
+            const bool tsvalid = lhs.timestamp().valid() && rhs.timestamp().valid();
             return const_tie(lhs.type(), lhs.id() > 0, lhs.positive_id(), rhs.version(),
-                        ((lhs.timestamp().valid() && rhs.timestamp().valid()) ? rhs.timestamp() : osmium::Timestamp()),
-                        rhs.visible()) <
+                        (tsvalid ? rhs.timestamp() : osmium::Timestamp())) <
                    const_tie(rhs.type(), rhs.id() > 0, rhs.positive_id(), lhs.version(),
-                        ((lhs.timestamp().valid() && rhs.timestamp().valid()) ? lhs.timestamp() : osmium::Timestamp()),
-                        lhs.visible());
+                        (tsvalid ? lhs.timestamp() : osmium::Timestamp()));
         }
 
         /// @pre lhs and rhs must not be nullptr
