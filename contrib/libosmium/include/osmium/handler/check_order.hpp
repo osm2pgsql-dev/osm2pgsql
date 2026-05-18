@@ -76,8 +76,11 @@ namespace osmium {
          * IDs are ordered first then positive IDs, both ordered by absolute
          * value.
          *
-         * IDs have to be unique for each type. This check will fail for
-         * history files.
+         * Constructor has a single bool parameter. If this is false (default)
+         * the check is done for normal OSM data files, i.e. IDs have to be
+         * unique for each type. If this is true, the check is done for OSM
+         * history files, the combination ID/version has to be unique and the
+         * versions need to be in order.
          *
          * To use this, add a CheckOrder member variable to your handler and
          * call the node(), way(), and relation() methods from your node(),
@@ -89,11 +92,16 @@ namespace osmium {
             osmium::object_id_type m_max_node_id = 0;
             osmium::object_id_type m_max_way_id = 0;
             osmium::object_id_type m_max_relation_id = 0;
+            osmium::object_version_type m_last_version = 0;
             bool m_has_node = false;
             bool m_has_way = false;
             bool m_has_relation = false;
+            bool m_with_history;
 
         public:
+
+            CheckOrder(bool with_history = false) : m_with_history(with_history) {
+            }
 
             void node(const osmium::Node& node) {
                 if (m_has_way) {
@@ -105,7 +113,13 @@ namespace osmium {
 
                 if (m_has_node) {
                     if (m_max_node_id == node.id()) {
-                        throw out_of_order_error{"Node ID twice in input. Maybe you are using a history or change file?", node.id()};
+                        if (m_with_history) {
+                            if (node.version() <= m_last_version) {
+                                throw out_of_order_error{"Versions out of order", node.id()};
+                            }
+                        } else {
+                            throw out_of_order_error{"Node ID twice in input. Maybe you are using a history or change file?", node.id()};
+                        }
                     }
                     if (id_order{}(node.id(), m_max_node_id)) {
                         throw out_of_order_error{"Node IDs out of order: " + std::to_string(node.id()), node.id()};
@@ -114,6 +128,10 @@ namespace osmium {
                 } else {
                     m_max_node_id = node.id();
                     m_has_node = true;
+                }
+
+                if (m_with_history) {
+                    m_last_version = node.version();
                 }
             }
 
@@ -124,7 +142,13 @@ namespace osmium {
 
                 if (m_has_way) {
                     if (m_max_way_id == way.id()) {
-                        throw out_of_order_error{"Way ID twice in input. Maybe you are using a history or change file?", way.id()};
+                        if (m_with_history) {
+                            if (way.version() <= m_last_version) {
+                                throw out_of_order_error{"Versions out of order", way.id()};
+                            }
+                        } else {
+                            throw out_of_order_error{"Way ID twice in input. Maybe you are using a history or change file?", way.id()};
+                        }
                     }
                     if (id_order{}(way.id(), m_max_way_id)) {
                         throw out_of_order_error{"Way IDs out of order: " + std::to_string(way.id()), way.id()};
@@ -134,12 +158,22 @@ namespace osmium {
                     m_max_way_id = way.id();
                     m_has_way = true;
                 }
+
+                if (m_with_history) {
+                    m_last_version = way.version();
+                }
             }
 
             void relation(const osmium::Relation& relation) {
                 if (m_has_relation) {
                     if (m_max_relation_id == relation.id()) {
-                        throw out_of_order_error{"Relation ID twice in input. Maybe you are using a history or change file?", relation.id()};
+                        if (m_with_history) {
+                            if (relation.version() <= m_last_version) {
+                                throw out_of_order_error{"Versions out of order", relation.id()};
+                            }
+                        } else {
+                            throw out_of_order_error{"Relation ID twice in input. Maybe you are using a history or change file?", relation.id()};
+                        }
                     }
                     if (id_order{}(relation.id(), m_max_relation_id)) {
                         throw out_of_order_error{"Relation IDs out of order: " + std::to_string(relation.id()), relation.id()};
@@ -148,6 +182,10 @@ namespace osmium {
                 } else {
                     m_max_relation_id = relation.id();
                     m_has_relation = true;
+                }
+
+                if (m_with_history) {
+                    m_last_version = relation.version();
                 }
             }
 

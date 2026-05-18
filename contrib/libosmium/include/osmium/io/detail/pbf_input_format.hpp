@@ -100,13 +100,6 @@ namespace osmium {
                     m_input_buffer.erase(0, size);
                 }
 
-                static uint32_t get_size_in_network_byte_order(const char* d) noexcept {
-                    return (static_cast<uint32_t>(d[3])) |
-                           (static_cast<uint32_t>(d[2]) <<  8U) |
-                           (static_cast<uint32_t>(d[1]) << 16U) |
-                           (static_cast<uint32_t>(d[0]) << 24U);
-                }
-
                 static uint32_t check_size(uint32_t size) {
                     if (size > static_cast<uint32_t>(max_blob_header_size)) {
                         throw osmium::pbf_error{"invalid BlobHeader size (> max_blob_header_size)"};
@@ -255,6 +248,13 @@ namespace osmium {
                 }
 
             public:
+
+                static uint32_t get_size_in_network_byte_order(const char* d) noexcept {
+                    return (static_cast<uint32_t>(static_cast<uint8_t>(d[3]))) |
+                           (static_cast<uint32_t>(static_cast<uint8_t>(d[2])) <<  8U) |
+                           (static_cast<uint32_t>(static_cast<uint8_t>(d[1])) << 16U) |
+                           (static_cast<uint32_t>(static_cast<uint8_t>(d[0])) << 24U);
+                }
 
                 explicit PBFParser(parser_arguments& args) :
                     Parser(args),

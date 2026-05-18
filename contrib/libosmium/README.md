@@ -4,7 +4,8 @@ https://osmcode.org/libosmium
 
 A fast and flexible C++ library for working with OpenStreetMap data.
 
-Libosmium works on Linux, macOS and Windows.
+Libosmium works on Linux, macOS and Windows. You need a 64bit system, 32bit
+systems are not supported.
 
 [![Build Status](https://github.com/osmcode/libosmium/actions/workflows/ci.yml/badge.svg)](https://github.com/osmcode/libosmium/actions)
 [![Packaging status](https://repology.org/badge/tiny-repos/libosmium.svg)](https://repology.org/metapackage/libosmium)
