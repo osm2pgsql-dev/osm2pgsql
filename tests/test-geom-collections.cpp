@@ -24,6 +24,7 @@ TEST_CASE("geometry collection with point", "[NoDB]")
     c.add_geometry(geom::geometry_t{geom::point_t{1, 1}});
 
     REQUIRE(geometry_type(geom) == "GEOMETRYCOLLECTION");
+    REQUIRE(geom.n_points() == 1);
     REQUIRE(dimension(geom) == 0);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(0.0));
@@ -46,6 +47,7 @@ TEST_CASE("geometry collection with multipoint", "[NoDB]")
     c.add_geometry(std::move(mpgeom));
 
     REQUIRE(geometry_type(geom) == "GEOMETRYCOLLECTION");
+    REQUIRE(geom.n_points() == 4);
     REQUIRE(dimension(geom) == 0);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(0.0));
@@ -62,6 +64,7 @@ TEST_CASE("geometry collection with several geometries", "[NoDB]")
     c.add_geometry(geom::geometry_t{geom::point_t{2, 2}});
 
     REQUIRE(geometry_type(geom) == "GEOMETRYCOLLECTION");
+    REQUIRE(geom.n_points() == 4);
     REQUIRE(dimension(geom) == 1);
     REQUIRE(num_geometries(geom) == 3);
     REQUIRE(area(geom) == Approx(0.0));
@@ -83,6 +86,7 @@ TEST_CASE("geometry collection with polygon", "[NoDB]")
         geom::polygon_t{geom::ring_t{{1, 1}, {1, 2}, {2, 2}, {2, 1}, {1, 1}}}});
 
     REQUIRE(geometry_type(geom) == "GEOMETRYCOLLECTION");
+    REQUIRE(geom.n_points() == 6);
     REQUIRE(num_geometries(geom) == 2);
     REQUIRE(area(geom) == Approx(1.0));
     REQUIRE(length(geom) == Approx(0.0));
@@ -100,6 +104,7 @@ TEST_CASE("create_collection from OSM data", "[NoDB]")
     auto const geom = geom::create_collection(buffer.buffer());
 
     REQUIRE(geometry_type(geom) == "GEOMETRYCOLLECTION");
+    REQUIRE(geom.n_points() == 8);
     REQUIRE(dimension(geom) == 1);
     REQUIRE(num_geometries(geom) == 3);
 

@@ -22,6 +22,7 @@ TEST_CASE("polygon geometry without inner", "[NoDB]")
     geom::geometry_t const geom{
         geom::polygon_t{geom::ring_t{{0, 0}, {0, 1}, {1, 1}, {1, 0}, {0, 0}}}};
 
+    REQUIRE(geom.n_points() == 5);
     REQUIRE(dimension(geom) == 2);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(1.0));
@@ -38,6 +39,7 @@ TEST_CASE("polygon geometry without inner (reverse)", "[NoDB]")
     geom::geometry_t const geom{
         geom::polygon_t{geom::ring_t{{0, 0}, {1, 0}, {1, 1}, {0, 1}, {0, 0}}}};
 
+    REQUIRE(geom.n_points() == 5);
     REQUIRE(dimension(geom) == 2);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(1.0));
@@ -62,6 +64,7 @@ TEST_CASE("geom::polygon_t", "[NoDB]")
     REQUIRE(polygon.inners().size() == 1);
 
     geom::geometry_t const geom{std::move(polygon)};
+    REQUIRE(geom.n_points() == 10);
     REQUIRE(dimension(geom) == 2);
     REQUIRE(num_geometries(geom) == 1);
     REQUIRE(area(geom) == Approx(8.0));

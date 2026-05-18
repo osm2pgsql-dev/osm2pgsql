@@ -18,6 +18,7 @@ TEST_CASE("null geometry", "[NoDB]")
 {
     geom::geometry_t const geom{};
 
+    REQUIRE(geom.n_points() == 0);
     REQUIRE(dimension(geom) == 0);
     REQUIRE(num_geometries(geom) == 0);
     REQUIRE(area(geom) == Approx(0.0));

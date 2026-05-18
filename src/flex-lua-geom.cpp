@@ -114,6 +114,20 @@ int geom_centroid(lua_State *lua_state)
     return 1;
 }
 
+int geom_n_points(lua_State *lua_state)
+{
+    auto const *const input_geometry = unpack_geometry(lua_state);
+
+    try {
+        lua_pushinteger(lua_state,
+                        static_cast<lua_Integer>(input_geometry->n_points()));
+    } catch (...) {
+        return luaL_error(lua_state, "Unknown error in 'n_points()'.\n");
+    }
+
+    return 1;
+}
+
 int geom_geometry_n(lua_State *lua_state)
 {
     auto const *const input_geometry = unpack_geometry(lua_state);
@@ -313,6 +327,7 @@ void init_geometry_class(lua_State *lua_state)
          {"geometry_type", geom_geometry_type},
          {"is_null", geom_is_null},
          {"line_merge", geom_line_merge},
+         {"n_points", geom_n_points},
          {"reverse", geom_reverse},
          {"num_geometries", geom_num_geometries},
          {"pole_of_inaccessibility", geom_pole_of_inaccessibility},
