@@ -35,6 +35,7 @@ TEST_CASE("multipoint_t with a single point", "[NoDB]")
     REQUIRE(area(geom) == Approx(0.0));
     REQUIRE(spherical_area(geom) == Approx(0.0));
     REQUIRE(length(geom) == Approx(0.0));
+    REQUIRE(spherical_length(geom) == Approx(0.0));
     REQUIRE(reverse(geom) == geom);
     REQUIRE(centroid(geom) == geom::geometry_t{point});
 

@@ -58,6 +58,7 @@ TEST_CASE("line geometry", "[NoDB]")
     REQUIRE(area(geom) == Approx(0.0));
     REQUIRE(spherical_area(geom) == Approx(0.0));
     REQUIRE(length(geom) == Approx(1.41421));
+    REQUIRE(spherical_length(geom) == Approx(156876.14940188668).epsilon(0.0000001));
     REQUIRE(geometry_type(geom) == "LINESTRING");
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{1.5, 1.5}});
     REQUIRE(geometry_n(geom, 1) == geom);
@@ -91,6 +92,7 @@ TEST_CASE("create_linestring from OSM data", "[NoDB]")
     REQUIRE(area(geom) == Approx(0.0));
     REQUIRE(spherical_area(geom) == Approx(0.0));
     REQUIRE(length(geom) == Approx(1.41421));
+    REQUIRE(spherical_length(geom) == Approx(156876.14940188668).epsilon(0.0000001));
     REQUIRE(geom.get<geom::linestring_t>() ==
             geom::linestring_t{{1, 1}, {2, 2}});
     REQUIRE(centroid(geom) == geom::geometry_t{geom::point_t{1.5, 1.5}});
@@ -360,4 +362,25 @@ TEST_CASE("geom::simplify of straight line", "[NoDB]")
         REQUIRE(l[0] == input.get<geom::linestring_t>()[0]);
         REQUIRE(l[1] == input.get<geom::linestring_t>()[2]);
     }
+}
+
+TEST_CASE("long line length - equator", "[NoDB]")
+{
+    geom::geometry_t const geom{geom::linestring_t{{0, 0}, {180, 0}}};
+    REQUIRE(length(geom) == Approx(180.0));
+    REQUIRE(spherical_length(geom) == Approx(20003931.458625447).epsilon(0.0000001));
+}
+
+TEST_CASE("long line length - to pole", "[NoDB]")
+{
+    geom::geometry_t const geom{geom::linestring_t{{0, -90}, {0, 90}}};
+    REQUIRE(length(geom) == Approx(180.0));
+    REQUIRE(spherical_length(geom) == Approx(20003931.458625447).epsilon(0.0000001));
+}
+
+TEST_CASE("line length - more points", "[NoDB]")
+{
+    geom::geometry_t const geom{geom::linestring_t{{20, 19.8}, {20.1, 19.8}, {20.2, 19.9}}};
+    REQUIRE(length(geom) == Approx(0.2414213562373079));
+    REQUIRE(spherical_length(geom) == Approx(25718.175297824535).epsilon(0.0000001));
 }

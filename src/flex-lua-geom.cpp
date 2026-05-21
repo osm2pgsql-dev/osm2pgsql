@@ -100,6 +100,25 @@ int geom_length(lua_State *lua_state)
     return 1;
 }
 
+int geom_spherical_length(lua_State *lua_state)
+{
+    auto const *const input_geometry = unpack_geometry(lua_state);
+
+    if (input_geometry->srid() != PROJ_LATLONG) {
+        throw std::runtime_error{"Can only calculate spherical length for "
+                                 "geometries in WGS84 (4326) coordinates."};
+    }
+
+    try {
+        lua_pushnumber(lua_state, geom::spherical_length(*input_geometry));
+    } catch (...) {
+        return luaL_error(lua_state,
+                          "Unknown error in 'spherical_length()'.\n");
+    }
+
+    return 1;
+}
+
 int geom_centroid(lua_State *lua_state)
 {
     auto const *const input_geometry = unpack_geometry(lua_state);
@@ -334,6 +353,7 @@ void init_geometry_class(lua_State *lua_state)
          {"segmentize", geom_segmentize},
          {"simplify", geom_simplify},
          {"spherical_area", geom_spherical_area},
+         {"spherical_length", geom_spherical_length},
          {"srid", geom_srid},
          {"transform", geom_transform}});
 }

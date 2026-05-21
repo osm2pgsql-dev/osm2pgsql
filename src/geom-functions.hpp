@@ -162,6 +162,17 @@ double area(geometry_t const &geom);
 double spherical_area(geometry_t const &geom);
 
 /**
+ * Calculate length of geometry on the spheroid.
+ * For geometry types other than linestring or multilinestring this will always
+ * return 0.
+ *
+ * \param geom Input geometry.
+ * \returns Length in m.
+ * \pre \code geom.srid() == 4326 \endcode
+ */
+double spherical_length(geometry_t const &geom);
+
+/**
  * Split multigeometries into their parts. Non-multi geometries are left
  * alone and will end up as the only geometry in the result vector. If the
  * input geometry is a nullgeom_t, the result vector will be empty.
