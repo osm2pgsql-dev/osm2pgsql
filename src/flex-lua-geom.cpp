@@ -39,6 +39,16 @@ geom::geometry_t *unpack_geometry(lua_State *lua_state, int n) noexcept
 
 namespace {
 
+int geom_equals(lua_State *lua_state)
+{
+    auto const *const geometry1 = unpack_geometry(lua_state, 1);
+    auto const *const geometry2 = unpack_geometry(lua_state, 2);
+
+    lua_pushboolean(lua_state, *geometry1 == *geometry2);
+
+    return 1;
+}
+
 /**
  * This function is called by Lua garbage collection when a geometry object
  * needs cleaning up. It calls the destructor of the C++ object. After that
@@ -335,7 +345,8 @@ void init_geometry_class(lua_State *lua_state)
 {
     luaX_set_up_metatable(
         lua_state, "Geometry", OSM2PGSQL_GEOMETRY_CLASS,
-        {{"__gc", geom_gc},
+        {{"__eq", geom_equals},
+         {"__gc", geom_gc},
          {"__len", geom_num_geometries},
          {"__tostring", geom_tostring},
          {"area", geom_area},
