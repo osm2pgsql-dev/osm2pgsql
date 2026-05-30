@@ -135,7 +135,7 @@ geometry_t create_polygon(osmium::Way const &way,
 
 void create_multipoint(geometry_t *geom, osmium::memory::Buffer const &buffer)
 {
-    auto nodes = buffer.select<osmium::Node>();
+    auto const nodes = buffer.select<osmium::Node>();
     if (nodes.size() == 1) {
         auto const location = nodes.cbegin()->location();
         if (location.valid()) {
@@ -176,7 +176,7 @@ void create_multilinestring(geometry_t *geom,
                             osmium::memory::Buffer const &buffer,
                             bool force_multi)
 {
-    auto ways = buffer.select<osmium::Way>();
+    auto const ways = buffer.select<osmium::Way>();
     if (ways.size() == 1 && !force_multi) {
         auto &line = geom->set<linestring_t>();
         auto const &way = *ways.cbegin();
