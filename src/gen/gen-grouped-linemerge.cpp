@@ -224,7 +224,10 @@ CREATE TEMP TABLE _glm_region ON COMMIT DROP AS
         return;
     }
 
-    dbexec("CREATE INDEX ON _glm_region USING gist (env)");
+    // No spatial index on _glm_region is needed: the seed lookup and the
+    // region delete both drive *from* this (small) table and probe the source
+    // / destination geometry indexes. ANALYZE so the planner knows it is small
+    // and drives the joins from it.
     dbexec("ANALYZE _glm_region");
 
     // Step 2: Find the nodes (endpoint coordinates) of every connected
@@ -242,14 +245,14 @@ CREATE TEMP TABLE _glm_region ON COMMIT DROP AS
 CREATE TEMP TABLE _glm_nodes ON COMMIT DROP AS
 WITH RECURSIVE
 seeds AS (
+  -- Driven from the (small) region so the source geometry index is used to
+  -- find the few lines in the changed area.
   SELECT {group_cols_l}, l."{geom_column}"
-    FROM {src} l
+    FROM _glm_region r
+    JOIN {src} l
+      ON l."{geom_column}" && r.env
+     AND ST_Intersects(l."{geom_column}", r.env)
    WHERE {where}
-     AND EXISTS (
-       SELECT 1 FROM _glm_region r
-        WHERE l."{geom_column}" && r.env
-          AND ST_Intersects(l."{geom_column}", r.env)
-     )
 ),
 nodes AS (
   SELECT b.* FROM (
@@ -330,11 +333,9 @@ DELETE FROM {dest} d
     auto const deleted_by_nodes = deleted.affected_rows();
     deleted = dbexec(R"(
 DELETE FROM {dest} d
- WHERE EXISTS (
-   SELECT 1 FROM _glm_region r
-    WHERE d."{geom_column}" && r.env
-      AND ST_Intersects(d."{geom_column}", r.env)
- )
+ USING _glm_region r
+ WHERE d."{geom_column}" && r.env
+   AND ST_Intersects(d."{geom_column}", r.env)
 )");
     timer(m_timer_delete).stop();
     log_gen("Deleted {} stale merged linestrings ({} by node, {} by region).",
