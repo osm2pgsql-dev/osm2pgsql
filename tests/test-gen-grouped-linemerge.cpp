@@ -15,6 +15,7 @@
 #include "params.hpp"
 #include "pgsql.hpp"
 
+#include <array>
 #include <cstdint>
 #include <random>
 #include <string>
@@ -134,6 +135,8 @@ struct edge_t
     std::string wkt;
     bool present = false;
     std::string grp;
+
+    explicit edge_t(std::string w) : wkt(std::move(w)) {}
 };
 
 // All horizontal and vertical segments of a GW x GH grid (the candidate
@@ -151,18 +154,18 @@ std::vector<edge_t> build_grid_edges()
     };
     for (int j = 0; j < GH; ++j) {
         for (int i = 0; i < GW - 1; ++i) {
-            edges.push_back({seg(i * STEP, j * STEP, (i + 1) * STEP, j * STEP)});
+            edges.emplace_back(seg(i * STEP, j * STEP, (i + 1) * STEP, j * STEP));
         }
     }
     for (int i = 0; i < GW; ++i) {
         for (int j = 0; j < GH - 1; ++j) {
-            edges.push_back({seg(i * STEP, j * STEP, i * STEP, (j + 1) * STEP)});
+            edges.emplace_back(seg(i * STEP, j * STEP, i * STEP, (j + 1) * STEP));
         }
     }
     return edges;
 }
 
-constexpr char const *const GROUPS[] = {"a", "b", "c"};
+constexpr std::array<char const *, 3> GROUPS = {"a", "b", "c"};
 
 } // anonymous namespace
 
@@ -190,9 +193,9 @@ TEST_CASE("grouped-linemerge: incremental updates match full re-merge (fuzz)")
 {
     auto conn = db.connect();
 
-    constexpr int ops_per_seed = 120;
+    constexpr int OPS_PER_SEED = 120;
 
-    for (unsigned seed : {1U, 2U, 3U, 4U}) {
+    for (unsigned const seed : {1U, 2U, 3U, 4U}) {
         setup_tables(conn);
         auto edges = build_grid_edges();
         std::mt19937 rng{seed};
@@ -201,7 +204,7 @@ TEST_CASE("grouped-linemerge: incremental updates match full re-merge (fuzz)")
         for (auto &e : edges) {
             if (rng() % 2U == 0U) {
                 e.present = true;
-                e.grp = GROUPS[rng() % 3U];
+                e.grp = GROUPS.at(rng() % 3U);
                 insert_edge(conn, e.grp, e.wkt);
             }
         }
@@ -211,7 +214,7 @@ TEST_CASE("grouped-linemerge: incremental updates match full re-merge (fuzz)")
 
         // Random connect/disconnect operations, each followed by an
         // incremental append that must reproduce the from-scratch result.
-        for (int op = 0; op < ops_per_seed; ++op) {
+        for (int op = 0; op < OPS_PER_SEED; ++op) {
             std::vector<std::size_t> present;
             std::vector<std::size_t> absent;
             for (std::size_t i = 0; i < edges.size(); ++i) {
@@ -224,7 +227,7 @@ TEST_CASE("grouped-linemerge: incremental updates match full re-merge (fuzz)")
             if (do_add) {
                 auto const idx = absent[rng() % absent.size()];
                 auto &e = edges[idx];
-                e.grp = GROUPS[rng() % 3U]; // may differ from last time: a retag
+                e.grp = GROUPS.at(rng() % 3U); // may differ from last time: a retag
                 e.present = true;
                 insert_edge(conn, e.grp, e.wkt);
                 expire(conn, e.wkt);
