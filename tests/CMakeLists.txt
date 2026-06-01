@@ -5,9 +5,9 @@
 # name - Name of test (source file without suffix)
 # labels - optional labels for the test
 function(set_test test_name)
-    cmake_parse_arguments(test_param "" "" "LABELS" ${ARGN})
+    cmake_parse_arguments(test_param "" "" "LABELS;EXTRA_SOURCES" ${ARGN})
 
-    add_executable(${test_name} ${test_name}.cpp)
+    add_executable(${test_name} ${test_name}.cpp ${test_param_EXTRA_SOURCES})
     target_link_libraries(${test_name} osm2pgsql_lib catch_main_lib)
     add_test(NAME ${test_name} COMMAND ${test_name})
 
@@ -41,6 +41,11 @@ target_compile_features(catch_main_lib PUBLIC cxx_std_17)
 set_test(test-check-input LABELS NoDB)
 set_test(test-db-copy-mgr)
 set_test(test-db-copy-thread)
+# The generalization strategies live in the osm2pgsql-gen executable, not in
+# osm2pgsql_lib, so the test compiles the needed sources directly.
+set_test(test-gen-grouped-linemerge EXTRA_SOURCES
+         "${osm2pgsql_SOURCE_DIR}/src/gen/gen-base.cpp"
+         "${osm2pgsql_SOURCE_DIR}/src/gen/gen-grouped-linemerge.cpp")
 set_test(test-expire-from-geometry LABELS NoDB)
 set_test(test-expire-tiles LABELS NoDB)
 set_test(test-flex-indexes LABELS NoDB)
