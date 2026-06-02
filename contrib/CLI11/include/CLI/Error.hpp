@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2024, University of Cincinnati, developed by Henry Schreiner
+// Copyright (c) 2017-2026, University of Cincinnati, developed by Henry Schreiner
 // under NSF AWARD 1414736 and by the respective contributors.
 // All rights reserved.
 //
@@ -41,7 +41,7 @@ namespace CLI {
 
 /// These codes are part of every error in CLI. They can be obtained from e using e.exit_code or as a quick shortcut,
 /// int values from e.get_error_code().
-enum class ExitCodes {
+enum class ExitCodes : int {
     Success = 0,
     IncorrectConstruction = 100,
     BadNameString,
@@ -132,8 +132,8 @@ class BadNameString : public ConstructionError {
     static BadNameString BadPositionalName(std::string name) {
         return BadNameString("Invalid positional Name: " + name);
     }
-    static BadNameString DashesOnly(std::string name) {
-        return BadNameString("Must have a name, not just dashes: " + name);
+    static BadNameString ReservedName(std::string name) {
+        return BadNameString("Names '-','--','++' are reserved and not allowed as option names " + name);
     }
     static BadNameString MultiPositionalNames(std::string name) {
         return BadNameString("Only one positional name allowed, remove: " + name);
@@ -275,7 +275,7 @@ class ArgumentMismatch : public ParseError {
                                 std::to_string(received));
     }
     static ArgumentMismatch AtMost(std::string name, int num, std::size_t received) {
-        return ArgumentMismatch(name + ": At Most " + std::to_string(num) + " required but received " +
+        return ArgumentMismatch(name + ": At most " + std::to_string(num) + " required but received " +
                                 std::to_string(received));
     }
     static ArgumentMismatch TypedAtLeast(std::string name, int num, std::string type) {
@@ -310,13 +310,13 @@ class ExtrasError : public ParseError {
     explicit ExtrasError(std::vector<std::string> args)
         : ExtrasError((args.size() > 1 ? "The following arguments were not expected: "
                                        : "The following argument was not expected: ") +
-                          detail::rjoin(args, " "),
+                          detail::join(args, " "),
                       ExitCodes::ExtrasError) {}
     ExtrasError(const std::string &name, std::vector<std::string> args)
         : ExtrasError(name,
                       (args.size() > 1 ? "The following arguments were not expected: "
                                        : "The following argument was not expected: ") +
-                          detail::rjoin(args, " "),
+                          detail::join(args, " "),
                       ExitCodes::ExtrasError) {}
 };
 
@@ -347,7 +347,7 @@ class HorribleError : public ParseError {
 
 // After parsing
 
-/// Thrown when counting a non-existent option
+/// Thrown when counting a nonexistent option
 class OptionNotFound : public Error {
     CLI11_ERROR_DEF(Error, OptionNotFound)
     explicit OptionNotFound(std::string name) : OptionNotFound(name + " not found", ExitCodes::OptionNotFound) {}

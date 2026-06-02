@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2024, University of Cincinnati, developed by Henry Schreiner
+// Copyright (c) 2017-2026, University of Cincinnati, developed by Henry Schreiner
 // under NSF AWARD 1414736 and by the respective contributors.
 // All rights reserved.
 //
@@ -33,7 +33,8 @@ namespace enums {
 template <typename T, typename = typename std::enable_if<std::is_enum<T>::value>::type>
 std::ostream &operator<<(std::ostream &in, const T &item) {
     // make sure this is out of the detail namespace otherwise it won't be found when needed
-    return in << static_cast<typename std::underlying_type<T>::type>(item);
+    // https://isocpp.org/wiki/faq/input-output#print-char-or-ptr-as-number
+    return in << +static_cast<typename std::underlying_type<T>::type>(item);
 }
 
 }  // namespace enums
@@ -44,7 +45,7 @@ using enums::operator<<;
 namespace detail {
 /// a constant defining an expected max vector size defined to be a big number that could be multiplied by 4 and not
 /// produce overflow for some expected uses
-constexpr int expected_max_vector_size{1 << 29};
+CLI11_MODULE_INLINE constexpr int expected_max_vector_size{1 << 29};
 // Based on http://stackoverflow.com/questions/236129/split-a-string-in-c
 /// Split a string by a delim
 CLI11_INLINE std::vector<std::string> split(const std::string &s, char delim);
@@ -59,7 +60,12 @@ template <typename T> std::string join(const T &v, std::string delim = ",") {
     while(beg != end) {
         s << delim << *beg++;
     }
-    return s.str();
+    auto rval = s.str();
+    if(!rval.empty() && delim.size() == 1 && rval.back() == delim[0]) {
+        // remove trailing delimiter if the last entry was empty
+        rval.pop_back();
+    }
+    return rval;
 }
 
 /// Simple function to join a string from processed elements
@@ -136,9 +142,6 @@ inline std::string trim_copy(const std::string &str, const std::string &filter) 
     std::string s = str;
     return trim(s, filter);
 }
-/// Print a two part "help" string
-CLI11_INLINE std::ostream &
-format_help(std::ostream &out, std::string name, const std::string &description, std::size_t wid);
 
 /// Print subcommand aliases
 CLI11_INLINE std::ostream &format_aliases(std::ostream &out, const std::vector<std::string> &aliases, std::size_t wid);
@@ -162,14 +165,12 @@ CLI11_INLINE bool valid_name_string(const std::string &str);
 
 /// Verify an app name
 inline bool valid_alias_name_string(const std::string &str) {
-    static const std::string badChars(std::string("\n") + '\0');
-    return (str.find_first_of(badChars) == std::string::npos);
+    return ((str.find_first_of('\n') == std::string::npos) && (str.find_first_of('\0') == std::string::npos));
 }
 
 /// check if a string is a container segment separator (empty or "%%")
 inline bool is_separator(const std::string &str) {
-    static const std::string sep("%%");
-    return (str.empty() || str == sep);
+    return (str.empty() || (str.size() == 2 && str[0] == '%' && str[1] == '%'));
 }
 
 /// Verify that str consists of letters only
@@ -190,6 +191,10 @@ inline std::string remove_underscore(std::string str) {
     str.erase(std::remove(std::begin(str), std::end(str), '_'), std::end(str));
     return str;
 }
+
+/// @brief  get valid group separators _' + local separator if different
+/// @return a string containing the group separators
+CLI11_INLINE std::string get_group_separators();
 
 /// Find and replace a substring with another substring
 CLI11_INLINE std::string find_and_replace(std::string str, std::string from, std::string to);
@@ -241,14 +246,14 @@ CLI11_INLINE bool has_escapable_character(const std::string &str);
 
 /// @brief escape all escapable characters
 /// @param str the string to escape
-/// @return a string with the escapble characters escaped with '\'
+/// @return a string with the escapable characters escaped with '\'
 CLI11_INLINE std::string add_escaped_characters(const std::string &str);
 
 /// @brief replace the escaped characters with their equivalent
 CLI11_INLINE std::string remove_escaped_characters(const std::string &str);
 
 /// generate a string with all non printable characters escaped to hex codes
-CLI11_INLINE std::string binary_escape_string(const std::string &string_to_escape);
+CLI11_INLINE std::string binary_escape_string(const std::string &string_to_escape, bool force = false);
 
 CLI11_INLINE bool is_binary_escaped_string(const std::string &escaped_string);
 
@@ -256,7 +261,18 @@ CLI11_INLINE bool is_binary_escaped_string(const std::string &escaped_string);
 CLI11_INLINE std::string extract_binary_string(const std::string &escaped_string);
 
 /// process a quoted string, remove the quotes and if appropriate handle escaped characters
-CLI11_INLINE bool process_quoted_string(std::string &str, char string_char = '\"', char literal_char = '\'');
+CLI11_INLINE bool process_quoted_string(std::string &str,
+                                        char string_char = '\"',
+                                        char literal_char = '\'',
+                                        bool disable_secondary_array_processing = false);
+
+/// This function formats the given text as a paragraph with fixed width and applies correct line wrapping
+/// with a custom line prefix. The paragraph will get streamed to the given ostream.
+CLI11_INLINE std::ostream &streamOutAsParagraph(std::ostream &out,
+                                                const std::string &text,
+                                                std::size_t paragraphWidth,
+                                                const std::string &linePrefix = "",
+                                                bool skipPrefixOnFirstLine = false);
 
 }  // namespace detail
 
