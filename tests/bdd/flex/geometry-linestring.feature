@@ -72,3 +72,37 @@ Feature: Creating linestring features from way
             Geometry data for geometry column 'geom' has the wrong type (LINESTRING).
             """
 
+    Scenario:
+        Given the grid
+            | 1 | 2 |
+        And the OSM data
+            """
+            w20 Thighway=motorway Nn1,n1,n2
+            """
+        And the lua style
+            """
+            local points = osm2pgsql.define_way_table('osm2pgsql_test', {
+                { column = 'geom', type = 'point', projection = 4326 },
+                { column = 'dupl', type = 'boolean' },
+            })
+
+            function osm2pgsql.process_way(object)
+                if #object.nodes > 1 then
+                    local prev = object:as_point(1)
+                    points:insert({ geom = prev, dupl = false })
+                    for n = 2, #object.nodes do
+                        local geom = object:as_point(n)
+                        points:insert({ geom = geom, dupl = (prev == geom) })
+                    end
+                end
+            end
+
+            """
+        When running osm2pgsql flex
+
+        Then table osm2pgsql_test contains exactly
+            | way_id | geom!geo | dupl  |
+            | 20     | 1        | False |
+            | 20     | 1        | True  |
+            | 20     | 2        | False |
+
