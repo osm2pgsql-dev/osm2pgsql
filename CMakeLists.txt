@@ -7,15 +7,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-# Do not create install targets when run as a subproject.
-# Currently used by Nominatim which cannot yet rely on installed versions
-# of osm2pgsql.
-if (${PROJECT_NAME} STREQUAL ${CMAKE_PROJECT_NAME})
-    set(ENABLE_INSTALL ON)
-else()
-    set(ENABLE_INSTALL OFF)
-endif()
-
 if (NOT ${CMAKE_SIZEOF_VOID_P} EQUAL 8)
     message(FATAL_ERROR "osm2pgsql needs a 64 bit architecture")
 endif()
@@ -328,12 +319,10 @@ add_subdirectory(man)
 
 include(GNUInstallDirs)
 
-if (ENABLE_INSTALL)
-    install(TARGETS osm2pgsql DESTINATION bin)
-    install(TARGETS osm2pgsql-expire DESTINATION bin)
-    install(FILES default.style empty.style DESTINATION share/osm2pgsql)
-    install(PROGRAMS scripts/osm2pgsql-replication DESTINATION bin)
-    if (BUILD_GEN)
-        install(TARGETS osm2pgsql-gen DESTINATION bin)
-    endif()
+install(TARGETS osm2pgsql DESTINATION bin)
+install(TARGETS osm2pgsql-expire DESTINATION bin)
+install(FILES default.style empty.style DESTINATION share/osm2pgsql)
+install(PROGRAMS scripts/osm2pgsql-replication DESTINATION bin)
+if (BUILD_GEN)
+    install(TARGETS osm2pgsql-gen DESTINATION bin)
 endif()
