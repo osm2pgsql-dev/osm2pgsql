@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2024, University of Cincinnati, developed by Henry Schreiner
+// Copyright (c) 2017-2026, University of Cincinnati, developed by Henry Schreiner
 // under NSF AWARD 1414736 and by the respective contributors.
 // All rights reserved.
 //
@@ -33,10 +33,10 @@ namespace CLI {
 namespace detail {
 // Based generally on https://rmf.io/cxx11/almost-static-if
 /// Simple empty scoped class
-enum class enabler {};
+enum class enabler : std::uint8_t {};
 
 /// An instance to use in EnableIf
-constexpr enabler dummy = {};
+CLI11_MODULE_INLINE constexpr enabler dummy = {};
 }  // namespace detail
 
 /// A copy of enable_if_t from C++14, compatible with C++11.
@@ -163,7 +163,7 @@ struct pair_adaptor<
     }
 };
 
-// Warning is suppressed due to "bug" in gcc<5.0 and gcc 7.0 with c++17 enabled that generates a Wnarrowing warning
+// Warning is suppressed due to "bug" in gcc<5.0 and gcc 7.0 with c++17 enabled that generates a -Wnarrowing warning
 // in the unevaluated context even if the function that was using this wasn't used.  The standard says narrowing in
 // brace initialization shouldn't be allowed but for backwards compatibility gcc allows it in some contexts.  It is a
 // little fuzzy what happens in template constructs and I think that was something GCC took a little while to work out.
@@ -185,7 +185,7 @@ template <typename T, typename C> class is_direct_constructible {
 #pragma diag_suppress 2361
 #endif
 #endif
-                                              TT{std::declval<CC>()}
+        TT{std::declval<CC>()}
 #ifdef __CUDACC__
 #ifdef __NVCC_DIAG_PRAGMA_SUPPORT__
 #pragma nv_diag_default 2361
@@ -193,8 +193,8 @@ template <typename T, typename C> class is_direct_constructible {
 #pragma diag_default 2361
 #endif
 #endif
-                                              ,
-                                              std::is_move_assignable<TT>());
+        ,
+        std::is_move_assignable<TT>());
 
     template <typename TT, typename CC> static auto test(int, std::false_type) -> std::false_type;
 
@@ -279,9 +279,8 @@ struct is_mutable_container<
 // check to see if an object is a mutable container (fail by default)
 template <typename T, typename _ = void> struct is_readable_container : std::false_type {};
 
-/// type trait to test if a type is a container meaning it has a value_type, it has an iterator, a clear, and an end
-/// methods and an insert function.  And for our purposes we exclude std::string and types that can be constructed from
-/// a std::string
+/// type trait to test if a type is a container meaning it has a value_type, it has an iterator, and an end
+/// method.
 template <typename T>
 struct is_readable_container<
     T,
@@ -296,8 +295,9 @@ template <typename T>
 struct is_wrapper<T, conditional_t<false, void_t<typename T::value_type>, void>> : public std::true_type {};
 
 // Check for tuple like types, as in classes with a tuple_size type trait
+// Even though in C++26 std::complex gains a std::tuple interface, for our purposes we treat is as NOT a tuple
 template <typename S> class is_tuple_like {
-    template <typename SS>
+    template <typename SS, enable_if_t<!is_complex<SS>::value, detail::enabler> = detail::dummy>
     // static auto test(int)
     //     -> decltype(std::conditional<(std::tuple_size<SS>::value > 0), std::true_type, std::false_type>::type());
     static auto test(int) -> decltype(std::tuple_size<typename std::decay<SS>::type>::value, std::true_type{});
@@ -305,6 +305,31 @@ template <typename S> class is_tuple_like {
 
   public:
     static constexpr bool value = decltype(test<S>(0))::value;
+};
+
+/// This will only trigger for actual void type
+template <typename T, typename Enable = void> struct type_count_base {
+    static const int value{0};
+};
+
+/// Type size for regular object types that do not look like a tuple
+template <typename T>
+struct type_count_base<T,
+                       typename std::enable_if<!is_tuple_like<T>::value && !is_mutable_container<T>::value &&
+                                               !std::is_void<T>::value>::type> {
+    static constexpr int value{1};
+};
+
+/// the base tuple size
+template <typename T>
+struct type_count_base<T, typename std::enable_if<is_tuple_like<T>::value && !is_mutable_container<T>::value>::type> {
+    static constexpr int value{// cppcheck-suppress unusedStructMember
+                               std::tuple_size<typename std::decay<T>::type>::value};
+};
+
+/// Type count base for containers is the type_count_base of the individual element
+template <typename T> struct type_count_base<T, typename std::enable_if<is_mutable_container<T>::value>::type> {
+    static constexpr int value{type_count_base<typename T::value_type>::value};
 };
 
 /// Convert an object to a string (directly forward if this can become a string)
@@ -317,13 +342,13 @@ auto to_string(T &&value) -> decltype(std::forward<T>(value)) {
 template <typename T,
           enable_if_t<std::is_constructible<std::string, T>::value && !std::is_convertible<T, std::string>::value,
                       detail::enabler> = detail::dummy>
-std::string to_string(const T &value) {
+std::string to_string(T &&value) {
     return std::string(value);  // NOLINT(google-readability-casting)
 }
 
 /// Convert an object to a string (streaming must be supported for that type)
 template <typename T,
-          enable_if_t<!std::is_convertible<std::string, T>::value && !std::is_constructible<std::string, T>::value &&
+          enable_if_t<!std::is_convertible<T, std::string>::value && !std::is_constructible<std::string, T>::value &&
                           is_ostreamable<T>::value,
                       detail::enabler> = detail::dummy>
 std::string to_string(T &&value) {
@@ -332,21 +357,39 @@ std::string to_string(T &&value) {
     return stream.str();
 }
 
-/// If conversion is not supported, return an empty string (streaming is not supported for that type)
+// additional forward declarations
+
+/// Print tuple value string for tuples of size ==1
 template <typename T,
-          enable_if_t<!std::is_constructible<std::string, T>::value && !is_ostreamable<T>::value &&
-                          !is_readable_container<typename std::remove_const<T>::type>::value,
+          enable_if_t<!std::is_convertible<T, std::string>::value && !std::is_constructible<std::string, T>::value &&
+                          !is_ostreamable<T>::value && is_tuple_like<T>::value && type_count_base<T>::value == 1,
                       detail::enabler> = detail::dummy>
-std::string to_string(T &&) {
+inline std::string to_string(T &&value);
+
+/// Print tuple value string for tuples of size > 1
+template <typename T,
+          enable_if_t<!std::is_convertible<T, std::string>::value && !std::is_constructible<std::string, T>::value &&
+                          !is_ostreamable<T>::value && is_tuple_like<T>::value && type_count_base<T>::value >= 2,
+                      detail::enabler> = detail::dummy>
+inline std::string to_string(T &&value);
+
+/// If conversion is not supported, return an empty string (streaming is not supported for that type)
+template <
+    typename T,
+    enable_if_t<!std::is_convertible<T, std::string>::value && !std::is_constructible<std::string, T>::value &&
+                    !is_ostreamable<T>::value && !is_readable_container<typename std::remove_const<T>::type>::value &&
+                    !is_tuple_like<T>::value,
+                detail::enabler> = detail::dummy>
+inline std::string to_string(T &&) {
     return {};
 }
 
 /// convert a readable container to a string
 template <typename T,
-          enable_if_t<!std::is_constructible<std::string, T>::value && !is_ostreamable<T>::value &&
-                          is_readable_container<T>::value,
+          enable_if_t<!std::is_convertible<T, std::string>::value && !std::is_constructible<std::string, T>::value &&
+                          !is_ostreamable<T>::value && is_readable_container<T>::value && !is_tuple_like<T>::value,
                       detail::enabler> = detail::dummy>
-std::string to_string(T &&variable) {
+inline std::string to_string(T &&variable) {
     auto cval = variable.begin();
     auto end = variable.end();
     if(cval == end) {
@@ -358,6 +401,51 @@ std::string to_string(T &&variable) {
         ++cval;
     }
     return {"[" + detail::join(defaults) + "]"};
+}
+
+/// Convert a tuple like object to a string
+
+/// forward declarations for tuple_value_strings
+template <typename T, std::size_t I>
+inline typename std::enable_if<I == type_count_base<T>::value, std::string>::type tuple_value_string(T && /*value*/);
+
+/// Recursively generate the tuple value string
+template <typename T, std::size_t I>
+inline typename std::enable_if<(I < type_count_base<T>::value), std::string>::type tuple_value_string(T &&value);
+
+/// Print tuple value string for tuples of size ==1
+template <typename T,
+          enable_if_t<!std::is_convertible<T, std::string>::value && !std::is_constructible<std::string, T>::value &&
+                          !is_ostreamable<T>::value && is_tuple_like<T>::value && type_count_base<T>::value == 1,
+                      detail::enabler>>
+inline std::string to_string(T &&value) {
+    return to_string(std::get<0>(value));
+}
+
+/// Print tuple value string for tuples of size > 1
+template <typename T,
+          enable_if_t<!std::is_convertible<T, std::string>::value && !std::is_constructible<std::string, T>::value &&
+                          !is_ostreamable<T>::value && is_tuple_like<T>::value && type_count_base<T>::value >= 2,
+                      detail::enabler>>
+inline std::string to_string(T &&value) {
+    auto tname = std::string(1, '[') + tuple_value_string<T, 0>(value);
+    tname.push_back(']');
+    return tname;
+}
+
+/// Empty string if the index > tuple size
+template <typename T, std::size_t I>
+inline typename std::enable_if<I == type_count_base<T>::value, std::string>::type tuple_value_string(T && /*value*/) {
+    return std::string{};
+}
+
+/// Recursively generate the tuple value string
+template <typename T, std::size_t I>
+inline typename std::enable_if<(I < type_count_base<T>::value), std::string>::type tuple_value_string(T &&value) {
+    auto str = std::string{to_string(std::get<I>(value))} + ',' + tuple_value_string<T, I + 1>(value);
+    if(str.back() == ',')
+        str.pop_back();
+    return str;
 }
 
 /// special template overload
@@ -402,30 +490,6 @@ template <typename T, typename def, typename Enable = void> struct wrapped_type 
 /// Type size for regular object types that do not look like a tuple
 template <typename T, typename def> struct wrapped_type<T, def, typename std::enable_if<is_wrapper<T>::value>::type> {
     using type = typename T::value_type;
-};
-
-/// This will only trigger for actual void type
-template <typename T, typename Enable = void> struct type_count_base {
-    static const int value{0};
-};
-
-/// Type size for regular object types that do not look like a tuple
-template <typename T>
-struct type_count_base<T,
-                       typename std::enable_if<!is_tuple_like<T>::value && !is_mutable_container<T>::value &&
-                                               !std::is_void<T>::value>::type> {
-    static constexpr int value{1};
-};
-
-/// the base tuple size
-template <typename T>
-struct type_count_base<T, typename std::enable_if<is_tuple_like<T>::value && !is_mutable_container<T>::value>::type> {
-    static constexpr int value{std::tuple_size<T>::value};
-};
-
-/// Type count base for containers is the type_count_base of the individual element
-template <typename T> struct type_count_base<T, typename std::enable_if<is_mutable_container<T>::value>::type> {
-    static constexpr int value{type_count_base<typename T::value_type>::value};
 };
 
 /// Set of overloads to get the type size of an object
@@ -480,7 +544,8 @@ template <typename T, std::size_t I>
 }
 
 /// Get the type size of the sum of type sizes for all the individual tuple types
-template <typename T> struct type_count<T, typename std::enable_if<is_tuple_like<T>::value>::type> {
+template <typename T>
+struct type_count<T, typename std::enable_if<is_tuple_like<T>::value && !is_complex<T>::value>::type> {
     static constexpr int value{tuple_type_size<T, 0>()};
 };
 
@@ -529,7 +594,8 @@ template <typename T, std::size_t I>
 }
 
 /// Get the type size of the sum of type sizes for all the individual tuple types
-template <typename T> struct type_count_min<T, typename std::enable_if<is_tuple_like<T>::value>::type> {
+template <typename T>
+struct type_count_min<T, typename std::enable_if<is_tuple_like<T>::value && !is_complex<T>::value>::type> {
     static constexpr int value{tuple_type_size_min<T, 0>()};
 };
 
@@ -564,7 +630,7 @@ struct expected_count<T, typename std::enable_if<!is_mutable_container<T>::value
 };
 
 // Enumeration of the different supported categorizations of objects
-enum class object_category : int {
+enum class object_category : std::uint8_t {
     char_value = 1,
     integral_value = 2,
     unsigned_integral = 4,
@@ -897,14 +963,22 @@ bool integral_conversion(const std::string &input, T &output) noexcept {
         output = (output_sll < 0) ? static_cast<T>(0) : static_cast<T>(output_sll);
         return (static_cast<std::int64_t>(output) == output_sll);
     }
-    // remove separators
-    if(input.find_first_of("_'") != std::string::npos) {
+    // remove separators if present
+    auto group_separators = get_group_separators();
+    if(input.find_first_of(group_separators) != std::string::npos) {
         std::string nstring = input;
-        nstring.erase(std::remove(nstring.begin(), nstring.end(), '_'), nstring.end());
-        nstring.erase(std::remove(nstring.begin(), nstring.end(), '\''), nstring.end());
+        for(auto &separator : group_separators) {
+            if(input.find_first_of(separator) != std::string::npos) {
+                nstring.erase(std::remove(nstring.begin(), nstring.end(), separator), nstring.end());
+            }
+        }
         return integral_conversion(nstring, output);
     }
-    if(input.compare(0, 2, "0o") == 0) {
+
+    if(std::isspace(static_cast<unsigned char>(input.back()))) {
+        return integral_conversion(trim_copy(input), output);
+    }
+    if(input.compare(0, 2, "0o") == 0 || input.compare(0, 2, "0O") == 0) {
         val = nullptr;
         errno = 0;
         output_ll = std::strtoull(input.c_str() + 2, &val, 8);
@@ -914,7 +988,10 @@ bool integral_conversion(const std::string &input, T &output) noexcept {
         output = static_cast<T>(output_ll);
         return (val == (input.c_str() + input.size()) && static_cast<std::uint64_t>(output) == output_ll);
     }
-    if(input.compare(0, 2, "0b") == 0) {
+    if(input.compare(0, 2, "0b") == 0 || input.compare(0, 2, "0B") == 0) {
+        // LCOV_EXCL_START
+        // In some new compilers including the coverage testing one binary strings are handled properly in strtoull
+        // automatically so this coverage is missing but is well tested in other compilers
         val = nullptr;
         errno = 0;
         output_ll = std::strtoull(input.c_str() + 2, &val, 2);
@@ -923,6 +1000,7 @@ bool integral_conversion(const std::string &input, T &output) noexcept {
         }
         output = static_cast<T>(output_ll);
         return (val == (input.c_str() + input.size()) && static_cast<std::uint64_t>(output) == output_ll);
+        // LCOV_EXCL_STOP
     }
     return false;
 }
@@ -948,14 +1026,21 @@ bool integral_conversion(const std::string &input, T &output) noexcept {
         output = static_cast<T>(1);
         return true;
     }
-    // remove separators
-    if(input.find_first_of("_'") != std::string::npos) {
-        std::string nstring = input;
-        nstring.erase(std::remove(nstring.begin(), nstring.end(), '_'), nstring.end());
-        nstring.erase(std::remove(nstring.begin(), nstring.end(), '\''), nstring.end());
-        return integral_conversion(nstring, output);
+    // remove separators if present
+    auto group_separators = get_group_separators();
+    if(input.find_first_of(group_separators) != std::string::npos) {
+        for(auto &separator : group_separators) {
+            if(input.find_first_of(separator) != std::string::npos) {
+                std::string nstring = input;
+                nstring.erase(std::remove(nstring.begin(), nstring.end(), separator), nstring.end());
+                return integral_conversion(nstring, output);
+            }
+        }
     }
-    if(input.compare(0, 2, "0o") == 0) {
+    if(std::isspace(static_cast<unsigned char>(input.back()))) {
+        return integral_conversion(trim_copy(input), output);
+    }
+    if(input.compare(0, 2, "0o") == 0 || input.compare(0, 2, "0O") == 0) {
         val = nullptr;
         errno = 0;
         output_ll = std::strtoll(input.c_str() + 2, &val, 8);
@@ -965,7 +1050,10 @@ bool integral_conversion(const std::string &input, T &output) noexcept {
         output = static_cast<T>(output_ll);
         return (val == (input.c_str() + input.size()) && static_cast<std::int64_t>(output) == output_ll);
     }
-    if(input.compare(0, 2, "0b") == 0) {
+    if(input.compare(0, 2, "0b") == 0 || input.compare(0, 2, "0B") == 0) {
+        // LCOV_EXCL_START
+        // In some new compilers including the coverage testing one binary strings are handled properly in strtoll
+        // automatically so this coverage is missing but is well tested in other compilers
         val = nullptr;
         errno = 0;
         output_ll = std::strtoll(input.c_str() + 2, &val, 2);
@@ -974,6 +1062,7 @@ bool integral_conversion(const std::string &input, T &output) noexcept {
         }
         output = static_cast<T>(output_ll);
         return (val == (input.c_str() + input.size()) && static_cast<std::int64_t>(output) == output_ll);
+        // LCOV_EXCL_STOP
     }
     return false;
 }
@@ -1043,7 +1132,14 @@ bool lexical_cast(const std::string &input, T &output) {
         output = static_cast<T>(input[0]);
         return true;
     }
-    return integral_conversion(input, output);
+    std::int8_t res{0};
+    // we do it this way as some systems have char as signed and not,  this ensures consistency in the way things are
+    // handled
+    bool result = integral_conversion(input, res);
+    if(result) {
+        output = static_cast<T>(res);
+    }
+    return result;
 }
 
 /// Boolean values
@@ -1075,12 +1171,23 @@ bool lexical_cast(const std::string &input, T &output) {
     if(val == (input.c_str() + input.size())) {
         return true;
     }
-    // remove separators
-    if(input.find_first_of("_'") != std::string::npos) {
-        std::string nstring = input;
-        nstring.erase(std::remove(nstring.begin(), nstring.end(), '_'), nstring.end());
-        nstring.erase(std::remove(nstring.begin(), nstring.end(), '\''), nstring.end());
-        return lexical_cast(nstring, output);
+    while(std::isspace(static_cast<unsigned char>(*val))) {
+        ++val;
+        if(val == (input.c_str() + input.size())) {
+            return true;
+        }
+    }
+
+    // remove separators if present
+    auto group_separators = get_group_separators();
+    if(input.find_first_of(group_separators) != std::string::npos) {
+        for(auto &separator : group_separators) {
+            if(input.find_first_of(separator) != std::string::npos) {
+                std::string nstring = input;
+                nstring.erase(std::remove(nstring.begin(), nstring.end(), separator), nstring.end());
+                return lexical_cast(nstring, output);
+            }
+        }
     }
     return false;
 }
@@ -1314,7 +1421,7 @@ bool lexical_assign(const std::string &input, AssignTo &output) {
     }
 
     return lexical_cast(input, output);
-}
+}  // LCOV_EXCL_LINE
 
 /// Assign a value through lexical cast operations
 template <typename AssignTo,
@@ -1412,7 +1519,7 @@ bool lexical_conversion(const std::vector<std ::string> &strings, AssignTo &outp
     using FirstType = typename std::remove_const<typename std::tuple_element<0, ConvertTo>::type>::type;
     using SecondType = typename std::tuple_element<1, ConvertTo>::type;
     FirstType v1;
-    SecondType v2;
+    SecondType v2{};
     bool retval = lexical_assign<FirstType, FirstType>(strings[0], v1);
     retval = retval && lexical_assign<SecondType, SecondType>((strings.size() > 1) ? strings[1] : std::string{}, v2);
     if(retval) {
