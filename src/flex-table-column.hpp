@@ -32,6 +32,7 @@ enum class table_column_type : uint8_t
     int8,
 
     real,
+    double_precision,
 
     timestamp,
     timestamptz,
