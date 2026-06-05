@@ -78,6 +78,7 @@ jobs:
         run: |
           test -d $PREFIX/bin
           test -e $PREFIX/bin/osm2pgsql
+          test -e $PREFIX/bin/osm2pgsql-expire
           test -e $PREFIX/bin/osm2pgsql-replication
           test -d $PREFIX/share/man/man1
           test -f $PREFIX/share/man/man1/osm2pgsql.1
