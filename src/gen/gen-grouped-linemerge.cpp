@@ -121,7 +121,7 @@ gen_grouped_linemerge_t::gen_grouped_linemerge_t(pg_conn_t *connection,
     params->set("idx_endpt", src_table + "_glm_endpt");
 
     // The append-mode delete looks up destination rows by their endpoint
-    // coordinates, so the destination gets matching functional indexes too.
+    // points, so the destination gets matching functional indexes too.
     auto const dest_table = get_params().get_identifier("dest_table");
     params->set("idx_dest_startpt", dest_table + "_glm_startpt");
     params->set("idx_dest_endpt", dest_table + "_glm_endpt");
@@ -165,12 +165,10 @@ void gen_grouped_linemerge_t::process_create()
         log_gen("Creating endpoint indexes on source table...");
         dbexec(
             R"(CREATE INDEX IF NOT EXISTS "{idx_startpt}" ON {src} USING btree)"
-            R"( (ST_X(ST_StartPoint("{geom_column}")),)"
-            R"( ST_Y(ST_StartPoint("{geom_column}"))) {index_predicate})");
+            R"( (ST_StartPoint("{geom_column}")) {index_predicate})");
         dbexec(
             R"(CREATE INDEX IF NOT EXISTS "{idx_endpt}" ON {src} USING btree)"
-            R"( (ST_X(ST_EndPoint("{geom_column}")),)"
-            R"( ST_Y(ST_EndPoint("{geom_column}"))) {index_predicate})");
+            R"( (ST_EndPoint("{geom_column}")) {index_predicate})");
     }
 
     log_gen("Merging lines by group...");
@@ -195,11 +193,9 @@ INSERT INTO {dest} ({group_cols}, "{geom_column}")
     if (get_params().get_bool("create_indexes", true)) {
         log_gen("Creating endpoint indexes on destination table...");
         dbexec(R"(CREATE INDEX IF NOT EXISTS "{idx_dest_startpt}" ON {dest})"
-               R"( USING btree (ST_X(ST_StartPoint("{geom_column}")),)"
-               R"( ST_Y(ST_StartPoint("{geom_column}"))))");
+               R"( USING btree (ST_StartPoint("{geom_column}")))");
         dbexec(R"(CREATE INDEX IF NOT EXISTS "{idx_dest_endpt}" ON {dest})"
-               R"( USING btree (ST_X(ST_EndPoint("{geom_column}")),)"
-               R"( ST_Y(ST_EndPoint("{geom_column}"))))");
+               R"( USING btree (ST_EndPoint("{geom_column}")))");
     }
 }
 
@@ -230,16 +226,17 @@ CREATE TEMP TABLE _glm_region ON COMMIT DROP AS
     // and drives the joins from it.
     dbexec("ANALYZE _glm_region");
 
-    // Step 2: Find the nodes (endpoint coordinates) of every connected
-    // component touched by the changed region. We seed from the lines that
-    // intersect the region and walk out along shared endpoints, staying within
-    // the same grouping key, until each connected component is fully explored.
-    // The walk is on exact endpoint coordinates (so the functional btree
-    // indexes can be used) and de-duplicates (group, x, y) tuples, which
-    // guarantees termination. The 'where' filter is applied everywhere a
-    // source row is read, so excluded lines neither seed nor extend a
-    // component. The node coordinates are carried under "gk_"-prefixed names
-    // so the unqualified 'where' filter is never ambiguous against them.
+    // Step 2: Find the nodes (endpoint points) of every connected component
+    // touched by the changed region. We seed from the lines that intersect the
+    // region and walk out along shared endpoints, staying within the same
+    // grouping key, until each connected component is fully explored. The walk
+    // matches endpoints with exact geometry equality (so the functional btree
+    // indexes on the endpoint points can be used) and de-duplicates
+    // (group, point) pairs, which guarantees termination. The 'where' filter is
+    // applied everywhere a source row is read, so excluded lines neither seed
+    // nor extend a component. The grouping values are carried under
+    // "gk_"-prefixed names so the unqualified 'where' filter is never ambiguous
+    // against them.
     timer(m_timer_walk).start();
     dbexec(R"(
 CREATE TEMP TABLE _glm_nodes ON COMMIT DROP AS
@@ -256,32 +253,20 @@ seeds AS (
 ),
 nodes AS (
   SELECT b.* FROM (
-    SELECT {group_cols_gk},
-           ST_X(ST_StartPoint("{geom_column}")) AS x,
-           ST_Y(ST_StartPoint("{geom_column}")) AS y
-      FROM seeds
+    SELECT {group_cols_gk}, ST_StartPoint("{geom_column}") AS pt FROM seeds
     UNION
-    SELECT {group_cols_gk},
-           ST_X(ST_EndPoint("{geom_column}")), ST_Y(ST_EndPoint("{geom_column}"))
-      FROM seeds
+    SELECT {group_cols_gk}, ST_EndPoint("{geom_column}") FROM seeds
   ) b
   UNION
   SELECT {group_cols_l_gk},
-    CASE WHEN ST_X(ST_StartPoint(l."{geom_column}")) = n.x
-          AND ST_Y(ST_StartPoint(l."{geom_column}")) = n.y
-         THEN ST_X(ST_EndPoint(l."{geom_column}"))
-         ELSE ST_X(ST_StartPoint(l."{geom_column}")) END,
-    CASE WHEN ST_X(ST_StartPoint(l."{geom_column}")) = n.x
-          AND ST_Y(ST_StartPoint(l."{geom_column}")) = n.y
-         THEN ST_Y(ST_EndPoint(l."{geom_column}"))
-         ELSE ST_Y(ST_StartPoint(l."{geom_column}")) END
+    CASE WHEN ST_StartPoint(l."{geom_column}") = n.pt
+         THEN ST_EndPoint(l."{geom_column}")
+         ELSE ST_StartPoint(l."{geom_column}") END
     FROM nodes n
     JOIN {src} l
       ON {group_join}
-     AND ( (ST_X(ST_StartPoint(l."{geom_column}")) = n.x
-        AND ST_Y(ST_StartPoint(l."{geom_column}")) = n.y)
-       OR (ST_X(ST_EndPoint(l."{geom_column}")) = n.x
-        AND ST_Y(ST_EndPoint(l."{geom_column}")) = n.y) )
+     AND ( ST_StartPoint(l."{geom_column}") = n.pt
+        OR ST_EndPoint(l."{geom_column}") = n.pt )
      AND {where}
 )
 SELECT * FROM nodes
@@ -297,10 +282,8 @@ SELECT DISTINCT ON (l.ctid) {group_cols_l}, l."{geom_column}"
   FROM _glm_nodes n
   JOIN {src} l
     ON {group_join}
-   AND ( (ST_X(ST_StartPoint(l."{geom_column}")) = n.x
-      AND ST_Y(ST_StartPoint(l."{geom_column}")) = n.y)
-     OR (ST_X(ST_EndPoint(l."{geom_column}")) = n.x
-      AND ST_Y(ST_EndPoint(l."{geom_column}")) = n.y) )
+   AND ( ST_StartPoint(l."{geom_column}") = n.pt
+      OR ST_EndPoint(l."{geom_column}") = n.pt )
    AND {where}
  ORDER BY l.ctid
 )");
@@ -325,10 +308,8 @@ SELECT DISTINCT ON (l.ctid) {group_cols_l}, l."{geom_column}"
 DELETE FROM {dest} d
  USING _glm_nodes n
  WHERE {group_join_dn}
-   AND ( (ST_X(ST_StartPoint(d."{geom_column}")) = n.x
-      AND ST_Y(ST_StartPoint(d."{geom_column}")) = n.y)
-     OR (ST_X(ST_EndPoint(d."{geom_column}")) = n.x
-      AND ST_Y(ST_EndPoint(d."{geom_column}")) = n.y) )
+   AND ( ST_StartPoint(d."{geom_column}") = n.pt
+      OR ST_EndPoint(d."{geom_column}") = n.pt )
 )");
     auto const deleted_by_nodes = deleted.affected_rows();
     deleted = dbexec(R"(
