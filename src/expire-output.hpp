@@ -17,15 +17,21 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <string>
 #include <unordered_set>
 #include <utility>
+#include <vector>
 
 constexpr std::size_t DEFAULT_MAX_TILES_GEOMETRY = 10'000'000;
 constexpr std::size_t DEFAULT_MAX_TILES_OVERALL = 50'000'000;
 
 class pg_conn_t;
 class connection_params_t;
+
+namespace geom {
+class geometry_t;
+} // namespace geom
 
 /**
  * Output for tile expiry.
@@ -52,6 +58,35 @@ public:
         m_schema = std::move(schema);
         m_table = std::move(table);
     }
+
+    std::string const &endpoint_table() const noexcept
+    {
+        return m_endpoint_table;
+    }
+
+    void set_endpoint_table(std::string table)
+    {
+        m_endpoint_table = std::move(table);
+    }
+
+    /// Does this output write expired tiles (to a file and/or table)?
+    bool has_tile_output() const noexcept
+    {
+        return !m_filename.empty() || !m_table.empty();
+    }
+
+    /// Does this output write the endpoints of changed geometries to a table?
+    bool has_endpoint_output() const noexcept
+    {
+        return !m_endpoint_table.empty();
+    }
+
+    /**
+     * Record the endpoints (first and last point of each linestring) of a
+     * changed geometry. They are written to the endpoint table on output.
+     * Non-(multi)linestring geometries contribute no endpoints. Thread-safe.
+     */
+    void add_endpoints(geom::geometry_t const &geom);
 
     uint32_t minzoom() const noexcept { return m_minzoom; }
     void set_minzoom(uint32_t minzoom) noexcept { m_minzoom = minzoom; }
@@ -116,6 +151,19 @@ private:
     output_tiles_to_table(quadkey_list_t const &tiles_at_maxzoom,
                           connection_params_t const &connection_params) const;
 
+    /// Take and clear the collected endpoints. Thread-safe.
+    std::vector<std::pair<double, double>> get_endpoints();
+
+    /**
+     * Write the collected endpoints as POINT geometries to the endpoint table.
+     *
+     * \param endpoints The endpoint coordinates to write
+     * \param connection_params Database connection parameters
+     */
+    std::size_t
+    output_endpoints_to_table(std::vector<std::pair<double, double>> const &endpoints,
+                              connection_params_t const &connection_params) const;
+
     /**
      * Access to the m_tiles collection of expired tiles must go through
      * this mutex, because it can happend from several threads at the same
@@ -135,6 +183,16 @@ private:
 
     /// The table (if any) for output
     std::string m_table;
+
+    /// The table (if any) for changed-geometry endpoints
+    std::string m_endpoint_table;
+
+    /// Collected endpoints (deduplicated) of changed geometries. Guarded by
+    /// m_tiles_mutex (same access pattern as m_tiles).
+    std::set<std::pair<double, double>> m_endpoints;
+
+    /// SRID of the collected endpoints (all geometries share the table's SRID).
+    int m_endpoint_srid = 0;
 
     /// Minimum zoom level for output
     uint32_t m_minzoom = 0;

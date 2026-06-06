@@ -10,9 +10,12 @@
 #include "expire-output.hpp"
 
 #include "format.hpp"
+#include "geom.hpp"
+#include "hex.hpp"
 #include "logging.hpp"
 #include "pgsql.hpp"
 #include "tile.hpp"
+#include "wkb.hpp"
 
 #include <cerrno>
 #include <system_error>
@@ -50,10 +53,43 @@ void expire_output_t::add_tiles(
     m_tiles.insert(dirty_tiles.cbegin(), dirty_tiles.cend());
 }
 
+void expire_output_t::add_endpoints(geom::geometry_t const &geom)
+{
+    auto const add_line = [this](geom::linestring_t const &line) {
+        if (line.empty()) {
+            return;
+        }
+        auto const &first = line.front();
+        auto const &last = line.back();
+        m_endpoints.emplace(first.x(), first.y());
+        m_endpoints.emplace(last.x(), last.y());
+    };
+
+    std::lock_guard<std::mutex> const guard{*m_tiles_mutex};
+
+    m_endpoint_srid = geom.srid();
+    if (geom.is_linestring()) {
+        add_line(geom.get<geom::linestring_t>());
+    } else if (geom.is_multilinestring()) {
+        for (auto const &line : geom.get<geom::multilinestring_t>()) {
+            add_line(line);
+        }
+    }
+}
+
 bool expire_output_t::empty() noexcept
 {
     std::lock_guard<std::mutex> const guard{*m_tiles_mutex};
-    return m_tiles.empty();
+    return m_tiles.empty() && m_endpoints.empty();
+}
+
+std::vector<std::pair<double, double>> expire_output_t::get_endpoints()
+{
+    std::lock_guard<std::mutex> const guard{*m_tiles_mutex};
+    std::vector<std::pair<double, double>> endpoints(m_endpoints.cbegin(),
+                                                     m_endpoints.cend());
+    m_endpoints.clear();
+    return endpoints;
 }
 
 quadkey_list_t expire_output_t::get_tiles()
@@ -78,6 +114,9 @@ expire_output_t::output(connection_params_t const &connection_params)
     }
     if (!m_table.empty()) {
         num = output_tiles_to_table(get_tiles(), connection_params);
+    }
+    if (!m_endpoint_table.empty()) {
+        output_endpoints_to_table(get_endpoints(), connection_params);
     }
     return num;
 }
@@ -140,16 +179,49 @@ std::size_t expire_output_t::output_tiles_to_table(
     return count;
 }
 
+std::size_t expire_output_t::output_endpoints_to_table(
+    std::vector<std::pair<double, double>> const &endpoints,
+    connection_params_t const &connection_params) const
+{
+    if (endpoints.empty()) {
+        return 0;
+    }
+
+    auto const qn = qualified_name(m_schema, m_endpoint_table);
+
+    pg_conn_t const db_connection{connection_params, "expire"};
+
+    db_connection.prepare("insert_endpoints",
+                          "INSERT INTO {} (geom) VALUES ($1::geometry)", qn);
+
+    for (auto const &[x, y] : endpoints) {
+        geom::geometry_t const point{geom::point_t{x, y}, m_endpoint_srid};
+        db_connection.exec_prepared("insert_endpoints",
+                                    util::encode_hex(geom_to_ewkb(point)));
+    }
+
+    return endpoints.size();
+}
+
 void expire_output_t::create_output_table(pg_conn_t const &db_connection) const
 {
-    auto const qn = qualified_name(m_schema, m_table);
-    db_connection.exec(
-        "CREATE TABLE IF NOT EXISTS {} ("
-        " zoom int4 NOT NULL,"
-        " x int4 NOT NULL,"
-        " y int4 NOT NULL,"
-        " first timestamp with time zone DEFAULT CURRENT_TIMESTAMP(0),"
-        " last timestamp with time zone DEFAULT CURRENT_TIMESTAMP(0),"
-        " PRIMARY KEY (zoom, x, y))",
-        qn);
+    if (!m_table.empty()) {
+        auto const qn = qualified_name(m_schema, m_table);
+        db_connection.exec(
+            "CREATE TABLE IF NOT EXISTS {} ("
+            " zoom int4 NOT NULL,"
+            " x int4 NOT NULL,"
+            " y int4 NOT NULL,"
+            " first timestamp with time zone DEFAULT CURRENT_TIMESTAMP(0),"
+            " last timestamp with time zone DEFAULT CURRENT_TIMESTAMP(0),"
+            " PRIMARY KEY (zoom, x, y))",
+            qn);
+    }
+
+    if (!m_endpoint_table.empty()) {
+        auto const qn = qualified_name(m_schema, m_endpoint_table);
+        db_connection.exec("CREATE TABLE IF NOT EXISTS {} ("
+                           " geom geometry(Point) NOT NULL)",
+                           qn);
+    }
 }

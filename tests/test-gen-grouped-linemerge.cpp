@@ -26,10 +26,6 @@ namespace {
 
 testing::pg::tempdb_t db;
 
-// Expire output zoom used throughout. At z18 a tile is ~150m, the grid below
-// uses a 500 unit step, so an edge spans a couple of tiles.
-constexpr int ZOOM = 18;
-
 // Run the grouped-linemerge strategy (create or append) against the test
 // tables. conn_t is a pg_conn_t, so it can be passed straight to the strategy.
 void run_gen(testing::pg::conn_t &conn, bool append,
@@ -47,8 +43,7 @@ void run_gen(testing::pg::conn_t &conn, bool append,
     if (where != nullptr) {
         params.set("where", where);
     }
-    params.set("expire_list", "glm_exp");
-    params.set("zoom", static_cast<int64_t>(ZOOM));
+    params.set("endpoint_table", "glm_exp");
 
     gen_grouped_linemerge_t gen{&conn, append, &params};
     gen.process();
@@ -63,8 +58,9 @@ void setup_tables(testing::pg::conn_t &conn)
     conn.exec("CREATE INDEX ON glm_lines USING gist (geom)");
     conn.exec("CREATE TABLE glm_merged (grp text, geom geometry NOT NULL)");
     conn.exec("CREATE INDEX ON glm_merged USING gist (geom)");
-    conn.exec("CREATE TABLE glm_exp (zoom int4 NOT NULL, x int4 NOT NULL,"
-              " y int4 NOT NULL, PRIMARY KEY (zoom, x, y))");
+    // The change signal: the exact endpoints of changed ways (what osm2pgsql's
+    // expire output with an 'endpoint_table' writes during an update).
+    conn.exec("CREATE TABLE glm_exp (geom geometry(Point, 3857) NOT NULL)");
 }
 
 void insert_edge(testing::pg::conn_t &conn, std::string const &grp,
@@ -83,22 +79,15 @@ void delete_edge(testing::pg::conn_t &conn, std::string const &grp,
                           grp, wkt));
 }
 
-// Expire the tiles a geometry covers, exactly as osm2pgsql would during an
-// update (the changed way's footprint). Hard-coded for z18.
+// Record the exact endpoints of a changed way, exactly as osm2pgsql's expire
+// output with an 'endpoint_table' would during an update (start and end point
+// of the changed geometry).
 void expire(testing::pg::conn_t &conn, std::string const &wkt)
 {
     conn.exec(fmt::format(
-        "INSERT INTO glm_exp (zoom, x, y)"
-        " SELECT DISTINCT 18, gx, gy"
-        " FROM (SELECT ST_GeomFromText('{}', 3857) AS way) g,"
-        " LATERAL (SELECT"
-        "   floor((ST_XMin(g.way)+20037508.342789244)/40075016.685578488*262144)::int x0,"
-        "   floor((ST_XMax(g.way)+20037508.342789244)/40075016.685578488*262144)::int x1,"
-        "   floor((20037508.342789244-ST_YMax(g.way))/40075016.685578488*262144)::int y0,"
-        "   floor((20037508.342789244-ST_YMin(g.way))/40075016.685578488*262144)::int y1) b,"
-        " generate_series(b.x0, b.x1) gx, generate_series(b.y0, b.y1) gy"
-        " WHERE ST_Intersects(ST_TileEnvelope(18, gx, gy), g.way)"
-        " ON CONFLICT DO NOTHING",
+        "INSERT INTO glm_exp (geom)"
+        " VALUES (ST_StartPoint(ST_GeomFromText('{0}', 3857))),"
+        "        (ST_EndPoint(ST_GeomFromText('{0}', 3857)))",
         wkt));
 }
 
@@ -262,8 +251,7 @@ TEST_CASE("grouped-linemerge: multi-column grouping, NULL keys, where filter")
     conn.exec("CREATE TABLE glm2_merged"
               " (name text, ref text, geom geometry NOT NULL)");
     conn.exec("CREATE INDEX ON glm2_merged USING gist (geom)");
-    conn.exec("CREATE TABLE glm_exp (zoom int4 NOT NULL, x int4 NOT NULL,"
-              " y int4 NOT NULL, PRIMARY KEY (zoom, x, y))");
+    conn.exec("CREATE TABLE glm_exp (geom geometry(Point, 3857) NOT NULL)");
 
     char const *const cols = "name, ref";
     char const *const filter = "(name IS NOT NULL OR ref IS NOT NULL)";
