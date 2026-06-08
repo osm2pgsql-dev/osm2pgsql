@@ -349,14 +349,14 @@ void flex_write_column(lua_State *lua_state, geometry_cache_t *geom_cache,
             throw fmt_error("Invalid type '{}' for int8 column.",
                             lua_typename(lua_state, ltype));
         }
-    } else if (column.type() == table_column_type::real) {
+    } else if (column.type() == table_column_type::real || column.type() == table_column_type::double_precision) {
         if (ltype == LUA_TNUMBER) {
             copy_mgr->add_column(lua_tonumber(lua_state, -1));
         } else if (ltype == LUA_TSTRING) {
             write_double(copy_mgr, column,
                          lua_tolstring(lua_state, -1, nullptr));
         } else {
-            throw fmt_error("Invalid type '{}' for real column.",
+            throw fmt_error("Invalid type '{}' for real/double precision column.",
                             lua_typename(lua_state, ltype));
         }
     } else if (column.type() == table_column_type::timestamp) {

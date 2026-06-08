@@ -6,6 +6,7 @@ local test_table = osm2pgsql.define_node_table("nodes", {
     { column = 'tint4', type = 'int4' },
     { column = 'tint8', type = 'int8' },
     { column = 'treal', type = 'real' },
+    { column = 'tdubl', type = 'double' },
     { column = 'thstr', type = 'hstore' },
     { column = 'tjson', type = 'jsonb' },
     { column = 'tdirn', type = 'direction' },
@@ -47,6 +48,7 @@ function osm2pgsql.process_node(object)
                 tint4 = n,
                 tint8 = n,
                 treal = n,
+                tdubl = n,
                 tjson = n,
                 tdirn = n,
                 tsqlt = n,
@@ -100,6 +102,7 @@ function osm2pgsql.process_node(object)
                 tint4 = string.format('%d', n),
                 tint8 = string.format('%d', n),
                 treal = string.format('%d', n),
+                tdubl = string.format('%d', n),
                 tsqlt = string.format('%d', n),
             }
         end
@@ -109,6 +112,7 @@ function osm2pgsql.process_node(object)
             tint4 = ' 42',
             tint8 = ' 42',
             treal = ' 42',
+            tdubl = ' 42',
             tsqlt = ' 42',
         }
         return
@@ -122,6 +126,7 @@ function osm2pgsql.process_node(object)
                 tint4 = n,
                 tint8 = n,
                 treal = n,
+                tdubl = n,
             }
         end
         return
