@@ -28,13 +28,14 @@ Feature: Expire changed-geometry endpoints into a table
         # The initial import does not run expiry, so no endpoints are recorded.
         Then table changed_endpoints has 0 rows
 
+        # Use ids far above anything in the extract
         Given the OSM data
             """
-            n100 v1 dV x10.0 y47.0
-            n101 v1 dV x10.001 y47.0
-            w200 v1 dV Nn100,n101 Thighway=residential
+            n8000000001 v1 dV x10.0 y47.0
+            n8000000002 v1 dV x10.001 y47.0
+            w8000000003 v1 dV Thighway=residential Nn8000000001,n8000000002
             """
         When running osm2pgsql flex with parameters
             | --slim | -a |
-        # The added way contributes its two distinct endpoints.
+        # The added way is isolated, so it contributes its two distinct endpoints.
         Then table changed_endpoints has 2 rows
