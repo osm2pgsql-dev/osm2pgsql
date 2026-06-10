@@ -77,6 +77,7 @@ if(MANPAGE_TARGETS)
 endif()
 
 install(FILES osm2pgsql.1 DESTINATION share/man/man1)
+install(FILES osm2pgsql-expire.1 DESTINATION share/man/man1)
 install(FILES osm2pgsql-replication.1 DESTINATION share/man/man1)
 install(FILES osm2pgsql-test-style.1 DESTINATION share/man/man1)
 if (BUILD_GEN)
