@@ -1,0 +1,51 @@
+.TH "OSM2PGSQL-TEST-STYLE" "1" "2.3.0" "" ""
+.SH NAME
+osm2pgsql\-test\-style \- osm2pgsql style testing
+.SH SYNOPSIS
+.B osm2pgsql\-test\-style
+[-h] [--osm2pgsql-binary OSM2PGSQL_BINARY] [--test-data-dir TEST_DATA_DIR] [--style-data-dir STYLE_DATA_DIR] [--test-db TEST_DB] [--template-test-db TEMPLATE_TEST_DB] [--keep-test-db] [--test-tablespace {yes,no,auto}] [--test-proj {yes,no,auto}] features [features ...]
+.SH DESCRIPTION
+Test runner for BDD\-style integration tests.
+
+See osm2pgsql manual for more information on osm2pgsql style testing.
+
+.TP
+\fBfeatures\fR
+Feature files or paths
+
+.SH OPTIONS
+.TP
+\fB\-\-osm2pgsql\-binary\fR \fI\,OSM2PGSQL_BINARY\/\fR
+osm2pgsql binary to use for testing (default: osm2pgsql)
+
+.TP
+\fB\-\-test\-data\-dir\fR \fI\,TEST_DATA_DIR\/\fR
+(optional) directory to search for test data
+
+.TP
+\fB\-\-style\-data\-dir\fR \fI\,STYLE_DATA_DIR\/\fR
+(optional) directory to search for style files
+
+.TP
+\fB\-\-test\-db\fR \fI\,TEST_DB\/\fR
+Name of database to use for testing (default: osm2pgsql\-test)
+
+.TP
+\fB\-\-template\-test\-db\fR \fI\,TEMPLATE_TEST_DB\/\fR
+Name of database to use for creating the template db (default: osm2pgsql\-test\-template)
+
+.TP
+\fB\-\-keep\-test\-db\fR
+Keep the test database around after tests are done
+
+.TP
+\fB\-\-test\-tablespace\fR \fI\,{yes,no,auto}\/\fR
+Include tests requiring a tablespace
+
+.TP
+\fB\-\-test\-proj\fR \fI\,{yes,no,auto}\/\fR
+Include tests requiring the proj library
+.SH SEE ALSO
+* osm2pgsql website (https://osm2pgsql.org)
+* osm2pgsql manual (https://osm2pgsql.org/doc/manual.html)
+
