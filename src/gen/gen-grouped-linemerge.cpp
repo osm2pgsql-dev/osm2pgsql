@@ -167,8 +167,7 @@ void gen_grouped_linemerge_t::process_create()
     auto const result = dbexec(R"(
 INSERT INTO {dest} ({group_cols}, "{geom_column}")
  SELECT {group_cols},
-        (ST_Dump(ST_LineMerge(ST_Collect("{geom_column}"
-            ORDER BY "{geom_column}")))).geom
+        (ST_Dump(ST_LineMerge(ST_Collect("{geom_column}")))).geom
    FROM {src}
   WHERE {where}
   GROUP BY {group_cols}
@@ -324,8 +323,7 @@ DELETE FROM {dest} d
     auto const inserted = dbexec(R"(
 INSERT INTO {dest} ({group_cols}, "{geom_column}")
  SELECT {group_cols},
-        (ST_Dump(ST_LineMerge(ST_Collect("{geom_column}"
-            ORDER BY "{geom_column}")))).geom
+        (ST_Dump(ST_LineMerge(ST_Collect("{geom_column}")))).geom
    FROM _glm_ways
   GROUP BY {group_cols}
 )");
