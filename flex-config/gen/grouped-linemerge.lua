@@ -95,7 +95,8 @@ function osm2pgsql.process_gen()
         where = 'name IS NOT NULL OR ref IS NOT NULL',
 
         -- In append mode, the table of exact changed-way endpoints to consume
-        -- (written by the expire output's 'endpoint_table' above).
+        -- (written by the expire output's 'endpoint_table' above). Consumption
+        -- is destructive, so each generalizer needs its own endpoint table.
         endpoint_table = 'exp_roads_endpoints',
 
         -- Create functional endpoint indexes on the src/dest tables in create

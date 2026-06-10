@@ -191,14 +191,23 @@ std::size_t expire_output_t::output_endpoints_to_table(
 
     pg_conn_t const db_connection{connection_params, "expire"};
 
-    db_connection.prepare("insert_endpoints",
-                          "INSERT INTO {} (geom) VALUES ($1::geometry)", qn);
+    // COPY is significantly faster than individual INSERTs.
+    db_connection.copy_start(fmt::format("COPY {} (geom) FROM STDIN", qn));
 
+    std::string buffer;
     for (auto const &[x, y] : endpoints) {
         geom::geometry_t const point{geom::point_t{x, y}, m_endpoint_srid};
-        db_connection.exec_prepared("insert_endpoints",
-                                    util::encode_hex(geom_to_ewkb(point)));
+        buffer += util::encode_hex(geom_to_ewkb(point));
+        buffer += '\n';
+        if (buffer.size() >= 65536) {
+            db_connection.copy_send(buffer, qn);
+            buffer.clear();
+        }
     }
+    if (!buffer.empty()) {
+        db_connection.copy_send(buffer, qn);
+    }
+    db_connection.copy_end(qn);
 
     return endpoints.size();
 }

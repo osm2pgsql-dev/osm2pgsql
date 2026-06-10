@@ -121,17 +121,25 @@ bool matches_reference(testing::pg::conn_t &conn)
 
 struct edge_t
 {
-    std::string wkt;
+    std::string wkt;      // straight variant
+    std::string wkt_bent; // same endpoints, detour through an offset midpoint
     bool present = false;
+    bool bent = false;
     std::string grp;
 
-    explicit edge_t(std::string w) : wkt(std::move(w)) {}
+    edge_t(std::string w, std::string wb)
+    : wkt(std::move(w)), wkt_bent(std::move(wb))
+    {}
+
+    std::string const &cur_wkt() const noexcept { return bent ? wkt_bent : wkt; }
 };
 
 // All horizontal and vertical segments of a GW x GH grid (the candidate
 // "ways"). Interior grid points become degree-3+ junctions when same-group
 // edges meet there, which is exactly the case that makes ST_LineMerge split a
-// connected component into several output lines.
+// connected component into several output lines. Each edge also has a "bent"
+// variant with the same endpoints but a different interior, to simulate a way
+// whose geometry changes without its endpoints moving.
 std::vector<edge_t> build_grid_edges()
 {
     constexpr int GW = 4;
@@ -141,14 +149,23 @@ std::vector<edge_t> build_grid_edges()
     auto const seg = [](int x1, int y1, int x2, int y2) {
         return fmt::format("LINESTRING({} {},{} {})", x1, y1, x2, y2);
     };
+    auto const seg_bent = [](int x1, int y1, int x2, int y2) {
+        // The offset midpoint never coincides with a grid point.
+        return fmt::format("LINESTRING({} {},{} {},{} {})", x1, y1,
+                           (x1 + x2) / 2 + 123, (y1 + y2) / 2 + 77, x2, y2);
+    };
     for (int j = 0; j < GH; ++j) {
         for (int i = 0; i < GW - 1; ++i) {
-            edges.emplace_back(seg(i * STEP, j * STEP, (i + 1) * STEP, j * STEP));
+            edges.emplace_back(
+                seg(i * STEP, j * STEP, (i + 1) * STEP, j * STEP),
+                seg_bent(i * STEP, j * STEP, (i + 1) * STEP, j * STEP));
         }
     }
     for (int i = 0; i < GW; ++i) {
         for (int j = 0; j < GH - 1; ++j) {
-            edges.emplace_back(seg(i * STEP, j * STEP, i * STEP, (j + 1) * STEP));
+            edges.emplace_back(
+                seg(i * STEP, j * STEP, i * STEP, (j + 1) * STEP),
+                seg_bent(i * STEP, j * STEP, i * STEP, (j + 1) * STEP));
         }
     }
     return edges;
@@ -182,7 +199,7 @@ TEST_CASE("grouped-linemerge: incremental updates match full re-merge (fuzz)")
 {
     auto conn = db.connect();
 
-    constexpr int OPS_PER_SEED = 120;
+    constexpr int BATCHES_PER_SEED = 60;
 
     for (unsigned const seed : {1U, 2U, 3U, 4U}) {
         setup_tables(conn);
@@ -193,48 +210,72 @@ TEST_CASE("grouped-linemerge: incremental updates match full re-merge (fuzz)")
         for (auto &e : edges) {
             if (rng() % 2U == 0U) {
                 e.present = true;
+                e.bent = (rng() % 2U == 0U);
                 e.grp = GROUPS.at(rng() % 3U);
-                insert_edge(conn, e.grp, e.wkt);
+                insert_edge(conn, e.grp, e.cur_wkt());
             }
         }
         run_gen(conn, false);
         INFO("seed=" << seed << " phase=create");
         REQUIRE(matches_reference(conn));
 
-        // Random connect/disconnect operations, each followed by an
-        // incremental append that must reproduce the from-scratch result.
-        for (int op = 0; op < OPS_PER_SEED; ++op) {
-            std::vector<std::size_t> present;
-            std::vector<std::size_t> absent;
-            for (std::size_t i = 0; i < edges.size(); ++i) {
-                (edges[i].present ? present : absent).push_back(i);
-            }
-
+        // Random batches of edits (like a real change file with several
+        // changed ways), each batch followed by one incremental append that
+        // must reproduce the from-scratch result. Edit kinds: add a line,
+        // delete a line, reroute a line (same endpoints, new interior
+        // geometry) and retag a line (same geometry, new group).
+        for (int batch = 0; batch < BATCHES_PER_SEED; ++batch) {
+            auto const num_ops = 1U + rng() % 4U;
             std::string desc;
-            bool const do_add =
-                !absent.empty() && (present.empty() || (rng() % 2U == 0U));
-            if (do_add) {
-                auto const idx = absent[rng() % absent.size()];
-                auto &e = edges[idx];
-                e.grp = GROUPS.at(rng() % 3U); // may differ from last time: a retag
-                e.present = true;
-                insert_edge(conn, e.grp, e.wkt);
-                expire(conn, e.wkt);
-                desc = fmt::format("add slot={} grp={}", idx, e.grp);
-            } else if (!present.empty()) {
-                auto const idx = present[rng() % present.size()];
-                auto &e = edges[idx];
-                expire(conn, e.wkt); // expire the old footprint, then remove it
-                delete_edge(conn, e.grp, e.wkt);
-                e.present = false;
-                desc = fmt::format("del slot={} grp={}", idx, e.grp);
-            } else {
-                continue;
+            for (unsigned n = 0; n < num_ops; ++n) {
+                std::vector<std::size_t> present;
+                std::vector<std::size_t> absent;
+                for (std::size_t i = 0; i < edges.size(); ++i) {
+                    (edges[i].present ? present : absent).push_back(i);
+                }
+
+                auto const kind = rng() % 4U;
+                if (present.empty() || (kind == 0U && !absent.empty())) {
+                    auto const idx = absent[rng() % absent.size()];
+                    auto &e = edges[idx];
+                    e.grp = GROUPS.at(rng() % 3U);
+                    e.bent = (rng() % 2U == 0U);
+                    e.present = true;
+                    insert_edge(conn, e.grp, e.cur_wkt());
+                    expire(conn, e.cur_wkt());
+                    desc += fmt::format(" add:{}/{}", idx, e.grp);
+                } else if (kind == 1U) {
+                    auto const idx = present[rng() % present.size()];
+                    auto &e = edges[idx];
+                    expire(conn, e.cur_wkt()); // the old footprint...
+                    delete_edge(conn, e.grp, e.cur_wkt());
+                    e.present = false;
+                    desc += fmt::format(" del:{}/{}", idx, e.grp);
+                } else if (kind == 2U) {
+                    // reroute: the geometry changes, the endpoints stay
+                    auto const idx = present[rng() % present.size()];
+                    auto &e = edges[idx];
+                    expire(conn, e.cur_wkt()); // the old geometry...
+                    delete_edge(conn, e.grp, e.cur_wkt());
+                    e.bent = !e.bent;
+                    insert_edge(conn, e.grp, e.cur_wkt());
+                    expire(conn, e.cur_wkt()); // ...and the new geometry
+                    desc += fmt::format(" reroute:{}/{}", idx, e.grp);
+                } else {
+                    // retag: the group changes, the geometry stays
+                    auto const idx = present[rng() % present.size()];
+                    auto &e = edges[idx];
+                    delete_edge(conn, e.grp, e.cur_wkt());
+                    e.grp = GROUPS.at(rng() % 3U); // may even be unchanged
+                    insert_edge(conn, e.grp, e.cur_wkt());
+                    expire(conn, e.cur_wkt()); // old and new endpoints coincide
+                    desc += fmt::format(" retag:{}/{}", idx, e.grp);
+                }
             }
 
             run_gen(conn, true);
 
-            INFO("seed=" << seed << " op=" << op << " " << desc);
+            INFO("seed=" << seed << " batch=" << batch << desc);
             REQUIRE(matches_reference(conn));
         }
     }

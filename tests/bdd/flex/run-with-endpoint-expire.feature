@@ -39,3 +39,14 @@ Feature: Expire changed-geometry endpoints into a table
             | --slim | -a |
         # The added way is isolated, so it contributes its two distinct endpoints.
         Then table changed_endpoints has 2 rows
+
+        Given the OSM data
+            """
+            w8000000003 v2 dD
+            """
+        When running osm2pgsql flex with parameters
+            | --slim | -a |
+        # Deleting the way records the endpoints of its old geometry (read back
+        # from the database), adding 2 more rows. Rows accumulate until a
+        # consumer (e.g. the grouped-linemerge generalizer) processes them.
+        Then table changed_endpoints has 4 rows

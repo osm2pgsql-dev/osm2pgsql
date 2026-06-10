@@ -31,13 +31,16 @@ class pg_conn_t;
  * Unlike the tile-based strategies this does NOT clip to tiles and the
  * destination geometries are global merged lines, not tile-keyed rows.
  *
- * In append (update) mode the work is done incrementally and locally: the
- * expire table (populated by osm2pgsql during the update) is used only as a
- * seed for "where did line geometry change". For every changed region we
- * walk the connected component(s) of matching lines out from the seed (via a
- * recursive query), delete the merged outputs that overlap the region and
- * regenerate them from scratch. This keeps each update bounded to the local
- * connected component instead of re-merging the whole planet.
+ * In append (update) mode the work is done incrementally and locally: an
+ * endpoint table (populated by osm2pgsql's expire output with an
+ * 'endpoint_table' during the update) supplies the exact endpoints of every
+ * added, modified, or deleted way. Starting from the lines that have one of
+ * these points as an endpoint we walk each affected connected component
+ * along shared endpoints (via a recursive query), delete the merged rows
+ * belonging to those components (matched by exact endpoint equality, never
+ * by proximity or overlap), and regenerate them from scratch. This keeps
+ * each update bounded to the local connected components instead of
+ * re-merging the whole planet.
  */
 class gen_grouped_linemerge_t : public gen_base_t
 {
