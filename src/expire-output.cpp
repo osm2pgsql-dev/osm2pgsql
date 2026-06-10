@@ -116,7 +116,7 @@ expire_output_t::output(connection_params_t const &connection_params)
         num = output_tiles_to_table(get_tiles(), connection_params);
     }
     if (!m_endpoint_table.empty()) {
-        output_endpoints_to_table(get_endpoints(), connection_params);
+        num += output_endpoints_to_table(get_endpoints(), connection_params);
     }
     return num;
 }
