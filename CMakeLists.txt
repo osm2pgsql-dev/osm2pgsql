@@ -255,6 +255,7 @@ else()
                 src/gen/gen-base.cpp
                 src/gen/gen-create.cpp
                 src/gen/gen-discrete-isolation.cpp
+                src/gen/gen-grouped-linemerge.cpp
                 src/gen/gen-rivers.cpp
                 src/gen/gen-tile-builtup.cpp
                 src/gen/gen-tile-raster.cpp

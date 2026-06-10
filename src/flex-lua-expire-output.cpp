@@ -39,10 +39,20 @@ create_expire_output(lua_State *lua_state, std::string const &default_schema,
     new_expire_output.set_schema_and_table(schema, table);
     lua_pop(lua_state, 2); // "schema" and "table"
 
+    // optional "endpoint_table" field: write the endpoints of changed
+    // geometries as POINT rows (in the same schema) instead of, or in addition
+    // to, expired tiles.
+    auto const *endpoint_table = luaX_get_table_string(
+        lua_state, "endpoint_table", -1, "The expire output", "");
+    check_identifier(endpoint_table, "endpoint_table field");
+    new_expire_output.set_endpoint_table(endpoint_table);
+    lua_pop(lua_state, 1); // "endpoint_table"
+
     if (new_expire_output.filename().empty() &&
-        new_expire_output.table().empty()) {
-        throw std::runtime_error{
-            "Must set 'filename' and/or 'table' on expire output."};
+        new_expire_output.table().empty() &&
+        new_expire_output.endpoint_table().empty()) {
+        throw std::runtime_error{"Must set 'filename', 'table', and/or "
+                                 "'endpoint_table' on expire output."};
     }
 
     // required "maxzoom" field

@@ -12,6 +12,7 @@
 #include "format.hpp"
 #include "gen-base.hpp"
 #include "gen-discrete-isolation.hpp"
+#include "gen-grouped-linemerge.hpp"
 #include "gen-rivers.hpp"
 #include "gen-tile-builtup.hpp"
 #include "gen-tile-raster.hpp"
@@ -30,6 +31,10 @@ std::unique_ptr<gen_base_t> create_generalizer(std::string const &strategy,
         }
         if (strategy == "discrete-isolation") {
             return std::make_unique<gen_di_t>(connection, append, params);
+        }
+        if (strategy == "grouped-linemerge") {
+            return std::make_unique<gen_grouped_linemerge_t>(connection, append,
+                                                             params);
         }
         if (strategy == "raster-union") {
             return std::make_unique<gen_tile_raster_union_t>(connection, append,
