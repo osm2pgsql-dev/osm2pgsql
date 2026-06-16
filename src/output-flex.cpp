@@ -281,16 +281,14 @@ void create_expire_tables(std::vector<expire_output_t> const &expire_outputs,
 {
     if (std::all_of(expire_outputs.cbegin(), expire_outputs.cend(),
                     [](auto const &expire_output) {
-                        return expire_output.table().empty() &&
-                               expire_output.endpoint_table().empty();
+                        return expire_output.table().empty();
                     })) {
         return;
     }
 
     pg_conn_t const connection{connection_params, "out.flex.expire"};
     for (auto const &expire_output : expire_outputs) {
-        if (!expire_output.table().empty() ||
-            !expire_output.endpoint_table().empty()) {
+        if (!expire_output.table().empty()) {
             expire_output.create_output_table(connection);
         }
     }

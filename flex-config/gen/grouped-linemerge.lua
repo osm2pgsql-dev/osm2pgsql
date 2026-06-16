@@ -22,14 +22,13 @@
 --   * Apply an update:           osm2pgsql -a -O flex -S grouped-linemerge.lua CHANGES.osc.gz
 --   * Update the merged table:   osm2pgsql-gen -a -S grouped-linemerge.lua
 
--- An expire output with an 'endpoint_table' records the exact endpoints (start
--- and end point) of every way added/edited/deleted during an update, as POINT
--- rows. The grouped-linemerge generalization consumes these points: it walks
--- each affected connected component out from the changed endpoints and
--- re-merges only those, matching by exact endpoint equality (no tiles, no
--- area scan). Deletes contribute the old way's endpoints automatically.
+-- An expire output records which tiles changed during an update. The
+-- grouped-linemerge generalization uses it only as a seed for "where did line
+-- geometry change" - it then walks each affected connected component out from
+-- there and re-merges it. Use a high maxzoom so the seed regions are small.
 local exp_roads = osm2pgsql.define_expire_output({
-    endpoint_table = 'exp_roads_endpoints',
+    maxzoom = 18,
+    table = 'exp_roads',
 })
 
 -- The source table with the original road segments (one row per OSM way).
@@ -42,7 +41,7 @@ local roads = osm2pgsql.define_table({
         { column = 'highway', type = 'text' },
         { column = 'layer', type = 'int' },
         -- Attach the expire output to the geometry so that any change to a
-        -- road's geometry (add/modify/delete) records its endpoints.
+        -- road's geometry (add/modify/delete) expires the tiles it covers.
         { column = 'geom', type = 'linestring', not_null = true,
             expire = { { output = exp_roads } } },
     }
@@ -94,10 +93,10 @@ function osm2pgsql.process_gen()
         -- Here we only merge roads that carry a label or a shield.
         where = 'name IS NOT NULL OR ref IS NOT NULL',
 
-        -- In append mode, the table of exact changed-way endpoints to consume
-        -- (written by the expire output's 'endpoint_table' above). Consumption
-        -- is destructive, so each generalizer needs its own endpoint table.
-        endpoint_table = 'exp_roads_endpoints',
+        -- In append mode, where to read the expired tiles from, and the zoom
+        -- level they were captured at (must match the expire output's maxzoom).
+        expire_list = 'exp_roads',
+        zoom = 18,
 
         -- Create functional endpoint indexes on the src/dest tables in create
         -- mode. These make the incremental component walk fast. Set to false

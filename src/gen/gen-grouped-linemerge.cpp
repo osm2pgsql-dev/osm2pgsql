@@ -127,15 +127,26 @@ gen_grouped_linemerge_t::gen_grouped_linemerge_t(pg_conn_t *connection,
     params->set("idx_dest_endpt", dest_table + "_glm_endpt");
 
     if (append_mode()) {
-        if (!get_params().has("endpoint_table")) {
-            throw fmt_error("Missing 'endpoint_table' parameter in"
+        if (!get_params().has("expire_list")) {
+            throw fmt_error("Missing 'expire_list' parameter in"
                             " generalizer{} (required in append mode).",
                             context());
         }
-        params->set("endpoints", qualified_name(get_params().get_identifier(
-                                                     "schema"),
-                                                 get_params().get_identifier(
-                                                     "endpoint_table")));
+        if (!get_params().has("zoom")) {
+            throw fmt_error("Missing 'zoom' parameter in generalizer{}"
+                            " (required in append mode).",
+                            context());
+        }
+        auto const zoom = get_params().get_int64("zoom");
+        if (zoom < 0 || zoom > 20) {
+            throw fmt_error("Invalid value '{}' for 'zoom' parameter in"
+                            " generalizer{}.",
+                            zoom, context());
+        }
+        params->set("expire", qualified_name(get_params().get_identifier(
+                                                  "schema"),
+                                              get_params().get_identifier(
+                                                  "expire_list")));
     }
 }
 
@@ -167,7 +178,8 @@ void gen_grouped_linemerge_t::process_create()
     auto const result = dbexec(R"(
 INSERT INTO {dest} ({group_cols}, "{geom_column}")
  SELECT {group_cols},
-        (ST_Dump(ST_LineMerge(ST_Collect("{geom_column}")))).geom
+        (ST_Dump(ST_LineMerge(ST_Collect("{geom_column}"
+            ORDER BY "{geom_column}")))).geom
    FROM {src}
   WHERE {where}
   GROUP BY {group_cols}
@@ -191,59 +203,53 @@ void gen_grouped_linemerge_t::process_append()
 {
     connection().exec("BEGIN");
 
-    // Step 1: Consume the exact endpoints of every way added/edited/deleted in
-    // this update. They were captured by the expire output's endpoint table
-    // (deletes contribute the old way's endpoints via the geometry cache). We
-    // seed and clean up by exact endpoint equality, so the functional endpoint
-    // btree indexes are used and unrelated roads merely passing nearby are not
-    // touched.
+    // Step 1: Consume the expire list for our zoom level and turn the expired
+    // tiles into a set of envelopes describing the changed region(s).
     dbexec(R"(
-CREATE TEMP TABLE _glm_points ON COMMIT DROP AS
- WITH consumed AS (
-   DELETE FROM {endpoints} RETURNING "geom"
+CREATE TEMP TABLE _glm_region ON COMMIT DROP AS
+ WITH expired AS (
+   DELETE FROM {expire} WHERE zoom = {zoom} RETURNING x, y
  )
- SELECT DISTINCT "geom" AS pt FROM consumed
+ SELECT ST_TileEnvelope({zoom}, x, y) AS env FROM expired
 )");
 
-    auto const point_count = dbexec("SELECT count(*) FROM _glm_points");
-    if (std::strtoll(point_count.get_value(0, 0), nullptr, 10) == 0) {
-        log_gen("No changed endpoints, nothing to do.");
+    auto const region_count = dbexec("SELECT count(*) FROM _glm_region");
+    if (std::strtoll(region_count.get_value(0, 0), nullptr, 10) == 0) {
+        log_gen("No expired tiles, nothing to do.");
         connection().exec("COMMIT");
         return;
     }
 
-    // No spatial index on _glm_points is needed: the seed lookup and the
-    // point delete both drive *from* this (small) table and probe the source /
-    // destination endpoint indexes. ANALYZE so the planner knows it is small
+    // No spatial index on _glm_region is needed: the seed lookup and the
+    // region delete both drive *from* this (small) table and probe the source
+    // / destination geometry indexes. ANALYZE so the planner knows it is small
     // and drives the joins from it.
-    dbexec("ANALYZE _glm_points");
+    dbexec("ANALYZE _glm_region");
 
     // Step 2: Find the nodes (endpoint points) of every connected component
-    // touched by the change. We seed from the lines that have a changed point
-    // as one of their endpoints and walk out along shared endpoints, staying
-    // within the same grouping key, until each connected component is fully
-    // explored. The walk matches endpoints with exact geometry equality (so the
-    // functional btree indexes on the endpoint points can be used) and
-    // de-duplicates (group, point) pairs, which guarantees termination. All
-    // groups meeting at a changed point are seeded, which keeps the by-point
-    // delete in step 4 self-correcting (anything it removes that should survive
-    // is regenerated). The 'where' filter is applied everywhere a source row is
-    // read, so excluded lines neither seed nor extend a component. The grouping
-    // values are carried under "gk_"-prefixed names so the unqualified 'where'
-    // filter is never ambiguous against them.
+    // touched by the changed region. We seed from the lines that intersect the
+    // region and walk out along shared endpoints, staying within the same
+    // grouping key, until each connected component is fully explored. The walk
+    // matches endpoints with exact geometry equality (so the functional btree
+    // indexes on the endpoint points can be used) and de-duplicates
+    // (group, point) pairs, which guarantees termination. The 'where' filter is
+    // applied everywhere a source row is read, so excluded lines neither seed
+    // nor extend a component. The grouping values are carried under
+    // "gk_"-prefixed names so the unqualified 'where' filter is never ambiguous
+    // against them.
     timer(m_timer_walk).start();
     dbexec(R"(
 CREATE TEMP TABLE _glm_nodes ON COMMIT DROP AS
 WITH RECURSIVE
 seeds AS (
-  -- The lines that touch a changed endpoint, found via the source endpoint
-  -- index (exact equality, no tile-area scan).
+  -- Driven from the (small) region so the source geometry index is used to
+  -- find the few lines in the changed area.
   SELECT {group_cols_l}, l."{geom_column}"
-    FROM _glm_points p
+    FROM _glm_region r
     JOIN {src} l
-      ON ( ST_StartPoint(l."{geom_column}") = p.pt
-        OR ST_EndPoint(l."{geom_column}") = p.pt )
-     AND {where}
+      ON l."{geom_column}" && r.env
+     AND ST_Intersects(l."{geom_column}", r.env)
+   WHERE {where}
 ),
 nodes AS (
   SELECT b.* FROM (
@@ -292,12 +298,11 @@ SELECT DISTINCT ON (l.ctid) {group_cols_l}, l."{geom_column}"
     // the walk's notion of connectivity and will not delete a different
     // component that merely crosses one mid-segment). This must use exact
     // endpoint equality, not ST_Intersects, to avoid deleting unrelated
-    // same-group lines that cross a component. A second pass deletes any output
-    // whose endpoint coincides with a changed point directly; this cleans up
-    // components that disappeared entirely (all their lines deleted), which
-    // leave no reached nodes behind. It is group-agnostic on purpose and stays
-    // self-correcting because step 2 seeds every group meeting at a changed
-    // point, so anything removed here that should survive is regenerated below.
+    // same-group lines that cross a component. A second pass over the changed
+    // region cleans up outputs of components that disappeared entirely (all
+    // their lines deleted), which leave no reached nodes behind; that pass is
+    // self-correcting because anything it removes either vanished or has a
+    // surviving line in the region and is regenerated below.
     timer(m_timer_delete).start();
     auto deleted = dbexec(R"(
 DELETE FROM {dest} d
@@ -309,12 +314,12 @@ DELETE FROM {dest} d
     auto const deleted_by_nodes = deleted.affected_rows();
     deleted = dbexec(R"(
 DELETE FROM {dest} d
- USING _glm_points p
- WHERE ST_StartPoint(d."{geom_column}") = p.pt
-    OR ST_EndPoint(d."{geom_column}") = p.pt
+ USING _glm_region r
+ WHERE d."{geom_column}" && r.env
+   AND ST_Intersects(d."{geom_column}", r.env)
 )");
     timer(m_timer_delete).stop();
-    log_gen("Deleted {} stale merged linestrings ({} by node, {} by point).",
+    log_gen("Deleted {} stale merged linestrings ({} by node, {} by region).",
             deleted_by_nodes + deleted.affected_rows(), deleted_by_nodes,
             deleted.affected_rows());
 
@@ -323,7 +328,8 @@ DELETE FROM {dest} d
     auto const inserted = dbexec(R"(
 INSERT INTO {dest} ({group_cols}, "{geom_column}")
  SELECT {group_cols},
-        (ST_Dump(ST_LineMerge(ST_Collect("{geom_column}")))).geom
+        (ST_Dump(ST_LineMerge(ST_Collect("{geom_column}"
+            ORDER BY "{geom_column}")))).geom
    FROM _glm_ways
   GROUP BY {group_cols}
 )");

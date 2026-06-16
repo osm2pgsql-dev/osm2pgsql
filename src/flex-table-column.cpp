@@ -339,34 +339,17 @@ void flex_table_column_t::do_expire(
 
     for (auto const &expire_config : m_expires) {
         assert(expire_config.expire_output < expire->size());
-        auto &expire_output = expire_outputs->at(expire_config.expire_output);
+        auto &expire_tiles = expire->at(expire_config.expire_output);
 
-        if (expire_output.has_tile_output()) {
-            auto &expire_tiles = expire->at(expire_config.expire_output);
-            if (!expire_config.diff_expire || !enable_diff_expire ||
-                geoms_old->empty() || geoms_new->empty()) {
-                separate_expire(*geoms_old, expire_config, expire_tiles,
-                                expire_outputs);
-                separate_expire(*geoms_new, expire_config, expire_tiles,
-                                expire_outputs);
-            } else {
-                diff_expire(geoms_old, geoms_new, expire_config, expire_tiles,
+        if (!expire_config.diff_expire || !enable_diff_expire ||
+            geoms_old->empty() || geoms_new->empty()) {
+            separate_expire(*geoms_old, expire_config, expire_tiles,
                             expire_outputs);
-            }
-        }
-
-        // Record the endpoints of the changed geometry (old and new), so a
-        // consumer (e.g. the grouped-linemerge generalizer) can re-merge only
-        // the exact connected components touched, instead of everything in a
-        // tile. Deletes provide the old geometry via the geometry cache, so
-        // their endpoints are captured here too.
-        if (expire_output.has_endpoint_output()) {
-            for (auto const &geom : *geoms_old) {
-                expire_output.add_endpoints(geom);
-            }
-            for (auto const &geom : *geoms_new) {
-                expire_output.add_endpoints(geom);
-            }
+            separate_expire(*geoms_new, expire_config, expire_tiles,
+                            expire_outputs);
+        } else {
+            diff_expire(geoms_old, geoms_new, expire_config, expire_tiles,
+                        expire_outputs);
         }
     }
 }
