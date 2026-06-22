@@ -171,7 +171,8 @@ tile_extent get_extent_from_db(pg_conn_t const &db_connection,
 }
 
 void get_tiles_from_table(pg_conn_t const &connection, std::string const &table,
-                          uint32_t zoom, int64_t max_tiles_per_run,
+                          std::string const &order_by, uint32_t zoom,
+                          int64_t max_tiles_per_run,
                           std::vector<std::pair<uint32_t, uint32_t>> *tiles)
 {
     std::string query;
@@ -183,7 +184,7 @@ void get_tiles_from_table(pg_conn_t const &connection, std::string const &table,
 WITH to_delete AS (
   SELECT t.ctid FROM "{0}" AS t
     WHERE zoom = {1}
-    ORDER BY first
+    ORDER BY {3}
     FOR UPDATE
     LIMIT {2}
 )
@@ -191,7 +192,7 @@ DELETE FROM "{0}" AS et
   USING to_delete AS del
   WHERE et.ctid = del.ctid
   RETURNING x, y;)",
-                            table, zoom, max_tiles_per_run);
+                            table, zoom, max_tiles_per_run, order_by);
     }
 
     auto const result = connection.exec(query);
@@ -492,12 +493,13 @@ private:
         std::vector<std::pair<uint32_t, uint32_t>> tile_list;
         if (m_append) {
             auto const table = params.get_string("expire_list");
+            auto const order_by = params.get_string("order_by", "first");
             auto const max_tiles_per_run =
                 params.get_int64("max_tiles_per_run", 0);
             log_debug("Running generalizer for expire list from table '{}'...",
                       table);
-            get_tiles_from_table(db_connection, table, zoom, max_tiles_per_run,
-                                 &tile_list);
+            get_tiles_from_table(db_connection, table, order_by, zoom,
+                                 max_tiles_per_run, &tile_list);
         } else {
             auto const extent =
                 get_extent_from_db(db_connection, m_dbschema, params, zoom);
