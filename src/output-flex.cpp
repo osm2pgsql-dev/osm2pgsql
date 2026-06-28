@@ -735,43 +735,38 @@ bool output_flex_t::relation_cache_t::add_members(middle_query_t const &middle)
     return true;
 }
 
-osmium::OSMObject const &
+osmium::OSMObject const *
 output_flex_t::check_and_get_context_object(flex_table_t const &table)
 {
     if (m_calling_context == calling_context::process_node) {
         if (!table.matches_type(osmium::item_type::node)) {
             throw fmt_error("Trying to add node to table '{}'.", table.name());
         }
-        return *m_context_node;
+        return m_context_node;
     }
 
     if (m_calling_context == calling_context::process_way) {
         if (!table.matches_type(osmium::item_type::way)) {
             throw fmt_error("Trying to add way to table '{}'.", table.name());
         }
-        return m_way_cache.get();
+        return &m_way_cache.get();
     }
 
-    assert(m_calling_context == calling_context::process_relation);
-
-    if (!table.matches_type(osmium::item_type::relation)) {
-        throw fmt_error("Trying to add relation to table '{}'.", table.name());
+    if (m_calling_context == calling_context::process_relation) {
+        if (!table.matches_type(osmium::item_type::relation)) {
+            throw fmt_error("Trying to add relation to table '{}'.",
+                            table.name());
+        }
+        return &m_relation_cache.get();
     }
-    return m_relation_cache.get();
+
+    return nullptr;
 }
 
 int output_flex_t::table_insert()
 {
     if (m_disable_insert) {
         return 0;
-    }
-
-    if (m_calling_context != calling_context::process_node &&
-        m_calling_context != calling_context::process_way &&
-        m_calling_context != calling_context::process_relation) {
-        throw std::runtime_error{
-            "The function insert() can only be called from the "
-            "process_node/way/relation() functions."};
     }
 
     auto const num_params = lua_gettop(lua_state());
@@ -781,8 +776,12 @@ int output_flex_t::table_insert()
     }
 
     // The first parameter is the table object.
-    auto &table_connection = m_table_connections.at(
-        idx_from_param(lua_state(), OSM2PGSQL_TABLE_CLASS));
+    std::size_t const idx = idx_from_param(lua_state(), OSM2PGSQL_TABLE_CLASS);
+    if (idx >= m_table_connections.size()) {
+        throw std::runtime_error{"Tables not initialized yet. Insert can only "
+                                 "be called from processing functions."};
+    }
+    auto &table_connection = m_table_connections.at(idx);
 
     // The second parameter must be a Lua table with the contents for the
     // fields.
@@ -790,10 +789,12 @@ int output_flex_t::table_insert()
     lua_remove(lua_state(), 1);
 
     auto const &table = table_connection.table();
-    auto const &object = check_and_get_context_object(table);
-    osmid_t const id = table.map_id(object.type(), object.id());
+    auto const *object = check_and_get_context_object(table);
 
-    if (table.with_id_cache()) {
+    auto const objtype = object ? object->type() : osmium::item_type::undefined;
+    osmid_t const id = object ? table.map_id(objtype, object->id()) : 0;
+
+    if (object && table.with_id_cache()) {
         get_id_cache(table).push_back(id);
     }
 
@@ -806,8 +807,16 @@ int output_flex_t::table_insert()
                 continue;
             }
             if (column.type() == table_column_type::id_type) {
-                copy_mgr->add_column(type_to_char(object.type()));
+                if (!object) {
+                    throw fmt_error("No context object for column '{}'",
+                                    column.name());
+                }
+                copy_mgr->add_column(type_to_char(objtype));
             } else if (column.type() == table_column_type::id_num) {
+                if (!object) {
+                    throw fmt_error("No context object for column '{}'",
+                                    column.name());
+                }
                 copy_mgr->add_column(id);
             } else {
                 flex_write_column(lua_state(), &m_geometry_cache, copy_mgr,
@@ -820,7 +829,9 @@ int output_flex_t::table_insert()
         lua_pushboolean(lua_state(), false);
         lua_pushliteral(lua_state(), "null value in not null column.");
         luaX_pushstring(lua_state(), e.column().name());
-        push_osm_object_to_lua_stack(lua_state(), object);
+        if (object) {
+            push_osm_object_to_lua_stack(lua_state(), *object);
+        }
         table_connection.increment_not_null_error_counter();
         return 4;
     }

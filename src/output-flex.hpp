@@ -202,7 +202,7 @@ private:
     void check_context_and_state(char const *name, char const *context,
                                  bool condition);
 
-    osmium::OSMObject const &
+    osmium::OSMObject const *
     check_and_get_context_object(flex_table_t const &table);
 
     void node_delete(osmid_t id);
