@@ -359,3 +359,89 @@ Feature: Diff expire
             | 8    | 129 | 126 |
             | 8    | 130 | 126 |
 
+    Scenario: multiple expire configs, with and without diff expire
+        Given the OSM data
+            """
+            n1 v1 x0 y0
+            n2 v1 x2 y0
+            n3 v1 x2 y1
+            n4 v1 x4 y1
+            w1 v1 Thighway=primary Nn1,n2,n3,n4
+            """
+        And the lua style
+            """
+            local eo1 = osm2pgsql.define_expire_output({
+                table = 'osm2pgsql_test_expire1',
+                maxzoom = 8,
+            })
+
+            local eo2 = osm2pgsql.define_expire_output({
+                table = 'osm2pgsql_test_expire2',
+                maxzoom = 8,
+            })
+
+            local eo3 = osm2pgsql.define_expire_output({
+                table = 'osm2pgsql_test_expire3',
+                maxzoom = 7,
+            })
+
+            local the_table = osm2pgsql.define_way_table('osm2pgsql_test', {
+                { column = 'geom', type = 'linestring', expire = {
+                        { output = eo1, diff_expire = true },
+                        { output = eo2, diff_expire = false },
+                        { output = eo3, diff_expire = true }
+                    }
+                },
+            })
+
+            function osm2pgsql.process_way(object)
+                the_table:insert{
+                    geom = object:as_linestring()
+                }
+            end
+            """
+        When running osm2pgsql flex with parameters
+            | --slim | -c |
+        Then table osm2pgsql_test has 1 rows
+        Then table osm2pgsql_test contains exactly
+            | way_id | geom!geo |
+            | 1      | 0 0,222638.98158654713 0,222638.98158654713 111325.14285463623,445277.96317309426 111325.14285463623 |
+        Then table osm2pgsql_test_expire1 has 0 rows
+        Then table osm2pgsql_test_expire2 has 0 rows
+        Then table osm2pgsql_test_expire3 has 0 rows
+
+        Given the OSM data
+            """
+            n2 v2 x0 y1
+            """
+        When running osm2pgsql flex with parameters
+            | --slim | -a |
+        Then table osm2pgsql_test contains exactly
+            | way_id | geom!geo |
+            | 1      | 0 0,0 111325.14285463623,222638.98158654713 111325.14285463623,445277.96317309426 111325.14285463623 |
+        Then table osm2pgsql_test_expire1 contains exactly
+            | zoom |   x |   y |
+            | 8    | 127 | 127 |
+            | 8    | 128 | 127 |
+            | 8    | 129 | 127 |
+            | 8    | 127 | 128 |
+            | 8    | 128 | 128 |
+            | 8    | 129 | 128 |
+
+        Then table osm2pgsql_test_expire2 contains exactly
+            | zoom |   x |   y |
+            | 8    | 127 | 127 |
+            | 8    | 128 | 127 |
+            | 8    | 129 | 127 |
+            | 8    | 130 | 127 |
+            | 8    | 127 | 128 |
+            | 8    | 128 | 128 |
+            | 8    | 129 | 128 |
+
+        Then table osm2pgsql_test_expire3 contains exactly
+            | zoom |  x |  y |
+            | 7    | 63 | 63 |
+            | 7    | 63 | 64 |
+            | 7    | 64 | 63 |
+            | 7    | 64 | 64 |
+
