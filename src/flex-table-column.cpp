@@ -214,24 +214,6 @@ void flex_table_column_t::add_expire(expire_config_t const &config)
 }
 
 namespace {
-
-/**
- * This expires all geometries in "geoms" by themselves. Used when we don't
- * need diff expire.
- */
-void separate_expire(std::vector<geom::geometry_t> const &geoms,
-                     expire_config_t const &expire_config,
-                     expire_tiles_t &expire_tiles,
-                     std::vector<expire_output_t> *expire_outputs)
-{
-    assert(expire_outputs);
-
-    for (auto const &geom : geoms) {
-        expire_tiles.from_geometry(geom, expire_config);
-    }
-    expire_tiles.commit_tiles(&expire_outputs->at(expire_config.expire_output));
-}
-
 /**
  * When doing diff expire, we need to calculate the symmetric difference
  * between old and new geometries. The difference is done by type, so points
@@ -282,28 +264,14 @@ void classify_geometries(T input_geoms, geom::multipoint_t *points,
 }
 // NOLINTEND(cppcoreguidelines-rvalue-reference-param-not-moved)
 
-template <typename T>
-void diff_and_expire(geom::multigeometry_t<T> const &old_geoms,
-                     geom::multigeometry_t<T> const &new_geoms,
-                     expire_config_t const &expire_config,
-                     expire_tiles_t &expire_tiles)
-{
-    std::vector<T> diffs;
-    boost::geometry::sym_difference(old_geoms, new_geoms, diffs);
-    for (auto const &geom : diffs) {
-        expire_tiles.from_geometry(geom, expire_config);
-    }
-}
-
-void diff_expire(std::vector<geom::geometry_t> *geoms_old,
-                 std::vector<geom::geometry_t> *geoms_new,
-                 expire_config_t const &expire_config,
-                 expire_tiles_t &expire_tiles,
-                 std::vector<expire_output_t> *expire_outputs)
+void find_difference(std::vector<geom::geometry_t> *geoms_old,
+                     std::vector<geom::geometry_t> *geoms_new,
+                     std::vector<geom::point_t> *diff_points,
+                     std::vector<geom::linestring_t> *diff_linestrings,
+                     std::vector<geom::polygon_t> *diff_polygons)
 {
     assert(geoms_old);
     assert(geoms_new);
-    assert(expire_outputs);
 
     geom::multipoint_t old_points;
     geom::multilinestring_t old_linestrings;
@@ -319,12 +287,10 @@ void diff_expire(std::vector<geom::geometry_t> *geoms_old,
     classify_geometries(geoms_new, &new_points, &new_linestrings,
                         &new_polygons);
 
-    diff_and_expire(old_points, new_points, expire_config, expire_tiles);
-    diff_and_expire(old_linestrings, new_linestrings, expire_config,
-                    expire_tiles);
-    diff_and_expire(old_polygons, new_polygons, expire_config, expire_tiles);
-
-    expire_tiles.commit_tiles(&expire_outputs->at(expire_config.expire_output));
+    boost::geometry::sym_difference(old_points, new_points, *diff_points);
+    boost::geometry::sym_difference(old_linestrings, new_linestrings,
+                                    *diff_linestrings);
+    boost::geometry::sym_difference(old_polygons, new_polygons, *diff_polygons);
 }
 
 } // anonymous namespace
@@ -340,19 +306,58 @@ void flex_table_column_t::do_expire(
     assert(expire);
     assert(expire_outputs);
 
+    // Sometimes it doesn't depend on the expire config whether we want to
+    // do diff expire.
+    bool const always_separate =
+        !enable_diff_expire || geoms_old->empty() || geoms_new->empty();
+
+    bool need_diff_expire = false;
+
     for (auto const &expire_config : m_expires) {
         assert(expire_config.expire_output < expire->size());
         auto &expire_tiles = expire->at(expire_config.expire_output);
 
-        if (!expire_config.diff_expire || !enable_diff_expire ||
-            geoms_old->empty() || geoms_new->empty()) {
-            separate_expire(*geoms_old, expire_config, expire_tiles,
-                            expire_outputs);
-            separate_expire(*geoms_new, expire_config, expire_tiles,
-                            expire_outputs);
+        if (!expire_config.diff_expire || always_separate) {
+            for (auto const &geom : *geoms_old) {
+                expire_tiles.from_geometry(geom, expire_config);
+            }
+            for (auto const &geom : *geoms_new) {
+                expire_tiles.from_geometry(geom, expire_config);
+            }
+            expire_tiles.commit_tiles(
+                &expire_outputs->at(expire_config.expire_output));
         } else {
-            diff_expire(geoms_old, geoms_new, expire_config, expire_tiles,
-                        expire_outputs);
+            need_diff_expire = true;
+        }
+    }
+
+    if (always_separate || !need_diff_expire) {
+        return;
+    }
+
+    std::vector<geom::point_t> diff_points;
+    std::vector<geom::linestring_t> diff_linestrings;
+    std::vector<geom::polygon_t> diff_polygons;
+
+    find_difference(geoms_old, geoms_new, &diff_points, &diff_linestrings,
+                    &diff_polygons);
+
+    for (auto const &expire_config : m_expires) {
+        assert(expire_config.expire_output < expire->size());
+        auto &expire_tiles = expire->at(expire_config.expire_output);
+
+        if (expire_config.diff_expire) {
+            for (auto const &geom : diff_points) {
+                expire_tiles.from_geometry(geom, expire_config);
+            }
+            for (auto const &geom : diff_linestrings) {
+                expire_tiles.from_geometry(geom, expire_config);
+            }
+            for (auto const &geom : diff_polygons) {
+                expire_tiles.from_geometry(geom, expire_config);
+            }
+            expire_tiles.commit_tiles(
+                &expire_outputs->at(expire_config.expire_output));
         }
     }
 }
