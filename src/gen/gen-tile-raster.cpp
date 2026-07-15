@@ -149,7 +149,7 @@ SELECT "{geom_column}", "{group_by_column}"
 )";
         dbprepare("insert_geoms", R"(
 INSERT INTO {dest} ("{geom_column}", x, y, "{group_by_column}")
- VALUES ({geom_sql}, $2::int, $3::int, $4::text)
+ VALUES ({geom_sql}, $2::int, $3::int, $4)
 )");
     } else {
         prepare = R"(
