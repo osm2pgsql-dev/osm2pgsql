@@ -122,13 +122,25 @@ tile_extent get_extent_from_db(pg_conn_t const &db_connection,
             schema, table, column);
     } else {
         result = db_connection.exec(
+            "WITH srid AS ("
+            "  SELECT ST_SRID({}) AS srid FROM {} LIMIT 1"
+            ")"
             "SELECT ST_XMin(e), ST_YMin(e), ST_XMax(e), ST_YMax(e)"
-            " FROM ST_Transform("
-            "  ST_SetSRID("
-            "   ST_EstimatedExtent('{}', '{}', '{}'), "
-            "   (SELECT ST_SRID(way) FROM {} LIMIT 1)"
-            "  ), 3857) e",
-            schema, table, column, qualified_name(schema, table));
+            "  FROM "
+            "    (SELECT CASE WHEN srid.srid = 0"
+            "      THEN ST_EstimatedExtent('{}', '{}', '{}')"
+            "      ELSE"
+            "        ST_Transform("
+            "        ST_SetSRID("
+            "          ST_EstimatedExtent('{}', '{}', '{}'), "
+            "          srid.srid"
+            "        ),"
+            "      3857)"
+            "    END AS e"
+            "    FROM srid) e",
+            column, qualified_name(schema, table),
+            schema, table, column,
+            schema, table, column);
     }
 
     if (result.num_tuples() == 0 || result.is_null(0, 0)) {
