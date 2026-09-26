@@ -17,6 +17,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -58,6 +59,8 @@ enum class table_column_type : uint8_t
 
 class geometry_cache_t;
 
+enum class copy_field_type : uint8_t;
+
 /**
  * A column in a flex_table_t.
  */
@@ -70,6 +73,14 @@ public:
     std::string const &name() const noexcept { return m_name; }
 
     table_column_type type() const noexcept { return m_type; }
+
+    /**
+     * The type of this column in the binary COPY format. Nothing if the
+     * column can only be written in the text format, because it has a
+     * user-defined SQL type or because it can contain strings which only
+     * PostgreSQL can parse (timestamps).
+     */
+    std::optional<copy_field_type> binary_copy_type() const noexcept;
 
     bool is_point_column() const noexcept
     {

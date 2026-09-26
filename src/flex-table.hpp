@@ -159,6 +159,12 @@ public:
 
     std::string build_sql_copy_condition() const;
 
+    /**
+     * The types of all columns written by COPY for the binary COPY format.
+     * Empty if the table must use the text format.
+     */
+    std::vector<copy_field_type> binary_copy_types() const;
+
     std::string build_sql_create_id_index() const;
 
     /// Does this table take objects of the specified type?
@@ -293,6 +299,7 @@ public:
           table->build_sql_column_list(), table->build_sql_copy_condition())),
       m_copy_mgr(copy_thread)
     {
+        m_target->set_binary_types(table->binary_copy_types());
     }
 
     void start(pg_conn_t const &db_connection, bool append) const;
