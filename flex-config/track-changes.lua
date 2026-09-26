@@ -19,7 +19,7 @@ local change_table = osm2pgsql.define_table{
         -- 'M' for modified,
         -- 'D' for deleted
         { column = 'action', type = 'text' },
-        { column = 'date', sql_type = 'timestamp' }
+        { column = 'date', type = 'timestamp' }
     },
     indexes = {
         { column = { 'osm_type', 'osm_id' }, method = 'btree' }
@@ -31,10 +31,6 @@ local change_table = osm2pgsql.define_table{
 -- being processed.
 local file_reading_in_progress = true
 
-local function format_date(ts)
-    return os.date('!%Y-%m-%dT%H:%M:%SZ', ts)
-end
-
 local function add_object_change(object)
     -- In this example only changes while updating the database are recorded.
     -- This happens in 'append' mode.
@@ -44,7 +40,7 @@ local function add_object_change(object)
             osm_id = object.id,
             version = object.version,
             action = (object.version == 1) and 'A' or 'M',
-            date = format_date(object.timestamp)
+            date = object.timestamp
         }
     end
 end
@@ -64,7 +60,7 @@ local function add_deleted_object(object)
         osm_id = object.id,
         version = object.version,
         action = 'D',
-        date = format_date(object.timestamp)
+        date = object.timestamp
     }
 end
 

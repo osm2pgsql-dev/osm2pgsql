@@ -15,14 +15,12 @@ tables.nodes = osm2pgsql.define_node_table('nodes', {
     { column = 'geom', type = 'point', projection = srid },
     { column = 'version', type = 'int' },
     { column = 'changeset', type = 'int' },
-    -- There is no built-in type for timestamps in osm2pgsql. So we use the
-    -- PostgreSQL type "timestamp" and then have to convert our timestamps
-    -- to a valid text representation for that type.
+    -- The timestamp of the object is available as a number (seconds since
+    -- the epoch), osm2pgsql converts it for the "timestamp" column type.
     --
     -- Timestamps in OSM are always in UTC, depending on your use case you
     -- might want to store them using "timestamptz" instead.
-    -- See https://github.com/openstreetmap/osm2pgsql/issues/1785
-    { column = 'created', sql_type = 'timestamp' },
+    { column = 'created', type = 'timestamp' },
     { column = 'uid', type = 'int' },
     { column = 'user', type = 'text' },
 })
@@ -32,7 +30,7 @@ tables.ways = osm2pgsql.define_way_table('ways', {
     { column = 'geom', type = 'linestring', projection = srid },
     { column = 'version', type = 'int' },
     { column = 'changeset', type = 'int' },
-    { column = 'created', sql_type = 'timestamp' },
+    { column = 'created', type = 'timestamp' },
     { column = 'uid', type = 'int' },
     { column = 'user', type = 'text' },
     { column = 'nodes', type = 'text', sql_type = 'bigint[]' },
@@ -42,15 +40,11 @@ tables.relations = osm2pgsql.define_relation_table('relations', {
     { column = 'tags', type = 'jsonb' },
     { column = 'version', type = 'int' },
     { column = 'changeset', type = 'int' },
-    { column = 'created', sql_type = 'timestamp' },
+    { column = 'created', type = 'timestamp' },
     { column = 'uid', type = 'int' },
     { column = 'user', type = 'text' },
     { column = 'members', type = 'jsonb' },
 })
-
-local function format_date(ts)
-    return os.date('!%Y-%m-%dT%H:%M:%SZ', ts)
-end
 
 function osm2pgsql.process_node(object)
     if next(object.tags) == nil then
@@ -62,7 +56,7 @@ function osm2pgsql.process_node(object)
         geom = object:as_point(),
         version = object.version,
         changeset = object.changeset,
-        created = format_date(object.timestamp),
+        created = object.timestamp,
         uid = object.uid,
         user = object.user
     })
@@ -74,7 +68,7 @@ function osm2pgsql.process_way(object)
         geom = object:as_linestring(),
         version = object.version,
         changeset = object.changeset,
-        created = format_date(object.timestamp),
+        created = object.timestamp,
         uid = object.uid,
         user = object.user,
         nodes = '{' .. table.concat(object.nodes, ',') .. '}'
@@ -86,7 +80,7 @@ function osm2pgsql.process_relation(object)
         tags = object.tags,
         version = object.version,
         changeset = object.changeset,
-        created = format_date(object.timestamp),
+        created = object.timestamp,
         uid = object.uid,
         user = object.user,
         members = object.members
