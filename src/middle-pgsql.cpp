@@ -276,25 +276,29 @@ void pgsql_parse_nodes(char const *string, osmium::memory::Buffer *buffer,
     }
 }
 
+/**
+ * Set the attributes of an object from the result of a query with the
+ * columns from {attribute_columns_use} starting at the specified column.
+ */
 template <typename T>
 void set_attributes_on_builder(T *builder, pg_result_t const &result, int num,
-                               int offset)
+                               int column)
 {
-    if (!result.is_null(num, offset + 2)) {
+    if (!result.is_null(num, column)) {
         builder->set_timestamp(
-            std::strtoul(result.get_value(num, offset + 2), nullptr, 10));
+            std::strtoul(result.get_value(num, column), nullptr, 10));
     }
-    if (!result.is_null(num, offset + 3)) {
-        builder->set_version(result.get_value(num, offset + 3));
+    if (!result.is_null(num, column + 1)) {
+        builder->set_version(result.get_value(num, column + 1));
     }
-    if (!result.is_null(num, offset + 4)) {
-        builder->set_changeset(result.get_value(num, offset + 4));
+    if (!result.is_null(num, column + 2)) {
+        builder->set_changeset(result.get_value(num, column + 2));
     }
-    if (!result.is_null(num, offset + 5)) {
-        builder->set_uid(result.get_value(num, offset + 5));
+    if (!result.is_null(num, column + 3)) {
+        builder->set_uid(result.get_value(num, column + 3));
     }
-    if (!result.is_null(num, offset + 6)) {
-        builder->set_user(result.get_value(num, offset + 6));
+    if (!result.is_null(num, column + 4)) {
+        builder->set_user(result.get_value(num, column + 4));
     }
 }
 
@@ -735,6 +739,7 @@ void build_node(osmid_t id, pg_result_t const &res, int res_num, int offset,
         (int)std::strtol(res.get_value(res_num, offset + 1), nullptr, 10)});
 
     if (with_attributes) {
+        // lon, lat, tags, then the attributes
         set_attributes_on_builder(&builder, res, res_num, offset + 3);
     }
     pgsql_parse_json_tags(res.get_value(res_num, offset + 2), buffer, &builder);
@@ -750,7 +755,8 @@ void build_way(osmid_t id, pg_result_t const &res, int res_num, int offset,
     builder.set_id(id);
 
     if (with_attributes) {
-        set_attributes_on_builder(&builder, res, res_num, offset);
+        // nodes, tags, then the attributes
+        set_attributes_on_builder(&builder, res, res_num, offset + 2);
     }
     pgsql_parse_nodes(res.get_value(res_num, offset + 0), buffer, &builder);
     pgsql_parse_json_tags(res.get_value(res_num, offset + 1), buffer, &builder);
@@ -907,7 +913,8 @@ bool middle_query_pgsql_t::relation_get(osmid_t id,
         builder.set_id(id);
 
         if (m_store_options.with_attributes) {
-            set_attributes_on_builder(&builder, res, 0, 0);
+            // members, tags, then the attributes
+            set_attributes_on_builder(&builder, res, 0, 2);
         }
 
         pgsql_parse_json_members(res.get_value(0, 0), buffer, &builder);
