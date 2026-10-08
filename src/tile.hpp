@@ -183,7 +183,7 @@ public:
     /**
      * Get bounding box from tile with margin on all sides. The margin is
      * specified as a fraction of the tile extent. So margin==0.5 (50%) makes
-     * the bounding box twice as wide and twice as heigh.
+     * the bounding box twice as wide and twice as high.
      *
      * The bounding box is clamped to the extent of the earth, so there will
      * be no coordinates smaller than -HALF_EARTH_CIRCUMFERENCE or larger than

@@ -305,7 +305,7 @@ private:
      * Run the named prepared SQL statement and return the results.
      *
      * \param stmt The name of the prepared statement.
-     * \param result_as_binary Ask for the resuls to be returned in binary
+     * \param result_as_binary Ask for the results to be returned in binary
      *                         format.
      * \param params Any number of arguments (will be converted to strings
      *               if necessary).

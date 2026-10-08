@@ -35,7 +35,7 @@ struct expire_config_t
     double buffer = 0.1;
 
     /**
-     * Maximum width/heigth of bbox of a (multi)polygon before hybrid mode
+     * Maximum width/height of bbox of a (multi)polygon before hybrid mode
      * expiry switches from full-area to boundary-only expire.
      */
     double full_area_limit = 0.0;

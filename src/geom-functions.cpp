@@ -657,7 +657,7 @@ void line_merge(geometry_t *output, geometry_t const &input)
 
     std::sort(endpoints.begin(), endpoints.end());
 
-    // Now fill the connection list based on the sorted enpoints list.
+    // Now fill the connection list based on the sorted endpoints list.
     for (auto it = std::adjacent_find(endpoints.cbegin(), endpoints.cend());
          it != endpoints.cend();
          it = std::adjacent_find(it + 2, endpoints.cend())) {

@@ -118,7 +118,7 @@ private:
 
     /**
      * Access to the m_tiles collection of expired tiles must go through
-     * this mutex, because it can happend from several threads at the same
+     * this mutex, because it can happen from several threads at the same
      * time. Mutex is wrapped in a shared_ptr to make this class movable so
      * we can store instances in std::vector.
      */

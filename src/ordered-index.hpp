@@ -50,7 +50,7 @@
  * * To conserve memory, the id and offset in the second level blocks are 32
  *   bit unsigned integers relative to the id and offset of the first id of a
  *   block which is stored in the first level entry. Compared to the 64 bit
- *   integers we would need without the two-level design, this halfs the
+ *   integers we would need without the two-level design, this halves the
  *   memory use.
  */
 class ordered_index_t

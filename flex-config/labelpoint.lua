@@ -35,7 +35,7 @@ local function add(tags, geom)
         -- factor when calculating the result. This can make sense, because
         -- labels are usually written horizontally so you need more space in
         -- that direction. (Use a value > 1 to stretch horizontally or values
-        -- between 0 and 1 to stretch vertically. The value 0 ist not allowed.)
+        -- between 0 and 1 to stretch vertically. The value 0 is not allowed.)
         poi2 = geom:pole_of_inaccessibility({ stretch = 3 }),
     })
 end

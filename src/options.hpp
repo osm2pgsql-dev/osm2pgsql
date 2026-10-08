@@ -136,7 +136,7 @@ struct options_t
 
     bool enable_hstore_index = false; ///< add an index on the hstore column
 
-    /// Output multi-geometries intead of several simple geometries
+    /// Output multi-geometries instead of several simple geometries
     bool enable_multi = false;
 
     bool reproject_area = false;

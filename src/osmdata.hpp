@@ -33,7 +33,7 @@ struct options_t;
 
 /**
  * This class guides the processing of the OSM data through its multiple
- * stages. It calls upon the the middle and the output to do their work.
+ * stages. It calls upon the middle and the output to do their work.
  *
  * It also does the dependency management, keeping track of the dependencies
  * between OSM objects (nodes in ways and members of relations).

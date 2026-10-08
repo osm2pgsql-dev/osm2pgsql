@@ -481,7 +481,7 @@ def execute_osm2pgsql(context, output):
 
     if context.table:
         assert not any('<' in h for h in context.table.headings), \
-            "Substition in the first line of a table are not supported."
+            "Substitutions in the first line of a table are not supported."
         cmdline.extend(_template(h) for h in context.table.headings if h)
         for row in context.table:
             cmdline.extend(_template(c) for c in row if c)
@@ -525,7 +525,7 @@ def execute_osm2pgsql_expire(context):
 
     if context.table:
         assert not any('<' in h for h in context.table.headings), \
-            "Substition in the first line of a table are not supported."
+            "Substitutions in the first line of a table are not supported."
         cmdline.extend(_template(h) for h in context.table.headings if h)
         for row in context.table:
             cmdline.extend(_template(c) for c in row if c)
@@ -623,7 +623,7 @@ def execute_osm2pgsql_replication(context):
 
     if context.table:
         assert not any('<' in h for h in context.table.headings), \
-            "Substition in the first line of a table are not supported."
+            "Substitutions in the first line of a table are not supported."
         cmdline.extend(_template(h) for h in context.table.headings if h)
         for row in context.table:
             cmdline.extend(_template(c) for c in row if c)

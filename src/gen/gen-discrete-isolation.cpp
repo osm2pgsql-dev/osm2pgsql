@@ -37,7 +37,7 @@ void gen_di_t::process()
         // input: unique id of the feature
         uint64_t id;
 
-        // input: importance of the feature (positive, larger is more imporant)
+        // input: importance of the feature (positive, larger is more important)
         double importance;
 
         // input: x/y coordinate of the feature

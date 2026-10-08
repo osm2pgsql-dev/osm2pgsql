@@ -85,7 +85,7 @@ class db_deleter_by_id_t
 {
     /**
      * There is a trade-off here between sending as few DELETE SQL as
-     * possible and keeping the size of the deletable vector managable.
+     * possible and keeping the size of the deletable vector manageable.
      */
     static constexpr std::size_t MAX_ENTRIES = 1000000;
 
@@ -111,7 +111,7 @@ class db_deleter_by_type_and_id_t
 {
     /**
      * There is a trade-off here between sending as few DELETE SQL as
-     * possible and keeping the size of the deletable vector managable.
+     * possible and keeping the size of the deletable vector manageable.
      */
     static constexpr std::size_t MAX_ENTRIES = 1000000;
 

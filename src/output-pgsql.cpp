@@ -372,7 +372,7 @@ void output_pgsql_t::delete_from_output_and_expire(osmid_t id)
     }
 }
 
-/* Seperated out because we use it elsewhere */
+/* Separated out because we use it elsewhere */
 void output_pgsql_t::pgsql_delete_way_from_output(osmid_t osm_id)
 {
     /* Optimisation: we only need this is slim mode */
