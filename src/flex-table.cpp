@@ -207,6 +207,22 @@ flex_table_t::build_sql_create_table(table_type ttype,
     return sql;
 }
 
+std::vector<copy_field_type> flex_table_t::binary_copy_types() const
+{
+    std::vector<copy_field_type> types;
+    for (auto const &column : m_columns) {
+        if (column.create_only()) {
+            continue;
+        }
+        auto const type = column.binary_copy_type();
+        if (!type) {
+            return {};
+        }
+        types.push_back(*type);
+    }
+    return types;
+}
+
 std::string flex_table_t::build_sql_column_list() const
 {
     assert(!m_columns.empty());
@@ -295,6 +311,19 @@ namespace {
 void table_connection_t::start(pg_conn_t const &db_connection,
                                bool append) const
 {
+    if (m_target->binary()) {
+        log_debug("Table '{}' uses the binary COPY format.", table().name());
+    } else {
+        for (auto const &column : table().columns()) {
+            if (!column.create_only() && !column.binary_copy_type()) {
+                log_debug("Table '{}' uses the text COPY format because of"
+                          " column '{}'.",
+                          table().name(), column.name());
+                break;
+            }
+        }
+    }
+
     if (!append) {
         drop_table_if_exists(db_connection, table().schema(), table().name());
     }
