@@ -18,12 +18,14 @@
 #include <cassert>
 #include <cstdint>
 #include <cstdlib>
+#include <initializer_list>
 #include <iterator>
 #include <memory>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include <osmium/builder/osm_object_builder.hpp>
 #include <osmium/memory/buffer.hpp>
@@ -356,7 +358,7 @@ void members_to_json(osmium::RelationMemberList const &members,
 void middle_pgsql_t::copy_attributes(osmium::OSMObject const &obj)
 {
     if (obj.timestamp()) {
-        m_db_copy.add_column(obj.timestamp().to_iso());
+        m_db_copy.add_column(obj.timestamp());
     } else {
         m_db_copy.add_null_column();
     }
@@ -1077,6 +1079,8 @@ void middle_pgsql_t::write_users_table()
 
     auto const users_table = std::make_shared<db_target_descr_t>(
         m_options->dbschema, table_name, "id");
+    users_table->set_binary_types(
+        {copy_field_type::int4, copy_field_type::text});
 
     for (auto const &[id, name] : m_users) {
         m_db_copy.new_line(users_table);
@@ -1266,6 +1270,26 @@ middle_pgsql_t::middle_pgsql_t(std::shared_ptr<thread_pool_t> thread_pool,
     m_tables.nodes() = table_desc_t{*options, "nodes"};
     m_tables.ways() = table_desc_t{*options, "ways"};
     m_tables.relations() = table_desc_t{*options, "rels"};
+
+    // We know the types of all columns of the middle tables (see
+    // table_setup()), so they always use the binary COPY format.
+    using cft = copy_field_type;
+    std::vector<cft> attributes;
+    if (m_store_options.with_attributes) {
+        attributes = {cft::timestamptz, cft::int4, cft::int4, cft::int4};
+    }
+    auto const types = [&](std::vector<cft> columns,
+                           std::initializer_list<cft> after_attributes) {
+        columns.insert(columns.end(), attributes.cbegin(), attributes.cend());
+        columns.insert(columns.end(), after_attributes);
+        return columns;
+    };
+    m_tables.nodes().copy_target()->set_binary_types(
+        types({cft::int8, cft::int4, cft::int4}, {cft::jsonb}));
+    m_tables.ways().copy_target()->set_binary_types(
+        types({cft::int8}, {cft::int8_array, cft::jsonb}));
+    m_tables.relations().copy_target()->set_binary_types(
+        types({cft::int8}, {cft::jsonb, cft::jsonb}));
 }
 
 void middle_pgsql_t::set_requirements(

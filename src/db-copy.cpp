@@ -220,6 +220,10 @@ void db_copy_thread_t::thread_t::start_copy(
                        target->rows());
     }
 
+    if (target->binary()) {
+        fmt::format_to(std::back_inserter(sql), " (FORMAT binary)");
+    }
+
     if (!target->conditions().empty()) {
         fmt::format_to(std::back_inserter(sql), FMT_STRING(" WHERE {}"),
                        target->conditions());
@@ -228,12 +232,24 @@ void db_copy_thread_t::thread_t::start_copy(
     sql.push_back('\0');
     m_db_connection.copy_start(to_string(sql));
 
+    if (target->binary()) {
+        // Signature, flags (none), length of header extension (none)
+        static constexpr std::string_view HEADER{
+            "PGCOPY\n\xff\r\n\0\0\0\0\0\0\0\0\0", 19};
+        m_db_connection.copy_send(HEADER, target->name());
+    }
+
     m_inflight = target;
 }
 
 void db_copy_thread_t::thread_t::finish_copy()
 {
     if (m_inflight) {
+        if (m_inflight->binary()) {
+            // File trailer: a row with field count -1
+            static constexpr std::string_view TRAILER{"\xff\xff", 2};
+            m_db_connection.copy_send(TRAILER, m_inflight->name());
+        }
         m_db_connection.copy_end(m_inflight->name());
         m_inflight.reset();
     }
