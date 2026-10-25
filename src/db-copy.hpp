@@ -15,8 +15,9 @@
 #include "pgsql-params.hpp"
 
 #include <cassert>
-#include <cstddef>
 #include <condition_variable>
+#include <cstddef>
+#include <cstdint>
 #include <deque>
 #include <future>
 #include <memory>
@@ -26,6 +27,27 @@
 #include <utility>
 #include <variant>
 #include <vector>
+
+/**
+ * The PostgreSQL type of a column as far as the binary COPY format is
+ * concerned. Every type has its own binary representation which must match
+ * the column type exactly, the server does not convert anything.
+ */
+enum class copy_field_type : uint8_t
+{
+    text, ///< text, char(n), json: the string itself
+    boolean,
+    int2,
+    int4,
+    int8,
+    float4,
+    float8,
+    int8_array, ///< one-dimensional int8[] without NULLs
+    hstore,
+    jsonb,
+    geometry,   ///< PostGIS geometry, sent as EWKB
+    timestamptz ///< from osmium::Timestamp only
+};
 
 /**
  * Table information necessary for building SQL queries.
@@ -56,13 +78,35 @@ public:
     }
 
     /**
+     * Rows are sent in PostgreSQL's binary COPY format if the types of all
+     * columns are known, in the text format otherwise.
+     */
+    bool binary() const noexcept { return !m_binary_types.empty(); }
+
+    /// The types of the columns for the binary COPY format.
+    std::vector<copy_field_type> const &binary_types() const noexcept
+    {
+        return m_binary_types;
+    }
+
+    /**
+     * Set the types of all columns (in the order of rows()) to switch to the
+     * binary COPY format. An empty vector means text format.
+     */
+    void set_binary_types(std::vector<copy_field_type> types)
+    {
+        m_binary_types = std::move(types);
+    }
+
+    /**
      * Check if the buffer would use exactly the same copy operation.
      */
     bool same_copy_target(db_target_descr_t const &other) const noexcept
     {
         return (this == &other) ||
                (m_schema == other.m_schema && m_name == other.m_name &&
-                m_id == other.m_id && m_rows == other.m_rows);
+                m_id == other.m_id && m_rows == other.m_rows &&
+                binary() == other.binary());
     }
 
 private:
@@ -76,6 +120,8 @@ private:
     std::string m_rows;
     /// Conditions for the COPY command.
     std::string m_conditions;
+    /// Column types for binary COPY format (when empty: text format).
+    std::vector<copy_field_type> m_binary_types;
 };
 
 /**

@@ -9,6 +9,7 @@
 
 #include "flex-table-column.hpp"
 
+#include "db-copy.hpp"
 #include "format.hpp"
 #include "geom-boost-adaptor.hpp"
 #include "overloaded.hpp"
@@ -126,6 +127,54 @@ void flex_table_column_t::set_projection(char const *projection)
     if (*end != '\0') {
         throw fmt_error("Unknown projection: '{}'.", projection);
     }
+}
+
+std::optional<copy_field_type>
+flex_table_column_t::binary_copy_type() const noexcept
+{
+    if (!m_sql_type.empty()) {
+        return {}; // we don't know the binary format of arbitrary types
+    }
+
+    switch (m_type) {
+    case table_column_type::text:
+    case table_column_type::json:
+    case table_column_type::id_type:
+        return copy_field_type::text;
+    case table_column_type::boolean:
+        return copy_field_type::boolean;
+    case table_column_type::int2:
+    case table_column_type::direction:
+        return copy_field_type::int2;
+    case table_column_type::int4:
+        return copy_field_type::int4;
+    case table_column_type::int8:
+    case table_column_type::id_num:
+        return copy_field_type::int8;
+    case table_column_type::real:
+        return copy_field_type::float4;
+    case table_column_type::double_precision:
+        return copy_field_type::float8;
+    case table_column_type::timestamp:
+    case table_column_type::timestamptz:
+        // These can get strings from Lua in any format PostgreSQL
+        // understands, so we leave the parsing to PostgreSQL.
+        return {};
+    case table_column_type::hstore:
+        return copy_field_type::hstore;
+    case table_column_type::jsonb:
+        return copy_field_type::jsonb;
+    case table_column_type::geometry:
+    case table_column_type::point:
+    case table_column_type::linestring:
+    case table_column_type::polygon:
+    case table_column_type::multipoint:
+    case table_column_type::multilinestring:
+    case table_column_type::multipolygon:
+    case table_column_type::geometrycollection:
+        return copy_field_type::geometry;
+    }
+    return {};
 }
 
 std::string flex_table_column_t::sql_type_name() const
