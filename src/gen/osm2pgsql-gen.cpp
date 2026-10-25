@@ -114,13 +114,32 @@ tile_extent get_extent_from_db(pg_conn_t const &db_connection,
         result = db_connection.exec(
             "SELECT ST_XMin(extent), ST_YMin(extent),"
             " ST_XMax(extent), ST_YMax(extent)"
-            " FROM raster_columns WHERE r_table_schema='{}'"
-            " AND r_table_name='{}' AND r_raster_column = '{}'",
+            " FROM ("
+            "  SELECT ST_Transform(extent, 3857) AS extent"
+            "   FROM raster_columns WHERE r_table_schema='{}'"
+            "   AND r_table_name='{}' AND r_raster_column = '{}'"
+            " ) a",
             schema, table, column);
     } else {
         result = db_connection.exec(
+            "WITH srid AS ("
+            "  SELECT ST_SRID({}) AS srid FROM {} LIMIT 1"
+            ")"
             "SELECT ST_XMin(e), ST_YMin(e), ST_XMax(e), ST_YMax(e)"
-            " FROM ST_EstimatedExtent('{}', '{}', '{}') AS e",
+            "  FROM "
+            "    (SELECT CASE WHEN srid.srid = 0"
+            "      THEN ST_EstimatedExtent('{}', '{}', '{}')"
+            "      ELSE"
+            "        ST_Transform("
+            "        ST_SetSRID("
+            "          ST_EstimatedExtent('{}', '{}', '{}'), "
+            "          srid.srid"
+            "        ),"
+            "      3857)"
+            "    END AS e"
+            "    FROM srid) e",
+            column, qualified_name(schema, table),
+            schema, table, column,
             schema, table, column);
     }
 
