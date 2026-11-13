@@ -178,12 +178,10 @@ private:
 class input_context_t
 {
 public:
-    input_context_t(osmdata_t *osmdata, progress_display_t *progress,
-                    bool append)
-    : m_osmdata(osmdata), m_progress(progress), m_append(append)
+    input_context_t(osmdata_t *osmdata, bool append, bool show_progress)
+    : m_osmdata(osmdata), m_progress(show_progress), m_append(append)
     {
         assert(osmdata);
-        assert(progress);
     }
 
     void apply(osmium::OSMObject *object)
@@ -196,16 +194,16 @@ public:
         if (m_last_type != object->type()) {
             if (m_last_type == osmium::item_type::node) {
                 m_osmdata->after_nodes();
-                m_progress->start_way_counter();
+                m_progress.start_way_counter();
             }
             if (object->type() == osmium::item_type::relation) {
                 m_osmdata->after_ways();
-                m_progress->start_relation_counter();
+                m_progress.start_relation_counter();
             }
             m_last_type = object->type();
         }
 
-        osmium::apply_item(*object, *m_osmdata, *m_progress);
+        osmium::apply_item(*object, *m_osmdata, m_progress);
     }
 
     void eof()
@@ -222,18 +220,18 @@ public:
         }
 
         m_osmdata->after_relations();
-        m_progress->print_summary();
+        m_progress.print_summary();
     }
 
 private:
     osmdata_t *m_osmdata;
-    progress_display_t *m_progress;
+    progress_display_t m_progress;
     osmium::item_type m_last_type = osmium::item_type::node;
     bool m_append;
 }; // class input_context_t
 
 file_info process_single_file(osmium::io::File const &file, osmdata_t *osmdata,
-                              progress_display_t *progress, bool append)
+                              bool append, bool show_progress)
 {
     file_info finfo;
 
@@ -241,7 +239,7 @@ file_info process_single_file(osmium::io::File const &file, osmdata_t *osmdata,
     finfo.header = reader.header();
     type_id last{osmium::item_type::node, 0};
 
-    input_context_t ctx{osmdata, progress, append};
+    input_context_t ctx{osmdata, append, show_progress};
     while (osmium::memory::Buffer buffer = reader.read()) {
         for (auto &object : buffer.select<osmium::OSMObject>()) {
             last = check_input(last, object);
@@ -259,8 +257,8 @@ file_info process_single_file(osmium::io::File const &file, osmdata_t *osmdata,
 }
 
 file_info process_multiple_files(std::vector<osmium::io::File> const &files,
-                                 osmdata_t *osmdata,
-                                 progress_display_t *progress, bool append)
+                                 osmdata_t *osmdata, bool append,
+                                 bool show_progress)
 {
     file_info finfo;
 
@@ -277,7 +275,7 @@ file_info process_multiple_files(std::vector<osmium::io::File> const &files,
         }
     }
 
-    input_context_t ctx{osmdata, progress, append};
+    input_context_t ctx{osmdata, append, show_progress};
     while (!queue.empty()) {
         auto element = queue.top();
         queue.pop();
@@ -340,11 +338,10 @@ file_info process_files(std::vector<osmium::io::File> const &files,
 {
     assert(osmdata);
 
-    progress_display_t progress{show_progress};
-
     if (files.size() == 1) {
-        return process_single_file(files.front(), osmdata, &progress, append);
+        return process_single_file(files.front(), osmdata, append,
+                                   show_progress);
     }
 
-    return process_multiple_files(files, osmdata, &progress, append);
+    return process_multiple_files(files, osmdata, append, show_progress);
 }
