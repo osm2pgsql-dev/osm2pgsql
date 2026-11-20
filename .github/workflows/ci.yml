@@ -382,7 +382,7 @@ jobs:
     runs-on: windows-2025
 
     env:
-      OSMURL: https://download.geofabrik.de/europe/monaco-latest.osm.pbf
+      OSMURL: https://nominatim.org/ci-test-data/extract-tiny.osm.pbf
 
     steps:
       - uses: actions/checkout@v7

@@ -47,6 +47,7 @@ try:
     from osmium.replication.utils import get_replication_header
     from osmium.replication import newest_change_from_file
     from osmium import WriteHandler
+    from osmium.version import pyosmium_release
 except ImportError:
     missing_modules.append('osmium')
 
@@ -301,6 +302,13 @@ class LegacyProperties:
         self.db.conn.commit()
 
 
+def make_replication_server(base_url):
+    repl = ReplicationServer(base_url)
+    repl.set_request_parameter(
+        'headers', {'User-Agent': f"osm2pgsql-replication (via pyosmium/{pyosmium_release})"})
+    return repl
+
+
 def get_status_info(props, args):
     results = {'status': 0}
 
@@ -310,7 +318,7 @@ def get_status_info(props, args):
     results['server'] = {'base_url': base_url}
     results['local'] = {'sequence': db_seq, 'timestamp': osm_date(db_ts)}
 
-    repl = ReplicationServer(base_url)
+    repl = make_replication_server(base_url)
     state_info = repl.get_state_info()
     if state_info is None:
         # PyOsmium was unable to download the state information
@@ -442,7 +450,7 @@ def init(props, args):
         if base_url is None or (seq is None and date is None):
             raise DBError(1, f"File '{args.osm_file}' has no usable replication headers. Use '--server' instead.")
 
-    repl = ReplicationServer(base_url)
+    repl = make_replication_server(base_url)
     if seq is None:
         seq = repl.timestamp_to_sequence(date)
         if seq is None:
@@ -506,7 +514,7 @@ def update(props, args):
     LOG.info("Using replication service '%s'.", base_url)
     local_db_age_sec = int((dt.datetime.now(dt.timezone.utc) - ts).total_seconds())
 
-    repl = ReplicationServer(base_url)
+    repl = make_replication_server(base_url)
     current = repl.get_state_info()
     if current is None:
         raise DBError(1, f"Cannot reach the configured replication service '{base_url}'.\n"

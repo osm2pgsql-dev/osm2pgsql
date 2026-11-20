@@ -93,6 +93,9 @@ class ReplicationServerMock:
         numdiffs = int((max_size + 1023)/1024)
         return min(self.state_infos[-1].sequence, start_id + numdiffs - 1)
 
+    def set_request_parameter(self, param, value):
+        pass
+
 # Replication module is optional
 _replication_path = Path(__file__, '..', 'osm2pgsql-replication').resolve()
 

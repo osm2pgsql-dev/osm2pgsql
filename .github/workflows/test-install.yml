@@ -24,8 +24,8 @@ jobs:
       BUILD_TYPE: Release
       CXXFLAGS: -pedantic -Wextra -Werror
       PREFIX: /usr/local
-      OSMURL: https://download.geofabrik.de/europe/monaco-latest.osm.pbf
-      OSMFILE: monaco-latest.osm.pbf
+      OSMURL: https://nominatim.org/ci-test-data/test-country.osm.pbf
+      OSMFILE: test-country.osm.pbf
 
     steps:
       - uses: actions/checkout@v7
